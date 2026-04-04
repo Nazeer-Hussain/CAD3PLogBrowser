@@ -1,35 +1,39 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
     public partial class mainFrm : Form
     {
-        // ── State ────────────────────────────────────────────────────────────
-        private string _currentFilePath = string.Empty;
-        private bool _isLoading = false;
-        private int _lastFoundIndex = -1;
-        private string _lastSearchTerm = string.Empty;
-        private List<string> _allLines = new List<string>();
+        // ── Services ──────────────────────────────────────────────────────────
+        private readonly LogFileService  _logFileService;
+        private readonly SearchService   _searchService;
+        private readonly SettingsService _settingsService;
 
-        // ── Construction ─────────────────────────────────────────────────────
+        // ── State ─────────────────────────────────────────────────────────────
+        private string       _currentFilePath = string.Empty;
+        private bool         _isLoading       = false;
+        private List<string> _allLines        = new List<string>();
+
+        // ── Construction ──────────────────────────────────────────────────────
         public mainFrm()
         {
             InitializeComponent();
+
+            _settingsService = new SettingsService();
+            _searchService   = new SearchService();
+            _logFileService  = new LogFileService(this);
+            _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
+
             RestoreSettings();
         }
 
-        // ── Public API (used by Program.cs command-line arg) ──────────────────
-        public string ActiveFilePath
-        {
-            get { return _currentFilePath; }
-        }
+        // ── Public API ────────────────────────────────────────────────────────
+        public string ActiveFilePath { get { return _currentFilePath; } }
 
         public void OpenFilePath(string filePath)
         {
@@ -37,32 +41,26 @@ namespace Cad3PLogBrowser
                 LoadFileAsync(filePath);
         }
 
-        // ── Settings ─────────────────────────────────────────────────────────
+        // ── Settings ──────────────────────────────────────────────────────────
         private void RestoreSettings()
         {
-            try
-            {
-                var raw = Application.UserAppDataRegistry.GetValue("LastSplitter");
-                if (raw != null && int.TryParse(raw.ToString(), out int dist) && dist > 0)
-                    splitContainer1.SplitterDistance = dist;
-            }
-            catch
-            {
-                // First-run: registry key doesn't exist yet; leave default splitter position.
-            }
+            int dist = _settingsService.LoadSplitterDistance();
+            if (dist > 0)
+                splitContainer1.SplitterDistance = dist;
+
+            string lastDir = _settingsService.LoadLastDirectory();
+            if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
+                openFileDialog1.InitialDirectory = lastDir;
         }
 
         private void SaveSettings()
         {
-            try
-            {
-                Application.UserAppDataRegistry.SetValue("LastSplitter",
-                    splitContainer1.SplitterDistance.ToString());
-            }
-            catch { /* Non-fatal */ }
+            _settingsService.SaveSplitterDistance(splitContainer1.SplitterDistance);
+            if (!string.IsNullOrEmpty(_currentFilePath))
+                _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
         }
 
-        // ── File loading (async) ──────────────────────────────────────────────
+        // ── File loading ──────────────────────────────────────────────────────
         private async void LoadFileAsync(string filePath)
         {
             if (_isLoading) return;
@@ -75,18 +73,17 @@ namespace Cad3PLogBrowser
 
             try
             {
-                var lines = await ReadLinesAsync(filePath);
+                var lines = await _logFileService.ReadLinesAsync(filePath);
 
-                _allLines = lines;
+                _allLines        = lines;
                 _currentFilePath = filePath;
-                _lastFoundIndex = -1;
-                _lastSearchTerm = string.Empty;
+                _searchService.Reset();
 
                 PopulateListView(_allLines);
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = Resources.green_ball;
-                WatchFile(filePath);
+                _logFileService.WatchFile(filePath);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -107,37 +104,29 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private static Task<List<string>> ReadLinesAsync(string filePath)
-        {
-            return Task.Run(() =>
-            {
-                var lines = new List<string>();
-                // FileShare.ReadWrite allows reading logs still being written.
-                using (var stream = new FileStream(filePath, FileMode.Open,
-                    FileAccess.Read, FileShare.ReadWrite))
-                using (var reader = new StreamReader(stream, Encoding.UTF8,
-                    detectEncodingFromByteOrderMarks: true))
-                {
-                    string line;
-                    while ((line = reader.ReadLine()) != null)
-                        lines.Add(line);
-                }
-                return lines;
-            });
-        }
-
-        private void PopulateListView(List<string> lines)
+        private void PopulateListView(IList<string> lines)
         {
             listView1.BeginUpdate();
             listView1.Items.Clear();
-
             for (int i = 0; i < lines.Count; i++)
             {
                 var item = new ListViewItem((i + 1).ToString());
                 item.SubItems.Add(lines[i]);
                 listView1.Items.Add(item);
             }
+            listView1.EndUpdate();
+        }
 
+        private void PopulateListViewFiltered(IList<Services.FilteredLine> filtered)
+        {
+            listView1.BeginUpdate();
+            listView1.Items.Clear();
+            foreach (var fl in filtered)
+            {
+                var item = new ListViewItem(fl.LineNumber.ToString());
+                item.SubItems.Add(fl.Text);
+                listView1.Items.Add(item);
+            }
             listView1.EndUpdate();
         }
 
@@ -147,28 +136,13 @@ namespace Cad3PLogBrowser
             FileStatus.Image = Resources.red_ball;
             MessageBox.Show(
                 string.Format("{0}:\n{1}\n\nFile: {2}", reason, detail, filePath),
-                Resources.TITLE,
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+                Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        // ── File watcher ──────────────────────────────────────────────────────
-        private void WatchFile(string filePath)
+        // ── File watcher callback ─────────────────────────────────────────────
+        private void OnFileChangedOnDisk(object sender, EventArgs e)
         {
-            try
-            {
-                logWatcher.EnableRaisingEvents = false;
-                logWatcher.Path = Path.GetDirectoryName(filePath);
-                logWatcher.Filter = Path.GetFileName(filePath);
-                logWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.LastWrite;
-                logWatcher.EnableRaisingEvents = true;
-            }
-            catch { /* Non-fatal: user can refresh manually */ }
-        }
-
-        private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e)
-        {
-            // SynchronizingObject = this is set in designer, so this runs on the UI thread.
+            // Already marshalled to UI thread by LogFileService (SynchronizingObject).
             if (!_isLoading)
                 FileStatus.Image = Resources.red_ball;
         }
@@ -176,13 +150,15 @@ namespace Cad3PLogBrowser
         // ── UI state helper ───────────────────────────────────────────────────
         private void SetDocumentLoaded(bool loaded)
         {
-            saveAsMenuItem.Enabled = SaveButton.Enabled = loaded;
-            refreshMenuItem.Enabled = reloadMenuItem.Enabled = RefreshButton.Enabled = loaded;
-            copyMenuItem.Enabled = CopyButton.Enabled = loaded;
-            findMenuItem.Enabled = findNextMenuItem.Enabled = FindButton.Enabled = loaded;
-            filterMenuItem.Enabled = FilterButton.Enabled = loaded;
-            FileStatus.Enabled = loaded;
-            FileLoadProgress.Enabled = loaded;
+            saveAsMenuItem.Enabled    = SaveButton.Enabled    = loaded;
+            refreshMenuItem.Enabled   = reloadMenuItem.Enabled
+                                      = RefreshButton.Enabled = loaded;
+            copyMenuItem.Enabled      = CopyButton.Enabled    = loaded;
+            findMenuItem.Enabled      = findNextMenuItem.Enabled
+                                      = FindButton.Enabled    = loaded;
+            filterMenuItem.Enabled    = FilterButton.Enabled  = loaded;
+            FileStatus.Enabled        = loaded;
+            FileLoadProgress.Enabled  = loaded;
         }
 
         // ── File menu ─────────────────────────────────────────────────────────
@@ -202,11 +178,11 @@ namespace Cad3PLogBrowser
 
             try
             {
-                var sb = new StringBuilder();
+                var lines = new List<string>();
                 foreach (ListViewItem item in listView1.Items)
-                    sb.AppendLine(item.SubItems[1].Text);
+                    lines.Add(item.SubItems[1].Text);
 
-                File.WriteAllText(saveFileDialog1.FileName, sb.ToString(), Encoding.UTF8);
+                _logFileService.WriteLines(saveFileDialog1.FileName, lines);
                 MessageBox.Show("File saved successfully.", Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -251,11 +227,11 @@ namespace Cad3PLogBrowser
         {
             if (listView1.SelectedItems.Count == 0) return;
 
-            var sb = new StringBuilder();
+            var lines = new List<string>();
             foreach (ListViewItem item in listView1.SelectedItems)
-                sb.AppendLine(item.SubItems[1].Text);
+                lines.Add(item.SubItems[1].Text);
 
-            Clipboard.SetText(sb.ToString());
+            Clipboard.SetText(_searchService.JoinForClipboard(lines));
         }
 
         private void CopyButton_Click(object sender, EventArgs e) =>
@@ -270,7 +246,7 @@ namespace Cad3PLogBrowser
             {
                 _findForm = new FindForm(this);
                 _findForm.Left = Right - _findForm.Width - 20;
-                _findForm.Top = Top + 80;
+                _findForm.Top  = Top + 80;
             }
             _findForm.Show();
             _findForm.BringToFront();
@@ -279,46 +255,47 @@ namespace Cad3PLogBrowser
         private void FindButton_Click(object sender, EventArgs e) =>
             findMenuItem_Click(sender, e);
 
-        // FindNext – called by menu shortcut or FindForm
+        // Called by FindForm and Find Next menu item
         public void FindNext(string searchTerm, bool matchCase)
         {
             if (listView1.Items.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
 
-            var comp = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            // Build a plain list of the currently visible lines for searching.
+            var visibleLines = new List<string>();
+            foreach (ListViewItem item in listView1.Items)
+                visibleLines.Add(item.SubItems[1].Text);
 
-            if (!string.Equals(searchTerm, _lastSearchTerm, comp))
+            int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase);
+
+            if (idx >= 0)
             {
-                _lastFoundIndex = -1;
-                _lastSearchTerm = searchTerm;
+                listView1.SelectedItems.Clear();
+                listView1.Items[idx].Selected = true;
+                listView1.Items[idx].EnsureVisible();
             }
-
-            int start = _lastFoundIndex + 1;
-            for (int i = 0; i < listView1.Items.Count; i++)
+            else
             {
-                int idx = (start + i) % listView1.Items.Count;
-                if (listView1.Items[idx].SubItems[1].Text.IndexOf(searchTerm, comp) >= 0)
-                {
-                    listView1.SelectedItems.Clear();
-                    listView1.Items[idx].Selected = true;
-                    listView1.Items[idx].EnsureVisible();
-                    _lastFoundIndex = idx;
-                    return;
-                }
+                MessageBox.Show(string.Format("'{0}' not found.", searchTerm),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-
-            MessageBox.Show(string.Format("'{0}' not found.", searchTerm), Resources.TITLE,
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void findNextMenuItem_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(_lastSearchTerm))
-                FindNext(_lastSearchTerm, matchCase: false);
+            // Reuse last search term if available, otherwise open the dialog.
+            if (_findForm != null && !_findForm.IsDisposed)
+                _findForm.TriggerFindNext();
             else
                 findMenuItem_Click(sender, e);
         }
 
-        // Filter
+        // Filter – called by FilterForm
+        public void ApplyFilter(string filterText, bool matchCase)
+        {
+            var filtered = _searchService.Filter(_allLines, filterText, matchCase);
+            PopulateListViewFiltered(filtered);
+        }
+
         private void filterMenuItem_Click(object sender, EventArgs e)
         {
             using (var filterFrm = new FilterFrm(this))
@@ -331,34 +308,7 @@ namespace Cad3PLogBrowser
         private void filterToolStripMenuItem_Click(object sender, EventArgs e) =>
             filterMenuItem_Click(sender, e);
 
-        // Called by FilterForm to apply or clear a filter
-        public void ApplyFilter(string filterText, bool matchCase)
-        {
-            if (string.IsNullOrWhiteSpace(filterText))
-            {
-                PopulateListView(_allLines);
-                return;
-            }
-
-            var comp = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-            listView1.BeginUpdate();
-            listView1.Items.Clear();
-
-            for (int i = 0; i < _allLines.Count; i++)
-            {
-                if (_allLines[i].IndexOf(filterText, comp) >= 0)
-                {
-                    var item = new ListViewItem((i + 1).ToString());
-                    item.SubItems.Add(_allLines[i]);
-                    listView1.Items.Add(item);
-                }
-            }
-
-            listView1.EndUpdate();
-        }
-
-        // ── Options / Help menus ──────────────────────────────────────────────
+        // ── Options / Help ────────────────────────────────────────────────────
         private void settingsMenuItem_Click(object sender, EventArgs e)
         {
             using (var settingsFrm = new SettingsFrm())
@@ -380,8 +330,11 @@ namespace Cad3PLogBrowser
         private void mainFrm_Load(object sender, EventArgs e) =>
             SetDocumentLoaded(false);
 
-        private void mainFrm_FormClosed(object sender, FormClosedEventArgs e) =>
+        private void mainFrm_FormClosed(object sender, FormClosedEventArgs e)
+        {
             SaveSettings();
+            _logFileService.Dispose();
+        }
 
         private void mainFrm_FormClosing(object sender, FormClosingEventArgs e) { }
         private void mainFrm_ResizeBegin(object sender, EventArgs e) { }
@@ -419,5 +372,8 @@ namespace Cad3PLogBrowser
             if (e.Button == MouseButtons.Right)
                 contextMenuStrip1.Show(CallTree, e.Location);
         }
+
+        // Needed by the designer-generated logWatcher_Changed hook — now delegated to service.
+        private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Windows.Forms;
 
 namespace Cad3PLogBrowser
@@ -13,27 +12,32 @@ namespace Cad3PLogBrowser
             _owner = owner;
         }
 
-        private void FindButton_Click(object sender, EventArgs e)
+        // Called by the Find Next menu shortcut (Ctrl+F3) when the dialog is open.
+        public void TriggerFindNext()
         {
             PerformFind();
         }
 
+        private void FindButton_Click(object sender, System.EventArgs e) =>
+            PerformFind();
+
         private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
-                PerformFind();
+            if (e.KeyCode == Keys.Enter) PerformFind();
         }
 
         private void PerformFind()
         {
-            _owner.FindNext(SearchTextBox.Text, MatchCaseCheckBox.Checked);
+            // Add the term to history so the combo box acts as a search history.
+            string term = SearchTextBox.Text;
+            if (!string.IsNullOrEmpty(term) && !SearchTextBox.Items.Contains(term))
+                SearchTextBox.Items.Insert(0, term);
+
+            _owner.FindNext(term, MatchCaseCheckBox.Checked);
         }
 
-        private void Cancelbutton_Click(object sender, EventArgs e)
-        {
-            Hide();
-        }
+        private void Cancelbutton_Click(object sender, System.EventArgs e) => Hide();
 
-        private void FindFrm_Load(object sender, EventArgs e) { }
+        private void FindFrm_Load(object sender, System.EventArgs e) { }
     }
 }
