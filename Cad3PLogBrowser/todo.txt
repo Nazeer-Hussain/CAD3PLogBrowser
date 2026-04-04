@@ -1,0 +1,32 @@
+-One level Treeview for API calls only
+-Multilevel Treeview for call stackview
+-display/hide tabs
+-switch between treeview types
+-flat icons
+-Menubar like
+  File  Edit  Options View Help
+
+  Actions
+  File->Open						:Open a log file from disk, default to PTC_LOG_DIR folder
+  File->Save Selected				:Save the selected tree node to disk (trimmed log) , default to PTC_LOG_DIR folder, filename 
+  File->Refresh (reload from disk)
+  File->Exit
+  
+  Edit->Copy Selected
+  Edit->Filter
+  Edit->Find
+  Edit->Find Next
+  
+  Options->Settings
+  
+  View->Call Sequence
+  View->API Call List
+  
+  View->Hide Tabs
+  View->Performance 
+  View->LogDetails
+  View->Call Graph
+  
+  Help->Help
+  Help->About
+  
