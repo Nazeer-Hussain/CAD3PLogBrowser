@@ -1,161 +1,116 @@
-﻿namespace Cad3PLogBrowser
+namespace Cad3PLogBrowser
 {
     partial class FilterFrm
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
-            {
                 components.Dispose();
-            }
             base.Dispose(disposing);
         }
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.FilterList = new System.Windows.Forms.ListBox();
-            this.buttonAdd = new System.Windows.Forms.Button();
-            this.buttonRemove = new System.Windows.Forms.Button();
-            this.buttonRemoveAll = new System.Windows.Forms.Button();
-            this.buttonFilter = new System.Windows.Forms.Button();
+            this.FilterTextBox = new System.Windows.Forms.ComboBox();
+            this.MatchCaseCheckBox = new System.Windows.Forms.CheckBox();
+            this.ApplyButton = new System.Windows.Forms.Button();
+            this.ClearButton = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
-            // comboBox1
-            // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(12, 29);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(459, 24);
-            this.comboBox1.TabIndex = 0;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(12, 9);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(115, 17);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "Filter Log Entries";
-            // 
-            // FilterList
-            // 
-            this.FilterList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.FilterList.FormattingEnabled = true;
-            this.FilterList.HorizontalScrollbar = true;
-            this.FilterList.ItemHeight = 16;
-            this.FilterList.Location = new System.Drawing.Point(12, 75);
-            this.FilterList.Name = "FilterList";
-            this.FilterList.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple;
-            this.FilterList.Size = new System.Drawing.Size(553, 260);
-            this.FilterList.TabIndex = 2;
-            // 
-            // buttonAdd
-            // 
-            this.buttonAdd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonAdd.Location = new System.Drawing.Point(477, 29);
-            this.buttonAdd.Name = "buttonAdd";
-            this.buttonAdd.Size = new System.Drawing.Size(95, 30);
-            this.buttonAdd.TabIndex = 9;
-            this.buttonAdd.Text = "&Add";
-            this.buttonAdd.UseVisualStyleBackColor = true;
-            // 
-            // buttonRemove
-            // 
-            this.buttonRemove.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-            this.buttonRemove.Location = new System.Drawing.Point(66, 351);
-            this.buttonRemove.Name = "buttonRemove";
-            this.buttonRemove.Size = new System.Drawing.Size(95, 30);
-            this.buttonRemove.TabIndex = 10;
-            this.buttonRemove.Text = "&Remove";
-            this.buttonRemove.UseVisualStyleBackColor = true;
-            // 
-            // buttonRemoveAll
-            // 
-            this.buttonRemoveAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-            this.buttonRemoveAll.Location = new System.Drawing.Point(180, 351);
-            this.buttonRemoveAll.Name = "buttonRemoveAll";
-            this.buttonRemoveAll.Size = new System.Drawing.Size(95, 30);
-            this.buttonRemoveAll.TabIndex = 11;
-            this.buttonRemoveAll.Text = "R&emove All";
-            this.buttonRemoveAll.UseVisualStyleBackColor = true;
-            // 
-            // buttonFilter
-            // 
-            this.buttonFilter.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-            this.buttonFilter.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.buttonFilter.Location = new System.Drawing.Point(297, 351);
-            this.buttonFilter.Name = "buttonFilter";
-            this.buttonFilter.Size = new System.Drawing.Size(95, 30);
-            this.buttonFilter.TabIndex = 12;
-            this.buttonFilter.Text = "&Filter";
-            this.buttonFilter.UseVisualStyleBackColor = true;
-            // 
+            this.label1.Size = new System.Drawing.Size(160, 17);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Show only lines containing:";
+            //
+            // FilterTextBox
+            //
+            this.FilterTextBox.FormattingEnabled = true;
+            this.FilterTextBox.Location = new System.Drawing.Point(12, 29);
+            this.FilterTextBox.Name = "FilterTextBox";
+            this.FilterTextBox.Size = new System.Drawing.Size(459, 24);
+            this.FilterTextBox.TabIndex = 1;
+            //
+            // MatchCaseCheckBox
+            //
+            this.MatchCaseCheckBox.AutoSize = true;
+            this.MatchCaseCheckBox.Location = new System.Drawing.Point(12, 63);
+            this.MatchCaseCheckBox.Name = "MatchCaseCheckBox";
+            this.MatchCaseCheckBox.Size = new System.Drawing.Size(100, 21);
+            this.MatchCaseCheckBox.TabIndex = 2;
+            this.MatchCaseCheckBox.Text = "Match case";
+            //
+            // ApplyButton
+            //
+            this.ApplyButton.Location = new System.Drawing.Point(200, 58);
+            this.ApplyButton.Name = "ApplyButton";
+            this.ApplyButton.Size = new System.Drawing.Size(88, 31);
+            this.ApplyButton.TabIndex = 3;
+            this.ApplyButton.Text = "&Apply";
+            this.ApplyButton.UseVisualStyleBackColor = true;
+            this.ApplyButton.Click += new System.EventHandler(this.ApplyButton_Click);
+            //
+            // ClearButton
+            //
+            this.ClearButton.Location = new System.Drawing.Point(298, 58);
+            this.ClearButton.Name = "ClearButton";
+            this.ClearButton.Size = new System.Drawing.Size(88, 31);
+            this.ClearButton.TabIndex = 4;
+            this.ClearButton.Text = "&Clear";
+            this.ClearButton.UseVisualStyleBackColor = true;
+            this.ClearButton.Click += new System.EventHandler(this.ClearButton_Click);
+            //
             // buttonClose
-            // 
-            this.buttonClose.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            //
             this.buttonClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonClose.Location = new System.Drawing.Point(422, 352);
+            this.buttonClose.Location = new System.Drawing.Point(396, 58);
             this.buttonClose.Name = "buttonClose";
-            this.buttonClose.Size = new System.Drawing.Size(95, 30);
-            this.buttonClose.TabIndex = 13;
+            this.buttonClose.Size = new System.Drawing.Size(88, 31);
+            this.buttonClose.TabIndex = 5;
             this.buttonClose.Text = "&Close";
             this.buttonClose.UseVisualStyleBackColor = true;
-            // 
+            this.buttonClose.Click += new System.EventHandler(this.buttonClose_Click);
+            //
             // FilterFrm
-            // 
-            this.AcceptButton = this.buttonFilter;
+            //
+            this.AcceptButton = this.ApplyButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonClose;
-            this.ClientSize = new System.Drawing.Size(577, 390);
+            this.ClientSize = new System.Drawing.Size(500, 105);
             this.Controls.Add(this.buttonClose);
-            this.Controls.Add(this.buttonFilter);
-            this.Controls.Add(this.buttonRemoveAll);
-            this.Controls.Add(this.buttonRemove);
-            this.Controls.Add(this.buttonAdd);
-            this.Controls.Add(this.FilterList);
+            this.Controls.Add(this.ClearButton);
+            this.Controls.Add(this.ApplyButton);
+            this.Controls.Add(this.MatchCaseCheckBox);
+            this.Controls.Add(this.FilterTextBox);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.comboBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FilterFrm";
+            this.ShowInTaskbar = false;
             this.Text = "Filter Log";
             this.Load += new System.EventHandler(this.FilterFrm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
 
         #endregion
 
-        private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.ListBox FilterList;
-        private System.Windows.Forms.Button buttonAdd;
-        private System.Windows.Forms.Button buttonRemove;
-        private System.Windows.Forms.Button buttonRemoveAll;
-        private System.Windows.Forms.Button buttonFilter;
+        private System.Windows.Forms.ComboBox FilterTextBox;
+        private System.Windows.Forms.CheckBox MatchCaseCheckBox;
+        private System.Windows.Forms.Button ApplyButton;
+        private System.Windows.Forms.Button ClearButton;
         private System.Windows.Forms.Button buttonClose;
     }
 }
