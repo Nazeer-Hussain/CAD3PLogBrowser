@@ -10,9 +10,10 @@ namespace Cad3PLogBrowser
     public partial class mainFrm : Form
     {
         // ── Services ──────────────────────────────────────────────────────────
-        private readonly LogFileService  _logFileService;
-        private readonly SearchService   _searchService;
-        private readonly SettingsService _settingsService;
+        private readonly LogFileService   _logFileService;
+        private readonly SearchService    _searchService;
+        private readonly SettingsService  _settingsService;
+        private readonly LogParserService _parserService;
 
         // ── State ─────────────────────────────────────────────────────────────
         private string       _currentFilePath = string.Empty;
@@ -26,10 +27,12 @@ namespace Cad3PLogBrowser
 
             _settingsService = new SettingsService();
             _searchService   = new SearchService();
+            _parserService   = new LogParserService();
             _logFileService  = new LogFileService(this);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
+            InitTreeViews();
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -60,6 +63,168 @@ namespace Cad3PLogBrowser
                 _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
         }
 
+        // ── Tree view initialisation ──────────────────────────────────────────
+        private void InitTreeViews()
+        {
+            ApiTree.ShowLines    = true;
+            ApiTree.ShowPlusMinus = true;
+            ApiTree.HideSelection = false;
+
+            CallTree.ShowLines    = true;
+            CallTree.ShowPlusMinus = true;
+            CallTree.HideSelection = false;
+
+            // Wire up toolbar toggle buttons.
+            CallTreeButton.CheckedChanged += (s, e) => SyncTreeVisibility();
+            ApiTreeButton.CheckedChanged  += (s, e) => SyncTreeVisibility();
+            HideTabsButton.CheckedChanged += (s, e) => SyncTabVisibility();
+
+            // Wire up View menu items.
+            showCallTreeMenuItem.CheckedChanged += (s, e) => SyncTreeVisibility();
+            showApiListMenuItem.CheckedChanged  += (s, e) => SyncTreeVisibility();
+            hideAllMenuItem.Click += (s, e) =>
+            {
+                HideTabsButton.Checked = !HideTabsButton.Checked;
+                SyncTabVisibility();
+            };
+
+            SyncTreeVisibility();
+        }
+
+        // ── Tree population ───────────────────────────────────────────────────
+        private void PopulateTrees(List<string> lines)
+        {
+            var entries     = _parserService.Parse(lines);
+            var apiList     = _parserService.BuildApiList(entries);
+            var callTree    = _parserService.BuildCallTree(entries);
+
+            PopulateApiTree(apiList);
+            PopulateCallTree(callTree);
+        }
+
+        private void PopulateApiTree(List<ApiCallNode> apiNodes)
+        {
+            ApiTree.BeginUpdate();
+            ApiTree.Nodes.Clear();
+
+            foreach (var node in apiNodes)
+            {
+                var tn = new TreeNode(node.ToString())
+                {
+                    Tag = node.FirstLine   // line number to jump to on click
+                };
+                // Sub-nodes: each call occurrence with its line number.
+                foreach (int lineNo in node.LineNumbers)
+                {
+                    var child = new TreeNode(string.Format("Line {0}", lineNo))
+                    {
+                        Tag = lineNo
+                    };
+                    tn.Nodes.Add(child);
+                }
+                ApiTree.Nodes.Add(tn);
+            }
+
+            ApiTree.EndUpdate();
+        }
+
+        private void PopulateCallTree(List<CallStackNode> roots)
+        {
+            CallTree.BeginUpdate();
+            CallTree.Nodes.Clear();
+
+            foreach (var root in roots)
+                CallTree.Nodes.Add(BuildTreeNode(root));
+
+            CallTree.EndUpdate();
+        }
+
+        private static TreeNode BuildTreeNode(CallStackNode csNode)
+        {
+            var tn = new TreeNode(csNode.Label) { Tag = csNode.LineNumber };
+            foreach (var child in csNode.Children)
+                tn.Nodes.Add(BuildTreeNode(child));
+            return tn;
+        }
+
+        // ── Tree visibility toggles ───────────────────────────────────────────
+        private void SyncTreeVisibility()
+        {
+            bool showCall = CallTreeButton.Checked || showCallTreeMenuItem.Checked;
+            bool showApi  = ApiTreeButton.Checked  || showApiListMenuItem.Checked;
+
+            CallTree.Visible = showCall;
+            ApiTree.Visible  = showApi;
+
+            // Keep menu and toolbar in sync.
+            showCallTreeMenuItem.Checked = CallTreeButton.Checked = showCall;
+            showApiListMenuItem.Checked  = ApiTreeButton.Checked  = showApi;
+
+            LayoutTrees();
+        }
+
+        private void SyncTabVisibility()
+        {
+            bool hide = HideTabsButton.Checked;
+            tabControl1.Appearance = hide
+                ? TabAppearance.FlatButtons   // hides tab headers
+                : TabAppearance.Normal;
+        }
+
+        /// <summary>Stack the two trees vertically inside Panel1, splitting evenly.</summary>
+        private void LayoutTrees()
+        {
+            int panelH = splitContainer1.Panel1.ClientSize.Height;
+            int panelW = splitContainer1.Panel1.ClientSize.Width;
+
+            bool showCall = CallTree.Visible;
+            bool showApi  = ApiTree.Visible;
+
+            if (showCall && showApi)
+            {
+                int half = panelH / 2;
+                ApiTree.SetBounds(0, 0, panelW, half);
+                CallTree.SetBounds(0, half, panelW, panelH - half);
+            }
+            else if (showCall)
+            {
+                CallTree.SetBounds(0, 0, panelW, panelH);
+            }
+            else if (showApi)
+            {
+                ApiTree.SetBounds(0, 0, panelW, panelH);
+            }
+        }
+
+        // ── Tree node click → scroll log view ────────────────────────────────
+        private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            ScrollLogToLine(e.Node?.Tag);
+        }
+
+        private void ApiTree_Click(object sender, EventArgs e) { }
+        private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
+
+        private void CallTree_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            ScrollLogToLine(e.Node?.Tag);
+        }
+
+        private void ScrollLogToLine(object tag)
+        {
+            if (tag == null) return;
+            if (!(tag is int lineNumber)) return;
+
+            // ListView items are 0-based; line numbers are 1-based.
+            int idx = lineNumber - 1;
+            if (idx < 0 || idx >= listView1.Items.Count) return;
+
+            listView1.SelectedItems.Clear();
+            listView1.Items[idx].Selected = true;
+            listView1.Items[idx].EnsureVisible();
+            listView1.Focus();
+        }
+
         // ── File loading ──────────────────────────────────────────────────────
         private async void LoadFileAsync(string filePath)
         {
@@ -80,6 +245,7 @@ namespace Cad3PLogBrowser
                 _searchService.Reset();
 
                 PopulateListView(_allLines);
+                PopulateTrees(_allLines);
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = Resources.green_ball;
@@ -117,7 +283,7 @@ namespace Cad3PLogBrowser
             listView1.EndUpdate();
         }
 
-        private void PopulateListViewFiltered(IList<Services.FilteredLine> filtered)
+        private void PopulateListViewFiltered(IList<FilteredLine> filtered)
         {
             listView1.BeginUpdate();
             listView1.Items.Clear();
@@ -142,7 +308,6 @@ namespace Cad3PLogBrowser
         // ── File watcher callback ─────────────────────────────────────────────
         private void OnFileChangedOnDisk(object sender, EventArgs e)
         {
-            // Already marshalled to UI thread by LogFileService (SynchronizingObject).
             if (!_isLoading)
                 FileStatus.Image = Resources.red_ball;
         }
@@ -150,15 +315,15 @@ namespace Cad3PLogBrowser
         // ── UI state helper ───────────────────────────────────────────────────
         private void SetDocumentLoaded(bool loaded)
         {
-            saveAsMenuItem.Enabled    = SaveButton.Enabled    = loaded;
-            refreshMenuItem.Enabled   = reloadMenuItem.Enabled
-                                      = RefreshButton.Enabled = loaded;
-            copyMenuItem.Enabled      = CopyButton.Enabled    = loaded;
-            findMenuItem.Enabled      = findNextMenuItem.Enabled
-                                      = FindButton.Enabled    = loaded;
-            filterMenuItem.Enabled    = FilterButton.Enabled  = loaded;
-            FileStatus.Enabled        = loaded;
-            FileLoadProgress.Enabled  = loaded;
+            saveAsMenuItem.Enabled   = SaveButton.Enabled    = loaded;
+            refreshMenuItem.Enabled  = reloadMenuItem.Enabled
+                                     = RefreshButton.Enabled = loaded;
+            copyMenuItem.Enabled     = CopyButton.Enabled    = loaded;
+            findMenuItem.Enabled     = findNextMenuItem.Enabled
+                                     = FindButton.Enabled    = loaded;
+            filterMenuItem.Enabled   = FilterButton.Enabled  = loaded;
+            FileStatus.Enabled       = loaded;
+            FileLoadProgress.Enabled = loaded;
         }
 
         // ── File menu ─────────────────────────────────────────────────────────
@@ -226,18 +391,15 @@ namespace Cad3PLogBrowser
         private void copyMenuItem_Click(object sender, EventArgs e)
         {
             if (listView1.SelectedItems.Count == 0) return;
-
             var lines = new List<string>();
             foreach (ListViewItem item in listView1.SelectedItems)
                 lines.Add(item.SubItems[1].Text);
-
             Clipboard.SetText(_searchService.JoinForClipboard(lines));
         }
 
         private void CopyButton_Click(object sender, EventArgs e) =>
             copyMenuItem_Click(sender, e);
 
-        // Find – modeless dialog
         private FindForm _findForm;
 
         private void findMenuItem_Click(object sender, EventArgs e)
@@ -255,12 +417,10 @@ namespace Cad3PLogBrowser
         private void FindButton_Click(object sender, EventArgs e) =>
             findMenuItem_Click(sender, e);
 
-        // Called by FindForm and Find Next menu item
         public void FindNext(string searchTerm, bool matchCase)
         {
             if (listView1.Items.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
 
-            // Build a plain list of the currently visible lines for searching.
             var visibleLines = new List<string>();
             foreach (ListViewItem item in listView1.Items)
                 visibleLines.Add(item.SubItems[1].Text);
@@ -282,14 +442,12 @@ namespace Cad3PLogBrowser
 
         private void findNextMenuItem_Click(object sender, EventArgs e)
         {
-            // Reuse last search term if available, otherwise open the dialog.
             if (_findForm != null && !_findForm.IsDisposed)
                 _findForm.TriggerFindNext();
             else
                 findMenuItem_Click(sender, e);
         }
 
-        // Filter – called by FilterForm
         public void ApplyFilter(string filterText, bool matchCase)
         {
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
@@ -327,8 +485,11 @@ namespace Cad3PLogBrowser
         private void helpMenuItem_Click(object sender, EventArgs e) { }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
-        private void mainFrm_Load(object sender, EventArgs e) =>
+        private void mainFrm_Load(object sender, EventArgs e)
+        {
             SetDocumentLoaded(false);
+            LayoutTrees();
+        }
 
         private void mainFrm_FormClosed(object sender, FormClosedEventArgs e)
         {
@@ -338,14 +499,17 @@ namespace Cad3PLogBrowser
 
         private void mainFrm_FormClosing(object sender, FormClosingEventArgs e) { }
         private void mainFrm_ResizeBegin(object sender, EventArgs e) { }
-        private void mainFrm_ResizeEnd(object sender, EventArgs e) { }
+        private void mainFrm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
         private void mainFrm_Resize(object sender, EventArgs e) { }
         private void mainFrm_SizeChanged(object sender, EventArgs e) { }
-        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e) { }
+
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e) =>
+            LayoutTrees();
+
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e) { }
         private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e) { }
 
-        // ── Context menu & tree stubs ─────────────────────────────────────────
+        // ── Context menu ──────────────────────────────────────────────────────
         private void listView1_MouseUp(object sender, MouseEventArgs e) { }
         private void listView1_SelectedIndexChanged(object sender, EventArgs e) { }
 
@@ -354,10 +518,6 @@ namespace Cad3PLogBrowser
             if (e.Button == MouseButtons.Right)
                 contextMenuStrip1.Show(listView1, e.Location);
         }
-
-        private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e) { }
-        private void ApiTree_Click(object sender, EventArgs e) { }
-        private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
 
         private void ApiTree_MouseUp(object sender, MouseEventArgs e)
         {
@@ -373,7 +533,6 @@ namespace Cad3PLogBrowser
                 contextMenuStrip1.Show(CallTree, e.Location);
         }
 
-        // Needed by the designer-generated logWatcher_Changed hook — now delegated to service.
         private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }
     }
 }

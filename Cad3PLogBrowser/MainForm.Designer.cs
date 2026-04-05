@@ -450,6 +450,7 @@
             this.CallTree.Name = "CallTree";
             this.CallTree.Size = new System.Drawing.Size(406, 186);
             this.CallTree.TabIndex = 0;
+            this.CallTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.CallTree_AfterSelect);
             this.CallTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseClick);
             this.CallTree.MouseUp += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseUp);
             // 
