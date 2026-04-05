@@ -202,6 +202,48 @@ namespace Cad3PLogBrowser.Services
 
             return roots;
         }
+
+        // ── Performance statistics ────────────────────────────────────────────
+        /// <summary>
+        /// Walks the entire call tree and aggregates per-API timing statistics.
+        /// Returns one <see cref="ApiPerfStats"/> per unique API name, sorted by
+        /// total time descending (biggest time consumers first).
+        /// </summary>
+        public List<ApiPerfStats> BuildPerformanceStats(List<CallStackNode> roots)
+        {
+            var map = new Dictionary<string, ApiPerfStats>(StringComparer.Ordinal);
+            foreach (var root in roots)
+                CollectStats(root, map);
+
+            var list = new List<ApiPerfStats>(map.Values);
+            list.Sort((a, b) => b.TotalDurationMs.CompareTo(a.TotalDurationMs));
+            return list;
+        }
+
+        private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map)
+        {
+            if (!map.TryGetValue(node.Label, out var stats))
+            {
+                stats = new ApiPerfStats { ApiName = node.Label, SourceFile = node.SourceFile };
+                map[node.Label] = stats;
+            }
+
+            stats.CallCount++;
+
+            // Only include calls that have a matching EXIT (DurationMs > 0)
+            if (node.DurationMs > 0)
+            {
+                stats.TimedCallCount++;
+                stats.TotalDurationMs += node.DurationMs;
+                if (node.DurationMs < stats.MinDurationMs || stats.MinDurationMs < 0)
+                    stats.MinDurationMs = node.DurationMs;
+                if (node.DurationMs > stats.MaxDurationMs)
+                    stats.MaxDurationMs = node.DurationMs;
+            }
+
+            foreach (var child in node.Children)
+                CollectStats(child, map);
+        }
     }
 
     // ── Data models ───────────────────────────────────────────────────────────
@@ -254,5 +296,19 @@ namespace Cad3PLogBrowser.Services
             DurationMs > 0
                 ? string.Format("{0}  [{1} ms]", Label, DurationMs)
                 : Label;
+    }
+
+    /// <summary>Aggregated timing statistics for one API across all its calls.</summary>
+    public class ApiPerfStats
+    {
+        public string ApiName        { get; set; }
+        public string SourceFile     { get; set; }
+        public int    CallCount      { get; set; }       // total ENTER lines
+        public int    TimedCallCount { get; set; }       // calls with a matching EXIT
+        public long   TotalDurationMs { get; set; }
+        public long   MinDurationMs  { get; set; } = -1; // -1 = not yet set
+        public long   MaxDurationMs  { get; set; }
+        public long   AvgDurationMs  =>
+            TimedCallCount > 0 ? TotalDurationMs / TimedCallCount : 0;
     }
 }
