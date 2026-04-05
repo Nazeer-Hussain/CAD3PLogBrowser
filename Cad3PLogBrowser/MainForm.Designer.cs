@@ -77,6 +77,9 @@
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.tabPage5 = new System.Windows.Forms.TabPage();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
@@ -547,7 +550,6 @@
             // 
             // tabPage3 — Performance
             // 
-            this.tabPage3 = new System.Windows.Forms.TabPage();
             this.performanceView = new System.Windows.Forms.ListView();
             this.perfColName = new System.Windows.Forms.ColumnHeader();
             this.perfColCalls = new System.Windows.Forms.ColumnHeader();
@@ -574,7 +576,6 @@
             // 
             // tabPage4 — Log Details
             // 
-            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.logDetailBox = new System.Windows.Forms.RichTextBox();
             this.tabPage4.Controls.Add(this.logDetailBox);
             this.tabPage4.Location = new System.Drawing.Point(4, 25);
@@ -592,7 +593,6 @@
             // 
             // tabPage5 — Call Graph
             // 
-            this.tabPage5 = new System.Windows.Forms.TabPage();
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
             this.tabPage5.Controls.Add(this.callGraphPanel);
