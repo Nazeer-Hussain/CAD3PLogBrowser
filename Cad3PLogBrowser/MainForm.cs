@@ -67,16 +67,16 @@ namespace Cad3PLogBrowser
         private void RestoreSettings()
         {
             int dist = _settingsService.LoadSplitterDistance();
-            if (dist > 0) splitContainer1.SplitterDistance = dist;
+            if (dist > 0) mainSplitContainer.SplitterDistance = dist;
 
             string lastDir = _settingsService.LoadLastDirectory();
             if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
-                openFileDialog1.InitialDirectory = lastDir;
+                openLogFileDialog.InitialDirectory = lastDir;
         }
 
         private void SaveSettings()
         {
-            _settingsService.SaveSplitterDistance(splitContainer1.SplitterDistance);
+            _settingsService.SaveSplitterDistance(mainSplitContainer.SplitterDistance);
             if (!string.IsNullOrEmpty(_currentFilePath))
                 _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
         }
@@ -99,8 +99,8 @@ namespace Cad3PLogBrowser
 
         private void UpdateSelectionStatus()
         {
-            if (listView1.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
-            int idx = listView1.SelectedIndices[0];
+            if (logListView.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
+            int idx = logListView.SelectedIndices[0];
             StatusSelection.Text = string.Format("Ln {0}", _virtualLines[idx].LineNumber);
         }
 
@@ -209,14 +209,14 @@ namespace Cad3PLogBrowser
 
         private void SyncTabVisibility()
         {
-            tabControl1.Appearance = HideTabsButton.Checked
+            mainTabControl.Appearance = HideTabsButton.Checked
                 ? TabAppearance.FlatButtons : TabAppearance.Normal;
         }
 
         private void LayoutTrees()
         {
-            int h = splitContainer1.Panel1.ClientSize.Height;
-            int w = splitContainer1.Panel1.ClientSize.Width;
+            int h = mainSplitContainer.Panel1.ClientSize.Height;
+            int w = mainSplitContainer.Panel1.ClientSize.Width;
             bool showCall = CallTree.Visible;
             bool showApi  = ApiTree.Visible;
 
@@ -245,11 +245,11 @@ namespace Cad3PLogBrowser
             if (!(tag is int lineNumber)) return;
             // In virtual mode we search _virtualLines for a matching line number
             int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
-            if (idx < 0 || idx >= listView1.VirtualListSize) return;
-            listView1.EnsureVisible(idx);
-            listView1.SelectedIndices.Clear();
-            listView1.SelectedIndices.Add(idx);
-            listView1.Focus();
+            if (idx < 0 || idx >= logListView.VirtualListSize) return;
+            logListView.EnsureVisible(idx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(idx);
+            logListView.Focus();
             ShowLogDetail(idx);
         }
 
@@ -257,8 +257,8 @@ namespace Cad3PLogBrowser
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateSelectionStatus();
-            if (listView1.SelectedIndices.Count > 0)
-                ShowLogDetail(listView1.SelectedIndices[0]);
+            if (logListView.SelectedIndices.Count > 0)
+                ShowLogDetail(logListView.SelectedIndices[0]);
         }
 
         private void ShowLogDetail(int idx)
@@ -353,8 +353,8 @@ namespace Cad3PLogBrowser
                     BackColour = GetLineColour(lines[i])
                 });
             }
-            listView1.VirtualListSize = _virtualLines.Count;
-            listView1.Invalidate();
+            logListView.VirtualListSize = _virtualLines.Count;
+            logListView.Invalidate();
             UpdateStatusBar();
         }
 
@@ -370,8 +370,8 @@ namespace Cad3PLogBrowser
                     BackColour = GetLineColour(fl.Text)
                 });
             }
-            listView1.VirtualListSize = _virtualLines.Count;
-            listView1.Invalidate();
+            logListView.VirtualListSize = _virtualLines.Count;
+            logListView.Invalidate();
             UpdateStatusBar();
         }
 
@@ -416,8 +416,8 @@ namespace Cad3PLogBrowser
         // ── File menu ─────────────────────────────────────────────────────────
         private void openMenuItem_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
-                LoadFileAsync(openFileDialog1.FileName);
+            if (openLogFileDialog.ShowDialog() == DialogResult.OK)
+                LoadFileAsync(openLogFileDialog.FileName);
         }
 
         private void OpenButton_Click(object sender, EventArgs e) =>
@@ -426,18 +426,18 @@ namespace Cad3PLogBrowser
         private void saveAsMenuItem_Click(object sender, EventArgs e)
         {
             if (_virtualLines.Count == 0) return;
-            if (saveFileDialog1.ShowDialog() != DialogResult.OK) return;
+            if (saveLogFileDialog.ShowDialog() != DialogResult.OK) return;
             try
             {
                 var lines = new List<string>();
-                if (listView1.SelectedIndices.Count > 0)
-                    foreach (int idx in listView1.SelectedIndices)
+                if (logListView.SelectedIndices.Count > 0)
+                    foreach (int idx in logListView.SelectedIndices)
                         lines.Add(_virtualLines[idx].Text);
                 else
                     foreach (var vl in _virtualLines)
                         lines.Add(vl.Text);
 
-                _logFileService.WriteLines(saveFileDialog1.FileName, lines);
+                _logFileService.WriteLines(saveLogFileDialog.FileName, lines);
                 MessageBox.Show(string.Format("{0} line(s) saved.", lines.Count),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -454,12 +454,12 @@ namespace Cad3PLogBrowser
         private void refreshMenuItem_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_currentFilePath)) return;
-            int topIndex = listView1.TopItem != null ? listView1.TopItem.Index : 0;
+            int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
             LoadFileAsync(_currentFilePath);
             BeginInvoke((Action)(() =>
             {
-                if (topIndex < listView1.VirtualListSize)
-                    listView1.EnsureVisible(topIndex);
+                if (topIndex < logListView.VirtualListSize)
+                    logListView.EnsureVisible(topIndex);
             }));
         }
 
@@ -480,9 +480,9 @@ namespace Cad3PLogBrowser
         // ── Edit menu ─────────────────────────────────────────────────────────
         private void copyMenuItem_Click(object sender, EventArgs e)
         {
-            if (listView1.SelectedIndices.Count == 0) return;
+            if (logListView.SelectedIndices.Count == 0) return;
             var lines = new List<string>();
-            foreach (int idx in listView1.SelectedIndices)
+            foreach (int idx in logListView.SelectedIndices)
                 lines.Add(_virtualLines[idx].Text);
             Clipboard.SetText(_searchService.JoinForClipboard(lines));
         }
@@ -517,9 +517,9 @@ namespace Cad3PLogBrowser
             int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase);
             if (idx >= 0)
             {
-                listView1.SelectedIndices.Clear();
-                listView1.SelectedIndices.Add(idx);
-                listView1.EnsureVisible(idx);
+                logListView.SelectedIndices.Clear();
+                logListView.SelectedIndices.Add(idx);
+                logListView.EnsureVisible(idx);
                 ShowLogDetail(idx);
             }
             else
@@ -625,10 +625,10 @@ namespace Cad3PLogBrowser
         {
             SetDocumentLoaded(false);
             LayoutTrees();
-            tabPage1.Text = "Log";
-            tabPage3.Text = "Performance";
-            tabPage4.Text = "Log Details";
-            tabPage5.Text = "Call Graph";
+            logTab.Text = "Log";
+            performanceTab.Text = "Performance";
+            logDetailTab.Text = "Log Details";
+            callGraphTab.Text = "Call Graph";
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -652,13 +652,13 @@ namespace Cad3PLogBrowser
         private void listView1_MouseUp_1(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
-                contextMenuStrip1.Show(listView1, e.Location);
+                logContextMenu.Show(logListView, e.Location);
         }
 
         private void ApiTree_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
-                contextMenuStrip1.Show(ApiTree, e.Location);
+                logContextMenu.Show(ApiTree, e.Location);
         }
 
         private void CallTree_MouseClick(object sender, MouseEventArgs e) { }
@@ -666,7 +666,7 @@ namespace Cad3PLogBrowser
         private void CallTree_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
-                contextMenuStrip1.Show(CallTree, e.Location);
+                logContextMenu.Show(CallTree, e.Location);
         }
 
         private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }
