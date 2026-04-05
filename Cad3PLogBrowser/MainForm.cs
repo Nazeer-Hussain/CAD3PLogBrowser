@@ -110,6 +110,7 @@ namespace Cad3PLogBrowser
             ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
             CallTree.ShowLines = CallTree.ShowPlusMinus = true;
+            CallTree.ShowNodeToolTips = true;
             CallTree.HideSelection = false;
 
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
@@ -160,14 +161,38 @@ namespace Cad3PLogBrowser
             CallTree.Nodes.Clear();
             foreach (var root in roots)
                 CallTree.Nodes.Add(BuildTreeNode(root));
+            // Expand the first level so the tree is immediately useful
+            foreach (TreeNode root in CallTree.Nodes)
+                root.Expand();
             CallTree.EndUpdate();
         }
 
         private static TreeNode BuildTreeNode(CallStackNode csNode)
         {
-            var tn = new TreeNode(csNode.Label) { Tag = csNode.LineNumber };
+            // Node label: ApiName [duration ms]  (Ln enter→exit)
+            string label = csNode.Label;
+            if (csNode.DurationMs > 0)
+                label = string.Format("{0}  [{1} ms]", label, csNode.DurationMs);
+            else if (csNode.ExitLineNumber > 0)
+                label = string.Format("{0}  [<1 ms]", label);
+
+            string tooltip = string.Format(
+                "API: {0}\nSource: {1}\nENTER line: {2}\nEXIT line: {3}\nDuration: {4} ms",
+                csNode.Label,
+                csNode.SourceFile ?? "-",
+                csNode.LineNumber,
+                csNode.ExitLineNumber > 0 ? csNode.ExitLineNumber.ToString() : "?",
+                csNode.DurationMs);
+
+            var tn = new TreeNode(label)
+            {
+                Tag         = csNode.LineNumber,
+                ToolTipText = tooltip
+            };
+
             foreach (var child in csNode.Children)
                 tn.Nodes.Add(BuildTreeNode(child));
+
             return tn;
         }
 

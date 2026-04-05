@@ -153,6 +153,7 @@ namespace Cad3PLogBrowser.Services
                         LineNumber = entry.LineNumber,
                         Depth      = stack.Count,
                         SourceFile = entry.SourceFile,
+                        Module     = entry.Module,
                         EpochMs    = entry.EpochMs
                     };
 
@@ -165,16 +166,37 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (entry.IsCallExit)
                 {
-                    // Pop until we find the matching ENTER (handles unpaired EXITs gracefully)
-                    if (stack.Count > 0 && stack.Peek().Label == entry.ApiName)
+                    // Walk the stack looking for the matching ENTER.
+                    // This handles cases where an inner ENTER has no matching EXIT
+                    // (the API exited abnormally or the log was truncated).
+                    var tempPopped = new Stack<CallStackNode>();
+                    bool matched = false;
+
+                    while (stack.Count > 0)
                     {
-                        var node = stack.Pop();
-                        node.ExitLineNumber = entry.LineNumber;
-                        node.ExitEpochMs    = entry.EpochMs;
-                        // Duration in ms (both timestamps are epoch ms)
-                        if (node.EpochMs > 0 && entry.EpochMs > 0)
-                            node.DurationMs = entry.EpochMs - node.EpochMs;
+                        var top = stack.Pop();
+                        if (top.Label == entry.ApiName)
+                        {
+                            // Found the match — record timing
+                            top.ExitLineNumber = entry.LineNumber;
+                            top.ExitEpochMs    = entry.EpochMs;
+                            if (top.EpochMs > 0 && entry.EpochMs > 0)
+                                top.DurationMs = entry.EpochMs - top.EpochMs;
+                            matched = true;
+                            break;
+                        }
+                        // Not a match — keep it so we can restore if needed
+                        tempPopped.Push(top);
                     }
+
+                    if (!matched)
+                    {
+                        // No matching ENTER found — restore everything we popped
+                        while (tempPopped.Count > 0)
+                            stack.Push(tempPopped.Pop());
+                    }
+                    // If matched, the mismatched intermediate nodes stay as children
+                    // of whatever is now on top of the stack — correct behaviour.
                 }
             }
 
@@ -222,6 +244,7 @@ namespace Cad3PLogBrowser.Services
         public int                 ExitLineNumber  { get; set; }
         public int                 Depth           { get; set; }
         public string              SourceFile      { get; set; }
+        public string              Module          { get; set; }
         public long                EpochMs         { get; set; }
         public long                ExitEpochMs     { get; set; }
         public long                DurationMs      { get; set; }
