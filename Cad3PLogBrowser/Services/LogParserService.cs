@@ -1,35 +1,44 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace Cad3PLogBrowser.Services
 {
     /// <summary>
-    /// Parses raw log lines into structured <see cref="LogEntry"/> objects and builds
-    /// two tree structures from them:
-    ///   - API call list  : flat, one entry per unique API name
-    ///   - Call stack tree: hierarchical, reflecting call depth via indentation/brackets
+    /// Parses log lines produced by the UWGM CAD adapter debug logger.
     ///
-    /// Detection heuristics (extend as you learn the real log format):
-    ///   API call   : line contains a token that looks like  SomeName(  or  [SomeName]
-    ///   Call enter : line contains "=>" or "-->" or starts with "ENTER"
-    ///   Call exit  : line contains "<=" or "<--" or starts with "EXIT" or "RETURN"
-    ///   Depth      : number of leading spaces / 2  (adjust multiplier to taste)
+    /// Line format (colon-separated prefix, then tab-separated payload):
+    ///   {ISO-datetime}: {Level}: {PID}: {TID}: {App}: {Area}: {State}\t{Module}\t{SourceFile}\t{ApiName}\t{ENTER|EXIT}\t{EpochMs}
+    ///
+    /// Only lines whose tab-field[4] is exactly "ENTER" or "EXIT" are API call lines.
+    /// All other lines are plain log lines (debug messages, config, errors, etc.)
+    ///
+    /// Log levels:  D=Debug  I=Info  W=Warning  E=Error  C=Config  X=Unknown
     /// </summary>
     public class LogParserService
     {
-        // ── Heuristic patterns (tune to the real log format) ──────────────────
-        private static readonly Regex ApiCallPattern =
-            new Regex(@"\b([A-Z][A-Za-z0-9_]+)\s*\(", RegexOptions.Compiled);
+        // ── Log level codes ───────────────────────────────────────────────────
+        public const string LevelDebug   = "D";
+        public const string LevelInfo    = "I";
+        public const string LevelWarning = "W";
+        public const string LevelError   = "E";
+        public const string LevelConfig  = "C";
 
-        private static readonly Regex BracketApiPattern =
-            new Regex(@"\[([A-Z][A-Za-z0-9_:]+)\]", RegexOptions.Compiled);
+        // ── Tab field indices (within the message payload after the 7th colon) ─
+        private const int TabFieldState      = 0;   // e.g. "idle"
+        private const int TabFieldModule     = 1;   // e.g. "Icubed"
+        private const int TabFieldSourceFile = 2;   // e.g. "Cswadapter_app"
+        private const int TabFieldApiName    = 3;   // e.g. "ConnectToSW"
+        private const int TabFieldEntryType  = 4;   // "ENTER" or "EXIT"
+        private const int TabFieldEpochMs    = 5;   // e.g. "1774943280304"
 
-        private static readonly Regex EnterPattern =
-            new Regex(@"(=>|-->|\bENTER\b|\bCALL\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        private static readonly Regex ExitPattern =
-            new Regex(@"(<=|<--|\bEXIT\b|\bRETURN\b|\bRET\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        // ── Colon field indices ───────────────────────────────────────────────
+        private const int ColonFieldDateTime = 0;   // "2026-03-31T07:48:00.304Z"
+        private const int ColonFieldLevel    = 1;   // "D"
+        private const int ColonFieldPid      = 2;   // "P6c24"
+        private const int ColonFieldTid      = 3;   // "T5aa4"
+        private const int ColonFieldApp      = 4;   // "uwgmapp"
+        private const int ColonFieldArea     = 5;   // "UWGM_ADAPTER"
+        // ColonField[6] onwards = the tab-delimited payload
 
         // ── Public parse entry point ──────────────────────────────────────────
         /// <summary>Converts raw string lines into structured <see cref="LogEntry"/> list.</summary>
@@ -37,19 +46,63 @@ namespace Cad3PLogBrowser.Services
         {
             var entries = new List<LogEntry>(rawLines.Count);
             for (int i = 0; i < rawLines.Count; i++)
-            {
-                string raw = rawLines[i];
-                entries.Add(new LogEntry
-                {
-                    LineNumber  = i + 1,
-                    RawText     = raw,
-                    ApiName     = ExtractApiName(raw),
-                    IsCallEnter = EnterPattern.IsMatch(raw),
-                    IsCallExit  = ExitPattern.IsMatch(raw),
-                    Depth       = MeasureDepth(raw)
-                });
-            }
+                entries.Add(ParseLine(rawLines[i], i + 1));
             return entries;
+        }
+
+        private static LogEntry ParseLine(string raw, int lineNumber)
+        {
+            var entry = new LogEntry
+            {
+                LineNumber = lineNumber,
+                RawText    = raw
+            };
+
+            if (string.IsNullOrEmpty(raw))
+                return entry;
+
+            // Split on ": " to get the colon-separated header fields.
+            // Maximum 7 splits — the 7th token is the full tab-delimited payload.
+            string[] colonParts = raw.Split(new[] { ": " }, 7, StringSplitOptions.None);
+
+            if (colonParts.Length >= 2)
+                entry.Level = colonParts[ColonFieldLevel].Trim();
+
+            if (colonParts.Length >= 4)
+                entry.ThreadId = colonParts[ColonFieldTid].Trim();
+
+            if (colonParts.Length >= 5)
+                entry.App = colonParts[ColonFieldApp].Trim();
+
+            if (colonParts.Length >= 6)
+                entry.Area = colonParts[ColonFieldArea].Trim();
+
+            // The 7th colon-part is the tab-delimited payload (may not exist on config/error lines)
+            if (colonParts.Length >= 7)
+            {
+                string payload = colonParts[6];
+                string[] tabParts = payload.Split('\t');
+
+                if (tabParts.Length > TabFieldEntryType)
+                {
+                    string entryType = tabParts[TabFieldEntryType].Trim();
+                    if (entryType == "ENTER" || entryType == "EXIT")
+                    {
+                        entry.IsApiCall    = true;
+                        entry.IsCallEnter  = entryType == "ENTER";
+                        entry.IsCallExit   = entryType == "EXIT";
+                        entry.ApiName      = tabParts[TabFieldApiName].Trim();
+                        entry.SourceFile   = tabParts[TabFieldSourceFile].Trim();
+                        entry.Module       = tabParts[TabFieldModule].Trim();
+
+                        if (tabParts.Length > TabFieldEpochMs &&
+                            long.TryParse(tabParts[TabFieldEpochMs].Trim(), out long epochMs))
+                            entry.EpochMs = epochMs;
+                    }
+                }
+            }
+
+            return entry;
         }
 
         // ── API list (flat, unique names) ─────────────────────────────────────
@@ -63,7 +116,7 @@ namespace Cad3PLogBrowser.Services
 
             foreach (var entry in entries)
             {
-                if (string.IsNullOrEmpty(entry.ApiName)) continue;
+                if (!entry.IsApiCall) continue;
 
                 if (!map.TryGetValue(entry.ApiName, out var node))
                 {
@@ -80,96 +133,103 @@ namespace Cad3PLogBrowser.Services
 
         // ── Call stack tree ───────────────────────────────────────────────────
         /// <summary>
-        /// Builds a hierarchical call stack tree from the parsed entries.
-        /// Uses indentation depth and ENTER/EXIT markers to determine parent-child relationships.
-        /// Returns a list of root-level <see cref="CallStackNode"/> objects.
+        /// Builds a hierarchical call stack tree using ENTER/EXIT pairs.
+        /// Returns root-level <see cref="CallStackNode"/> objects.
         /// </summary>
         public List<CallStackNode> BuildCallTree(List<LogEntry> entries)
         {
-            var roots   = new List<CallStackNode>();
-            var stack   = new Stack<CallStackNode>();
+            var roots = new List<CallStackNode>();
+            var stack = new Stack<CallStackNode>();
 
             foreach (var entry in entries)
             {
-                if (!entry.IsCallEnter && string.IsNullOrEmpty(entry.ApiName))
-                    continue;
+                if (!entry.IsApiCall) continue;
 
-                var node = new CallStackNode
+                if (entry.IsCallEnter)
                 {
-                    Label      = string.IsNullOrEmpty(entry.ApiName) ? entry.RawText.Trim() : entry.ApiName,
-                    LineNumber = entry.LineNumber,
-                    Depth      = entry.Depth
-                };
+                    var node = new CallStackNode
+                    {
+                        Label      = entry.ApiName,
+                        LineNumber = entry.LineNumber,
+                        Depth      = stack.Count,
+                        SourceFile = entry.SourceFile,
+                        EpochMs    = entry.EpochMs
+                    };
 
-                // Pop stack until we find a node at a shallower depth.
-                while (stack.Count > 0 && stack.Peek().Depth >= entry.Depth)
-                    stack.Pop();
+                    if (stack.Count == 0)
+                        roots.Add(node);
+                    else
+                        stack.Peek().Children.Add(node);
 
-                if (stack.Count == 0)
-                    roots.Add(node);
-                else
-                    stack.Peek().Children.Add(node);
-
-                if (entry.IsCallEnter || !entry.IsCallExit)
                     stack.Push(node);
+                }
+                else if (entry.IsCallExit)
+                {
+                    // Pop until we find the matching ENTER (handles unpaired EXITs gracefully)
+                    if (stack.Count > 0 && stack.Peek().Label == entry.ApiName)
+                    {
+                        var node = stack.Pop();
+                        node.ExitLineNumber = entry.LineNumber;
+                        node.ExitEpochMs    = entry.EpochMs;
+                        // Duration in ms (both timestamps are epoch ms)
+                        if (node.EpochMs > 0 && entry.EpochMs > 0)
+                            node.DurationMs = entry.EpochMs - node.EpochMs;
+                    }
+                }
             }
 
             return roots;
-        }
-
-        // ── Helpers ───────────────────────────────────────────────────────────
-        private static string ExtractApiName(string line)
-        {
-            var m = ApiCallPattern.Match(line);
-            if (m.Success) return m.Groups[1].Value;
-
-            m = BracketApiPattern.Match(line);
-            if (m.Success) return m.Groups[1].Value;
-
-            return null;
-        }
-
-        private static int MeasureDepth(string line)
-        {
-            int spaces = 0;
-            foreach (char c in line)
-            {
-                if (c == ' ')       spaces++;
-                else if (c == '\t') spaces += 4;
-                else break;
-            }
-            return spaces / 2;
         }
     }
 
     // ── Data models ───────────────────────────────────────────────────────────
 
+    /// <summary>One parsed log line.</summary>
     public class LogEntry
     {
-        public int    LineNumber  { get; set; }
-        public string RawText    { get; set; }
-        public string ApiName    { get; set; }
-        public bool   IsCallEnter { get; set; }
-        public bool   IsCallExit  { get; set; }
-        public int    Depth       { get; set; }
+        public int    LineNumber   { get; set; }
+        public string RawText      { get; set; }
+        public string Level        { get; set; }   // D I W E C
+        public string ThreadId     { get; set; }
+        public string App          { get; set; }
+        public string Area         { get; set; }
+
+        // API call fields (only set when IsApiCall == true)
+        public bool   IsApiCall    { get; set; }
+        public bool   IsCallEnter  { get; set; }
+        public bool   IsCallExit   { get; set; }
+        public string ApiName      { get; set; }
+        public string SourceFile   { get; set; }
+        public string Module       { get; set; }
+        public long   EpochMs      { get; set; }
     }
 
+    /// <summary>One unique API name with all line numbers it appears on.</summary>
     public class ApiCallNode
     {
-        public string      ApiName     { get; set; }
-        public List<int>   LineNumbers { get; } = new List<int>();
-        /// <summary>First line number this API appears on — used to jump to it in the log view.</summary>
-        public int         FirstLine   => LineNumbers.Count > 0 ? LineNumbers[0] : -1;
+        public string    ApiName     { get; set; }
+        public List<int> LineNumbers { get; } = new List<int>();
+        public int       FirstLine   => LineNumbers.Count > 0 ? LineNumbers[0] : -1;
         public override string ToString() =>
             string.Format("{0}  ({1}×)", ApiName, LineNumbers.Count);
     }
 
+    /// <summary>One node in the hierarchical call stack tree.</summary>
     public class CallStackNode
     {
-        public string               Label      { get; set; }
-        public int                  LineNumber  { get; set; }
-        public int                  Depth       { get; set; }
-        public List<CallStackNode>  Children   { get; } = new List<CallStackNode>();
-        public override string ToString() => Label;
+        public string              Label          { get; set; }
+        public int                 LineNumber      { get; set; }
+        public int                 ExitLineNumber  { get; set; }
+        public int                 Depth           { get; set; }
+        public string              SourceFile      { get; set; }
+        public long                EpochMs         { get; set; }
+        public long                ExitEpochMs     { get; set; }
+        public long                DurationMs      { get; set; }
+        public List<CallStackNode> Children        { get; } = new List<CallStackNode>();
+
+        public override string ToString() =>
+            DurationMs > 0
+                ? string.Format("{0}  [{1} ms]", Label, DurationMs)
+                : Label;
     }
 }

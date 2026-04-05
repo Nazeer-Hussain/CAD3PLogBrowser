@@ -377,11 +377,16 @@ namespace Cad3PLogBrowser
 
         private static Color GetLineColour(string line)
         {
-            if (line == null) return ColourInfo;
-            string u = line.ToUpperInvariant();
-            if (u.Contains("ERROR") || u.Contains("FATAL") || u.Contains("EXCEPTION"))
-                return ColourError;
-            if (u.Contains("WARN")) return ColourWarn;
+            // Use the actual log level code (2nd colon-separated field: E=Error, W=Warning)
+            if (string.IsNullOrEmpty(line)) return ColourInfo;
+            // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
+            int first = line.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < line.Length)
+            {
+                char level = line[first + 2];
+                if (level == 'E') return ColourError;
+                if (level == 'W') return ColourWarn;
+            }
             return ColourInfo;
         }
 
