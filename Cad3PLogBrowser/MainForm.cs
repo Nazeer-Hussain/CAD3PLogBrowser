@@ -11,10 +11,11 @@ namespace Cad3PLogBrowser
     public partial class MainForm : Form
     {
         // ── Services ──────────────────────────────────────────────────────────
-        private readonly LogFileService   _logFileService;
-        private readonly SearchService    _searchService;
-        private readonly SettingsService  _settingsService;
-        private readonly LogParserService _parserService;
+        private readonly LogFileService    _logFileService;
+        private readonly SearchService     _searchService;
+        private readonly SettingsService   _settingsService;
+        private readonly LogParserService  _parserService;
+        private readonly CallGraphService  _callGraphService;
 
         // ── State ─────────────────────────────────────────────────────────────
         private string            _currentFilePath = string.Empty;
@@ -22,25 +23,35 @@ namespace Cad3PLogBrowser
         private List<string>      _allLines        = new List<string>();
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
 
-        // ── Log-level colours (improvement #10) ───────────────────────────────
-        private static readonly Color ColourError  = Color.FromArgb(255, 220, 220);
-        private static readonly Color ColourWarn   = Color.FromArgb(255, 243, 205);
-        private static readonly Color ColourInfo   = SystemColors.Window;
+        // ── #7 Virtual mode backing store ─────────────────────────────────────
+        // Each VirtualLogLine holds exactly what the ListView needs for one row.
+        private struct VirtualLogLine
+        {
+            public string LineNumber;
+            public string Text;
+            public Color  BackColour;
+        }
+        private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
+
+        // ── Log-level colours ─────────────────────────────────────────────────
+        private static readonly Color ColourError = Color.FromArgb(255, 220, 220);
+        private static readonly Color ColourWarn  = Color.FromArgb(255, 243, 205);
+        private static readonly Color ColourInfo  = SystemColors.Window;
 
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
         {
             InitializeComponent();
 
-            _settingsService = new SettingsService();
-            _searchService   = new SearchService();
-            _parserService   = new LogParserService();
-            _logFileService  = new LogFileService(this);
+            _settingsService  = new SettingsService();
+            _searchService    = new SearchService();
+            _parserService    = new LogParserService();
+            _callGraphService = new CallGraphService();
+            _logFileService   = new LogFileService(this);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
             InitTreeViews();
-            InitListView();
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -70,27 +81,17 @@ namespace Cad3PLogBrowser
                 _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
         }
 
-        // ── #10: ListView colour-coding init ──────────────────────────────────
-        private void InitListView()
-        {
-            listView1.OwnerDraw = false; // let Windows paint; we set BackColor per item
-        }
-
-        // ── #1: Status bar ────────────────────────────────────────────────────
+        // ── Status bar ────────────────────────────────────────────────────────
         private void UpdateStatusBar()
         {
             if (string.IsNullOrEmpty(_currentFilePath))
             {
-                StatusFileName.Text  = "";
-                StatusLineCount.Text = "";
-                StatusSelection.Text = "";
+                StatusFileName.Text = StatusLineCount.Text = StatusSelection.Text = "";
                 return;
             }
-
             StatusFileName.Text = Path.GetFileName(_currentFilePath);
-
-            int total    = _allLines.Count;
-            int visible  = listView1.Items.Count;
+            int total   = _allLines.Count;
+            int visible = _virtualLines.Count;
             StatusLineCount.Text = total == visible
                 ? string.Format("Lines: {0}", total)
                 : string.Format("Lines: {0} / {1}", visible, total);
@@ -98,28 +99,22 @@ namespace Cad3PLogBrowser
 
         private void UpdateSelectionStatus()
         {
-            if (listView1.SelectedItems.Count == 0)
-            {
-                StatusSelection.Text = "";
-                return;
-            }
-            int lineNo = listView1.SelectedItems[0].Index + 1;
-            StatusSelection.Text = string.Format("Ln {0}", lineNo);
+            if (listView1.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
+            int idx = listView1.SelectedIndices[0];
+            StatusSelection.Text = string.Format("Ln {0}", _virtualLines[idx].LineNumber);
         }
 
         // ── Tree view init ────────────────────────────────────────────────────
         private void InitTreeViews()
         {
-            ApiTree.ShowLines     = true;
-            ApiTree.ShowPlusMinus = true;
+            ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
-            CallTree.ShowLines    = true;
-            CallTree.ShowPlusMinus = true;
+            CallTree.ShowLines = CallTree.ShowPlusMinus = true;
             CallTree.HideSelection = false;
 
-            CallTreeButton.CheckedChanged += (s, e) => SyncTreeVisibility();
-            ApiTreeButton.CheckedChanged  += (s, e) => SyncTreeVisibility();
-            HideTabsButton.CheckedChanged += (s, e) => SyncTabVisibility();
+            CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
+            ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
+            HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
             showCallTreeMenuItem.CheckedChanged += (s, e) => SyncTreeVisibility();
             showApiListMenuItem.CheckedChanged  += (s, e) => SyncTreeVisibility();
             hideAllMenuItem.Click += (s, e) =>
@@ -137,10 +132,12 @@ namespace Cad3PLogBrowser
             var entries  = _parserService.Parse(lines);
             _apiNodes    = _parserService.BuildApiList(entries);
             var callTree = _parserService.BuildCallTree(entries);
+            var graph    = _callGraphService.Build(entries);
 
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
             PopulatePerformanceTab(_apiNodes, lines.Count);
+            callGraphPanel.LoadGraph(graph);
         }
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
@@ -174,23 +171,20 @@ namespace Cad3PLogBrowser
             return tn;
         }
 
-        // ── #2: Performance tab ───────────────────────────────────────────────
+        // ── Performance tab ───────────────────────────────────────────────────
         private void PopulatePerformanceTab(List<ApiCallNode> apiNodes, int totalLines)
         {
             performanceView.BeginUpdate();
             performanceView.Items.Clear();
 
-            // Summary row
             var summary = new ListViewItem("── Summary ──");
             summary.SubItems.Add(string.Format("{0} unique APIs", apiNodes.Count));
             summary.SubItems.Add(string.Format("{0} total lines", totalLines));
             summary.BackColor = Color.FromArgb(230, 230, 255);
             performanceView.Items.Add(summary);
 
-            // Sort by call count descending (top callers first)
             var sorted = new List<ApiCallNode>(apiNodes);
             sorted.Sort((a, b) => b.LineNumbers.Count.CompareTo(a.LineNumbers.Count));
-
             foreach (var node in sorted)
             {
                 var item = new ListViewItem(node.ApiName);
@@ -198,11 +192,10 @@ namespace Cad3PLogBrowser
                 item.SubItems.Add(node.FirstLine.ToString());
                 performanceView.Items.Add(item);
             }
-
             performanceView.EndUpdate();
         }
 
-        // ── Tree visibility toggles ───────────────────────────────────────────
+        // ── Tree visibility ───────────────────────────────────────────────────
         private void SyncTreeVisibility()
         {
             bool showCall = CallTreeButton.Checked || showCallTreeMenuItem.Checked;
@@ -216,8 +209,8 @@ namespace Cad3PLogBrowser
 
         private void SyncTabVisibility()
         {
-            bool hide = HideTabsButton.Checked;
-            tabControl1.Appearance = hide ? TabAppearance.FlatButtons : TabAppearance.Normal;
+            tabControl1.Appearance = HideTabsButton.Checked
+                ? TabAppearance.FlatButtons : TabAppearance.Normal;
         }
 
         private void LayoutTrees()
@@ -237,7 +230,7 @@ namespace Cad3PLogBrowser
             else if (showApi)  ApiTree.SetBounds(0, 0, w, h);
         }
 
-        // ── Tree → scroll log + show details ─────────────────────────────────
+        // ── Tree → scroll log ─────────────────────────────────────────────────
         private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e) =>
             ScrollLogToLine(e.Node?.Tag);
 
@@ -250,44 +243,61 @@ namespace Cad3PLogBrowser
         private void ScrollLogToLine(object tag)
         {
             if (!(tag is int lineNumber)) return;
-            int idx = lineNumber - 1;
-            if (idx < 0 || idx >= listView1.Items.Count) return;
-            listView1.SelectedItems.Clear();
-            listView1.Items[idx].Selected = true;
-            listView1.Items[idx].EnsureVisible();
+            // In virtual mode we search _virtualLines for a matching line number
+            int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
+            if (idx < 0 || idx >= listView1.VirtualListSize) return;
+            listView1.EnsureVisible(idx);
+            listView1.SelectedIndices.Clear();
+            listView1.SelectedIndices.Add(idx);
             listView1.Focus();
             ShowLogDetail(idx);
         }
 
-        // ── #3: Log Details panel ─────────────────────────────────────────────
+        // ── Log Details panel ─────────────────────────────────────────────────
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateSelectionStatus();
-            if (listView1.SelectedItems.Count > 0)
-                ShowLogDetail(listView1.SelectedItems[0].Index);
+            if (listView1.SelectedIndices.Count > 0)
+                ShowLogDetail(listView1.SelectedIndices[0]);
         }
 
         private void ShowLogDetail(int idx)
         {
-            if (idx < 0 || idx >= listView1.Items.Count) return;
-            string lineText = listView1.Items[idx].SubItems[1].Text;
-            int lineNo = idx + 1;
-            logDetailBox.Text = string.Format("Line {0}:\r\n\r\n{1}", lineNo, lineText);
+            if (idx < 0 || idx >= _virtualLines.Count) return;
+            logDetailBox.Text = string.Format("Line {0}:\r\n\r\n{1}",
+                _virtualLines[idx].LineNumber, _virtualLines[idx].Text);
         }
 
-        // ── #6: Drag-and-drop file open ───────────────────────────────────────
+        // ── #7: Virtual mode handler ──────────────────────────────────────────
+        private void listView1_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
+        {
+            if (e.ItemIndex < 0 || e.ItemIndex >= _virtualLines.Count)
+            {
+                e.Item = new ListViewItem();
+                return;
+            }
+            var vl   = _virtualLines[e.ItemIndex];
+            var item = new ListViewItem(vl.LineNumber);
+            item.SubItems.Add(vl.Text);
+            item.BackColor = vl.BackColour;
+            e.Item = item;
+        }
+
+        // ── #8: Call Graph reset button ───────────────────────────────────────
+        private void callGraphResetButton_Click(object sender, EventArgs e) =>
+            callGraphPanel.ResetView();
+
+        // ── Drag-and-drop ─────────────────────────────────────────────────────
         private void MainForm_DragEnter(object sender, DragEventArgs e)
         {
             e.Effect = e.Data.GetDataPresent(DataFormats.FileDrop)
-                ? DragDropEffects.Copy
-                : DragDropEffects.None;
+                ? DragDropEffects.Copy : DragDropEffects.None;
         }
 
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            if (files != null && files.Length > 0)
-                LoadFileAsync(files[0]);
+            if (files != null && files.Length > 0) LoadFileAsync(files[0]);
         }
 
         // ── File loading ──────────────────────────────────────────────────────
@@ -307,16 +317,13 @@ namespace Cad3PLogBrowser
                 _currentFilePath = filePath;
                 _searchService.Reset();
 
-                PopulateListView(_allLines);
+                PopulateVirtualListView(_allLines);
                 PopulateTrees(_allLines);
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = Resources.green_ball;
                 _logFileService.WatchFile(filePath);
                 UpdateStatusBar();
-                tabPage1.Text = "Log";
-                tabPage3.Text = "Performance";
-                tabPage4.Text = "Log Details";
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, "Access denied", ex.Message); }
             catch (IOException ex)                 { ShowLoadError(filePath, "File read error", ex.Message); }
@@ -328,34 +335,43 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // ── #10: Colour-coded ListView population ─────────────────────────────
-        private void PopulateListView(IList<string> lines)
+        // ── #7: Virtual mode population ───────────────────────────────────────
+        /// <summary>
+        /// Builds the backing store for virtual mode. No ListViewItems are created here —
+        /// items are produced on demand in RetrieveVirtualItem. This makes loading
+        /// 500k-line files near-instant.
+        /// </summary>
+        private void PopulateVirtualListView(IList<string> lines)
         {
-            listView1.BeginUpdate();
-            listView1.Items.Clear();
+            _virtualLines = new List<VirtualLogLine>(lines.Count);
             for (int i = 0; i < lines.Count; i++)
             {
-                var item = new ListViewItem((i + 1).ToString());
-                item.SubItems.Add(lines[i]);
-                item.BackColor = GetLineColour(lines[i]);
-                listView1.Items.Add(item);
+                _virtualLines.Add(new VirtualLogLine
+                {
+                    LineNumber = (i + 1).ToString(),
+                    Text       = lines[i],
+                    BackColour = GetLineColour(lines[i])
+                });
             }
-            listView1.EndUpdate();
+            listView1.VirtualListSize = _virtualLines.Count;
+            listView1.Invalidate();
             UpdateStatusBar();
         }
 
-        private void PopulateListViewFiltered(IList<FilteredLine> filtered)
+        private void PopulateVirtualListViewFiltered(IList<FilteredLine> filtered)
         {
-            listView1.BeginUpdate();
-            listView1.Items.Clear();
+            _virtualLines = new List<VirtualLogLine>(filtered.Count);
             foreach (var fl in filtered)
             {
-                var item = new ListViewItem(fl.LineNumber.ToString());
-                item.SubItems.Add(fl.Text);
-                item.BackColor = GetLineColour(fl.Text);
-                listView1.Items.Add(item);
+                _virtualLines.Add(new VirtualLogLine
+                {
+                    LineNumber = fl.LineNumber.ToString(),
+                    Text       = fl.Text,
+                    BackColour = GetLineColour(fl.Text)
+                });
             }
-            listView1.EndUpdate();
+            listView1.VirtualListSize = _virtualLines.Count;
+            listView1.Invalidate();
             UpdateStatusBar();
         }
 
@@ -365,8 +381,7 @@ namespace Cad3PLogBrowser
             string u = line.ToUpperInvariant();
             if (u.Contains("ERROR") || u.Contains("FATAL") || u.Contains("EXCEPTION"))
                 return ColourError;
-            if (u.Contains("WARN"))
-                return ColourWarn;
+            if (u.Contains("WARN")) return ColourWarn;
             return ColourInfo;
         }
 
@@ -379,13 +394,12 @@ namespace Cad3PLogBrowser
                 Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        // ── File watcher callback ─────────────────────────────────────────────
         private void OnFileChangedOnDisk(object sender, EventArgs e)
         {
             if (!_isLoading) FileStatus.Image = Resources.red_ball;
         }
 
-        // ── UI state helper ───────────────────────────────────────────────────
+        // ── UI state ──────────────────────────────────────────────────────────
         private void SetDocumentLoaded(bool loaded)
         {
             saveAsMenuItem.Enabled   = SaveButton.Enabled    = loaded;
@@ -409,28 +423,22 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        // ── #4: Save Selected (from tree selection) ───────────────────────────
         private void saveAsMenuItem_Click(object sender, EventArgs e)
         {
-            if (listView1.Items.Count == 0) return;
+            if (_virtualLines.Count == 0) return;
             if (saveFileDialog1.ShowDialog() != DialogResult.OK) return;
             try
             {
-                // If tree node(s) selected → save only those lines; else save all visible.
                 var lines = new List<string>();
-                if (listView1.SelectedItems.Count > 0)
-                {
-                    foreach (ListViewItem item in listView1.SelectedItems)
-                        lines.Add(item.SubItems[1].Text);
-                }
+                if (listView1.SelectedIndices.Count > 0)
+                    foreach (int idx in listView1.SelectedIndices)
+                        lines.Add(_virtualLines[idx].Text);
                 else
-                {
-                    foreach (ListViewItem item in listView1.Items)
-                        lines.Add(item.SubItems[1].Text);
-                }
+                    foreach (var vl in _virtualLines)
+                        lines.Add(vl.Text);
+
                 _logFileService.WriteLines(saveFileDialog1.FileName, lines);
-                MessageBox.Show(
-                    string.Format("{0} line(s) saved.", lines.Count),
+                MessageBox.Show(string.Format("{0} line(s) saved.", lines.Count),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
@@ -450,7 +458,7 @@ namespace Cad3PLogBrowser
             LoadFileAsync(_currentFilePath);
             BeginInvoke((Action)(() =>
             {
-                if (topIndex < listView1.Items.Count)
+                if (topIndex < listView1.VirtualListSize)
                     listView1.EnsureVisible(topIndex);
             }));
         }
@@ -472,10 +480,10 @@ namespace Cad3PLogBrowser
         // ── Edit menu ─────────────────────────────────────────────────────────
         private void copyMenuItem_Click(object sender, EventArgs e)
         {
-            if (listView1.SelectedItems.Count == 0) return;
+            if (listView1.SelectedIndices.Count == 0) return;
             var lines = new List<string>();
-            foreach (ListViewItem item in listView1.SelectedItems)
-                lines.Add(item.SubItems[1].Text);
+            foreach (int idx in listView1.SelectedIndices)
+                lines.Add(_virtualLines[idx].Text);
             Clipboard.SetText(_searchService.JoinForClipboard(lines));
         }
 
@@ -501,17 +509,17 @@ namespace Cad3PLogBrowser
 
         public void FindNext(string searchTerm, bool matchCase)
         {
-            if (listView1.Items.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
-            var visibleLines = new List<string>();
-            foreach (ListViewItem item in listView1.Items)
-                visibleLines.Add(item.SubItems[1].Text);
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+
+            var visibleLines = new List<string>(_virtualLines.Count);
+            foreach (var vl in _virtualLines) visibleLines.Add(vl.Text);
 
             int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase);
             if (idx >= 0)
             {
-                listView1.SelectedItems.Clear();
-                listView1.Items[idx].Selected = true;
-                listView1.Items[idx].EnsureVisible();
+                listView1.SelectedIndices.Clear();
+                listView1.SelectedIndices.Add(idx);
+                listView1.EnsureVisible(idx);
                 ShowLogDetail(idx);
             }
             else
@@ -532,7 +540,7 @@ namespace Cad3PLogBrowser
         public void ApplyFilter(string filterText, bool matchCase)
         {
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
-            PopulateListViewFiltered(filtered);
+            PopulateVirtualListViewFiltered(filtered);
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -563,13 +571,12 @@ namespace Cad3PLogBrowser
                 aboutDialog.ShowDialog(this);
         }
 
-        // ── #5: Help content ──────────────────────────────────────────────────
         private void helpMenuItem_Click(object sender, EventArgs e)
         {
-            var help = new Form
+            var helpForm = new Form
             {
                 Text = "Help — CAD3P Log Browser",
-                Size = new System.Drawing.Size(520, 420),
+                Size = new System.Drawing.Size(520, 440),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false, MinimizeBox = false
@@ -582,7 +589,7 @@ namespace Cad3PLogBrowser
                     "CAD3P Log Browser — Keyboard Shortcuts\r\n" +
                     "═══════════════════════════════════════\r\n\r\n" +
                     "Ctrl+O      Open log file\r\n" +
-                    "Ctrl+S      Save As\r\n" +
+                    "Ctrl+S      Save As (selection or all visible)\r\n" +
                     "F5          Refresh (reload, keep scroll position)\r\n" +
                     "Ctrl+R      Reload (reset to top)\r\n" +
                     "Ctrl+C      Copy selected lines\r\n" +
@@ -594,17 +601,23 @@ namespace Cad3PLogBrowser
                     "Ctrl+H      Hide/Show Tabs\r\n" +
                     "Ctrl+E      Settings\r\n" +
                     "Alt+F4      Exit\r\n\r\n" +
+                    "Call Graph tab\r\n" +
+                    "══════════════\r\n" +
+                    "• Scroll wheel to zoom in/out.\r\n" +
+                    "• Click and drag to pan.\r\n" +
+                    "• Hover a node to highlight its edges.\r\n" +
+                    "• Edge thickness = call frequency.\r\n" +
+                    "• Reset View button restores default zoom/pan.\r\n\r\n" +
                     "Tips\r\n" +
                     "════\r\n" +
                     "• Drag and drop a log file onto the window to open it.\r\n" +
                     "• Click any tree node to jump to that line in the log.\r\n" +
                     "• Select lines then Save As to save a trimmed log.\r\n" +
                     "• ERROR/FATAL lines are highlighted red, WARN in amber.\r\n" +
-                    "• The Performance tab shows API call frequency.\r\n" +
-                    "• The Log Details tab shows the full selected line.\r\n"
+                    "• Virtual mode: the log list handles 500k+ lines smoothly.\r\n"
             };
-            help.Controls.Add(rtb);
-            help.ShowDialog(this);
+            helpForm.Controls.Add(rtb);
+            helpForm.ShowDialog(this);
         }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
@@ -615,6 +628,7 @@ namespace Cad3PLogBrowser
             tabPage1.Text = "Log";
             tabPage3.Text = "Performance";
             tabPage4.Text = "Log Details";
+            tabPage5.Text = "Call Graph";
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)

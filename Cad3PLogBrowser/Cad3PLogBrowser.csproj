@@ -81,6 +81,8 @@
       <DependentUpon>FindForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
+    <Compile Include="CallGraphPanel.cs" />
+    <Compile Include="Services\CallGraphService.cs" />
     <Compile Include="Services\LogFileService.cs" />
     <Compile Include="Services\LogParserService.cs" />
     <Compile Include="Services\SearchService.cs" />
