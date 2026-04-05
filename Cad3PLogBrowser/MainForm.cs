@@ -130,14 +130,15 @@ namespace Cad3PLogBrowser
         // ── Tree population ───────────────────────────────────────────────────
         private void PopulateTrees(List<string> lines)
         {
-            var entries  = _parserService.Parse(lines);
-            _apiNodes    = _parserService.BuildApiList(entries);
-            var callTree = _parserService.BuildCallTree(entries);
-            var graph    = _callGraphService.Build(entries);
+            var entries   = _parserService.Parse(lines);
+            _apiNodes     = _parserService.BuildApiList(entries);
+            var callTree  = _parserService.BuildCallTree(entries);
+            var perfStats = _parserService.BuildPerformanceStats(callTree);
+            var graph     = _callGraphService.Build(entries);
 
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
-            PopulatePerformanceTab(_apiNodes, lines.Count);
+            PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
         }
 
@@ -197,26 +198,49 @@ namespace Cad3PLogBrowser
         }
 
         // ── Performance tab ───────────────────────────────────────────────────
-        private void PopulatePerformanceTab(List<ApiCallNode> apiNodes, int totalLines)
+        private void PopulatePerformanceTab(List<ApiPerfStats> stats, int totalLines)
         {
             performanceView.BeginUpdate();
             performanceView.Items.Clear();
 
+            // ── Summary row ───────────────────────────────────────────────────
+            long totalMs    = 0;
+            int  timedCalls = 0;
+            foreach (var s in stats) { totalMs += s.TotalDurationMs; timedCalls += s.TimedCallCount; }
+
             var summary = new ListViewItem("── Summary ──");
-            summary.SubItems.Add(string.Format("{0} unique APIs", apiNodes.Count));
-            summary.SubItems.Add(string.Format("{0} total lines", totalLines));
-            summary.BackColor = Color.FromArgb(230, 230, 255);
+            summary.SubItems.Add(timedCalls.ToString());          // Calls
+            summary.SubItems.Add(totalMs.ToString());             // Total ms
+            summary.SubItems.Add("-");                            // Avg
+            summary.SubItems.Add("-");                            // Min
+            summary.SubItems.Add("-");                            // Max
+            summary.SubItems.Add(string.Format("{0} unique APIs  |  {1} total lines",
+                stats.Count, totalLines));
+            summary.BackColor = Color.FromArgb(210, 225, 255);
+            summary.Font = new System.Drawing.Font(performanceView.Font,
+                System.Drawing.FontStyle.Bold);
             performanceView.Items.Add(summary);
 
-            var sorted = new List<ApiCallNode>(apiNodes);
-            sorted.Sort((a, b) => b.LineNumbers.Count.CompareTo(a.LineNumbers.Count));
-            foreach (var node in sorted)
+            // ── One row per API, sorted by total time descending ──────────────
+            foreach (var s in stats)
             {
-                var item = new ListViewItem(node.ApiName);
-                item.SubItems.Add(node.LineNumbers.Count.ToString());
-                item.SubItems.Add(node.FirstLine.ToString());
+                var item = new ListViewItem(s.ApiName);
+                item.SubItems.Add(s.CallCount.ToString());
+                item.SubItems.Add(s.TotalDurationMs > 0 ? s.TotalDurationMs.ToString() : "-");
+                item.SubItems.Add(s.AvgDurationMs   > 0 ? s.AvgDurationMs.ToString()   : "-");
+                item.SubItems.Add(s.MinDurationMs   >= 0 ? s.MinDurationMs.ToString()  : "-");
+                item.SubItems.Add(s.MaxDurationMs   > 0 ? s.MaxDurationMs.ToString()   : "-");
+                item.SubItems.Add(s.SourceFile ?? "-");
+
+                // Colour-code by total time: >1s=red, >100ms=amber, else normal
+                if (s.TotalDurationMs >= 1000)
+                    item.BackColor = Color.FromArgb(255, 220, 220);
+                else if (s.TotalDurationMs >= 100)
+                    item.BackColor = Color.FromArgb(255, 243, 205);
+
                 performanceView.Items.Add(item);
             }
+
             performanceView.EndUpdate();
         }
 

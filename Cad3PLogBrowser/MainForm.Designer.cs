@@ -565,14 +565,30 @@
             this.performanceView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.performanceView.FullRowSelect = true;
             this.performanceView.View = System.Windows.Forms.View.Details;
+            this.perfColTotal = new System.Windows.Forms.ColumnHeader();
+            this.perfColAvg = new System.Windows.Forms.ColumnHeader();
+            this.perfColMin = new System.Windows.Forms.ColumnHeader();
+            this.perfColMax = new System.Windows.Forms.ColumnHeader();
+            this.perfColSource = new System.Windows.Forms.ColumnHeader();
             this.performanceView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-                this.perfColName, this.perfColCalls, this.perfColFirst });
+                this.perfColName, this.perfColCalls, this.perfColTotal,
+                this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSource });
+            this.performanceView.FullRowSelect = true;
+            this.performanceView.GridLines = true;
             this.perfColName.Text = "API Name";
-            this.perfColName.Width = 300;
-            this.perfColCalls.Text = "Call Count";
-            this.perfColCalls.Width = 100;
-            this.perfColFirst.Text = "First Line";
-            this.perfColFirst.Width = 100;
+            this.perfColName.Width = 260;
+            this.perfColCalls.Text = "Calls";
+            this.perfColCalls.Width = 55;
+            this.perfColTotal.Text = "Total (ms)";
+            this.perfColTotal.Width = 90;
+            this.perfColAvg.Text = "Avg (ms)";
+            this.perfColAvg.Width = 80;
+            this.perfColMin.Text = "Min (ms)";
+            this.perfColMin.Width = 80;
+            this.perfColMax.Text = "Max (ms)";
+            this.perfColMax.Width = 80;
+            this.perfColSource.Text = "Source File";
+            this.perfColSource.Width = 200;
             // 
             // logDetailTab — Log Details
             // 
@@ -896,6 +912,11 @@
         private System.Windows.Forms.ColumnHeader perfColName;
         private System.Windows.Forms.ColumnHeader perfColCalls;
         private System.Windows.Forms.ColumnHeader perfColFirst;
+        private System.Windows.Forms.ColumnHeader perfColTotal;
+        private System.Windows.Forms.ColumnHeader perfColAvg;
+        private System.Windows.Forms.ColumnHeader perfColMin;
+        private System.Windows.Forms.ColumnHeader perfColMax;
+        private System.Windows.Forms.ColumnHeader perfColSource;
         private System.Windows.Forms.RichTextBox logDetailBox;
         private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
         private System.Windows.Forms.ToolStripStatusLabel StatusLineCount;
