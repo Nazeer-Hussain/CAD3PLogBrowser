@@ -486,6 +486,7 @@
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Controls.Add(this.tabPage3);
             this.tabControl1.Controls.Add(this.tabPage4);
+            this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
@@ -516,6 +517,8 @@
             this.listView1.Location = new System.Drawing.Point(3, 3);
             this.listView1.Name = "listView1";
             this.listView1.ShowItemToolTips = true;
+            this.listView1.VirtualMode = true;
+            this.listView1.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.listView1_RetrieveVirtualItem);
             this.listView1.Size = new System.Drawing.Size(682, 466);
             this.listView1.TabIndex = 3;
             this.listView1.UseCompatibleStateImageBehavior = false;
@@ -586,6 +589,31 @@
             this.logDetailBox.Font = new System.Drawing.Font("Consolas", 9.75F);
             this.logDetailBox.WordWrap = true;
             this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
+            // 
+            // tabPage5 — Call Graph
+            // 
+            this.tabPage5 = new System.Windows.Forms.TabPage();
+            this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
+            this.callGraphResetButton = new System.Windows.Forms.Button();
+            this.tabPage5.Controls.Add(this.callGraphPanel);
+            this.tabPage5.Controls.Add(this.callGraphResetButton);
+            this.tabPage5.Location = new System.Drawing.Point(4, 25);
+            this.tabPage5.Name = "tabPage5";
+            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage5.Size = new System.Drawing.Size(688, 494);
+            this.tabPage5.TabIndex = 4;
+            this.tabPage5.Text = "Call Graph";
+            this.tabPage5.UseVisualStyleBackColor = true;
+            this.callGraphResetButton.Text = "Reset View";
+            this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
+            this.callGraphResetButton.Size = new System.Drawing.Size(80, 26);
+            this.callGraphResetButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+            this.callGraphResetButton.Click += new System.EventHandler(this.callGraphResetButton_Click);
+            this.callGraphPanel.Location = new System.Drawing.Point(3, 38);
+            this.callGraphPanel.Size = new System.Drawing.Size(682, 453);
+            this.callGraphPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(
+                System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom |
+                System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
             // 
             // toolStrip1
             // 
@@ -861,6 +889,9 @@
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.TabPage tabPage3;
         private System.Windows.Forms.TabPage tabPage4;
+        private System.Windows.Forms.TabPage tabPage5;
+        private Cad3PLogBrowser.CallGraphPanel callGraphPanel;
+        private System.Windows.Forms.Button callGraphResetButton;
         private System.Windows.Forms.ListView performanceView;
         private System.Windows.Forms.ColumnHeader perfColName;
         private System.Windows.Forms.ColumnHeader perfColCalls;
