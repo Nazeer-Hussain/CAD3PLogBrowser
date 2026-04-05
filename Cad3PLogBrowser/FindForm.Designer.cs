@@ -18,8 +18,8 @@ namespace Cad3PLogBrowser
             this.label1 = new System.Windows.Forms.Label();
             this.SearchTextBox = new System.Windows.Forms.ComboBox();
             this.MatchCaseCheckBox = new System.Windows.Forms.CheckBox();
-            this.Findbutton = new System.Windows.Forms.Button();
-            this.Cancelbutton = new System.Windows.Forms.Button();
+            this.FindNextButton = new System.Windows.Forms.Button();
+            this.CloseButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             //
             // label1
@@ -51,34 +51,34 @@ namespace Cad3PLogBrowser
             //
             // Findbutton
             //
-            this.Findbutton.Location = new System.Drawing.Point(290, 58);
-            this.Findbutton.Name = "Findbutton";
-            this.Findbutton.Size = new System.Drawing.Size(88, 31);
-            this.Findbutton.TabIndex = 3;
-            this.Findbutton.Text = "&Find Next";
-            this.Findbutton.UseVisualStyleBackColor = true;
-            this.Findbutton.Click += new System.EventHandler(this.FindButton_Click);
+            this.FindNextButton.Location = new System.Drawing.Point(290, 58);
+            this.FindNextButton.Name = "Findbutton";
+            this.FindNextButton.Size = new System.Drawing.Size(88, 31);
+            this.FindNextButton.TabIndex = 3;
+            this.FindNextButton.Text = "&Find Next";
+            this.FindNextButton.UseVisualStyleBackColor = true;
+            this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
             //
             // Cancelbutton
             //
-            this.Cancelbutton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.Cancelbutton.Location = new System.Drawing.Point(388, 58);
-            this.Cancelbutton.Name = "Cancelbutton";
-            this.Cancelbutton.Size = new System.Drawing.Size(88, 31);
-            this.Cancelbutton.TabIndex = 4;
-            this.Cancelbutton.Text = "&Close";
-            this.Cancelbutton.UseVisualStyleBackColor = true;
-            this.Cancelbutton.Click += new System.EventHandler(this.Cancelbutton_Click);
+            this.CloseButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.CloseButton.Location = new System.Drawing.Point(388, 58);
+            this.CloseButton.Name = "Cancelbutton";
+            this.CloseButton.Size = new System.Drawing.Size(88, 31);
+            this.CloseButton.TabIndex = 4;
+            this.CloseButton.Text = "&Close";
+            this.CloseButton.UseVisualStyleBackColor = true;
+            this.CloseButton.Click += new System.EventHandler(this.CloseButton_Click);
             //
             // FindForm
             //
-            this.AcceptButton = this.Findbutton;
+            this.AcceptButton = this.FindNextButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.Cancelbutton;
+            this.CancelButton = this.CloseButton;
             this.ClientSize = new System.Drawing.Size(490, 104);
-            this.Controls.Add(this.Cancelbutton);
-            this.Controls.Add(this.Findbutton);
+            this.Controls.Add(this.CloseButton);
+            this.Controls.Add(this.FindNextButton);
             this.Controls.Add(this.MatchCaseCheckBox);
             this.Controls.Add(this.SearchTextBox);
             this.Controls.Add(this.label1);
@@ -89,7 +89,7 @@ namespace Cad3PLogBrowser
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Find";
             this.TopMost = true;
-            this.Load += new System.EventHandler(this.FindFrm_Load);
+            this.Load += new System.EventHandler(this.FindForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
         }
@@ -99,7 +99,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox SearchTextBox;
         private System.Windows.Forms.CheckBox MatchCaseCheckBox;
-        private System.Windows.Forms.Button Findbutton;
-        private System.Windows.Forms.Button Cancelbutton;
+        private System.Windows.Forms.Button FindNextButton;
+        private System.Windows.Forms.Button CloseButton;
     }
 }

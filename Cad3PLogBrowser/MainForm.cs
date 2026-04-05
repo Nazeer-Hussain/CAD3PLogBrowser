@@ -8,7 +8,7 @@ using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
-    public partial class mainFrm : Form
+    public partial class MainForm : Form
     {
         // ── Services ──────────────────────────────────────────────────────────
         private readonly LogFileService   _logFileService;
@@ -28,7 +28,7 @@ namespace Cad3PLogBrowser
         private static readonly Color ColourInfo   = SystemColors.Window;
 
         // ── Construction ──────────────────────────────────────────────────────
-        public mainFrm()
+        public MainForm()
         {
             InitializeComponent();
 
@@ -276,14 +276,14 @@ namespace Cad3PLogBrowser
         }
 
         // ── #6: Drag-and-drop file open ───────────────────────────────────────
-        private void mainFrm_DragEnter(object sender, DragEventArgs e)
+        private void MainForm_DragEnter(object sender, DragEventArgs e)
         {
             e.Effect = e.Data.GetDataPresent(DataFormats.FileDrop)
                 ? DragDropEffects.Copy
                 : DragDropEffects.None;
         }
 
-        private void mainFrm_DragDrop(object sender, DragEventArgs e)
+        private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files != null && files.Length > 0)
@@ -537,8 +537,8 @@ namespace Cad3PLogBrowser
 
         private void filterMenuItem_Click(object sender, EventArgs e)
         {
-            using (var filterFrm = new FilterFrm(this))
-                filterFrm.ShowDialog(this);
+            using (var filterDialog = new FilterForm(this))
+                filterDialog.ShowDialog(this);
         }
 
         private void FilterButton_Click(object sender, EventArgs e) =>
@@ -550,8 +550,8 @@ namespace Cad3PLogBrowser
         // ── Options / Help ────────────────────────────────────────────────────
         private void settingsMenuItem_Click(object sender, EventArgs e)
         {
-            using (var settingsFrm = new SettingsFrm())
-                settingsFrm.ShowDialog(this);
+            using (var settingsDialog = new SettingsForm())
+                settingsDialog.ShowDialog(this);
         }
 
         private void SettingsButton_Click(object sender, EventArgs e) =>
@@ -559,8 +559,8 @@ namespace Cad3PLogBrowser
 
         private void aboutMenuItem_Click(object sender, EventArgs e)
         {
-            using (var abtBox = new AbtBox())
-                abtBox.ShowDialog(this);
+            using (var aboutDialog = new AboutForm())
+                aboutDialog.ShowDialog(this);
         }
 
         // ── #5: Help content ──────────────────────────────────────────────────
@@ -608,7 +608,7 @@ namespace Cad3PLogBrowser
         }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
-        private void mainFrm_Load(object sender, EventArgs e)
+        private void MainForm_Load(object sender, EventArgs e)
         {
             SetDocumentLoaded(false);
             LayoutTrees();
@@ -617,17 +617,17 @@ namespace Cad3PLogBrowser
             tabPage4.Text = "Log Details";
         }
 
-        private void mainFrm_FormClosed(object sender, FormClosedEventArgs e)
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             SaveSettings();
             _logFileService.Dispose();
         }
 
-        private void mainFrm_FormClosing(object sender, FormClosingEventArgs e) { }
-        private void mainFrm_ResizeBegin(object sender, EventArgs e) { }
-        private void mainFrm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
-        private void mainFrm_Resize(object sender, EventArgs e) { }
-        private void mainFrm_SizeChanged(object sender, EventArgs e) { }
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e) { }
+        private void MainForm_ResizeBegin(object sender, EventArgs e) { }
+        private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
+        private void MainForm_Resize(object sender, EventArgs e) { }
+        private void MainForm_SizeChanged(object sender, EventArgs e) { }
         private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e) => LayoutTrees();
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e) { }
         private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e) { }
