@@ -25,7 +25,7 @@ namespace Cad3PLogBrowser
 
         private void ClearButton_Click(object sender, EventArgs e)
         {
-            FilterTextBox.Clear();
+            //FilterTextBox.Clear();
             _mainForm.ApplyFilter(string.Empty, false);
             Hide();
         }
