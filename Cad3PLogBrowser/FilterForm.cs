@@ -3,34 +3,35 @@ using System.Windows.Forms;
 
 namespace Cad3PLogBrowser
 {
-    public partial class FilterFrm : Form
+    /// <summary>
+    /// Dialog for filtering the log view to lines containing a search term.
+    /// Applies the filter directly to the owning <see cref="MainForm"/>.
+    /// </summary>
+    public partial class FilterForm : Form
     {
-        private readonly mainFrm _owner;
+        private readonly MainForm _mainForm;
 
-        public FilterFrm(mainFrm owner)
+        public FilterForm(MainForm mainForm)
         {
             InitializeComponent();
-            _owner = owner;
+            _mainForm = mainForm;
         }
 
         private void ApplyButton_Click(object sender, EventArgs e)
         {
-            _owner.ApplyFilter(FilterTextBox.Text, MatchCaseCheckBox.Checked);
+            _mainForm.ApplyFilter(FilterTextBox.Text, MatchCaseCheckBox.Checked);
             Hide();
         }
 
         private void ClearButton_Click(object sender, EventArgs e)
         {
             FilterTextBox.Clear();
-            _owner.ApplyFilter(string.Empty, false);
+            _mainForm.ApplyFilter(string.Empty, false);
             Hide();
         }
 
-        private void buttonClose_Click(object sender, EventArgs e)
-        {
-            Hide();
-        }
+        private void CloseButton_Click(object sender, EventArgs e) => Hide();
 
-        private void FilterFrm_Load(object sender, EventArgs e) { }
+        private void FilterForm_Load(object sender, EventArgs e) { }
     }
 }

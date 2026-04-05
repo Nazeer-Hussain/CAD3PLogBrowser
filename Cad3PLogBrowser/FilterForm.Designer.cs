@@ -1,6 +1,6 @@
 namespace Cad3PLogBrowser
 {
-    partial class FilterFrm
+    partial class FilterForm
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -78,9 +78,9 @@ namespace Cad3PLogBrowser
             this.buttonClose.TabIndex = 5;
             this.buttonClose.Text = "&Close";
             this.buttonClose.UseVisualStyleBackColor = true;
-            this.buttonClose.Click += new System.EventHandler(this.buttonClose_Click);
+            this.buttonClose.Click += new System.EventHandler(this.CloseButton_Click);
             //
-            // FilterFrm
+            // FilterForm
             //
             this.AcceptButton = this.ApplyButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -96,10 +96,10 @@ namespace Cad3PLogBrowser
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "FilterFrm";
+            this.Name = "FilterForm";
             this.ShowInTaskbar = false;
             this.Text = "Filter Log";
-            this.Load += new System.EventHandler(this.FilterFrm_Load);
+            this.Load += new System.EventHandler(this.FilterForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
         }

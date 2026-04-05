@@ -1,29 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
+using System;
 using System.Windows.Forms;
 
 namespace Cad3PLogBrowser
 {
-    public partial class SettingsFrm : Form
+    /// <summary>
+    /// Application settings dialog.
+    /// Currently a placeholder — extend with real settings as needed.
+    /// </summary>
+    public partial class SettingsForm : Form
     {
-        public SettingsFrm()
+        public SettingsForm()
         {
             InitializeComponent();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            this.Hide();
-        }
+        private void OkButton_Click(object sender, EventArgs e) => Hide();
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            this.Hide();
-        }
+        private void CancelButton_Click(object sender, EventArgs e) => Hide();
     }
 }

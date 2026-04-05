@@ -1,6 +1,6 @@
 ﻿namespace Cad3PLogBrowser
 {
-    partial class SettingsFrm
+    partial class SettingsForm
     {
         /// <summary>
         /// Required designer variable.
@@ -28,19 +28,19 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.OK_button = new System.Windows.Forms.Button();
+            this.OkButton = new System.Windows.Forms.Button();
             this.CancelButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // OK_button
             // 
-            this.OK_button.Location = new System.Drawing.Point(64, 206);
-            this.OK_button.Name = "OK_button";
-            this.OK_button.Size = new System.Drawing.Size(75, 23);
-            this.OK_button.TabIndex = 0;
-            this.OK_button.Text = "&OK";
-            this.OK_button.UseVisualStyleBackColor = true;
-            this.OK_button.Click += new System.EventHandler(this.button1_Click);
+            this.OkButton.Location = new System.Drawing.Point(64, 206);
+            this.OkButton.Name = "OK_button";
+            this.OkButton.Size = new System.Drawing.Size(75, 23);
+            this.OkButton.TabIndex = 0;
+            this.OkButton.Text = "&OK";
+            this.OkButton.UseVisualStyleBackColor = true;
+            this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
             // 
             // CancelButton
             // 
@@ -50,16 +50,16 @@
             this.CancelButton.TabIndex = 1;
             this.CancelButton.Text = "&Cancel";
             this.CancelButton.UseVisualStyleBackColor = true;
-            this.CancelButton.Click += new System.EventHandler(this.button2_Click);
+            this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
             // 
-            // SettingsFrm
+            // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(292, 267);
             this.Controls.Add(this.CancelButton);
-            this.Controls.Add(this.OK_button);
-            this.Name = "SettingsFrm";
+            this.Controls.Add(this.OkButton);
+            this.Name = "SettingsForm";
             this.Text = "Settings";
             this.ResumeLayout(false);
 
@@ -67,7 +67,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Button OK_button;
+        private System.Windows.Forms.Button OkButton;
         private System.Windows.Forms.Button CancelButton;
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Cad3PLogBrowser
 {
-    partial class mainFrm
+    partial class MainForm
     {
         /// <summary>
         /// Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(mainFrm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -65,6 +65,9 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.FileLoadProgress = new System.Windows.Forms.ToolStripProgressBar();
+            this.StatusFileName = new System.Windows.Forms.ToolStripStatusLabel();
+            this.StatusLineCount = new System.Windows.Forms.ToolStripStatusLabel();
+            this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.ApiTree = new System.Windows.Forms.TreeView();
             this.CallTree = new System.Windows.Forms.TreeView();
@@ -385,6 +388,9 @@
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileStatus,
+            this.StatusFileName,
+            this.StatusLineCount,
+            this.StatusSelection,
             this.FileLoadProgress});
             this.statusStrip1.Location = new System.Drawing.Point(3, 469);
             this.statusStrip1.Name = "statusStrip1";
@@ -403,8 +409,28 @@
             // 
             this.FileLoadProgress.AutoSize = false;
             this.FileLoadProgress.Name = "FileLoadProgress";
-            this.FileLoadProgress.Size = new System.Drawing.Size(500, 17);
+            this.FileLoadProgress.Size = new System.Drawing.Size(200, 17);
             this.FileLoadProgress.Visible = false;
+            // 
+            // StatusFileName
+            // 
+            this.StatusFileName.Name = "StatusFileName";
+            this.StatusFileName.Size = new System.Drawing.Size(300, 17);
+            this.StatusFileName.Spring = true;
+            this.StatusFileName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.StatusFileName.Text = "";
+            // 
+            // StatusLineCount
+            // 
+            this.StatusLineCount.Name = "StatusLineCount";
+            this.StatusLineCount.Size = new System.Drawing.Size(120, 17);
+            this.StatusLineCount.Text = "";
+            // 
+            // StatusSelection
+            // 
+            this.StatusSelection.Name = "StatusSelection";
+            this.StatusSelection.Size = new System.Drawing.Size(100, 17);
+            this.StatusSelection.Text = "";
             // 
             // splitContainer1
             // 
@@ -458,6 +484,8 @@
             // 
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
+            this.tabControl1.Controls.Add(this.tabPage3);
+            this.tabControl1.Controls.Add(this.tabPage4);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
@@ -513,6 +541,51 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // tabPage3 — Performance
+            // 
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.performanceView = new System.Windows.Forms.ListView();
+            this.perfColName = new System.Windows.Forms.ColumnHeader();
+            this.perfColCalls = new System.Windows.Forms.ColumnHeader();
+            this.perfColFirst = new System.Windows.Forms.ColumnHeader();
+            this.tabPage3.Controls.Add(this.performanceView);
+            this.tabPage3.Location = new System.Drawing.Point(4, 25);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(688, 494);
+            this.tabPage3.TabIndex = 2;
+            this.tabPage3.Text = "Performance";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            this.performanceView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.performanceView.FullRowSelect = true;
+            this.performanceView.View = System.Windows.Forms.View.Details;
+            this.performanceView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+                this.perfColName, this.perfColCalls, this.perfColFirst });
+            this.perfColName.Text = "API Name";
+            this.perfColName.Width = 300;
+            this.perfColCalls.Text = "Call Count";
+            this.perfColCalls.Width = 100;
+            this.perfColFirst.Text = "First Line";
+            this.perfColFirst.Width = 100;
+            // 
+            // tabPage4 — Log Details
+            // 
+            this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.logDetailBox = new System.Windows.Forms.RichTextBox();
+            this.tabPage4.Controls.Add(this.logDetailBox);
+            this.tabPage4.Location = new System.Drawing.Point(4, 25);
+            this.tabPage4.Name = "tabPage4";
+            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage4.Size = new System.Drawing.Size(688, 494);
+            this.tabPage4.TabIndex = 3;
+            this.tabPage4.Text = "Log Details";
+            this.tabPage4.UseVisualStyleBackColor = true;
+            this.logDetailBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.logDetailBox.ReadOnly = true;
+            this.logDetailBox.Font = new System.Drawing.Font("Consolas", 9.75F);
+            this.logDetailBox.WordWrap = true;
+            this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
             // 
             // toolStrip1
             // 
@@ -725,7 +798,7 @@
             this.filterToolStripMenuItem.Text = "Filter";
             this.filterToolStripMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
             // 
-            // mainFrm
+            // MainForm
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -736,15 +809,17 @@
             this.Controls.Add(this.menuStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
-            this.Name = "mainFrm";
+            this.Name = "MainForm";
             this.Text = "WWGM 3P Log Browser";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.mainFrm_FormClosing);
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.mainFrm_FormClosed);
-            this.Load += new System.EventHandler(this.mainFrm_Load);
-            this.ResizeBegin += new System.EventHandler(this.mainFrm_ResizeBegin);
-            this.ResizeEnd += new System.EventHandler(this.mainFrm_ResizeEnd);
-            this.SizeChanged += new System.EventHandler(this.mainFrm_SizeChanged);
-            this.Resize += new System.EventHandler(this.mainFrm_Resize);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
+            this.Load += new System.EventHandler(this.MainForm_Load);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
+            this.ResizeBegin += new System.EventHandler(this.MainForm_ResizeBegin);
+            this.ResizeEnd += new System.EventHandler(this.MainForm_ResizeEnd);
+            this.SizeChanged += new System.EventHandler(this.MainForm_SizeChanged);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
@@ -784,6 +859,16 @@
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.TabPage tabPage2;
+        private System.Windows.Forms.TabPage tabPage3;
+        private System.Windows.Forms.TabPage tabPage4;
+        private System.Windows.Forms.ListView performanceView;
+        private System.Windows.Forms.ColumnHeader perfColName;
+        private System.Windows.Forms.ColumnHeader perfColCalls;
+        private System.Windows.Forms.ColumnHeader perfColFirst;
+        private System.Windows.Forms.RichTextBox logDetailBox;
+        private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
+        private System.Windows.Forms.ToolStripStatusLabel StatusLineCount;
+        private System.Windows.Forms.ToolStripStatusLabel StatusSelection;
         private System.Windows.Forms.ToolStripMenuItem editMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findMenuItem;

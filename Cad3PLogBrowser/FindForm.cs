@@ -2,24 +2,24 @@ using System.Windows.Forms;
 
 namespace Cad3PLogBrowser
 {
+    /// <summary>
+    /// Modeless find dialog. Delegates all search logic to <see cref="MainForm.FindNext"/>.
+    /// Maintains a history of recent search terms in the combo box.
+    /// </summary>
     public partial class FindForm : Form
     {
-        private readonly mainFrm _owner;
+        private readonly MainForm _mainForm;
 
-        public FindForm(mainFrm owner)
+        public FindForm(MainForm mainForm)
         {
             InitializeComponent();
-            _owner = owner;
+            _mainForm = mainForm;
         }
 
-        // Called by the Find Next menu shortcut (Ctrl+F3) when the dialog is open.
-        public void TriggerFindNext()
-        {
-            PerformFind();
-        }
+        /// <summary>Triggers Find Next using the current search term — called by the menu shortcut.</summary>
+        public void TriggerFindNext() => PerformFind();
 
-        private void FindButton_Click(object sender, System.EventArgs e) =>
-            PerformFind();
+        private void FindNextButton_Click(object sender, System.EventArgs e) => PerformFind();
 
         private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -28,16 +28,15 @@ namespace Cad3PLogBrowser
 
         private void PerformFind()
         {
-            // Add the term to history so the combo box acts as a search history.
             string term = SearchTextBox.Text;
             if (!string.IsNullOrEmpty(term) && !SearchTextBox.Items.Contains(term))
                 SearchTextBox.Items.Insert(0, term);
 
-            _owner.FindNext(term, MatchCaseCheckBox.Checked);
+            _mainForm.FindNext(term, MatchCaseCheckBox.Checked);
         }
 
-        private void Cancelbutton_Click(object sender, System.EventArgs e) => Hide();
+        private void CloseButton_Click(object sender, System.EventArgs e) => Hide();
 
-        private void FindFrm_Load(object sender, System.EventArgs e) { }
+        private void FindForm_Load(object sender, System.EventArgs e) { }
     }
 }

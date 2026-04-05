@@ -11,7 +11,7 @@ namespace Cad3PLogBrowser
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var mainForm = new mainFrm();
+            var mainForm = new MainForm();
 
             if (args.Length > 0)
                 mainForm.OpenFilePath(args[0]);
