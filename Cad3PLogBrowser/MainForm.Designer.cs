@@ -30,28 +30,28 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.mainMenuStrip = new System.Windows.Forms.MenuStrip();
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.refreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.editSeparatorAfterCopy = new System.Windows.Forms.ToolStripSeparator();
             this.findMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findNextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
+            this.editSeparatorAfterFind = new System.Windows.Forms.ToolStripSeparator();
             this.filterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showApiListMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
+            this.viewSeparatorAfterTree = new System.Windows.Forms.ToolStripSeparator();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -60,85 +60,88 @@
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator9 = new System.Windows.Forms.ToolStripSeparator();
+            this.helpSeparatorBeforeAbout = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.FileLoadProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.StatusFileName = new System.Windows.Forms.ToolStripStatusLabel();
             this.StatusLineCount = new System.Windows.Forms.ToolStripStatusLabel();
             this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
-            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.ApiTree = new System.Windows.Forms.TreeView();
             this.CallTree = new System.Windows.Forms.TreeView();
-            this.tabControl1 = new System.Windows.Forms.TabControl();
-            this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.listView1 = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this.mainTabControl = new System.Windows.Forms.TabControl();
+            this.logTab = new System.Windows.Forms.TabPage();
+            this.logListView = new System.Windows.Forms.ListView();
+            this.colLineNumber = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colLogText = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.rawTab = new System.Windows.Forms.TabPage();
+            this.performanceTab = new System.Windows.Forms.TabPage();
+            this.logDetailTab = new System.Windows.Forms.TabPage();
+            this.callGraphTab = new System.Windows.Forms.TabPage();
+            this.mainToolStrip = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
             this.RefreshButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton4 = new System.Windows.Forms.ToolStripSeparator();
+            this.separatorAfterRefresh = new System.Windows.Forms.ToolStripSeparator();
             this.CopyButton = new System.Windows.Forms.ToolStripButton();
             this.FindButton = new System.Windows.Forms.ToolStripButton();
             this.FilterButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.separatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
             this.SettingsButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.separatorAfterSettings = new System.Windows.Forms.ToolStripSeparator();
             this.CallTreeButton = new System.Windows.Forms.ToolStripButton();
             this.ApiTreeButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton11 = new System.Windows.Forms.ToolStripSeparator();
+            this.separatorAfterApiTree = new System.Windows.Forms.ToolStripSeparator();
             this.HideTabsButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton13 = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripPerformanceButton = new System.Windows.Forms.ToolStripButton();
+            this.separatorBeforeHelp = new System.Windows.Forms.ToolStripSeparator();
             this.ShowHelpButton = new System.Windows.Forms.ToolStripButton();
-            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.fontDialog1 = new System.Windows.Forms.FontDialog();
+            this.openLogFileDialog = new System.Windows.Forms.OpenFileDialog();
+            this.saveLogFileDialog = new System.Windows.Forms.SaveFileDialog();
+            this.logFontDialog = new System.Windows.Forms.FontDialog();
             this.logWatcher = new System.IO.FileSystemWatcher();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.filterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.menuStrip1.SuspendLayout();
-            this.statusStrip1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
-            this.splitContainer1.Panel1.SuspendLayout();
-            this.splitContainer1.Panel2.SuspendLayout();
-            this.splitContainer1.SuspendLayout();
-            this.tabControl1.SuspendLayout();
-            this.tabPage1.SuspendLayout();
-            this.toolStrip1.SuspendLayout();
+            this.fileWatchTimer = new System.Windows.Forms.Timer(this.components);
+            this.logContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mainMenuStrip.SuspendLayout();
+            this.mainStatusStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
+            this.mainSplitContainer.Panel1.SuspendLayout();
+            this.mainSplitContainer.Panel2.SuspendLayout();
+            this.mainSplitContainer.SuspendLayout();
+            this.mainTabControl.SuspendLayout();
+            this.logTab.SuspendLayout();
+            this.mainToolStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.logWatcher)).BeginInit();
-            this.contextMenuStrip1.SuspendLayout();
+            this.logContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
-            // menuStrip1
+            // mainMenuStrip
             // 
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mainMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileMenuItem,
             this.editMenuItem,
             this.optionsMenuItem,
             this.viewMenuItem,
             this.helpMenuItem});
-            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
-            this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(987, 26);
-            this.menuStrip1.TabIndex = 0;
-            this.menuStrip1.Text = "menuStrip1";
+            this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
+            this.mainMenuStrip.Name = "mainMenuStrip";
+            this.mainMenuStrip.Size = new System.Drawing.Size(987, 26);
+            this.mainMenuStrip.TabIndex = 0;
+            this.mainMenuStrip.Text = "mainMenuStrip";
             // 
             // fileMenuItem
             // 
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
             this.saveAsMenuItem,
-            this.toolStripSeparator5,
+            this.fileSeparatorAfterSave,
             this.refreshMenuItem,
             this.reloadMenuItem,
-            this.toolStripSeparator4,
+            this.fileSeparatorBeforeExit,
             this.exitMenuItem});
             this.fileMenuItem.Name = "fileMenuItem";
             this.fileMenuItem.Size = new System.Drawing.Size(40, 22);
@@ -165,10 +168,10 @@
             this.saveAsMenuItem.Text = "&Save As...";
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
             // 
-            // toolStripSeparator5
+            // fileSeparatorAfterSave
             // 
-            this.toolStripSeparator5.Name = "toolStripSeparator5";
-            this.toolStripSeparator5.Size = new System.Drawing.Size(257, 6);
+            this.fileSeparatorAfterSave.Name = "fileSeparatorAfterSave";
+            this.fileSeparatorAfterSave.Size = new System.Drawing.Size(257, 6);
             // 
             // refreshMenuItem
             // 
@@ -186,10 +189,10 @@
             this.reloadMenuItem.Size = new System.Drawing.Size(260, 22);
             this.reloadMenuItem.Text = "R&eload File from Disk";
             // 
-            // toolStripSeparator4
+            // fileSeparatorBeforeExit
             // 
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(257, 6);
+            this.fileSeparatorBeforeExit.Name = "fileSeparatorBeforeExit";
+            this.fileSeparatorBeforeExit.Size = new System.Drawing.Size(257, 6);
             // 
             // exitMenuItem
             // 
@@ -203,10 +206,10 @@
             // 
             this.editMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyMenuItem,
-            this.toolStripSeparator6,
+            this.editSeparatorAfterCopy,
             this.findMenuItem,
             this.findNextMenuItem,
-            this.toolStripSeparator7,
+            this.editSeparatorAfterFind,
             this.filterMenuItem});
             this.editMenuItem.Name = "editMenuItem";
             this.editMenuItem.Size = new System.Drawing.Size(43, 22);
@@ -221,10 +224,10 @@
             this.copyMenuItem.Text = "&Copy";
             this.copyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
             // 
-            // toolStripSeparator6
+            // editSeparatorAfterCopy
             // 
-            this.toolStripSeparator6.Name = "toolStripSeparator6";
-            this.toolStripSeparator6.Size = new System.Drawing.Size(155, 6);
+            this.editSeparatorAfterCopy.Name = "editSeparatorAfterCopy";
+            this.editSeparatorAfterCopy.Size = new System.Drawing.Size(155, 6);
             // 
             // findMenuItem
             // 
@@ -242,10 +245,10 @@
             this.findNextMenuItem.Size = new System.Drawing.Size(158, 22);
             this.findNextMenuItem.Text = "Find&Next";
             // 
-            // toolStripSeparator7
+            // editSeparatorAfterFind
             // 
-            this.toolStripSeparator7.Name = "toolStripSeparator7";
-            this.toolStripSeparator7.Size = new System.Drawing.Size(155, 6);
+            this.editSeparatorAfterFind.Name = "editSeparatorAfterFind";
+            this.editSeparatorAfterFind.Size = new System.Drawing.Size(155, 6);
             // 
             // filterMenuItem
             // 
@@ -278,7 +281,7 @@
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showCallTreeMenuItem,
             this.showApiListMenuItem,
-            this.toolStripSeparator8,
+            this.viewSeparatorAfterTree,
             this.tabsMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
@@ -304,10 +307,10 @@
             this.showApiListMenuItem.Size = new System.Drawing.Size(178, 22);
             this.showApiListMenuItem.Text = "&ApiList";
             // 
-            // toolStripSeparator8
+            // viewSeparatorAfterTree
             // 
-            this.toolStripSeparator8.Name = "toolStripSeparator8";
-            this.toolStripSeparator8.Size = new System.Drawing.Size(175, 6);
+            this.viewSeparatorAfterTree.Name = "viewSeparatorAfterTree";
+            this.viewSeparatorAfterTree.Size = new System.Drawing.Size(175, 6);
             // 
             // tabsMenuItem
             // 
@@ -357,7 +360,7 @@
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
-            this.toolStripSeparator9,
+            this.helpSeparatorBeforeAbout,
             this.aboutMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
@@ -372,10 +375,10 @@
             this.viewHelpMenuItem.Size = new System.Drawing.Size(162, 22);
             this.viewHelpMenuItem.Text = "View &Help";
             // 
-            // toolStripSeparator9
+            // helpSeparatorBeforeAbout
             // 
-            this.toolStripSeparator9.Name = "toolStripSeparator9";
-            this.toolStripSeparator9.Size = new System.Drawing.Size(159, 6);
+            this.helpSeparatorBeforeAbout.Name = "helpSeparatorBeforeAbout";
+            this.helpSeparatorBeforeAbout.Size = new System.Drawing.Size(159, 6);
             // 
             // aboutMenuItem
             // 
@@ -384,19 +387,19 @@
             this.aboutMenuItem.Text = "&About";
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
             // 
-            // statusStrip1
+            // mainStatusStrip
             // 
-            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mainStatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileStatus,
             this.StatusFileName,
             this.StatusLineCount,
             this.StatusSelection,
             this.FileLoadProgress});
-            this.statusStrip1.Location = new System.Drawing.Point(3, 469);
-            this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(682, 22);
-            this.statusStrip1.TabIndex = 1;
-            this.statusStrip1.Text = "statusStrip1";
+            this.mainStatusStrip.Location = new System.Drawing.Point(3, 469);
+            this.mainStatusStrip.Name = "mainStatusStrip";
+            this.mainStatusStrip.Size = new System.Drawing.Size(682, 22);
+            this.mainStatusStrip.TabIndex = 1;
+            this.mainStatusStrip.Text = "mainStatusStrip";
             // 
             // FileStatus
             // 
@@ -432,31 +435,31 @@
             this.StatusSelection.Size = new System.Drawing.Size(100, 17);
             this.StatusSelection.Text = "";
             // 
-            // splitContainer1
+            // mainSplitContainer
             // 
-            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            this.mainSplitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.splitContainer1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.splitContainer1.Location = new System.Drawing.Point(0, 54);
-            this.splitContainer1.Name = "splitContainer1";
+            this.mainSplitContainer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.mainSplitContainer.Location = new System.Drawing.Point(0, 54);
+            this.mainSplitContainer.Name = "mainSplitContainer";
             // 
-            // splitContainer1.Panel1
+            // mainSplitContainer.Panel1
             // 
-            this.splitContainer1.Panel1.AccessibleName = "TreePanel";
-            this.splitContainer1.Panel1.Controls.Add(this.ApiTree);
-            this.splitContainer1.Panel1.Controls.Add(this.CallTree);
-            this.splitContainer1.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
+            this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
+            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
+            this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
+            this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
-            // splitContainer1.Panel2
+            // mainSplitContainer.Panel2
             // 
-            this.splitContainer1.Panel2.AccessibleName = "TabPanel";
-            this.splitContainer1.Panel2.Controls.Add(this.tabControl1);
-            this.splitContainer1.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
-            this.splitContainer1.Size = new System.Drawing.Size(987, 525);
-            this.splitContainer1.SplitterDistance = 285;
-            this.splitContainer1.TabIndex = 3;
-            this.splitContainer1.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer1_SplitterMoved);
+            this.mainSplitContainer.Panel2.AccessibleName = "TabPanel";
+            this.mainSplitContainer.Panel2.Controls.Add(this.mainTabControl);
+            this.mainSplitContainer.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
+            this.mainSplitContainer.Size = new System.Drawing.Size(987, 525);
+            this.mainSplitContainer.SplitterDistance = 285;
+            this.mainSplitContainer.TabIndex = 3;
+            this.mainSplitContainer.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer1_SplitterMoved);
             // 
             // ApiTree
             // 
@@ -480,86 +483,85 @@
             this.CallTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseClick);
             this.CallTree.MouseUp += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseUp);
             // 
-            // tabControl1
+            // mainTabControl
             // 
-            this.tabControl1.Controls.Add(this.tabPage1);
-            this.tabControl1.Controls.Add(this.tabPage2);
-            this.tabControl1.Controls.Add(this.tabPage3);
-            this.tabControl1.Controls.Add(this.tabPage4);
-            this.tabControl1.Controls.Add(this.tabPage5);
-            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tabControl1.Location = new System.Drawing.Point(0, 0);
-            this.tabControl1.Name = "tabControl1";
-            this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(696, 523);
-            this.tabControl1.TabIndex = 1;
+            this.mainTabControl.Controls.Add(this.logTab);
+            this.mainTabControl.Controls.Add(this.rawTab);
+            this.mainTabControl.Controls.Add(this.performanceTab);
+            this.mainTabControl.Controls.Add(this.logDetailTab);
+            this.mainTabControl.Controls.Add(this.callGraphTab);
+            this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainTabControl.Location = new System.Drawing.Point(0, 0);
+            this.mainTabControl.Name = "mainTabControl";
+            this.mainTabControl.SelectedIndex = 0;
+            this.mainTabControl.Size = new System.Drawing.Size(696, 523);
+            this.mainTabControl.TabIndex = 1;
             // 
-            // tabPage1
+            // logTab
             // 
-            this.tabPage1.Controls.Add(this.listView1);
-            this.tabPage1.Controls.Add(this.statusStrip1);
-            this.tabPage1.Location = new System.Drawing.Point(4, 25);
-            this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(688, 494);
-            this.tabPage1.TabIndex = 0;
-            this.tabPage1.Text = "tabPage1";
-            this.tabPage1.UseVisualStyleBackColor = true;
+            this.logTab.Controls.Add(this.logListView);
+            this.logTab.Controls.Add(this.mainStatusStrip);
+            this.logTab.Location = new System.Drawing.Point(4, 25);
+            this.logTab.Name = "logTab";
+            this.logTab.Padding = new System.Windows.Forms.Padding(3);
+            this.logTab.Size = new System.Drawing.Size(688, 494);
+            this.logTab.TabIndex = 0;
+            this.logTab.Text = "logTab";
+            this.logTab.UseVisualStyleBackColor = true;
             // 
-            // listView1
+            // logListView
             // 
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1,
-            this.columnHeader2});
-            this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView1.FullRowSelect = true;
-            this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.listView1.Location = new System.Drawing.Point(3, 3);
-            this.listView1.Name = "listView1";
-            this.listView1.ShowItemToolTips = true;
-            this.listView1.VirtualMode = true;
-            this.listView1.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.listView1_RetrieveVirtualItem);
-            this.listView1.Size = new System.Drawing.Size(682, 466);
-            this.listView1.TabIndex = 3;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
-            this.listView1.SelectedIndexChanged += new System.EventHandler(this.listView1_SelectedIndexChanged);
-            this.listView1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseUp_1);
+            this.logListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.colLineNumber,
+            this.colLogText});
+            this.logListView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.logListView.FullRowSelect = true;
+            this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.logListView.Location = new System.Drawing.Point(3, 3);
+            this.logListView.Name = "logListView";
+            this.logListView.ShowItemToolTips = true;
+            this.logListView.VirtualMode = true;
+            this.logListView.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.listView1_RetrieveVirtualItem);
+            this.logListView.Size = new System.Drawing.Size(682, 466);
+            this.logListView.TabIndex = 3;
+            this.logListView.UseCompatibleStateImageBehavior = false;
+            this.logListView.View = System.Windows.Forms.View.Details;
+            this.logListView.SelectedIndexChanged += new System.EventHandler(this.listView1_SelectedIndexChanged);
+            this.logListView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseUp_1);
             // 
-            // columnHeader1
+            // colLineNumber
             // 
-            this.columnHeader1.Text = "";
-            this.columnHeader1.Width = 645;
+            this.colLineNumber.Text = "";
+            this.colLineNumber.Width = 645;
             // 
-            // columnHeader2
+            // colLogText
             // 
-            this.columnHeader2.Text = "";
+            this.colLogText.Text = "";
             // 
-            // tabPage2
+            // rawTab
             // 
-            this.tabPage2.Location = new System.Drawing.Point(4, 25);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(688, 494);
-            this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "tabPage2";
-            this.tabPage2.UseVisualStyleBackColor = true;
+            this.rawTab.Location = new System.Drawing.Point(4, 25);
+            this.rawTab.Name = "rawTab";
+            this.rawTab.Padding = new System.Windows.Forms.Padding(3);
+            this.rawTab.Size = new System.Drawing.Size(688, 494);
+            this.rawTab.TabIndex = 1;
+            this.rawTab.Text = "rawTab";
+            this.rawTab.UseVisualStyleBackColor = true;
             // 
-            // tabPage3 — Performance
+            // performanceTab — Performance
             // 
-            this.tabPage3 = new System.Windows.Forms.TabPage();
             this.performanceView = new System.Windows.Forms.ListView();
             this.perfColName = new System.Windows.Forms.ColumnHeader();
             this.perfColCalls = new System.Windows.Forms.ColumnHeader();
             this.perfColFirst = new System.Windows.Forms.ColumnHeader();
-            this.tabPage3.Controls.Add(this.performanceView);
-            this.tabPage3.Location = new System.Drawing.Point(4, 25);
-            this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(688, 494);
-            this.tabPage3.TabIndex = 2;
-            this.tabPage3.Text = "Performance";
-            this.tabPage3.UseVisualStyleBackColor = true;
+            this.performanceTab.Controls.Add(this.performanceView);
+            this.performanceTab.Location = new System.Drawing.Point(4, 25);
+            this.performanceTab.Name = "performanceTab";
+            this.performanceTab.Padding = new System.Windows.Forms.Padding(3);
+            this.performanceTab.Size = new System.Drawing.Size(688, 494);
+            this.performanceTab.TabIndex = 2;
+            this.performanceTab.Text = "Performance";
+            this.performanceTab.UseVisualStyleBackColor = true;
             this.performanceView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.performanceView.FullRowSelect = true;
             this.performanceView.View = System.Windows.Forms.View.Details;
@@ -572,38 +574,36 @@
             this.perfColFirst.Text = "First Line";
             this.perfColFirst.Width = 100;
             // 
-            // tabPage4 — Log Details
+            // logDetailTab — Log Details
             // 
-            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.logDetailBox = new System.Windows.Forms.RichTextBox();
-            this.tabPage4.Controls.Add(this.logDetailBox);
-            this.tabPage4.Location = new System.Drawing.Point(4, 25);
-            this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(688, 494);
-            this.tabPage4.TabIndex = 3;
-            this.tabPage4.Text = "Log Details";
-            this.tabPage4.UseVisualStyleBackColor = true;
+            this.logDetailTab.Controls.Add(this.logDetailBox);
+            this.logDetailTab.Location = new System.Drawing.Point(4, 25);
+            this.logDetailTab.Name = "logDetailTab";
+            this.logDetailTab.Padding = new System.Windows.Forms.Padding(3);
+            this.logDetailTab.Size = new System.Drawing.Size(688, 494);
+            this.logDetailTab.TabIndex = 3;
+            this.logDetailTab.Text = "Log Details";
+            this.logDetailTab.UseVisualStyleBackColor = true;
             this.logDetailBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logDetailBox.ReadOnly = true;
             this.logDetailBox.Font = new System.Drawing.Font("Consolas", 9.75F);
             this.logDetailBox.WordWrap = true;
             this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
             // 
-            // tabPage5 — Call Graph
+            // callGraphTab — Call Graph
             // 
-            this.tabPage5 = new System.Windows.Forms.TabPage();
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
-            this.tabPage5.Controls.Add(this.callGraphPanel);
-            this.tabPage5.Controls.Add(this.callGraphResetButton);
-            this.tabPage5.Location = new System.Drawing.Point(4, 25);
-            this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(688, 494);
-            this.tabPage5.TabIndex = 4;
-            this.tabPage5.Text = "Call Graph";
-            this.tabPage5.UseVisualStyleBackColor = true;
+            this.callGraphTab.Controls.Add(this.callGraphPanel);
+            this.callGraphTab.Controls.Add(this.callGraphResetButton);
+            this.callGraphTab.Location = new System.Drawing.Point(4, 25);
+            this.callGraphTab.Name = "callGraphTab";
+            this.callGraphTab.Padding = new System.Windows.Forms.Padding(3);
+            this.callGraphTab.Size = new System.Drawing.Size(688, 494);
+            this.callGraphTab.TabIndex = 4;
+            this.callGraphTab.Text = "Call Graph";
+            this.callGraphTab.UseVisualStyleBackColor = true;
             this.callGraphResetButton.Text = "Reset View";
             this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
             this.callGraphResetButton.Size = new System.Drawing.Size(80, 26);
@@ -615,31 +615,31 @@
                 System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom |
                 System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
             // 
-            // toolStrip1
+            // mainToolStrip
             // 
-            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.OpenButton,
             this.SaveButton,
             this.RefreshButton,
-            this.toolStripButton4,
+            this.separatorAfterRefresh,
             this.CopyButton,
             this.FindButton,
             this.FilterButton,
-            this.toolStripSeparator1,
+            this.separatorAfterFilter,
             this.SettingsButton,
-            this.toolStripSeparator2,
+            this.separatorAfterSettings,
             this.CallTreeButton,
             this.ApiTreeButton,
-            this.toolStripButton11,
+            this.separatorAfterApiTree,
             this.HideTabsButton,
-            this.toolStripButton13,
-            this.toolStripSeparator3,
+            this.toolStripPerformanceButton,
+            this.separatorBeforeHelp,
             this.ShowHelpButton});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 26);
-            this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(987, 25);
-            this.toolStrip1.TabIndex = 4;
-            this.toolStrip1.Text = "toolStrip1";
+            this.mainToolStrip.Location = new System.Drawing.Point(0, 26);
+            this.mainToolStrip.Name = "mainToolStrip";
+            this.mainToolStrip.Size = new System.Drawing.Size(987, 25);
+            this.mainToolStrip.TabIndex = 4;
+            this.mainToolStrip.Text = "mainToolStrip";
             // 
             // OpenButton
             // 
@@ -671,10 +671,10 @@
             this.RefreshButton.Text = "Refresh";
             this.RefreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
             // 
-            // toolStripButton4
+            // separatorAfterRefresh
             // 
-            this.toolStripButton4.Name = "toolStripButton4";
-            this.toolStripButton4.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterRefresh.Name = "separatorAfterRefresh";
+            this.separatorAfterRefresh.Size = new System.Drawing.Size(6, 25);
             // 
             // CopyButton
             // 
@@ -706,10 +706,10 @@
             this.FilterButton.Text = "Filter";
             this.FilterButton.Click += new System.EventHandler(this.FilterButton_Click);
             // 
-            // toolStripSeparator1
+            // separatorAfterFilter
             // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterFilter.Name = "separatorAfterFilter";
+            this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
             // 
             // SettingsButton
             // 
@@ -721,10 +721,10 @@
             this.SettingsButton.Text = "Settings";
             this.SettingsButton.Click += new System.EventHandler(this.SettingsButton_Click);
             // 
-            // toolStripSeparator2
+            // separatorAfterSettings
             // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterSettings.Name = "separatorAfterSettings";
+            this.separatorAfterSettings.Size = new System.Drawing.Size(6, 25);
             // 
             // CallTreeButton
             // 
@@ -748,10 +748,10 @@
             this.ApiTreeButton.Size = new System.Drawing.Size(23, 22);
             this.ApiTreeButton.Text = "ApiList";
             // 
-            // toolStripButton11
+            // separatorAfterApiTree
             // 
-            this.toolStripButton11.Name = "toolStripButton11";
-            this.toolStripButton11.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterApiTree.Name = "separatorAfterApiTree";
+            this.separatorAfterApiTree.Size = new System.Drawing.Size(6, 25);
             // 
             // HideTabsButton
             // 
@@ -763,19 +763,19 @@
             this.HideTabsButton.Size = new System.Drawing.Size(23, 22);
             this.HideTabsButton.Text = "Hide Tabs";
             // 
-            // toolStripButton13
+            // toolStripPerformanceButton
             // 
-            this.toolStripButton13.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton13.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton13.Image")));
-            this.toolStripButton13.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton13.Name = "toolStripButton13";
-            this.toolStripButton13.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton13.Text = "toolStripButton13";
+            this.toolStripPerformanceButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripPerformanceButton.Image = ((System.Drawing.Image)(resources.GetObject("toolStripPerformanceButton.Image")));
+            this.toolStripPerformanceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripPerformanceButton.Name = "toolStripPerformanceButton";
+            this.toolStripPerformanceButton.Size = new System.Drawing.Size(23, 22);
+            this.toolStripPerformanceButton.Text = "toolStripPerformanceButton";
             // 
-            // toolStripSeparator3
+            // separatorBeforeHelp
             // 
-            this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
+            this.separatorBeforeHelp.Name = "separatorBeforeHelp";
+            this.separatorBeforeHelp.Size = new System.Drawing.Size(6, 25);
             // 
             // ShowHelpButton
             // 
@@ -786,14 +786,14 @@
             this.ShowHelpButton.Size = new System.Drawing.Size(23, 22);
             this.ShowHelpButton.Text = "toolStripButton14";
             // 
-            // openFileDialog1
+            // openLogFileDialog
             // 
-            this.openFileDialog1.Filter = "log files (*.log) | *.log |log files (*.log.*)|*.log.*|All files (*.*)|*.*";
-            this.openFileDialog1.FilterIndex = 2;
+            this.openLogFileDialog.Filter = "log files (*.log) | *.log |log files (*.log.*)|*.log.*|All files (*.*)|*.*";
+            this.openLogFileDialog.FilterIndex = 2;
             // 
-            // saveFileDialog1
+            // saveLogFileDialog
             // 
-            this.saveFileDialog1.Filter = "log files (*.log.*)|*.log.*|All files (*.*)|*.*";
+            this.saveLogFileDialog.Filter = "log files (*.log.*)|*.log.*|All files (*.*)|*.*";
             // 
             // logWatcher
             // 
@@ -802,29 +802,29 @@
             this.logWatcher.SynchronizingObject = this;
             this.logWatcher.Changed += new System.IO.FileSystemEventHandler(this.logWatcher_Changed);
             // 
-            // contextMenuStrip1
+            // logContextMenu
             // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.refreshToolStripMenuItem,
-            this.filterToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(153, 48);
+            this.logContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.contextRefreshMenuItem,
+            this.contextFilterMenuItem});
+            this.logContextMenu.Name = "logContextMenu";
+            this.logContextMenu.Size = new System.Drawing.Size(153, 48);
             // 
-            // refreshToolStripMenuItem
+            // contextRefreshMenuItem
             // 
-            this.refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
-            this.refreshToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.refreshToolStripMenuItem.Text = "Refresh";
-            this.refreshToolStripMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
+            this.contextRefreshMenuItem.Name = "contextRefreshMenuItem";
+            this.contextRefreshMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
+            this.contextRefreshMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.contextRefreshMenuItem.Text = "Refresh";
+            this.contextRefreshMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
             // 
-            // filterToolStripMenuItem
+            // contextFilterMenuItem
             // 
-            this.filterToolStripMenuItem.Name = "filterToolStripMenuItem";
-            this.filterToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
-            this.filterToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.filterToolStripMenuItem.Text = "Filter";
-            this.filterToolStripMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
+            this.contextFilterMenuItem.Name = "contextFilterMenuItem";
+            this.contextFilterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.contextFilterMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.contextFilterMenuItem.Text = "Filter";
+            this.contextFilterMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -832,11 +832,11 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(987, 574);
-            this.Controls.Add(this.toolStrip1);
-            this.Controls.Add(this.splitContainer1);
-            this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.mainToolStrip);
+            this.Controls.Add(this.mainSplitContainer);
+            this.Controls.Add(this.mainMenuStrip);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MainMenuStrip = this.menuStrip1;
+            this.MainMenuStrip = this.mainMenuStrip;
             this.Name = "MainForm";
             this.Text = "WWGM 3P Log Browser";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
@@ -848,21 +848,21 @@
             this.ResizeEnd += new System.EventHandler(this.MainForm_ResizeEnd);
             this.SizeChanged += new System.EventHandler(this.MainForm_SizeChanged);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
-            this.statusStrip1.ResumeLayout(false);
-            this.statusStrip1.PerformLayout();
-            this.splitContainer1.Panel1.ResumeLayout(false);
-            this.splitContainer1.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
-            this.splitContainer1.ResumeLayout(false);
-            this.tabControl1.ResumeLayout(false);
-            this.tabPage1.ResumeLayout(false);
-            this.tabPage1.PerformLayout();
-            this.toolStrip1.ResumeLayout(false);
-            this.toolStrip1.PerformLayout();
+            this.mainMenuStrip.ResumeLayout(false);
+            this.mainMenuStrip.PerformLayout();
+            this.mainStatusStrip.ResumeLayout(false);
+            this.mainStatusStrip.PerformLayout();
+            this.mainSplitContainer.Panel1.ResumeLayout(false);
+            this.mainSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).EndInit();
+            this.mainSplitContainer.ResumeLayout(false);
+            this.mainTabControl.ResumeLayout(false);
+            this.logTab.ResumeLayout(false);
+            this.logTab.PerformLayout();
+            this.mainToolStrip.ResumeLayout(false);
+            this.mainToolStrip.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.logWatcher)).EndInit();
-            this.contextMenuStrip1.ResumeLayout(false);
+            this.logContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -870,7 +870,7 @@
 
         #endregion
 
-        private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.MenuStrip mainMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
@@ -879,17 +879,17 @@
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
-        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem refreshMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
-        private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
-        private System.Windows.Forms.TabControl tabControl1;
-        private System.Windows.Forms.TabPage tabPage1;
-        private System.Windows.Forms.TabPage tabPage2;
-        private System.Windows.Forms.TabPage tabPage3;
-        private System.Windows.Forms.TabPage tabPage4;
-        private System.Windows.Forms.TabPage tabPage5;
+        private System.Windows.Forms.TabControl mainTabControl;
+        private System.Windows.Forms.TabPage logTab;
+        private System.Windows.Forms.TabPage rawTab;
+        private System.Windows.Forms.TabPage performanceTab;
+        private System.Windows.Forms.TabPage logDetailTab;
+        private System.Windows.Forms.TabPage callGraphTab;
         private Cad3PLogBrowser.CallGraphPanel callGraphPanel;
         private System.Windows.Forms.Button callGraphResetButton;
         private System.Windows.Forms.ListView performanceView;
@@ -905,30 +905,30 @@
         private System.Windows.Forms.ToolStripMenuItem findMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findNextMenuItem;
         private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
-        private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.ToolStrip mainToolStrip;
         private System.Windows.Forms.ToolStripButton OpenButton;
         private System.Windows.Forms.ToolStripButton SaveButton;
-        private System.Windows.Forms.OpenFileDialog openFileDialog1;
-        private System.Windows.Forms.SaveFileDialog saveFileDialog1;
-        private System.Windows.Forms.FontDialog fontDialog1;
+        private System.Windows.Forms.OpenFileDialog openLogFileDialog;
+        private System.Windows.Forms.SaveFileDialog saveLogFileDialog;
+        private System.Windows.Forms.FontDialog logFontDialog;
         private System.IO.FileSystemWatcher logWatcher;
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Timer fileWatchTimer;
         private System.Windows.Forms.ToolStripStatusLabel FileStatus;
         private System.Windows.Forms.TreeView ApiTree;
         private System.Windows.Forms.ToolStripButton RefreshButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripButton4;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterRefresh;
         private System.Windows.Forms.ToolStripButton CopyButton;
         private System.Windows.Forms.ToolStripButton FindButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterFilter;
         private System.Windows.Forms.ToolStripButton SettingsButton;
         private System.Windows.Forms.ToolStripMenuItem filterMenuItem;
         private System.Windows.Forms.ToolStripButton FilterButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterSettings;
         private System.Windows.Forms.ToolStripButton CallTreeButton;
         private System.Windows.Forms.ToolStripButton ApiTreeButton;
         private System.Windows.Forms.ToolStripButton HideTabsButton;
-        private System.Windows.Forms.ToolStripButton toolStripButton13;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripButton toolStripPerformanceButton;
+        private System.Windows.Forms.ToolStripSeparator separatorBeforeHelp;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
@@ -939,19 +939,19 @@
         private System.Windows.Forms.ToolStripMenuItem showTab2MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab3MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab4MenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripButton11;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator8;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator9;
-        private System.Windows.Forms.ListView listView1;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
-        private System.Windows.Forms.ToolStripMenuItem refreshToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
-        private System.Windows.Forms.ColumnHeader columnHeader1;
-        private System.Windows.Forms.ColumnHeader columnHeader2;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterApiTree;
+        private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
+        private System.Windows.Forms.ToolStripSeparator fileSeparatorBeforeExit;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCopy;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFind;
+        private System.Windows.Forms.ToolStripSeparator viewSeparatorAfterTree;
+        private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
+        private System.Windows.Forms.ListView logListView;
+        private System.Windows.Forms.ContextMenuStrip logContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextFilterMenuItem;
+        private System.Windows.Forms.ColumnHeader colLineNumber;
+        private System.Windows.Forms.ColumnHeader colLogText;
         private System.Windows.Forms.ToolStripProgressBar FileLoadProgress;
     }
 }
