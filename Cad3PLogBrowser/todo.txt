@@ -1,3 +1,196 @@
+Version 2
+- Add a TopMost node in Call Tree by the name "Call Tree"
+- Add a TopMost node in API  Tree by the name "API Tree"
+- Each tree Node from both the Trees should have a checkmark icon,if its Enter/Exit matches
+- Each tree Node from both the Trees should have a cross icon,if its Enter/Exit does not match
+- intially first level expanded
+- select a tree node, should show the log line in logview tab
+- log line highlighted in the highlight color as given in the settings
+- logview first tab should show the selected node + previous 10 lines (or less if lines less than 10) 
+- logview tab - first column is line number, autowidth to content 
+- logview tab  -second column is actual log line 
+- context menu 
+	copy node name 
+	reload from disk
+	expand all
+	collapse all
+	filter
+	search in grok  (Grok URLcomes from settinsg
+	)
+	
+Performance view Tab
+ - Method name, No of calls, min time, max time, avg time , total time ,  Self time (time without considering child)
+ - click header should sort table 
+ - 
+ 
+
+	
+	
+Settings:
+	- add way to input grok URL 
+	- this grokURL to be used in search in grok
+	- select line highlight color  (should give list of possible predefined colors)
+	- initial view logview or apiview
+	- when saving log snippet, use this suffix for filename 
+	- dynamically update performance numbers in performance tab
+	- if log file size > MB then dont build log list view 
+	
+	
+	
+	
+FileMenu
+- Open
+- Saveas 
+- Save to XLS
+- reload from Disk
+- Recent last 10 filelist MRU
+- Exit 
+
+Edit Menu
+- Copy ( copies current API fromcurrently selected tree node from Enter/exit into clipboard)
+- Find 
+- Find Next
+- Expand All
+- Collapse All
+- jump to matching line Enter 
+
+Options Menu
+- Settings
+
+View Menu
+- Show Call Tree (toggle)  since any one API or call Tree should be visible 
+- Show Call Tree (toggle)  since any one API or call Tree should be visible 
+- Show tabs 
+	Log View
+	Performance view 
+	...
+	...
+	
+
+Help
+ - Help CHM
+ - About version
+ - Check for updates
+ - Report Errors (report errors/issues with the application)
+ 
+
+
+
+
+	
+	
+	
+
+ 
+in Call tree
+
+in API Tree 
+	create a node for each distinct API Call
+	subsequent calls to the same API are tobe added as a child to the same top level api, use API name and Line No as the Node Name
+	
+
+
+
+
+
+
+
+Enhancement Ideas
+1. Input & File Handling Enhancements
+Drag & Drop support (single & multiple files)
+Command-line file open
+Auto-reload / tail mode (like tail -f)
+Recent files history
+Open multiple logs in tabs
+Merge multiple log files (time-sorted)
+Support compressed logs (.zip, .gz)
+Session restore (reopen last files on startup)
+🔹 2. Search, Filter & Navigation
+Global search (Ctrl+F)
+Advanced search (regex support)
+Filter by:
+Method name
+Time range
+Thread ID
+Log level (Debug, Info, Error)
+Highlight search results
+Bookmark log lines
+Go to matching ENTER/EXIT pair
+Quick navigation (next/previous error, warning)
+🔹 3. Tree View Enhancements (Call Tree)
+Expand/Collapse all
+Lazy loading for large logs
+Color coding (slow calls, errors)
+Show execution time per node
+Search within tree
+Right-click context menu (copy subtree, export)
+🔹 4. API View (New Feature)
+API List (flat view of all methods)
+API Tree (grouped by namespace/module/class)
+Click API → show all call instances
+Call frequency per API
+Hotspot detection (top used APIs)
+🔹 5. Performance Analytics (High Value 🚀)
+Execution time per method (ENTER → EXIT)
+Top slowest methods
+Most frequently called methods
+Average / Min / Max execution time
+Total time spent per method
+Call depth analysis (deepest stack)
+Timeline view (method durations over time)
+🔹 6. Visualization Features
+Call Graph (node-link diagram)
+Flame Graph (stack visualization)
+Timeline / Gantt chart of calls
+Heatmap (hot methods)
+Dependency graph (who calls whom)
+🔹 7. Sorting & Aggregation
+Sort APIs by:
+Call count
+Avg time
+Total time
+Group by module / namespace
+Aggregate statistics panel
+🔹 8. Usability & UI Enhancements
+Dark mode / theme support
+Resizable panes
+Dockable panels
+Keyboard shortcuts
+Status bar (log size, selected node info)
+Tooltips with extra info
+🔹 9. Export & Reporting
+Export filtered logs
+Export call tree (JSON / XML)
+Export analytics report (PDF / Excel)
+Screenshot / snapshot of graphs
+🔹 10. Advanced Features (Future-Ready)
+Live log streaming (from running app)
+Log comparison (diff between two logs)
+Anomaly detection (unusually slow calls)
+Custom parsing rules (configurable formats)
+Plugin architecture (extend features)
+Integration with monitoring tools
+🔹 11. Debugging & Developer Productivity
+Jump to source code (if path available)
+Thread-wise view
+Exception trace grouping
+Correlation IDs tracking (request-based logs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Version 1
 -One level Treeview for API calls only
 -Multilevel Treeview for call stackview
 -display/hide tabs
