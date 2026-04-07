@@ -1,3 +1,43 @@
+New todo
+- splitter postionis not persisted
+- context menu is missing text 
+- Help Menu is not like the one that I have suggested 
+- add a progress bar in the Status bar to show 
+	file open progress,  
+	file save progress
+	file saveas progress
+	
+
+Suggested Menu Bar Structure
+File  |  Edit  |  Options  |  View  |  Help
+
+FILE                          EDIT                    OPTIONS       VIEW                        HELP
+  Open...                      Copy (ENTER→EXIT)       Settings       Show Call Tree (toggle)     Help CHM (F1)
+  Save Selected...             Find         (Ctrl+F)                  Show API Tree (toggle)      About
+  Save to XLS...               Find Next    (F3)                      Hide Tabs                   Check for Updates
+  ──────────────               Filter...                              Show Tabs                   Report Errors...
+  Reload from Disk             Expand All                             ──────────────
+  ──────────────               Collapse All                           Log View
+  Recent Files ►               Jump to Matching ENTER                 Performance View
+  ──────────────               ──────────────                         Call Graph
+  Exit                                                                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 WWGM CAD 3P Log Browser
 Feature Specification & Claude Code Implementation Guide
 WinForms / C# / .NET  •  Internal Team Distribution  •  Portable Deployment
