@@ -106,6 +106,10 @@
             this.logContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeIconList = new System.Windows.Forms.ImageList(this.components);
+            this.treeIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
+            this.treeIconList.ImageSize = new System.Drawing.Size(16, 16);
+            this.treeIconList.TransparentColor = System.Drawing.Color.Transparent;
             this.mainMenuStrip.SuspendLayout();
             this.mainStatusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
@@ -332,29 +336,41 @@
             this.hideAllMenuItem.Size = new System.Drawing.Size(167, 22);
             this.hideAllMenuItem.Text = "&HideAll";
             // 
-            // showTab1MenuItem
+            // showTab1MenuItem — Log
             // 
+            this.showTab1MenuItem.CheckOnClick = true;
+            this.showTab1MenuItem.Checked = true;
             this.showTab1MenuItem.Name = "showTab1MenuItem";
             this.showTab1MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab1MenuItem.Text = "Show Tab&1";
+            this.showTab1MenuItem.Text = "Log";
+            this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem
+            // showTab2MenuItem — Performance
             // 
+            this.showTab2MenuItem.CheckOnClick = true;
+            this.showTab2MenuItem.Checked = true;
             this.showTab2MenuItem.Name = "showTab2MenuItem";
             this.showTab2MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab2MenuItem.Text = "Show Tab&2";
+            this.showTab2MenuItem.Text = "Performance";
+            this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem
+            // showTab3MenuItem — Log Details
             // 
+            this.showTab3MenuItem.CheckOnClick = true;
+            this.showTab3MenuItem.Checked = true;
             this.showTab3MenuItem.Name = "showTab3MenuItem";
             this.showTab3MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab3MenuItem.Text = "Show Tab&3";
+            this.showTab3MenuItem.Text = "Log Details";
+            this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem
+            // showTab4MenuItem — Call Graph
             // 
+            this.showTab4MenuItem.CheckOnClick = true;
+            this.showTab4MenuItem.Checked = true;
             this.showTab4MenuItem.Name = "showTab4MenuItem";
             this.showTab4MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab4MenuItem.Text = "Show Tab&4";
+            this.showTab4MenuItem.Text = "Call Graph";
+            this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
             // 
             // helpMenuItem
             // 
@@ -374,6 +390,7 @@
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(162, 22);
             this.viewHelpMenuItem.Text = "View &Help";
+            this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
             // 
             // helpSeparatorBeforeAbout
             // 
@@ -474,6 +491,7 @@
             // 
             // CallTree
             // 
+            this.CallTree.ImageList = this.treeIconList;
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.CallTree.Location = new System.Drawing.Point(-1, 333);
             this.CallTree.Name = "CallTree";
@@ -486,7 +504,6 @@
             // mainTabControl
             // 
             this.mainTabControl.Controls.Add(this.logTab);
-            this.mainTabControl.Controls.Add(this.rawTab);
             this.mainTabControl.Controls.Add(this.performanceTab);
             this.mainTabControl.Controls.Add(this.logDetailTab);
             this.mainTabControl.Controls.Add(this.callGraphTab);
@@ -570,9 +587,10 @@
             this.perfColMin = new System.Windows.Forms.ColumnHeader();
             this.perfColMax = new System.Windows.Forms.ColumnHeader();
             this.perfColSource = new System.Windows.Forms.ColumnHeader();
+            this.perfColSelf = new System.Windows.Forms.ColumnHeader();
             this.performanceView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
                 this.perfColName, this.perfColCalls, this.perfColTotal,
-                this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSource });
+                this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSelf, this.perfColSource });
             this.performanceView.FullRowSelect = true;
             this.performanceView.GridLines = true;
             this.perfColName.Text = "API Name";
@@ -589,6 +607,8 @@
             this.perfColMax.Width = 80;
             this.perfColSource.Text = "Source File";
             this.perfColSource.Width = 200;
+            this.perfColSelf.Text = "Self (ms)";
+            this.perfColSelf.Width = 80;
             // 
             // logDetailTab — Log Details
             // 
@@ -916,7 +936,9 @@
         private System.Windows.Forms.ColumnHeader perfColAvg;
         private System.Windows.Forms.ColumnHeader perfColMin;
         private System.Windows.Forms.ColumnHeader perfColMax;
+        private System.Windows.Forms.ColumnHeader perfColSelf;
         private System.Windows.Forms.ColumnHeader perfColSource;
+        private System.Windows.Forms.ImageList treeIconList;
         private System.Windows.Forms.RichTextBox logDetailBox;
         private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
         private System.Windows.Forms.ToolStripStatusLabel StatusLineCount;

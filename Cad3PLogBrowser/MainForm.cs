@@ -22,6 +22,50 @@ namespace Cad3PLogBrowser
         private bool              _isLoading       = false;
         private List<string>      _allLines        = new List<string>();
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
+        private AppSettings       _appSettings;
+        private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
+        private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
+
+        // ── Tab identifiers (used by SettingsForm) ────────────────────────────
+        public enum TabId { Log, Performance, LogDetails, CallGraph }
+
+        /// <summary>Returns whether the given tab is currently visible.</summary>
+        public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
+
+        /// <summary>Shows or hides the given tab and keeps View menu in sync.</summary>
+        public void SetTabVisible(TabId id, bool visible)
+        {
+            var tab = GetTab(id);
+            var menuItem = GetTabMenuItem(id);
+            if (menuItem != null) menuItem.Checked = visible;
+            // The CheckedChanged handler on the menu item calls SetTabVisible(TabPage, bool)
+            // so we only need to toggle if there's no menu item
+            else SetTabVisible(tab, visible);
+        }
+
+        private TabPage GetTab(TabId id)
+        {
+            switch (id)
+            {
+                case TabId.Log:         return logTab;
+                case TabId.Performance: return performanceTab;
+                case TabId.LogDetails:  return logDetailTab;
+                case TabId.CallGraph:   return callGraphTab;
+                default:                return logTab;
+            }
+        }
+
+        private ToolStripMenuItem GetTabMenuItem(TabId id)
+        {
+            switch (id)
+            {
+                case TabId.Log:         return showTab1MenuItem;
+                case TabId.Performance: return showTab2MenuItem;
+                case TabId.LogDetails:  return showTab3MenuItem;
+                case TabId.CallGraph:   return showTab4MenuItem;
+                default:                return null;
+            }
+        }
 
         // ── #7 Virtual mode backing store ─────────────────────────────────────
         // Each VirtualLogLine holds exactly what the ListView needs for one row.
@@ -50,12 +94,15 @@ namespace Cad3PLogBrowser
             _logFileService   = new LogFileService(this);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
+            _appSettings = AppSettings.Load();
             RestoreSettings();
             InitTreeViews();
+            BuildMruMenu();
         }
 
         // ── Public API ────────────────────────────────────────────────────────
         public string ActiveFilePath { get { return _currentFilePath; } }
+        public AppSettings AppSettings { get { return _appSettings; } }
 
         public void OpenFilePath(string filePath)
         {
@@ -79,6 +126,8 @@ namespace Cad3PLogBrowser
             _settingsService.SaveSplitterDistance(mainSplitContainer.SplitterDistance);
             if (!string.IsNullOrEmpty(_currentFilePath))
                 _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
+            _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
+            _appSettings.Save();
         }
 
         // ── Status bar ────────────────────────────────────────────────────────
@@ -127,10 +176,50 @@ namespace Cad3PLogBrowser
             SyncTreeVisibility();
         }
 
+        private void BuildTreeIconList()
+        {
+            var imgList = treeIconList;
+            imgList.Images.Clear();
+
+            // Icon 0: green checkmark
+            var checkBmp = new System.Drawing.Bitmap(16, 16);
+            using (var g = System.Drawing.Graphics.FromImage(checkBmp))
+            {
+                g.Clear(System.Drawing.Color.Transparent);
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(0, 160, 80), 2.5f)
+                    { StartCap = System.Drawing.Drawing2D.LineCap.Round,
+                      EndCap   = System.Drawing.Drawing2D.LineCap.Round })
+                {
+                    g.DrawLines(pen, new[] {
+                        new System.Drawing.PointF(2, 8),
+                        new System.Drawing.PointF(6, 12),
+                        new System.Drawing.PointF(14, 3)
+                    });
+                }
+            }
+            imgList.Images.Add(checkBmp);
+
+            // Icon 1: red cross
+            var crossBmp = new System.Drawing.Bitmap(16, 16);
+            using (var g = System.Drawing.Graphics.FromImage(crossBmp))
+            {
+                g.Clear(System.Drawing.Color.Transparent);
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(200, 40, 40), 2.5f)
+                    { StartCap = System.Drawing.Drawing2D.LineCap.Round,
+                      EndCap   = System.Drawing.Drawing2D.LineCap.Round })
+                {
+                    g.DrawLine(pen, 3, 3, 13, 13);
+                    g.DrawLine(pen, 13, 3, 3, 13);
+                }
+            }
+            imgList.Images.Add(crossBmp);
+        }
+
         // ── Tree population ───────────────────────────────────────────────────
         private void PopulateTrees(List<string> lines)
         {
             var entries   = _parserService.Parse(lines);
+            _lastEntries  = entries;  // store for ENTER/EXIT jump feature
             _apiNodes     = _parserService.BuildApiList(entries);
             var callTree  = _parserService.BuildCallTree(entries);
             var perfStats = _parserService.BuildPerformanceStats(callTree);
@@ -146,49 +235,109 @@ namespace Cad3PLogBrowser
         {
             ApiTree.BeginUpdate();
             ApiTree.Nodes.Clear();
+
+            // Root node: "API Tree"
+            var root = new TreeNode("API Tree") { Tag = -1 };
+            root.NodeFont = new System.Drawing.Font(ApiTree.Font, System.Drawing.FontStyle.Bold);
+
             foreach (var node in apiNodes)
             {
-                var tn = new TreeNode(node.ToString()) { Tag = node.FirstLine };
+                // Check if all occurrences have matching ENTER/EXIT pairs
+                bool allMatched = AreAllApiCallsMatched(node.ApiName);
+                var apiRoot = new TreeNode(node.ApiName)
+                {
+                    Tag             = node.FirstLine,
+                    ImageIndex      = allMatched ? 0 : 1,
+                    SelectedImageIndex = allMatched ? 0 : 1
+                };
+
+                // Children: "ApiName — Ln N" per invocation
                 foreach (int lineNo in node.LineNumbers)
-                    tn.Nodes.Add(new TreeNode(string.Format("Line {0}", lineNo)) { Tag = lineNo });
-                ApiTree.Nodes.Add(tn);
+                {
+                    var child = new TreeNode(string.Format("{0} — Ln {1}", node.ApiName, lineNo))
+                    {
+                        Tag                = lineNo,
+                        ImageIndex         = allMatched ? 0 : 1,
+                        SelectedImageIndex = allMatched ? 0 : 1
+                    };
+                    apiRoot.Nodes.Add(child);
+                }
+                root.Nodes.Add(apiRoot);
             }
+
+            ApiTree.Nodes.Add(root);
+            root.Expand();
+            // Expand first level of API nodes
+            foreach (TreeNode child in root.Nodes)
+                child.Expand();
+
             ApiTree.EndUpdate();
+        }
+
+        private bool AreAllApiCallsMatched(string apiName)
+        {
+            if (_lastEntries == null) return true;
+            int enters = 0, exits = 0;
+            foreach (var e in _lastEntries)
+            {
+                if (!e.IsApiCall || e.ApiName != apiName) continue;
+                if (e.IsCallEnter) enters++;
+                else if (e.IsCallExit) exits++;
+            }
+            return enters == exits;
         }
 
         private void PopulateCallTree(List<CallStackNode> roots)
         {
             CallTree.BeginUpdate();
             CallTree.Nodes.Clear();
+
+            // Root node: "Call Tree"
+            var rootNode = new TreeNode("Call Tree") { Tag = -1 };
+            rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
+
             foreach (var root in roots)
-                CallTree.Nodes.Add(BuildTreeNode(root));
-            // Expand the first level so the tree is immediately useful
-            foreach (TreeNode root in CallTree.Nodes)
-                root.Expand();
+                rootNode.Nodes.Add(BuildTreeNode(root));
+
+            CallTree.Nodes.Add(rootNode);
+            rootNode.Expand();
+            // Expand first level of call nodes
+            foreach (TreeNode child in rootNode.Nodes)
+                child.Expand();
+
             CallTree.EndUpdate();
         }
 
         private static TreeNode BuildTreeNode(CallStackNode csNode)
         {
-            // Node label: ApiName [duration ms]  (Ln enter→exit)
+            bool matched = csNode.ExitLineNumber > 0;
+
             string label = csNode.Label;
             if (csNode.DurationMs > 0)
                 label = string.Format("{0}  [{1} ms]", label, csNode.DurationMs);
-            else if (csNode.ExitLineNumber > 0)
+            else if (matched)
                 label = string.Format("{0}  [<1 ms]", label);
 
             string tooltip = string.Format(
-                "API: {0}\nSource: {1}\nENTER line: {2}\nEXIT line: {3}\nDuration: {4} ms",
+                "API: {0}
+Source: {1}
+ENTER line: {2}
+EXIT line: {3}
+Duration: {4} ms",
                 csNode.Label,
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
-                csNode.ExitLineNumber > 0 ? csNode.ExitLineNumber.ToString() : "?",
+                matched ? csNode.ExitLineNumber.ToString() : "? (no EXIT found)",
                 csNode.DurationMs);
 
+            // ImageIndex: 0 = checkmark (matched), 1 = cross (unmatched)
+            int imgIdx = matched ? 0 : 1;
             var tn = new TreeNode(label)
             {
-                Tag         = csNode.LineNumber,
-                ToolTipText = tooltip
+                Tag                = csNode.LineNumber,
+                ToolTipText        = tooltip,
+                ImageIndex         = imgIdx,
+                SelectedImageIndex = imgIdx
             };
 
             foreach (var child in csNode.Children)
@@ -198,49 +347,98 @@ namespace Cad3PLogBrowser
         }
 
         // ── Performance tab ───────────────────────────────────────────────────
+        // ── Performance tab sort state ────────────────────────────────────────
+        private int  _perfSortColumn    = 2; // default: Total ms
+        private bool _perfSortAscending = false;
+
         private void PopulatePerformanceTab(List<ApiPerfStats> stats, int totalLines)
         {
+            // Wire sortable column headers once
+            if (!_perfHeaderWired)
+            {
+                performanceView.ColumnClick += PerformanceView_ColumnClick;
+                performanceView.HeaderStyle  = ColumnHeaderStyle.Clickable;
+                _perfHeaderWired = true;
+            }
+
+            RenderPerformanceRows(stats, totalLines);
+        }
+
+        private bool _perfHeaderWired = false;
+        private List<ApiPerfStats> _lastPerfStats = new List<ApiPerfStats>();
+        private int _lastTotalLines = 0;
+
+        private void PerformanceView_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            if (e.Column == _perfSortColumn)
+                _perfSortAscending = !_perfSortAscending;
+            else
+            {
+                _perfSortColumn    = e.Column;
+                _perfSortAscending = e.Column == 0; // API name sorts ascending by default
+            }
+            RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+        }
+
+        private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines)
+        {
+            _lastPerfStats  = stats;
+            _lastTotalLines = totalLines;
+
+            // Sort a copy
+            var sorted = new List<ApiPerfStats>(stats);
+            sorted.Sort((a, b) =>
+            {
+                int cmp;
+                switch (_perfSortColumn)
+                {
+                    case 0:  cmp = string.Compare(a.ApiName, b.ApiName, StringComparison.OrdinalIgnoreCase); break;
+                    case 1:  cmp = a.CallCount.CompareTo(b.CallCount);        break;
+                    case 2:  cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
+                    case 3:  cmp = a.AvgDurationMs.CompareTo(b.AvgDurationMs); break;
+                    case 4:  cmp = a.MinDurationMs.CompareTo(b.MinDurationMs); break;
+                    case 5:  cmp = a.MaxDurationMs.CompareTo(b.MaxDurationMs); break;
+                    case 6:  cmp = a.SelfDurationMs.CompareTo(b.SelfDurationMs); break;
+                    default: cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
+                }
+                return _perfSortAscending ? cmp : -cmp;
+            });
+
             performanceView.BeginUpdate();
             performanceView.Items.Clear();
 
-            // ── Summary row ───────────────────────────────────────────────────
-            long totalMs    = 0;
-            int  timedCalls = 0;
-            foreach (var s in stats) { totalMs += s.TotalDurationMs; timedCalls += s.TimedCallCount; }
+            // Summary row
+            long sumTotal = 0; int sumCalls = 0;
+            foreach (var s in stats) { sumTotal += s.TotalDurationMs; sumCalls += s.TimedCallCount; }
 
             var summary = new ListViewItem("── Summary ──");
-            summary.SubItems.Add(timedCalls.ToString());          // Calls
-            summary.SubItems.Add(totalMs.ToString());             // Total ms
-            summary.SubItems.Add("-");                            // Avg
-            summary.SubItems.Add("-");                            // Min
-            summary.SubItems.Add("-");                            // Max
-            summary.SubItems.Add(string.Format("{0} unique APIs  |  {1} total lines",
-                stats.Count, totalLines));
+            summary.SubItems.Add(sumCalls.ToString());
+            summary.SubItems.Add(sumTotal.ToString());
+            summary.SubItems.Add("-"); summary.SubItems.Add("-");
+            summary.SubItems.Add("-"); summary.SubItems.Add("-");
+            summary.SubItems.Add(string.Format("{0} unique APIs  |  {1} lines", stats.Count, totalLines));
             summary.BackColor = Color.FromArgb(210, 225, 255);
-            summary.Font = new System.Drawing.Font(performanceView.Font,
-                System.Drawing.FontStyle.Bold);
+            summary.Font = new System.Drawing.Font(performanceView.Font, System.Drawing.FontStyle.Bold);
             performanceView.Items.Add(summary);
 
-            // ── One row per API, sorted by total time descending ──────────────
-            foreach (var s in stats)
+            long threshold = _appSettings?.SlowCallThresholdMs ?? 1000;
+            foreach (var s in sorted)
             {
                 var item = new ListViewItem(s.ApiName);
                 item.SubItems.Add(s.CallCount.ToString());
                 item.SubItems.Add(s.TotalDurationMs > 0 ? s.TotalDurationMs.ToString() : "-");
                 item.SubItems.Add(s.AvgDurationMs   > 0 ? s.AvgDurationMs.ToString()   : "-");
-                item.SubItems.Add(s.MinDurationMs   >= 0 ? s.MinDurationMs.ToString()  : "-");
-                item.SubItems.Add(s.MaxDurationMs   > 0 ? s.MaxDurationMs.ToString()   : "-");
-                item.SubItems.Add(s.SourceFile ?? "-");
+                item.SubItems.Add(s.MinDurationMs   >= 0 ? s.MinDurationMs.ToString()   : "-");
+                item.SubItems.Add(s.MaxDurationMs   > 0 ? s.MaxDurationMs.ToString()    : "-");
+                item.SubItems.Add(s.SelfDurationMs  > 0 ? s.SelfDurationMs.ToString()   : "-");
 
-                // Colour-code by total time: >1s=red, >100ms=amber, else normal
-                if (s.TotalDurationMs >= 1000)
+                if (s.TotalDurationMs >= threshold)
                     item.BackColor = Color.FromArgb(255, 220, 220);
-                else if (s.TotalDurationMs >= 100)
+                else if (s.TotalDurationMs >= threshold / 10)
                     item.BackColor = Color.FromArgb(255, 243, 205);
 
                 performanceView.Items.Add(item);
             }
-
             performanceView.EndUpdate();
         }
 
@@ -292,7 +490,11 @@ namespace Cad3PLogBrowser
         private void ScrollLogToLine(object tag)
         {
             if (!(tag is int lineNumber)) return;
-            // In virtual mode we search _virtualLines for a matching line number
+            ScrollLogToLine(lineNumber);
+        }
+
+        private void ScrollLogToLine(int lineNumber)
+        {
             int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
             logListView.EnsureVisible(idx);
@@ -373,6 +575,8 @@ namespace Cad3PLogBrowser
                 FileStatus.Image = Resources.green_ball;
                 _logFileService.WatchFile(filePath);
                 UpdateStatusBar();
+                _appSettings.AddRecentFile(filePath);
+                BuildMruMenu();
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, "Access denied", ex.Message); }
             catch (IOException ex)                 { ShowLoadError(filePath, "File read error", ex.Message); }
@@ -591,6 +795,71 @@ namespace Cad3PLogBrowser
                 findMenuItem_Click(sender, e);
         }
 
+        // ── B9: Jump to matching ENTER/EXIT ───────────────────────────────────
+        public void JumpToMatchingPair()
+        {
+            if (_virtualLines.Count == 0 || _lastEntries.Count == 0) return;
+            if (logListView.SelectedIndices.Count == 0) return;
+
+            int selectedIdx  = logListView.SelectedIndices[0];
+            int selectedLine = int.Parse(_virtualLines[selectedIdx].LineNumber);
+
+            // Find the entry at this line
+            LogEntry current = null;
+            foreach (var e in _lastEntries)
+                if (e.LineNumber == selectedLine && e.IsApiCall) { current = e; break; }
+
+            if (current == null) { MessageBox.Show("Selected line is not an API call line.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+            int targetLine = -1;
+            if (current.IsCallEnter)
+            {
+                // Find matching EXIT
+                int depth = 0;
+                foreach (var e in _lastEntries)
+                {
+                    if (e.LineNumber <= selectedLine) { if (e.IsApiCall && e.ApiName == current.ApiName && e.IsCallEnter) depth++; continue; }
+                    if (!e.IsApiCall || e.ApiName != current.ApiName) continue;
+                    if (e.IsCallEnter) depth++;
+                    else if (e.IsCallExit) { depth--; if (depth == 0) { targetLine = e.LineNumber; break; } }
+                }
+            }
+            else if (current.IsCallExit)
+            {
+                // Find matching ENTER by going backwards
+                int depth = 0;
+                for (int i = _lastEntries.Count - 1; i >= 0; i--)
+                {
+                    var e = _lastEntries[i];
+                    if (e.LineNumber >= selectedLine) { if (e.IsApiCall && e.ApiName == current.ApiName && e.IsCallExit) depth++; continue; }
+                    if (!e.IsApiCall || e.ApiName != current.ApiName) continue;
+                    if (e.IsCallExit) depth++;
+                    else if (e.IsCallEnter) { depth--; if (depth == 0) { targetLine = e.LineNumber; break; } }
+                }
+            }
+
+            if (targetLine > 0)
+                ScrollLogToLine(targetLine);
+            else
+                MessageBox.Show("No matching pair found.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ── C1: Expand / Collapse all ─────────────────────────────────────────
+        public void ExpandAllTrees()
+        {
+            CallTree.ExpandAll();
+            ApiTree.ExpandAll();
+        }
+
+        public void CollapseAllTrees()
+        {
+            CallTree.CollapseAll();
+            ApiTree.CollapseAll();
+            // Keep root nodes expanded
+            foreach (TreeNode n in CallTree.Nodes) n.Expand();
+            foreach (TreeNode n in ApiTree.Nodes)  n.Expand();
+        }
+
         public void ApplyFilter(string filterText, bool matchCase)
         {
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
@@ -612,7 +881,7 @@ namespace Cad3PLogBrowser
         // ── Options / Help ────────────────────────────────────────────────────
         private void settingsMenuItem_Click(object sender, EventArgs e)
         {
-            using (var settingsDialog = new SettingsForm())
+            using (var settingsDialog = new SettingsForm(this))
                 settingsDialog.ShowDialog(this);
         }
 
