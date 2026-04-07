@@ -744,7 +744,8 @@
             this.ShowHelpButton});
             this.mainToolStrip.Location = new System.Drawing.Point(0, 26);
             this.mainToolStrip.Name = "mainToolStrip";
-            this.mainToolStrip.Size = new System.Drawing.Size(987, 25);
+            this.mainToolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.mainToolStrip.Size = new System.Drawing.Size(987, 27);
             this.mainToolStrip.TabIndex = 4;
             this.mainToolStrip.Text = "mainToolStrip";
             // 
