@@ -10,8 +10,8 @@ namespace Cad3PLogBrowser.Services
 {
     /// <summary>
     /// Typed application settings stored as JSON in the user's AppData folder.
-    /// All config is portable — no registry writes (except splitter position kept for
-    /// backwards compat via SettingsService).
+    /// All config is portable — no registry writes.
+    /// Location: %AppData%\CAD3PLogBrowser\settings.json
     /// </summary>
     public class AppSettings
     {
@@ -29,6 +29,13 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowPerformanceTab   { get; set; } = true;
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
+
+        // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
+        public int     WindowWidth          { get; set; } = 1024;
+        public int     WindowHeight         { get; set; } = 768;
+        public int     WindowLeft           { get; set; } = -1;  // -1 = not set
+        public int     WindowTop            { get; set; } = -1;  // -1 = not set
+        public string  WindowState          { get; set; } = "Normal"; // "Normal" | "Maximized"
 
         // ── Performance guards ─────────────────────────────────────────────────
         public long    MaxFileSizeMbForListView { get; set; } = 50; // skip list if > N MB

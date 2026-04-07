@@ -46,6 +46,10 @@
             this.findNextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSeparatorAfterFind = new System.Windows.Forms.ToolStripSeparator();
             this.filterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.editSeparatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
+            this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.jumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -60,6 +64,7 @@
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpSeparatorBeforeAbout = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
@@ -89,6 +94,11 @@
             this.FindButton = new System.Windows.Forms.ToolStripButton();
             this.FilterButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
+            this.prevErrorButton = new System.Windows.Forms.ToolStripButton();
+            this.nextErrorButton = new System.Windows.Forms.ToolStripButton();
+            this.prevWarningButton = new System.Windows.Forms.ToolStripButton();
+            this.nextWarningButton = new System.Windows.Forms.ToolStripButton();
+            this.separatorAfterNavigation = new System.Windows.Forms.ToolStripSeparator();
             this.SettingsButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterSettings = new System.Windows.Forms.ToolStripSeparator();
             this.CallTreeButton = new System.Windows.Forms.ToolStripButton();
@@ -214,7 +224,11 @@
             this.findMenuItem,
             this.findNextMenuItem,
             this.editSeparatorAfterFind,
-            this.filterMenuItem});
+            this.filterMenuItem,
+            this.editSeparatorAfterFilter,
+            this.expandAllMenuItem,
+            this.collapseAllMenuItem,
+            this.jumpToMatchingMenuItem});
             this.editMenuItem.Name = "editMenuItem";
             this.editMenuItem.Size = new System.Drawing.Size(43, 22);
             this.editMenuItem.Text = "&Edit";
@@ -259,9 +273,38 @@
             this.filterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
             this.filterMenuItem.Name = "filterMenuItem";
             this.filterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
-            this.filterMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.filterMenuItem.Size = new System.Drawing.Size(258, 22);
             this.filterMenuItem.Text = "Fil&ter";
             this.filterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            // 
+            // editSeparatorAfterFilter
+            // 
+            this.editSeparatorAfterFilter.Name = "editSeparatorAfterFilter";
+            this.editSeparatorAfterFilter.Size = new System.Drawing.Size(255, 6);
+            // 
+            // expandAllMenuItem
+            // 
+            this.expandAllMenuItem.Name = "expandAllMenuItem";
+            this.expandAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.E)));
+            this.expandAllMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.expandAllMenuItem.Text = "&Expand All";
+            this.expandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // collapseAllMenuItem
+            // 
+            this.collapseAllMenuItem.Name = "collapseAllMenuItem";
+            this.collapseAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
+            this.collapseAllMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.collapseAllMenuItem.Text = "&Collapse All";
+            this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // jumpToMatchingMenuItem
+            // 
+            this.jumpToMatchingMenuItem.Name = "jumpToMatchingMenuItem";
+            this.jumpToMatchingMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
+            this.jumpToMatchingMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.jumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.jumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
             // 
             // optionsMenuItem
             // 
@@ -275,8 +318,8 @@
             // 
             this.settingsMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
             this.settingsMenuItem.Name = "settingsMenuItem";
-            this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.E)));
-            this.settingsMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.S));
+            this.settingsMenuItem.Size = new System.Drawing.Size(218, 22);
             this.settingsMenuItem.Text = "&Settings";
             this.settingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
@@ -376,6 +419,7 @@
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
+            this.keyboardShortcutsMenuItem,
             this.helpSeparatorBeforeAbout,
             this.aboutMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
@@ -388,9 +432,17 @@
             this.viewHelpMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.help;
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.viewHelpMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.viewHelpMenuItem.Size = new System.Drawing.Size(220, 22);
             this.viewHelpMenuItem.Text = "View &Help";
             this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
+            // 
+            // keyboardShortcutsMenuItem
+            // 
+            this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
+            this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
+            this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
+            this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
             // 
             // helpSeparatorBeforeAbout
             // 
@@ -545,15 +597,17 @@
             this.logListView.View = System.Windows.Forms.View.Details;
             this.logListView.SelectedIndexChanged += new System.EventHandler(this.listView1_SelectedIndexChanged);
             this.logListView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseUp_1);
+            this.logListView.Resize += new System.EventHandler(this.logListView_Resize);
             // 
             // colLineNumber
             // 
-            this.colLineNumber.Text = "";
-            this.colLineNumber.Width = 645;
+            this.colLineNumber.Text = "Line #";
+            this.colLineNumber.Width = 80;
             // 
             // colLogText
             // 
-            this.colLogText.Text = "";
+            this.colLogText.Text = "Log Text";
+            this.colLogText.Width = 600;
             // 
             // rawTab
             // 
@@ -662,6 +716,11 @@
             this.FindButton,
             this.FilterButton,
             this.separatorAfterFilter,
+            this.prevErrorButton,
+            this.nextErrorButton,
+            this.prevWarningButton,
+            this.nextWarningButton,
+            this.separatorAfterNavigation,
             this.SettingsButton,
             this.separatorAfterSettings,
             this.CallTreeButton,
@@ -746,6 +805,47 @@
             // 
             this.separatorAfterFilter.Name = "separatorAfterFilter";
             this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
+            // 
+            // prevErrorButton — Feature B10
+            // 
+            this.prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.prevErrorButton.Name = "prevErrorButton";
+            this.prevErrorButton.Size = new System.Drawing.Size(23, 22);
+            this.prevErrorButton.Text = "◄E";
+            this.prevErrorButton.ToolTipText = "Previous Error (Shift+F8)";
+            this.prevErrorButton.Click += new System.EventHandler(this.prevErrorButton_Click);
+            // 
+            // nextErrorButton — Feature B10
+            // 
+            this.nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.nextErrorButton.Name = "nextErrorButton";
+            this.nextErrorButton.Size = new System.Drawing.Size(23, 22);
+            this.nextErrorButton.Text = "E►";
+            this.nextErrorButton.ToolTipText = "Next Error (F8)";
+            this.nextErrorButton.Click += new System.EventHandler(this.nextErrorButton_Click);
+            // 
+            // prevWarningButton — Feature B10
+            // 
+            this.prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.prevWarningButton.Name = "prevWarningButton";
+            this.prevWarningButton.Size = new System.Drawing.Size(23, 22);
+            this.prevWarningButton.Text = "◄W";
+            this.prevWarningButton.ToolTipText = "Previous Warning (Ctrl+Shift+F8)";
+            this.prevWarningButton.Click += new System.EventHandler(this.prevWarningButton_Click);
+            // 
+            // nextWarningButton — Feature B10
+            // 
+            this.nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.nextWarningButton.Name = "nextWarningButton";
+            this.nextWarningButton.Size = new System.Drawing.Size(23, 22);
+            this.nextWarningButton.Text = "W►";
+            this.nextWarningButton.ToolTipText = "Next Warning (Ctrl+F8)";
+            this.nextWarningButton.Click += new System.EventHandler(this.nextWarningButton_Click);
+            // 
+            // separatorAfterNavigation
+            // 
+            this.separatorAfterNavigation.Name = "separatorAfterNavigation";
+            this.separatorAfterNavigation.Size = new System.Drawing.Size(6, 25);
             // 
             // SettingsButton
             // 
@@ -963,6 +1063,11 @@
         private System.Windows.Forms.ToolStripButton CopyButton;
         private System.Windows.Forms.ToolStripButton FindButton;
         private System.Windows.Forms.ToolStripSeparator separatorAfterFilter;
+        private System.Windows.Forms.ToolStripButton prevErrorButton;
+        private System.Windows.Forms.ToolStripButton nextErrorButton;
+        private System.Windows.Forms.ToolStripButton prevWarningButton;
+        private System.Windows.Forms.ToolStripButton nextWarningButton;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterNavigation;
         private System.Windows.Forms.ToolStripButton SettingsButton;
         private System.Windows.Forms.ToolStripMenuItem filterMenuItem;
         private System.Windows.Forms.ToolStripButton FilterButton;
@@ -987,8 +1092,13 @@
         private System.Windows.Forms.ToolStripSeparator fileSeparatorBeforeExit;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCopy;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFind;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFilter;
+        private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparatorAfterTree;
         private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
+        private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;

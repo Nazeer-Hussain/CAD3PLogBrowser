@@ -26,6 +26,12 @@ namespace Cad3PLogBrowser
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
 
+        // Feature B10: Error/Warning navigation
+        private List<int>         _errorLines       = new List<int>();
+        private List<int>         _warningLines     = new List<int>();
+        private int               _currentErrorIndex   = -1;
+        private int               _currentWarningIndex = -1;
+
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
         public enum TabId { Log, Performance, LogDetails, CallGraph }
 
@@ -64,6 +70,121 @@ namespace Cad3PLogBrowser
                 case TabId.LogDetails:  return showTab3MenuItem;
                 case TabId.CallGraph:   return showTab4MenuItem;
                 default:                return null;
+            }
+        }
+
+        private void SetTabVisible(TabPage tab, bool visible)
+        {
+            if (tab == null) return;
+
+            bool currentlyVisible = mainTabControl.TabPages.Contains(tab);
+            if (visible == currentlyVisible) return;
+
+            if (visible)
+            {
+                mainTabControl.TabPages.Add(tab);
+                return;
+            }
+
+            if (mainTabControl.TabPages.Count <= 1)
+            {
+                if (ReferenceEquals(tab, logTab)) showTab1MenuItem.Checked = true;
+                if (ReferenceEquals(tab, performanceTab)) showTab2MenuItem.Checked = true;
+                if (ReferenceEquals(tab, logDetailTab)) showTab3MenuItem.Checked = true;
+                if (ReferenceEquals(tab, callGraphTab)) showTab4MenuItem.Checked = true;
+                return;
+            }
+
+            mainTabControl.TabPages.Remove(tab);
+        }
+
+        private void showTab1MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logTab, showTab1MenuItem.Checked);
+
+        private void showTab2MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(performanceTab, showTab2MenuItem.Checked);
+
+        private void showTab3MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logDetailTab, showTab3MenuItem.Checked);
+
+        private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(callGraphTab, showTab4MenuItem.Checked);
+
+        private ToolStripMenuItem _recentFilesMenuItem;
+        private ToolStripSeparator _recentFilesSeparator;
+
+        private void BuildMruMenu()
+        {
+            // Remove existing Recent Files menu if present
+            if (_recentFilesMenuItem != null)
+            {
+                fileMenuItem.DropDownItems.Remove(_recentFilesMenuItem);
+                fileMenuItem.DropDownItems.Remove(_recentFilesSeparator);
+            }
+
+            // Only show if there are recent files
+            if (_appSettings.RecentFiles.Count == 0) return;
+
+            // Create separator and Recent Files submenu
+            _recentFilesSeparator = new ToolStripSeparator();
+            _recentFilesMenuItem = new ToolStripMenuItem("Recent &Files");
+
+            // Add each recent file
+            for (int i = 0; i < _appSettings.RecentFiles.Count && i < 10; i++)
+            {
+                string filePath = _appSettings.RecentFiles[i];
+                string fileName = Path.GetFileName(filePath);
+                string menuText = string.Format("{0}. {1}", i + 1, fileName);
+
+                var menuItem = new ToolStripMenuItem(menuText)
+                {
+                    Tag = filePath,
+                    ToolTipText = filePath
+                };
+                menuItem.Click += RecentFileMenuItem_Click;
+                _recentFilesMenuItem.DropDownItems.Add(menuItem);
+            }
+
+            // Add Clear Recent Files option
+            if (_recentFilesMenuItem.DropDownItems.Count > 0)
+            {
+                _recentFilesMenuItem.DropDownItems.Add(new ToolStripSeparator());
+                var clearItem = new ToolStripMenuItem("&Clear Recent Files");
+                clearItem.Click += (s, e) =>
+                {
+                    _appSettings.RecentFiles.Clear();
+                    _appSettings.Save();
+                    BuildMruMenu();
+                };
+                _recentFilesMenuItem.DropDownItems.Add(clearItem);
+            }
+
+            // Insert before the Exit menu item
+            int exitIndex = fileMenuItem.DropDownItems.IndexOf(fileSeparatorBeforeExit);
+            if (exitIndex >= 0)
+            {
+                fileMenuItem.DropDownItems.Insert(exitIndex, _recentFilesSeparator);
+                fileMenuItem.DropDownItems.Insert(exitIndex + 1, _recentFilesMenuItem);
+            }
+        }
+
+        private void RecentFileMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is string filePath)
+            {
+                if (File.Exists(filePath))
+                {
+                    LoadFileAsync(filePath);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        string.Format("File not found:\n{0}\n\nRemoving from recent files list.", filePath),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _appSettings.RecentFiles.Remove(filePath);
+                    _appSettings.Save();
+                    BuildMruMenu();
+                }
             }
         }
 
@@ -113,24 +234,106 @@ namespace Cad3PLogBrowser
         // ── Settings ──────────────────────────────────────────────────────────
         private void RestoreSettings()
         {
-            int dist = _settingsService.LoadSplitterDistance();
-            if (dist > 0) mainSplitContainer.SplitterDistance = dist;
+            // Feature 1a/1b/1c: Restore window state
+            if (_appSettings.WindowLeft >= 0 && _appSettings.WindowTop >= 0)
+            {
+                // Restore saved position
+                this.StartPosition = FormStartPosition.Manual;
+                this.Left = _appSettings.WindowLeft;
+                this.Top = _appSettings.WindowTop;
+                this.Width = _appSettings.WindowWidth;
+                this.Height = _appSettings.WindowHeight;
 
-            string lastDir = _settingsService.LoadLastDirectory();
-            if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
-                openLogFileDialog.InitialDirectory = lastDir;
+                // Validate position is on-screen
+                if (!IsPositionOnScreen(this.Left, this.Top))
+                {
+                    this.StartPosition = FormStartPosition.CenterScreen;
+                }
+
+                if (_appSettings.WindowState == "Maximized")
+                {
+                    this.WindowState = FormWindowState.Maximized;
+                }
+            }
+            else
+            {
+                // Feature 1c: No saved settings → maximize
+                this.WindowState = FormWindowState.Maximized;
+            }
+
+            // Feature 2a/2b: Default splitter to 30% if not set
+            int dist = _settingsService.LoadSplitterDistance();
+            if (dist > 0)
+            {
+                mainSplitContainer.SplitterDistance = dist;
+            }
+            else if (_appSettings.SplitterDistance > 0)
+            {
+                mainSplitContainer.SplitterDistance = _appSettings.SplitterDistance;
+            }
+            // else: will be set to 30% in MainForm_Load after layout is ready
+
+            // Feature A3: Default to PTC_LOG_DIR environment variable if set
+            string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+            if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
+            {
+                openLogFileDialog.InitialDirectory = ptcLogDir;
+            }
+            else
+            {
+                string lastDir = _settingsService.LoadLastDirectory();
+                if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
+                    openLogFileDialog.InitialDirectory = lastDir;
+            }
+        }
+
+        private bool IsPositionOnScreen(int left, int top)
+        {
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                if (screen.WorkingArea.Contains(left, top))
+                    return true;
+            }
+            return false;
         }
 
         private void SaveSettings()
         {
-            _settingsService.SaveSplitterDistance(mainSplitContainer.SplitterDistance);
-            if (!string.IsNullOrEmpty(_currentFilePath))
-                _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
-            _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
-            _appSettings.Save();
+            try
+            {
+                // Update all settings in AppSettings object first (no I/O)
+                _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
+
+                if (!string.IsNullOrEmpty(_currentFilePath))
+                    _appSettings.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+
+                // Feature 1a/1b: Save window state
+                if (this.WindowState == FormWindowState.Normal)
+                {
+                    _appSettings.WindowLeft = this.Left;
+                    _appSettings.WindowTop = this.Top;
+                    _appSettings.WindowWidth = this.Width;
+                    _appSettings.WindowHeight = this.Height;
+                    _appSettings.WindowState = "Normal";
+                }
+                else if (this.WindowState == FormWindowState.Maximized)
+                {
+                    _appSettings.WindowState = "Maximized";
+                    // Keep last normal position/size for when user un-maximizes
+                }
+
+                // Save everything in one operation (single I/O)
+                _appSettings.Save();
+            }
+            catch
+            {
+                // Non-fatal: settings save failure should not prevent exit
+            }
         }
 
         // ── Status bar ────────────────────────────────────────────────────────
+        private string _activeFilterText = "";
+
         private void UpdateStatusBar()
         {
             if (string.IsNullOrEmpty(_currentFilePath))
@@ -138,24 +341,60 @@ namespace Cad3PLogBrowser
                 StatusFileName.Text = StatusLineCount.Text = StatusSelection.Text = "";
                 return;
             }
-            StatusFileName.Text = Path.GetFileName(_currentFilePath);
+
+            // Feature G5: Enhanced status bar with file info
+            // Feature B10: Include error/warning counts
+            string fileInfo = string.Format("{0}  |  {1:N0} lines", 
+                Path.GetFileName(_currentFilePath), _allLines.Count);
+
+            if (_errorLines.Count > 0 || _warningLines.Count > 0)
+            {
+                fileInfo += string.Format("  |  {0} errors, {1} warnings", 
+                    _errorLines.Count, _warningLines.Count);
+            }
+
+            StatusFileName.Text = fileInfo;
+
             int total   = _allLines.Count;
             int visible = _virtualLines.Count;
-            StatusLineCount.Text = total == visible
-                ? string.Format("Lines: {0}", total)
-                : string.Format("Lines: {0} / {1}", visible, total);
+
+            // Show filter status
+            if (total != visible && !string.IsNullOrEmpty(_activeFilterText))
+            {
+                StatusLineCount.Text = string.Format("Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines",
+                    _activeFilterText, visible, total);
+            }
+            else if (total != visible)
+            {
+                StatusLineCount.Text = string.Format("Showing {0:N0} / {1:N0} lines", visible, total);
+            }
+            else
+            {
+                StatusLineCount.Text = "";
+            }
         }
 
         private void UpdateSelectionStatus()
         {
             if (logListView.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
             int idx = logListView.SelectedIndices[0];
-            StatusSelection.Text = string.Format("Ln {0}", _virtualLines[idx].LineNumber);
+
+            // Feature G5: Show selected line info with more detail
+            string lineNum = _virtualLines[idx].LineNumber;
+            string preview = _virtualLines[idx].Text;
+            if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
+
+            StatusSelection.Text = string.Format("Line {0}: {1}", lineNum, preview);
         }
 
         // ── Tree view init ────────────────────────────────────────────────────
         private void InitTreeViews()
         {
+            // Feature C3: Build icon list and assign to both trees
+            BuildTreeIconList();
+            ApiTree.ImageList = treeIconList;
+            CallTree.ImageList = treeIconList;
+
             ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
             CallTree.ShowLines = CallTree.ShowPlusMinus = true;
@@ -181,12 +420,14 @@ namespace Cad3PLogBrowser
             var imgList = treeIconList;
             imgList.Images.Clear();
 
-            // Icon 0: green checkmark
+            // Feature C3: Flat-style icons for checkmark and cross
+            // Icon 0: green checkmark (flat style)
             var checkBmp = new System.Drawing.Bitmap(16, 16);
             using (var g = System.Drawing.Graphics.FromImage(checkBmp))
             {
                 g.Clear(System.Drawing.Color.Transparent);
-                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(0, 160, 80), 2.5f)
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(34, 139, 34), 2.5f)
                     { StartCap = System.Drawing.Drawing2D.LineCap.Round,
                       EndCap   = System.Drawing.Drawing2D.LineCap.Round })
                 {
@@ -199,12 +440,13 @@ namespace Cad3PLogBrowser
             }
             imgList.Images.Add(checkBmp);
 
-            // Icon 1: red cross
+            // Icon 1: red cross (flat style)
             var crossBmp = new System.Drawing.Bitmap(16, 16);
             using (var g = System.Drawing.Graphics.FromImage(crossBmp))
             {
                 g.Clear(System.Drawing.Color.Transparent);
-                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(200, 40, 40), 2.5f)
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(220, 20, 60), 2.5f)
                     { StartCap = System.Drawing.Drawing2D.LineCap.Round,
                       EndCap   = System.Drawing.Drawing2D.LineCap.Round })
                 {
@@ -229,6 +471,35 @@ namespace Cad3PLogBrowser
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
+
+            // Feature 3a/3b: Auto-select topmost node after load
+            SelectDefaultTreeNode();
+        }
+
+        // Feature 3a/3b: Auto-select first node in active tree
+        private void SelectDefaultTreeNode()
+        {
+            // Feature 3a: Call Tree auto-select
+            if (CallTree.Visible && CallTree.Nodes.Count > 0)
+            {
+                var root = CallTree.Nodes[0]; // "Call Tree" root node
+                if (root.Nodes.Count > 0)
+                {
+                    CallTree.SelectedNode = root.Nodes[0]; // First call
+                    CallTree.SelectedNode.EnsureVisible();
+                }
+            }
+
+            // Feature 3b: API Tree auto-select
+            if (ApiTree.Visible && ApiTree.Nodes.Count > 0)
+            {
+                var root = ApiTree.Nodes[0]; // "API Tree" root node
+                if (root.Nodes.Count > 0)
+                {
+                    ApiTree.SelectedNode = root.Nodes[0]; // First API
+                    ApiTree.SelectedNode.EnsureVisible();
+                }
+            }
         }
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
@@ -244,7 +515,9 @@ namespace Cad3PLogBrowser
             {
                 // Check if all occurrences have matching ENTER/EXIT pairs
                 bool allMatched = AreAllApiCallsMatched(node.ApiName);
-                var apiRoot = new TreeNode(node.ApiName)
+                // Feature C3: Show call count in API tree root node
+                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, node.LineNumbers.Count);
+                var apiRoot = new TreeNode(apiLabel)
                 {
                     Tag             = node.FirstLine,
                     ImageIndex      = allMatched ? 0 : 1,
@@ -266,10 +539,9 @@ namespace Cad3PLogBrowser
             }
 
             ApiTree.Nodes.Add(root);
+            // Issue Fix: Start collapsed (only root expanded)
             root.Expand();
-            // Expand first level of API nodes
-            foreach (TreeNode child in root.Nodes)
-                child.Expand();
+            // Don't expand first level - let users expand as needed
 
             ApiTree.EndUpdate();
         }
@@ -300,10 +572,9 @@ namespace Cad3PLogBrowser
                 rootNode.Nodes.Add(BuildTreeNode(root));
 
             CallTree.Nodes.Add(rootNode);
+            // Issue Fix: Start collapsed (only root expanded)
             rootNode.Expand();
-            // Expand first level of call nodes
-            foreach (TreeNode child in rootNode.Nodes)
-                child.Expand();
+            // Don't expand first level - let users expand as needed
 
             CallTree.EndUpdate();
         }
@@ -312,18 +583,17 @@ namespace Cad3PLogBrowser
         {
             bool matched = csNode.ExitLineNumber > 0;
 
+            // Feature C3: Duration overlay with color coding
             string label = csNode.Label;
             if (csNode.DurationMs > 0)
                 label = string.Format("{0}  [{1} ms]", label, csNode.DurationMs);
             else if (matched)
                 label = string.Format("{0}  [<1 ms]", label);
+            else
+                label = string.Format("{0}  [? ms]", label);
 
             string tooltip = string.Format(
-                "API: {0}
-Source: {1}
-ENTER line: {2}
-EXIT line: {3}
-Duration: {4} ms",
+                "API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms",
                 csNode.Label,
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
@@ -339,6 +609,20 @@ Duration: {4} ms",
                 ImageIndex         = imgIdx,
                 SelectedImageIndex = imgIdx
             };
+
+            // Feature C3: Color coding by duration (green < 100ms, amber 100-500ms, red > 500ms)
+            if (csNode.DurationMs > 0)
+            {
+                const int FAST_MS = 100;
+                const int SLOW_MS = 500;
+
+                if (csNode.DurationMs < FAST_MS)
+                    tn.ForeColor = Color.FromArgb(0, 128, 0);      // Green
+                else if (csNode.DurationMs < SLOW_MS)
+                    tn.ForeColor = Color.FromArgb(204, 102, 0);    // Amber
+                else
+                    tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
+            }
 
             foreach (var child in csNode.Children)
                 tn.Nodes.Add(BuildTreeNode(child));
@@ -497,7 +781,12 @@ Duration: {4} ms",
         {
             int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
-            logListView.EnsureVisible(idx);
+
+            // Feature H1: Show 10 previous lines by scrolling appropriately
+            int scrollToIdx = Math.Max(0, idx - 10);
+            logListView.EnsureVisible(scrollToIdx);
+            logListView.EnsureVisible(idx); // Make sure selected line is visible
+
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
             logListView.Focus();
@@ -597,6 +886,13 @@ Duration: {4} ms",
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
+
+            // Feature B10: Index errors and warnings
+            _errorLines.Clear();
+            _warningLines.Clear();
+            _currentErrorIndex = -1;
+            _currentWarningIndex = -1;
+
             for (int i = 0; i < lines.Count; i++)
             {
                 _virtualLines.Add(new VirtualLogLine
@@ -605,6 +901,18 @@ Duration: {4} ms",
                     Text       = lines[i],
                     BackColour = GetLineColour(lines[i])
                 });
+
+                // Feature B10: Index error and warning lines
+                if (!string.IsNullOrEmpty(lines[i]))
+                {
+                    int first = lines[i].IndexOf(": ", StringComparison.Ordinal);
+                    if (first >= 0 && first + 3 < lines[i].Length)
+                    {
+                        char level = lines[i][first + 2];
+                        if (level == 'E') _errorLines.Add(i);
+                        else if (level == 'W') _warningLines.Add(i);
+                    }
+                }
             }
             logListView.VirtualListSize = _virtualLines.Count;
             logListView.Invalidate();
@@ -625,6 +933,10 @@ Duration: {4} ms",
             }
             logListView.VirtualListSize = _virtualLines.Count;
             logListView.Invalidate();
+
+            // Issue Fix: Auto-resize columns to fit content
+            AutoResizeLogListColumns();
+
             UpdateStatusBar();
         }
 
@@ -641,6 +953,22 @@ Duration: {4} ms",
                 if (level == 'W') return ColourWarn;
             }
             return ColourInfo;
+        }
+
+        // Issue Fix: Auto-resize ListView columns to fit content
+        private void AutoResizeLogListColumns()
+        {
+            if (logListView.Columns.Count < 2) return;
+
+            // Line number column: auto-resize to content
+            logListView.Columns[0].Width = 80; // Fixed width for line numbers
+
+            // Log text column: fill remaining space
+            int remainingWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - 4;
+            if (remainingWidth > 0)
+            {
+                logListView.Columns[1].Width = remainingWidth;
+            }
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -860,10 +1188,116 @@ Duration: {4} ms",
             foreach (TreeNode n in ApiTree.Nodes)  n.Expand();
         }
 
+        // Feature C1: Menu event handlers
+        private void expandAllMenuItem_Click(object sender, EventArgs e) =>
+            ExpandAllTrees();
+
+        private void collapseAllMenuItem_Click(object sender, EventArgs e) =>
+            CollapseAllTrees();
+
+        private void jumpToMatchingMenuItem_Click(object sender, EventArgs e) =>
+            JumpToMatchingPair();
+
+        // ── Feature B10: Error/Warning Navigation ─────────────────────────────
+        public void NavigateToNextError()
+        {
+            if (_errorLines.Count == 0)
+            {
+                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentErrorIndex = (_currentErrorIndex + 1) % _errorLines.Count;
+            int lineIdx = _errorLines[_currentErrorIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToPreviousError()
+        {
+            if (_errorLines.Count == 0)
+            {
+                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentErrorIndex--;
+            if (_currentErrorIndex < 0) _currentErrorIndex = _errorLines.Count - 1;
+            int lineIdx = _errorLines[_currentErrorIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToNextWarning()
+        {
+            if (_warningLines.Count == 0)
+            {
+                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentWarningIndex = (_currentWarningIndex + 1) % _warningLines.Count;
+            int lineIdx = _warningLines[_currentWarningIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToPreviousWarning()
+        {
+            if (_warningLines.Count == 0)
+            {
+                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentWarningIndex--;
+            if (_currentWarningIndex < 0) _currentWarningIndex = _warningLines.Count - 1;
+            int lineIdx = _warningLines[_currentWarningIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        // Feature B10: Toolbar button click handlers
+        private void prevErrorButton_Click(object sender, EventArgs e) =>
+            NavigateToPreviousError();
+
+        private void nextErrorButton_Click(object sender, EventArgs e) =>
+            NavigateToNextError();
+
+        private void prevWarningButton_Click(object sender, EventArgs e) =>
+            NavigateToPreviousWarning();
+
+        private void nextWarningButton_Click(object sender, EventArgs e) =>
+            NavigateToNextWarning();
+
         public void ApplyFilter(string filterText, bool matchCase)
         {
+            _activeFilterText = filterText; // Feature G5: Track active filter for status bar
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
             PopulateVirtualListViewFiltered(filtered);
+        }
+
+        // Feature B3: Clear filter and show all lines
+        public void ClearFilter()
+        {
+            _activeFilterText = "";
+            PopulateVirtualListView(_allLines);
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -896,10 +1330,21 @@ Duration: {4} ms",
 
         private void helpMenuItem_Click(object sender, EventArgs e)
         {
+            ShowKeyboardShortcutsDialog();
+        }
+
+        // Feature G4: Comprehensive Keyboard Shortcuts Dialog
+        private void keyboardShortcutsMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowKeyboardShortcutsDialog();
+        }
+
+        private void ShowKeyboardShortcutsDialog()
+        {
             var helpForm = new Form
             {
-                Text = "Help — CAD3P Log Browser",
-                Size = new System.Drawing.Size(520, 440),
+                Text = "Keyboard Shortcuts — WWGM CAD 3P Log Browser",
+                Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false, MinimizeBox = false
@@ -907,47 +1352,109 @@ Duration: {4} ms",
             var rtb = new RichTextBox
             {
                 Dock = DockStyle.Fill, ReadOnly = true,
-                Font = new System.Drawing.Font("Segoe UI", 9.5f),
+                Font = new System.Drawing.Font("Consolas", 9f),
+                BackColor = SystemColors.Window,
                 Text =
-                    "CAD3P Log Browser — Keyboard Shortcuts\r\n" +
-                    "═══════════════════════════════════════\r\n\r\n" +
-                    "Ctrl+O      Open log file\r\n" +
-                    "Ctrl+S      Save As (selection or all visible)\r\n" +
-                    "F5          Refresh (reload, keep scroll position)\r\n" +
-                    "Ctrl+R      Reload (reset to top)\r\n" +
-                    "Ctrl+C      Copy selected lines\r\n" +
-                    "Ctrl+F      Find\r\n" +
-                    "F3          Find Next\r\n" +
-                    "Ctrl+I      Filter\r\n" +
-                    "Ctrl+T      Toggle Call Tree\r\n" +
-                    "Ctrl+L      Toggle API List\r\n" +
-                    "Ctrl+H      Hide/Show Tabs\r\n" +
-                    "Ctrl+E      Settings\r\n" +
-                    "Alt+F4      Exit\r\n\r\n" +
-                    "Call Graph tab\r\n" +
-                    "══════════════\r\n" +
-                    "• Scroll wheel to zoom in/out.\r\n" +
-                    "• Click and drag to pan.\r\n" +
-                    "• Hover a node to highlight its edges.\r\n" +
-                    "• Edge thickness = call frequency.\r\n" +
-                    "• Reset View button restores default zoom/pan.\r\n\r\n" +
-                    "Tips\r\n" +
-                    "════\r\n" +
-                    "• Drag and drop a log file onto the window to open it.\r\n" +
-                    "• Click any tree node to jump to that line in the log.\r\n" +
-                    "• Select lines then Save As to save a trimmed log.\r\n" +
-                    "• ERROR/FATAL lines are highlighted red, WARN in amber.\r\n" +
-                    "• Virtual mode: the log list handles 500k+ lines smoothly.\r\n"
+                    "═══════════════════════════════════════════════════════════════════\r\n" +
+                    "       WWGM CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                    "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                    "FILE MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+O              Open log file\r\n" +
+                    "Ctrl+S              Save As (selection or all visible lines)\r\n" +
+                    "F5                  Refresh (reload, keep scroll position)\r\n" +
+                    "Ctrl+R              Reload File from Disk (reset to top)\r\n" +
+                    "Alt+F4              Exit\r\n\r\n" +
+                    "EDIT MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+C              Copy selected lines\r\n" +
+                    "Ctrl+F              Find / Search\r\n" +
+                    "F3                  Find Next\r\n" +
+                    "Ctrl+I              Filter log entries\r\n" +
+                    "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
+                    "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
+                    "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n\r\n" +
+                    "NAVIGATION (Errors & Warnings)\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "F8                  Next Error\r\n" +
+                    "Shift+F8            Previous Error\r\n" +
+                    "Ctrl+F8             Next Warning\r\n" +
+                    "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
+                    "VIEW MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+T              Toggle Call Tree view\r\n" +
+                    "Ctrl+L              Toggle API List view\r\n" +
+                    "Ctrl+H              Hide/Show Tab panels\r\n\r\n" +
+                    "OPTIONS MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+Shift+S        Settings\r\n\r\n" +
+                    "HELP MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "F1                  View Help\r\n" +
+                    "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
+                    "CALL GRAPH TAB\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "  •  Scroll wheel to zoom in/out\r\n" +
+                    "  •  Click and drag to pan\r\n" +
+                    "  •  Hover a node to highlight its edges\r\n" +
+                    "  •  Edge thickness = call frequency\r\n" +
+                    "  •  Reset View button restores default zoom/pan\r\n\r\n" +
+                    "TIPS & TRICKS\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "  •  Drag and drop a log file onto the window to open it\r\n" +
+                    "  •  Click any tree node to jump to that line in the log\r\n" +
+                    "  •  Select lines then Save As to save a trimmed log\r\n" +
+                    "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
+                    "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
+                    "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
+                    "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
+                    "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
+                    "  •  Recent Files: Last 10 opened files in File menu\r\n" +
+                    "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
+                    "═══════════════════════════════════════════════════════════════════\r\n"
             };
             helpForm.Controls.Add(rtb);
             helpForm.ShowDialog(this);
         }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
+        // Feature B10: Keyboard shortcuts for error/warning navigation
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            switch (keyData)
+            {
+                case Keys.F8:                                    // Next Error
+                    NavigateToNextError();
+                    return true;
+                case Keys.Shift | Keys.F8:                       // Previous Error
+                    NavigateToPreviousError();
+                    return true;
+                case Keys.Control | Keys.F8:                     // Next Warning
+                    NavigateToNextWarning();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
+                    NavigateToPreviousWarning();
+                    return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         private void MainForm_Load(object sender, EventArgs e)
         {
             SetDocumentLoaded(false);
             LayoutTrees();
+
+            // Feature 2a: Set default splitter to 30% if not already set
+            if (mainSplitContainer.SplitterDistance == 285) // default/uninitialized value
+            {
+                int defaultSplitter = (int)(this.ClientSize.Width * 0.3);
+                if (defaultSplitter > mainSplitContainer.Panel1MinSize && 
+                    defaultSplitter < this.ClientSize.Width - mainSplitContainer.Panel2MinSize)
+                {
+                    mainSplitContainer.SplitterDistance = defaultSplitter;
+                }
+            }
+
             logTab.Text = "Log";
             performanceTab.Text = "Performance";
             logDetailTab.Text = "Log Details";
@@ -956,11 +1463,35 @@ Duration: {4} ms",
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            SaveSettings();
-            _logFileService.Dispose();
+            try
+            {
+                SaveSettings();
+            }
+            catch { /* Non-fatal */ }
+
+            try
+            {
+                _logFileService?.Dispose();
+            }
+            catch { /* Non-fatal */ }
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e) { }
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Stop file watching immediately to prevent blocking on close
+            try
+            {
+                _logFileService?.StopWatching();
+            }
+            catch { /* Non-fatal */ }
+        }
+
+        // Issue Fix: Auto-resize ListView columns when form resizes
+        private void logListView_Resize(object sender, EventArgs e)
+        {
+            AutoResizeLogListColumns();
+        }
+
         private void MainForm_ResizeBegin(object sender, EventArgs e) { }
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
         private void MainForm_Resize(object sender, EventArgs e) { }
