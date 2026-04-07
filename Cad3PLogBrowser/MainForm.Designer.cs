@@ -114,8 +114,17 @@
             this.logWatcher = new System.IO.FileSystemWatcher();
             this.fileWatchTimer = new System.Windows.Forms.Timer(this.components);
             this.logContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextCopyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.contextFindMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.contextExpandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
             this.treeIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
             this.treeIconList.ImageSize = new System.Drawing.Size(16, 16);
@@ -131,6 +140,7 @@
             this.mainToolStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.logWatcher)).BeginInit();
             this.logContextMenu.SuspendLayout();
+            this.treeContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // mainMenuStrip
@@ -532,6 +542,7 @@
             // 
             // ApiTree
             // 
+            this.ApiTree.ContextMenuStrip = this.treeContextMenu;
             this.ApiTree.Location = new System.Drawing.Point(-1, 0);
             this.ApiTree.Name = "ApiTree";
             this.ApiTree.Size = new System.Drawing.Size(406, 234);
@@ -543,6 +554,7 @@
             // 
             // CallTree
             // 
+            this.CallTree.ContextMenuStrip = this.treeContextMenu;
             this.CallTree.ImageList = this.treeIconList;
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.CallTree.Location = new System.Drawing.Point(-1, 333);
@@ -941,26 +953,52 @@
             // logContextMenu
             // 
             this.logContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.contextRefreshMenuItem,
-            this.contextFilterMenuItem});
+            this.contextCopyMenuItem,
+            this.contextSeparator1,
+            this.contextFindMenuItem,
+            this.contextFilterMenuItem,
+            this.contextSeparator2,
+            this.contextExpandAllMenuItem,
+            this.contextCollapseAllMenuItem,
+            this.contextJumpToMatchingMenuItem,
+            this.contextSeparator3,
+            this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
-            this.logContextMenu.Size = new System.Drawing.Size(153, 48);
+            this.logContextMenu.Size = new System.Drawing.Size(280, 200);
             // 
             // contextRefreshMenuItem
             // 
+            this.contextRefreshMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
             this.contextRefreshMenuItem.Name = "contextRefreshMenuItem";
-            this.contextRefreshMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.contextRefreshMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.contextRefreshMenuItem.Text = "Refresh";
-            this.contextRefreshMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
+            this.contextRefreshMenuItem.ShortcutKeyDisplayString = "F5";
+            this.contextRefreshMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextRefreshMenuItem.Text = "&Refresh";
+            this.contextRefreshMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
+            // 
+            // treeContextMenu
+            // 
+            this.treeContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.contextCopyMenuItem,
+            this.contextSeparator1,
+            this.contextFindMenuItem,
+            this.contextFilterMenuItem,
+            this.contextSeparator2,
+            this.contextExpandAllMenuItem,
+            this.contextCollapseAllMenuItem,
+            this.contextJumpToMatchingMenuItem,
+            this.contextSeparator3,
+            this.contextRefreshMenuItem});
+            this.treeContextMenu.Name = "treeContextMenu";
+            this.treeContextMenu.Size = new System.Drawing.Size(280, 200);
             // 
             // contextFilterMenuItem
             // 
+            this.contextFilterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
             this.contextFilterMenuItem.Name = "contextFilterMenuItem";
-            this.contextFilterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
-            this.contextFilterMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.contextFilterMenuItem.Text = "Filter";
-            this.contextFilterMenuItem.Click += new System.EventHandler(this.filterToolStripMenuItem_Click);
+            this.contextFilterMenuItem.ShortcutKeyDisplayString = "Ctrl+I";
+            this.contextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextFilterMenuItem.Text = "Fil&ter...";
+            this.contextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
             // 
             // MainForm
             // 
@@ -999,6 +1037,7 @@
             this.mainToolStrip.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.logWatcher)).EndInit();
             this.logContextMenu.ResumeLayout(false);
+            this.treeContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1101,8 +1140,17 @@
         private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
-        private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem contextFindMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextFilterMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem contextExpandAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextCollapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextJumpToMatchingMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
+        private System.Windows.Forms.ContextMenuStrip treeContextMenu;
         private System.Windows.Forms.ColumnHeader colLineNumber;
         private System.Windows.Forms.ColumnHeader colLogText;
         private System.Windows.Forms.ToolStripProgressBar FileLoadProgress;
