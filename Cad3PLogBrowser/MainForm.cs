@@ -23,6 +23,47 @@ namespace Cad3PLogBrowser
         private List<string>      _allLines        = new List<string>();
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
 
+        // ── Tab identifiers (used by SettingsForm) ────────────────────────────
+        public enum TabId { Log, Performance, LogDetails, CallGraph }
+
+        /// <summary>Returns whether the given tab is currently visible.</summary>
+        public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
+
+        /// <summary>Shows or hides the given tab and keeps View menu in sync.</summary>
+        public void SetTabVisible(TabId id, bool visible)
+        {
+            var tab = GetTab(id);
+            var menuItem = GetTabMenuItem(id);
+            if (menuItem != null) menuItem.Checked = visible;
+            // The CheckedChanged handler on the menu item calls SetTabVisible(TabPage, bool)
+            // so we only need to toggle if there's no menu item
+            else SetTabVisible(tab, visible);
+        }
+
+        private TabPage GetTab(TabId id)
+        {
+            switch (id)
+            {
+                case TabId.Log:         return logTab;
+                case TabId.Performance: return performanceTab;
+                case TabId.LogDetails:  return logDetailTab;
+                case TabId.CallGraph:   return callGraphTab;
+                default:                return logTab;
+            }
+        }
+
+        private ToolStripMenuItem GetTabMenuItem(TabId id)
+        {
+            switch (id)
+            {
+                case TabId.Log:         return showTab1MenuItem;
+                case TabId.Performance: return showTab2MenuItem;
+                case TabId.LogDetails:  return showTab3MenuItem;
+                case TabId.CallGraph:   return showTab4MenuItem;
+                default:                return null;
+            }
+        }
+
         // ── #7 Virtual mode backing store ─────────────────────────────────────
         // Each VirtualLogLine holds exactly what the ListView needs for one row.
         private struct VirtualLogLine
@@ -612,7 +653,7 @@ namespace Cad3PLogBrowser
         // ── Options / Help ────────────────────────────────────────────────────
         private void settingsMenuItem_Click(object sender, EventArgs e)
         {
-            using (var settingsDialog = new SettingsForm())
+            using (var settingsDialog = new SettingsForm(this))
                 settingsDialog.ShowDialog(this);
         }
 

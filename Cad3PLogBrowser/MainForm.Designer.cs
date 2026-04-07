@@ -332,29 +332,41 @@
             this.hideAllMenuItem.Size = new System.Drawing.Size(167, 22);
             this.hideAllMenuItem.Text = "&HideAll";
             // 
-            // showTab1MenuItem
+            // showTab1MenuItem — Log
             // 
+            this.showTab1MenuItem.CheckOnClick = true;
+            this.showTab1MenuItem.Checked = true;
             this.showTab1MenuItem.Name = "showTab1MenuItem";
             this.showTab1MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab1MenuItem.Text = "Show Tab&1";
+            this.showTab1MenuItem.Text = "Log";
+            this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem
+            // showTab2MenuItem — Performance
             // 
+            this.showTab2MenuItem.CheckOnClick = true;
+            this.showTab2MenuItem.Checked = true;
             this.showTab2MenuItem.Name = "showTab2MenuItem";
             this.showTab2MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab2MenuItem.Text = "Show Tab&2";
+            this.showTab2MenuItem.Text = "Performance";
+            this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem
+            // showTab3MenuItem — Log Details
             // 
+            this.showTab3MenuItem.CheckOnClick = true;
+            this.showTab3MenuItem.Checked = true;
             this.showTab3MenuItem.Name = "showTab3MenuItem";
             this.showTab3MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab3MenuItem.Text = "Show Tab&3";
+            this.showTab3MenuItem.Text = "Log Details";
+            this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem
+            // showTab4MenuItem — Call Graph
             // 
+            this.showTab4MenuItem.CheckOnClick = true;
+            this.showTab4MenuItem.Checked = true;
             this.showTab4MenuItem.Name = "showTab4MenuItem";
             this.showTab4MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab4MenuItem.Text = "Show Tab&4";
+            this.showTab4MenuItem.Text = "Call Graph";
+            this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
             // 
             // helpMenuItem
             // 
@@ -374,6 +386,7 @@
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(162, 22);
             this.viewHelpMenuItem.Text = "View &Help";
+            this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
             // 
             // helpSeparatorBeforeAbout
             // 
@@ -486,7 +499,6 @@
             // mainTabControl
             // 
             this.mainTabControl.Controls.Add(this.logTab);
-            this.mainTabControl.Controls.Add(this.rawTab);
             this.mainTabControl.Controls.Add(this.performanceTab);
             this.mainTabControl.Controls.Add(this.logDetailTab);
             this.mainTabControl.Controls.Add(this.callGraphTab);
