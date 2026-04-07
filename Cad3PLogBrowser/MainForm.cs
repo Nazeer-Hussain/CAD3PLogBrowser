@@ -234,8 +234,44 @@ namespace Cad3PLogBrowser
         // ── Settings ──────────────────────────────────────────────────────────
         private void RestoreSettings()
         {
+            // Feature 1a/1b/1c: Restore window state
+            if (_appSettings.WindowLeft >= 0 && _appSettings.WindowTop >= 0)
+            {
+                // Restore saved position
+                this.StartPosition = FormStartPosition.Manual;
+                this.Left = _appSettings.WindowLeft;
+                this.Top = _appSettings.WindowTop;
+                this.Width = _appSettings.WindowWidth;
+                this.Height = _appSettings.WindowHeight;
+
+                // Validate position is on-screen
+                if (!IsPositionOnScreen(this.Left, this.Top))
+                {
+                    this.StartPosition = FormStartPosition.CenterScreen;
+                }
+
+                if (_appSettings.WindowState == "Maximized")
+                {
+                    this.WindowState = FormWindowState.Maximized;
+                }
+            }
+            else
+            {
+                // Feature 1c: No saved settings → maximize
+                this.WindowState = FormWindowState.Maximized;
+            }
+
+            // Feature 2a/2b: Default splitter to 30% if not set
             int dist = _settingsService.LoadSplitterDistance();
-            if (dist > 0) mainSplitContainer.SplitterDistance = dist;
+            if (dist > 0)
+            {
+                mainSplitContainer.SplitterDistance = dist;
+            }
+            else if (_appSettings.SplitterDistance > 0)
+            {
+                mainSplitContainer.SplitterDistance = _appSettings.SplitterDistance;
+            }
+            // else: will be set to 30% in MainForm_Load after layout is ready
 
             // Feature A3: Default to PTC_LOG_DIR environment variable if set
             string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
@@ -251,11 +287,37 @@ namespace Cad3PLogBrowser
             }
         }
 
+        private bool IsPositionOnScreen(int left, int top)
+        {
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                if (screen.WorkingArea.Contains(left, top))
+                    return true;
+            }
+            return false;
+        }
+
         private void SaveSettings()
         {
             _settingsService.SaveSplitterDistance(mainSplitContainer.SplitterDistance);
             if (!string.IsNullOrEmpty(_currentFilePath))
                 _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
+
+            // Feature 1a/1b: Save window state
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                _appSettings.WindowLeft = this.Left;
+                _appSettings.WindowTop = this.Top;
+                _appSettings.WindowWidth = this.Width;
+                _appSettings.WindowHeight = this.Height;
+                _appSettings.WindowState = "Normal";
+            }
+            else if (this.WindowState == FormWindowState.Maximized)
+            {
+                _appSettings.WindowState = "Maximized";
+                // Keep last normal position/size for when user un-maximizes
+            }
+
             _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
             _appSettings.Save();
         }
@@ -400,6 +462,35 @@ namespace Cad3PLogBrowser
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
+
+            // Feature 3a/3b: Auto-select topmost node after load
+            SelectDefaultTreeNode();
+        }
+
+        // Feature 3a/3b: Auto-select first node in active tree
+        private void SelectDefaultTreeNode()
+        {
+            // Feature 3a: Call Tree auto-select
+            if (CallTree.Visible && CallTree.Nodes.Count > 0)
+            {
+                var root = CallTree.Nodes[0]; // "Call Tree" root node
+                if (root.Nodes.Count > 0)
+                {
+                    CallTree.SelectedNode = root.Nodes[0]; // First call
+                    CallTree.SelectedNode.EnsureVisible();
+                }
+            }
+
+            // Feature 3b: API Tree auto-select
+            if (ApiTree.Visible && ApiTree.Nodes.Count > 0)
+            {
+                var root = ApiTree.Nodes[0]; // "API Tree" root node
+                if (root.Nodes.Count > 0)
+                {
+                    ApiTree.SelectedNode = root.Nodes[0]; // First API
+                    ApiTree.SelectedNode.EnsureVisible();
+                }
+            }
         }
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
@@ -1325,6 +1416,18 @@ namespace Cad3PLogBrowser
         {
             SetDocumentLoaded(false);
             LayoutTrees();
+
+            // Feature 2a: Set default splitter to 30% if not already set
+            if (mainSplitContainer.SplitterDistance == 285) // default/uninitialized value
+            {
+                int defaultSplitter = (int)(this.ClientSize.Width * 0.3);
+                if (defaultSplitter > mainSplitContainer.Panel1MinSize && 
+                    defaultSplitter < this.ClientSize.Width - mainSplitContainer.Panel2MinSize)
+                {
+                    mainSplitContainer.SplitterDistance = defaultSplitter;
+                }
+            }
+
             logTab.Text = "Log";
             performanceTab.Text = "Performance";
             logDetailTab.Text = "Log Details";

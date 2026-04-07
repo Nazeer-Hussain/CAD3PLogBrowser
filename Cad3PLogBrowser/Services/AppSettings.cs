@@ -30,6 +30,13 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
 
+        // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
+        public int     WindowWidth          { get; set; } = 1024;
+        public int     WindowHeight         { get; set; } = 768;
+        public int     WindowLeft           { get; set; } = -1;  // -1 = not set
+        public int     WindowTop            { get; set; } = -1;  // -1 = not set
+        public string  WindowState          { get; set; } = "Normal"; // "Normal" | "Maximized"
+
         // ── Performance guards ─────────────────────────────────────────────────
         public long    MaxFileSizeMbForListView { get; set; } = 50; // skip list if > N MB
         public long    SlowCallThresholdMs      { get; set; } = 1000;
