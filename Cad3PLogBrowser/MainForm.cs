@@ -1090,10 +1090,21 @@ namespace Cad3PLogBrowser
 
         private void helpMenuItem_Click(object sender, EventArgs e)
         {
+            ShowKeyboardShortcutsDialog();
+        }
+
+        // Feature G4: Comprehensive Keyboard Shortcuts Dialog
+        private void keyboardShortcutsMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowKeyboardShortcutsDialog();
+        }
+
+        private void ShowKeyboardShortcutsDialog()
+        {
             var helpForm = new Form
             {
-                Text = "Help — CAD3P Log Browser",
-                Size = new System.Drawing.Size(520, 440),
+                Text = "Keyboard Shortcuts — WWGM CAD 3P Log Browser",
+                Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false, MinimizeBox = false
@@ -1101,37 +1112,60 @@ namespace Cad3PLogBrowser
             var rtb = new RichTextBox
             {
                 Dock = DockStyle.Fill, ReadOnly = true,
-                Font = new System.Drawing.Font("Segoe UI", 9.5f),
+                Font = new System.Drawing.Font("Consolas", 9f),
+                BackColor = SystemColors.Window,
                 Text =
-                    "CAD3P Log Browser — Keyboard Shortcuts\r\n" +
-                    "═══════════════════════════════════════\r\n\r\n" +
-                    "Ctrl+O      Open log file\r\n" +
-                    "Ctrl+S      Save As (selection or all visible)\r\n" +
-                    "F5          Refresh (reload, keep scroll position)\r\n" +
-                    "Ctrl+R      Reload (reset to top)\r\n" +
-                    "Ctrl+C      Copy selected lines\r\n" +
-                    "Ctrl+F      Find\r\n" +
-                    "F3          Find Next\r\n" +
-                    "Ctrl+I      Filter\r\n" +
-                    "Ctrl+T      Toggle Call Tree\r\n" +
-                    "Ctrl+L      Toggle API List\r\n" +
-                    "Ctrl+H      Hide/Show Tabs\r\n" +
-                    "Ctrl+E      Settings\r\n" +
-                    "Alt+F4      Exit\r\n\r\n" +
-                    "Call Graph tab\r\n" +
-                    "══════════════\r\n" +
-                    "• Scroll wheel to zoom in/out.\r\n" +
-                    "• Click and drag to pan.\r\n" +
-                    "• Hover a node to highlight its edges.\r\n" +
-                    "• Edge thickness = call frequency.\r\n" +
-                    "• Reset View button restores default zoom/pan.\r\n\r\n" +
-                    "Tips\r\n" +
-                    "════\r\n" +
-                    "• Drag and drop a log file onto the window to open it.\r\n" +
-                    "• Click any tree node to jump to that line in the log.\r\n" +
-                    "• Select lines then Save As to save a trimmed log.\r\n" +
-                    "• ERROR/FATAL lines are highlighted red, WARN in amber.\r\n" +
-                    "• Virtual mode: the log list handles 500k+ lines smoothly.\r\n"
+                    "═══════════════════════════════════════════════════════════════════\r\n" +
+                    "       WWGM CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                    "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                    "FILE MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+O              Open log file\r\n" +
+                    "Ctrl+S              Save As (selection or all visible lines)\r\n" +
+                    "F5                  Refresh (reload, keep scroll position)\r\n" +
+                    "Ctrl+R              Reload File from Disk (reset to top)\r\n" +
+                    "Alt+F4              Exit\r\n\r\n" +
+                    "EDIT MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+C              Copy selected lines\r\n" +
+                    "Ctrl+F              Find / Search\r\n" +
+                    "F3                  Find Next\r\n" +
+                    "Ctrl+I              Filter log entries\r\n" +
+                    "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
+                    "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
+                    "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n\r\n" +
+                    "VIEW MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+T              Toggle Call Tree view\r\n" +
+                    "Ctrl+L              Toggle API List view\r\n" +
+                    "Ctrl+H              Hide/Show Tab panels\r\n\r\n" +
+                    "OPTIONS MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+Shift+S        Settings\r\n\r\n" +
+                    "HELP MENU\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "F1                  View Help\r\n" +
+                    "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
+                    "CALL GRAPH TAB\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "  •  Scroll wheel to zoom in/out\r\n" +
+                    "  •  Click and drag to pan\r\n" +
+                    "  •  Hover a node to highlight its edges\r\n" +
+                    "  •  Edge thickness = call frequency\r\n" +
+                    "  •  Reset View button restores default zoom/pan\r\n\r\n" +
+                    "TIPS & TRICKS\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "  •  Drag and drop a log file onto the window to open it\r\n" +
+                    "  •  Click any tree node to jump to that line in the log\r\n" +
+                    "  •  Select lines then Save As to save a trimmed log\r\n" +
+                    "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
+                    "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
+                    "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
+                    "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
+                    "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
+                    "  •  Recent Files: Last 10 opened files in File menu\r\n" +
+                    "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
+                    "═══════════════════════════════════════════════════════════════════\r\n"
             };
             helpForm.Controls.Add(rtb);
             helpForm.ShowDialog(this);

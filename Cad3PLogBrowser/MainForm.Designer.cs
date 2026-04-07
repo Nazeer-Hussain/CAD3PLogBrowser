@@ -64,6 +64,7 @@
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpSeparatorBeforeAbout = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
@@ -413,6 +414,7 @@
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
+            this.keyboardShortcutsMenuItem,
             this.helpSeparatorBeforeAbout,
             this.aboutMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
@@ -425,9 +427,17 @@
             this.viewHelpMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.help;
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.viewHelpMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.viewHelpMenuItem.Size = new System.Drawing.Size(220, 22);
             this.viewHelpMenuItem.Text = "View &Help";
             this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
+            // 
+            // keyboardShortcutsMenuItem
+            // 
+            this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
+            this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
+            this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
+            this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
             // 
             // helpSeparatorBeforeAbout
             // 
@@ -1030,6 +1040,7 @@
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparatorAfterTree;
         private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
+        private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
