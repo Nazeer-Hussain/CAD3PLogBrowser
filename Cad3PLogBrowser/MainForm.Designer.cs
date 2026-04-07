@@ -106,6 +106,10 @@
             this.logContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeIconList = new System.Windows.Forms.ImageList(this.components);
+            this.treeIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
+            this.treeIconList.ImageSize = new System.Drawing.Size(16, 16);
+            this.treeIconList.TransparentColor = System.Drawing.Color.Transparent;
             this.mainMenuStrip.SuspendLayout();
             this.mainStatusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
@@ -487,6 +491,7 @@
             // 
             // CallTree
             // 
+            this.CallTree.ImageList = this.treeIconList;
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.CallTree.Location = new System.Drawing.Point(-1, 333);
             this.CallTree.Name = "CallTree";
@@ -582,9 +587,10 @@
             this.perfColMin = new System.Windows.Forms.ColumnHeader();
             this.perfColMax = new System.Windows.Forms.ColumnHeader();
             this.perfColSource = new System.Windows.Forms.ColumnHeader();
+            this.perfColSelf = new System.Windows.Forms.ColumnHeader();
             this.performanceView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
                 this.perfColName, this.perfColCalls, this.perfColTotal,
-                this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSource });
+                this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSelf, this.perfColSource });
             this.performanceView.FullRowSelect = true;
             this.performanceView.GridLines = true;
             this.perfColName.Text = "API Name";
@@ -601,6 +607,8 @@
             this.perfColMax.Width = 80;
             this.perfColSource.Text = "Source File";
             this.perfColSource.Width = 200;
+            this.perfColSelf.Text = "Self (ms)";
+            this.perfColSelf.Width = 80;
             // 
             // logDetailTab — Log Details
             // 
@@ -928,7 +936,9 @@
         private System.Windows.Forms.ColumnHeader perfColAvg;
         private System.Windows.Forms.ColumnHeader perfColMin;
         private System.Windows.Forms.ColumnHeader perfColMax;
+        private System.Windows.Forms.ColumnHeader perfColSelf;
         private System.Windows.Forms.ColumnHeader perfColSource;
+        private System.Windows.Forms.ImageList treeIconList;
         private System.Windows.Forms.RichTextBox logDetailBox;
         private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
         private System.Windows.Forms.ToolStripStatusLabel StatusLineCount;
