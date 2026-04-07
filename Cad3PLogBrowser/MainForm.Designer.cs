@@ -94,6 +94,11 @@
             this.FindButton = new System.Windows.Forms.ToolStripButton();
             this.FilterButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
+            this.prevErrorButton = new System.Windows.Forms.ToolStripButton();
+            this.nextErrorButton = new System.Windows.Forms.ToolStripButton();
+            this.prevWarningButton = new System.Windows.Forms.ToolStripButton();
+            this.nextWarningButton = new System.Windows.Forms.ToolStripButton();
+            this.separatorAfterNavigation = new System.Windows.Forms.ToolStripSeparator();
             this.SettingsButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterSettings = new System.Windows.Forms.ToolStripSeparator();
             this.CallTreeButton = new System.Windows.Forms.ToolStripButton();
@@ -709,6 +714,11 @@
             this.FindButton,
             this.FilterButton,
             this.separatorAfterFilter,
+            this.prevErrorButton,
+            this.nextErrorButton,
+            this.prevWarningButton,
+            this.nextWarningButton,
+            this.separatorAfterNavigation,
             this.SettingsButton,
             this.separatorAfterSettings,
             this.CallTreeButton,
@@ -793,6 +803,47 @@
             // 
             this.separatorAfterFilter.Name = "separatorAfterFilter";
             this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
+            // 
+            // prevErrorButton — Feature B10
+            // 
+            this.prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.prevErrorButton.Name = "prevErrorButton";
+            this.prevErrorButton.Size = new System.Drawing.Size(23, 22);
+            this.prevErrorButton.Text = "◄E";
+            this.prevErrorButton.ToolTipText = "Previous Error (Shift+F8)";
+            this.prevErrorButton.Click += new System.EventHandler(this.prevErrorButton_Click);
+            // 
+            // nextErrorButton — Feature B10
+            // 
+            this.nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.nextErrorButton.Name = "nextErrorButton";
+            this.nextErrorButton.Size = new System.Drawing.Size(23, 22);
+            this.nextErrorButton.Text = "E►";
+            this.nextErrorButton.ToolTipText = "Next Error (F8)";
+            this.nextErrorButton.Click += new System.EventHandler(this.nextErrorButton_Click);
+            // 
+            // prevWarningButton — Feature B10
+            // 
+            this.prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.prevWarningButton.Name = "prevWarningButton";
+            this.prevWarningButton.Size = new System.Drawing.Size(23, 22);
+            this.prevWarningButton.Text = "◄W";
+            this.prevWarningButton.ToolTipText = "Previous Warning (Ctrl+Shift+F8)";
+            this.prevWarningButton.Click += new System.EventHandler(this.prevWarningButton_Click);
+            // 
+            // nextWarningButton — Feature B10
+            // 
+            this.nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.nextWarningButton.Name = "nextWarningButton";
+            this.nextWarningButton.Size = new System.Drawing.Size(23, 22);
+            this.nextWarningButton.Text = "W►";
+            this.nextWarningButton.ToolTipText = "Next Warning (Ctrl+F8)";
+            this.nextWarningButton.Click += new System.EventHandler(this.nextWarningButton_Click);
+            // 
+            // separatorAfterNavigation
+            // 
+            this.separatorAfterNavigation.Name = "separatorAfterNavigation";
+            this.separatorAfterNavigation.Size = new System.Drawing.Size(6, 25);
             // 
             // SettingsButton
             // 
@@ -1010,6 +1061,11 @@
         private System.Windows.Forms.ToolStripButton CopyButton;
         private System.Windows.Forms.ToolStripButton FindButton;
         private System.Windows.Forms.ToolStripSeparator separatorAfterFilter;
+        private System.Windows.Forms.ToolStripButton prevErrorButton;
+        private System.Windows.Forms.ToolStripButton nextErrorButton;
+        private System.Windows.Forms.ToolStripButton prevWarningButton;
+        private System.Windows.Forms.ToolStripButton nextWarningButton;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterNavigation;
         private System.Windows.Forms.ToolStripButton SettingsButton;
         private System.Windows.Forms.ToolStripMenuItem filterMenuItem;
         private System.Windows.Forms.ToolStripButton FilterButton;

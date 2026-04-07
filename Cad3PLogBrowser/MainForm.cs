@@ -26,6 +26,12 @@ namespace Cad3PLogBrowser
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
 
+        // Feature B10: Error/Warning navigation
+        private List<int>         _errorLines       = new List<int>();
+        private List<int>         _warningLines     = new List<int>();
+        private int               _currentErrorIndex   = -1;
+        private int               _currentWarningIndex = -1;
+
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
         public enum TabId { Log, Performance, LogDetails, CallGraph }
 
@@ -266,8 +272,17 @@ namespace Cad3PLogBrowser
             }
 
             // Feature G5: Enhanced status bar with file info
-            StatusFileName.Text = string.Format("{0}  |  {1:N0} lines",
+            // Feature B10: Include error/warning counts
+            string fileInfo = string.Format("{0}  |  {1:N0} lines", 
                 Path.GetFileName(_currentFilePath), _allLines.Count);
+
+            if (_errorLines.Count > 0 || _warningLines.Count > 0)
+            {
+                fileInfo += string.Format("  |  {0} errors, {1} warnings", 
+                    _errorLines.Count, _warningLines.Count);
+            }
+
+            StatusFileName.Text = fileInfo;
 
             int total   = _allLines.Count;
             int visible = _virtualLines.Count;
@@ -773,6 +788,13 @@ namespace Cad3PLogBrowser
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
+
+            // Feature B10: Index errors and warnings
+            _errorLines.Clear();
+            _warningLines.Clear();
+            _currentErrorIndex = -1;
+            _currentWarningIndex = -1;
+
             for (int i = 0; i < lines.Count; i++)
             {
                 _virtualLines.Add(new VirtualLogLine
@@ -781,6 +803,18 @@ namespace Cad3PLogBrowser
                     Text       = lines[i],
                     BackColour = GetLineColour(lines[i])
                 });
+
+                // Feature B10: Index error and warning lines
+                if (!string.IsNullOrEmpty(lines[i]))
+                {
+                    int first = lines[i].IndexOf(": ", StringComparison.Ordinal);
+                    if (first >= 0 && first + 3 < lines[i].Length)
+                    {
+                        char level = lines[i][first + 2];
+                        if (level == 'E') _errorLines.Add(i);
+                        else if (level == 'W') _warningLines.Add(i);
+                    }
+                }
             }
             logListView.VirtualListSize = _virtualLines.Count;
             logListView.Invalidate();
@@ -1046,6 +1080,94 @@ namespace Cad3PLogBrowser
         private void jumpToMatchingMenuItem_Click(object sender, EventArgs e) =>
             JumpToMatchingPair();
 
+        // ── Feature B10: Error/Warning Navigation ─────────────────────────────
+        public void NavigateToNextError()
+        {
+            if (_errorLines.Count == 0)
+            {
+                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentErrorIndex = (_currentErrorIndex + 1) % _errorLines.Count;
+            int lineIdx = _errorLines[_currentErrorIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToPreviousError()
+        {
+            if (_errorLines.Count == 0)
+            {
+                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentErrorIndex--;
+            if (_currentErrorIndex < 0) _currentErrorIndex = _errorLines.Count - 1;
+            int lineIdx = _errorLines[_currentErrorIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToNextWarning()
+        {
+            if (_warningLines.Count == 0)
+            {
+                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentWarningIndex = (_currentWarningIndex + 1) % _warningLines.Count;
+            int lineIdx = _warningLines[_currentWarningIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        public void NavigateToPreviousWarning()
+        {
+            if (_warningLines.Count == 0)
+            {
+                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _currentWarningIndex--;
+            if (_currentWarningIndex < 0) _currentWarningIndex = _warningLines.Count - 1;
+            int lineIdx = _warningLines[_currentWarningIndex];
+            logListView.EnsureVisible(lineIdx);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(lineIdx);
+            logListView.Focus();
+            ShowLogDetail(lineIdx);
+        }
+
+        // Feature B10: Toolbar button click handlers
+        private void prevErrorButton_Click(object sender, EventArgs e) =>
+            NavigateToPreviousError();
+
+        private void nextErrorButton_Click(object sender, EventArgs e) =>
+            NavigateToNextError();
+
+        private void prevWarningButton_Click(object sender, EventArgs e) =>
+            NavigateToPreviousWarning();
+
+        private void nextWarningButton_Click(object sender, EventArgs e) =>
+            NavigateToNextWarning();
+
         public void ApplyFilter(string filterText, bool matchCase)
         {
             _activeFilterText = filterText; // Feature G5: Track active filter for status bar
@@ -1134,6 +1256,12 @@ namespace Cad3PLogBrowser
                     "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
                     "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
                     "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n\r\n" +
+                    "NAVIGATION (Errors & Warnings)\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "F8                  Next Error\r\n" +
+                    "Shift+F8            Previous Error\r\n" +
+                    "Ctrl+F8             Next Warning\r\n" +
+                    "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
                     "VIEW MENU\r\n" +
                     "─────────────────────────────────────────────────────────────────\r\n" +
                     "Ctrl+T              Toggle Call Tree view\r\n" +
@@ -1172,6 +1300,27 @@ namespace Cad3PLogBrowser
         }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
+        // Feature B10: Keyboard shortcuts for error/warning navigation
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            switch (keyData)
+            {
+                case Keys.F8:                                    // Next Error
+                    NavigateToNextError();
+                    return true;
+                case Keys.Shift | Keys.F8:                       // Previous Error
+                    NavigateToPreviousError();
+                    return true;
+                case Keys.Control | Keys.F8:                     // Next Warning
+                    NavigateToNextWarning();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
+                    NavigateToPreviousWarning();
+                    return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         private void MainForm_Load(object sender, EventArgs e)
         {
             SetDocumentLoaded(false);
