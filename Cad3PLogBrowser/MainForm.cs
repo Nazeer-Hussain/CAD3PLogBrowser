@@ -67,6 +67,121 @@ namespace Cad3PLogBrowser
             }
         }
 
+        private void SetTabVisible(TabPage tab, bool visible)
+        {
+            if (tab == null) return;
+
+            bool currentlyVisible = mainTabControl.TabPages.Contains(tab);
+            if (visible == currentlyVisible) return;
+
+            if (visible)
+            {
+                mainTabControl.TabPages.Add(tab);
+                return;
+            }
+
+            if (mainTabControl.TabPages.Count <= 1)
+            {
+                if (ReferenceEquals(tab, logTab)) showTab1MenuItem.Checked = true;
+                if (ReferenceEquals(tab, performanceTab)) showTab2MenuItem.Checked = true;
+                if (ReferenceEquals(tab, logDetailTab)) showTab3MenuItem.Checked = true;
+                if (ReferenceEquals(tab, callGraphTab)) showTab4MenuItem.Checked = true;
+                return;
+            }
+
+            mainTabControl.TabPages.Remove(tab);
+        }
+
+        private void showTab1MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logTab, showTab1MenuItem.Checked);
+
+        private void showTab2MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(performanceTab, showTab2MenuItem.Checked);
+
+        private void showTab3MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logDetailTab, showTab3MenuItem.Checked);
+
+        private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(callGraphTab, showTab4MenuItem.Checked);
+
+        private ToolStripMenuItem _recentFilesMenuItem;
+        private ToolStripSeparator _recentFilesSeparator;
+
+        private void BuildMruMenu()
+        {
+            // Remove existing Recent Files menu if present
+            if (_recentFilesMenuItem != null)
+            {
+                fileMenuItem.DropDownItems.Remove(_recentFilesMenuItem);
+                fileMenuItem.DropDownItems.Remove(_recentFilesSeparator);
+            }
+
+            // Only show if there are recent files
+            if (_appSettings.RecentFiles.Count == 0) return;
+
+            // Create separator and Recent Files submenu
+            _recentFilesSeparator = new ToolStripSeparator();
+            _recentFilesMenuItem = new ToolStripMenuItem("Recent &Files");
+
+            // Add each recent file
+            for (int i = 0; i < _appSettings.RecentFiles.Count && i < 10; i++)
+            {
+                string filePath = _appSettings.RecentFiles[i];
+                string fileName = Path.GetFileName(filePath);
+                string menuText = string.Format("{0}. {1}", i + 1, fileName);
+
+                var menuItem = new ToolStripMenuItem(menuText)
+                {
+                    Tag = filePath,
+                    ToolTipText = filePath
+                };
+                menuItem.Click += RecentFileMenuItem_Click;
+                _recentFilesMenuItem.DropDownItems.Add(menuItem);
+            }
+
+            // Add Clear Recent Files option
+            if (_recentFilesMenuItem.DropDownItems.Count > 0)
+            {
+                _recentFilesMenuItem.DropDownItems.Add(new ToolStripSeparator());
+                var clearItem = new ToolStripMenuItem("&Clear Recent Files");
+                clearItem.Click += (s, e) =>
+                {
+                    _appSettings.RecentFiles.Clear();
+                    _appSettings.Save();
+                    BuildMruMenu();
+                };
+                _recentFilesMenuItem.DropDownItems.Add(clearItem);
+            }
+
+            // Insert before the Exit menu item
+            int exitIndex = fileMenuItem.DropDownItems.IndexOf(fileSeparatorBeforeExit);
+            if (exitIndex >= 0)
+            {
+                fileMenuItem.DropDownItems.Insert(exitIndex, _recentFilesSeparator);
+                fileMenuItem.DropDownItems.Insert(exitIndex + 1, _recentFilesMenuItem);
+            }
+        }
+
+        private void RecentFileMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is string filePath)
+            {
+                if (File.Exists(filePath))
+                {
+                    LoadFileAsync(filePath);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        string.Format("File not found:\n{0}\n\nRemoving from recent files list.", filePath),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _appSettings.RecentFiles.Remove(filePath);
+                    _appSettings.Save();
+                    BuildMruMenu();
+                }
+            }
+        }
+
         // ── #7 Virtual mode backing store ─────────────────────────────────────
         // Each VirtualLogLine holds exactly what the ListView needs for one row.
         private struct VirtualLogLine
@@ -116,9 +231,18 @@ namespace Cad3PLogBrowser
             int dist = _settingsService.LoadSplitterDistance();
             if (dist > 0) mainSplitContainer.SplitterDistance = dist;
 
-            string lastDir = _settingsService.LoadLastDirectory();
-            if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
-                openLogFileDialog.InitialDirectory = lastDir;
+            // Feature A3: Default to PTC_LOG_DIR environment variable if set
+            string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+            if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
+            {
+                openLogFileDialog.InitialDirectory = ptcLogDir;
+            }
+            else
+            {
+                string lastDir = _settingsService.LoadLastDirectory();
+                if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
+                    openLogFileDialog.InitialDirectory = lastDir;
+            }
         }
 
         private void SaveSettings()
@@ -131,6 +255,8 @@ namespace Cad3PLogBrowser
         }
 
         // ── Status bar ────────────────────────────────────────────────────────
+        private string _activeFilterText = "";
+
         private void UpdateStatusBar()
         {
             if (string.IsNullOrEmpty(_currentFilePath))
@@ -138,24 +264,51 @@ namespace Cad3PLogBrowser
                 StatusFileName.Text = StatusLineCount.Text = StatusSelection.Text = "";
                 return;
             }
-            StatusFileName.Text = Path.GetFileName(_currentFilePath);
+
+            // Feature G5: Enhanced status bar with file info
+            StatusFileName.Text = string.Format("{0}  |  {1:N0} lines",
+                Path.GetFileName(_currentFilePath), _allLines.Count);
+
             int total   = _allLines.Count;
             int visible = _virtualLines.Count;
-            StatusLineCount.Text = total == visible
-                ? string.Format("Lines: {0}", total)
-                : string.Format("Lines: {0} / {1}", visible, total);
+
+            // Show filter status
+            if (total != visible && !string.IsNullOrEmpty(_activeFilterText))
+            {
+                StatusLineCount.Text = string.Format("Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines",
+                    _activeFilterText, visible, total);
+            }
+            else if (total != visible)
+            {
+                StatusLineCount.Text = string.Format("Showing {0:N0} / {1:N0} lines", visible, total);
+            }
+            else
+            {
+                StatusLineCount.Text = "";
+            }
         }
 
         private void UpdateSelectionStatus()
         {
             if (logListView.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
             int idx = logListView.SelectedIndices[0];
-            StatusSelection.Text = string.Format("Ln {0}", _virtualLines[idx].LineNumber);
+
+            // Feature G5: Show selected line info with more detail
+            string lineNum = _virtualLines[idx].LineNumber;
+            string preview = _virtualLines[idx].Text;
+            if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
+
+            StatusSelection.Text = string.Format("Line {0}: {1}", lineNum, preview);
         }
 
         // ── Tree view init ────────────────────────────────────────────────────
         private void InitTreeViews()
         {
+            // Feature C3: Build icon list and assign to both trees
+            BuildTreeIconList();
+            ApiTree.ImageList = treeIconList;
+            CallTree.ImageList = treeIconList;
+
             ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
             CallTree.ShowLines = CallTree.ShowPlusMinus = true;
@@ -181,12 +334,14 @@ namespace Cad3PLogBrowser
             var imgList = treeIconList;
             imgList.Images.Clear();
 
-            // Icon 0: green checkmark
+            // Feature C3: Flat-style icons for checkmark and cross
+            // Icon 0: green checkmark (flat style)
             var checkBmp = new System.Drawing.Bitmap(16, 16);
             using (var g = System.Drawing.Graphics.FromImage(checkBmp))
             {
                 g.Clear(System.Drawing.Color.Transparent);
-                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(0, 160, 80), 2.5f)
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(34, 139, 34), 2.5f)
                     { StartCap = System.Drawing.Drawing2D.LineCap.Round,
                       EndCap   = System.Drawing.Drawing2D.LineCap.Round })
                 {
@@ -199,12 +354,13 @@ namespace Cad3PLogBrowser
             }
             imgList.Images.Add(checkBmp);
 
-            // Icon 1: red cross
+            // Icon 1: red cross (flat style)
             var crossBmp = new System.Drawing.Bitmap(16, 16);
             using (var g = System.Drawing.Graphics.FromImage(crossBmp))
             {
                 g.Clear(System.Drawing.Color.Transparent);
-                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(200, 40, 40), 2.5f)
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(220, 20, 60), 2.5f)
                     { StartCap = System.Drawing.Drawing2D.LineCap.Round,
                       EndCap   = System.Drawing.Drawing2D.LineCap.Round })
                 {
@@ -244,7 +400,9 @@ namespace Cad3PLogBrowser
             {
                 // Check if all occurrences have matching ENTER/EXIT pairs
                 bool allMatched = AreAllApiCallsMatched(node.ApiName);
-                var apiRoot = new TreeNode(node.ApiName)
+                // Feature C3: Show call count in API tree root node
+                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, node.LineNumbers.Count);
+                var apiRoot = new TreeNode(apiLabel)
                 {
                     Tag             = node.FirstLine,
                     ImageIndex      = allMatched ? 0 : 1,
@@ -312,18 +470,17 @@ namespace Cad3PLogBrowser
         {
             bool matched = csNode.ExitLineNumber > 0;
 
+            // Feature C3: Duration overlay with color coding
             string label = csNode.Label;
             if (csNode.DurationMs > 0)
                 label = string.Format("{0}  [{1} ms]", label, csNode.DurationMs);
             else if (matched)
                 label = string.Format("{0}  [<1 ms]", label);
+            else
+                label = string.Format("{0}  [? ms]", label);
 
             string tooltip = string.Format(
-                "API: {0}
-Source: {1}
-ENTER line: {2}
-EXIT line: {3}
-Duration: {4} ms",
+                "API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms",
                 csNode.Label,
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
@@ -339,6 +496,20 @@ Duration: {4} ms",
                 ImageIndex         = imgIdx,
                 SelectedImageIndex = imgIdx
             };
+
+            // Feature C3: Color coding by duration (green < 100ms, amber 100-500ms, red > 500ms)
+            if (csNode.DurationMs > 0)
+            {
+                const int FAST_MS = 100;
+                const int SLOW_MS = 500;
+
+                if (csNode.DurationMs < FAST_MS)
+                    tn.ForeColor = Color.FromArgb(0, 128, 0);      // Green
+                else if (csNode.DurationMs < SLOW_MS)
+                    tn.ForeColor = Color.FromArgb(204, 102, 0);    // Amber
+                else
+                    tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
+            }
 
             foreach (var child in csNode.Children)
                 tn.Nodes.Add(BuildTreeNode(child));
@@ -497,7 +668,12 @@ Duration: {4} ms",
         {
             int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
-            logListView.EnsureVisible(idx);
+
+            // Feature H1: Show 10 previous lines by scrolling appropriately
+            int scrollToIdx = Math.Max(0, idx - 10);
+            logListView.EnsureVisible(scrollToIdx);
+            logListView.EnsureVisible(idx); // Make sure selected line is visible
+
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
             logListView.Focus();
@@ -860,10 +1036,28 @@ Duration: {4} ms",
             foreach (TreeNode n in ApiTree.Nodes)  n.Expand();
         }
 
+        // Feature C1: Menu event handlers
+        private void expandAllMenuItem_Click(object sender, EventArgs e) =>
+            ExpandAllTrees();
+
+        private void collapseAllMenuItem_Click(object sender, EventArgs e) =>
+            CollapseAllTrees();
+
+        private void jumpToMatchingMenuItem_Click(object sender, EventArgs e) =>
+            JumpToMatchingPair();
+
         public void ApplyFilter(string filterText, bool matchCase)
         {
+            _activeFilterText = filterText; // Feature G5: Track active filter for status bar
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
             PopulateVirtualListViewFiltered(filtered);
+        }
+
+        // Feature B3: Clear filter and show all lines
+        public void ClearFilter()
+        {
+            _activeFilterText = "";
+            PopulateVirtualListView(_allLines);
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)

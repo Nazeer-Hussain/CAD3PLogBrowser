@@ -26,7 +26,7 @@ namespace Cad3PLogBrowser
             this.lblMaxFile         = new System.Windows.Forms.Label();
             this.nudMaxFileMb       = new System.Windows.Forms.NumericUpDown();
             this.OkButton           = new System.Windows.Forms.Button();
-            this.CancelButton       = new System.Windows.Forms.Button();
+            this.CancelBtn          = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.nudSlowCallMs)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudMaxFileMb)).BeginInit();
             this.grpTabs.SuspendLayout();
@@ -92,17 +92,18 @@ namespace Cad3PLogBrowser
             // Buttons
             this.OkButton.Location = new System.Drawing.Point(248, 318); this.OkButton.Size = new System.Drawing.Size(75, 30);
             this.OkButton.Text = "&OK"; this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
-            this.CancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CancelButton.Location = new System.Drawing.Point(337, 318); this.CancelButton.Size = new System.Drawing.Size(75, 30);
-            this.CancelButton.Text = "&Cancel"; this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
+            this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.CancelBtn.Location = new System.Drawing.Point(337, 318); this.CancelBtn.Size = new System.Drawing.Size(75, 30);
+            this.CancelBtn.Text = "&Cancel"; this.CancelBtn.Click += new System.EventHandler(this.CancelButton_Click);
             // Form
             this.AcceptButton = this.OkButton;
+            this.CancelButton = this.CancelBtn;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(424, 360);
             this.Controls.Add(this.grpTabs); this.Controls.Add(this.grpGrok);
             this.Controls.Add(this.grpAppearance); this.Controls.Add(this.grpPerf);
-            this.Controls.Add(this.OkButton); this.Controls.Add(this.CancelButton);
+            this.Controls.Add(this.OkButton); this.Controls.Add(this.CancelBtn);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false; this.MinimizeBox = false;
             this.Name = "SettingsForm"; this.ShowInTaskbar = false;
@@ -124,6 +125,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ComboBox cmbHighlightColor;
         private System.Windows.Forms.Panel panelColorPreview;
         private System.Windows.Forms.NumericUpDown nudSlowCallMs, nudMaxFileMb;
-        private System.Windows.Forms.Button OkButton, CancelButton;
+        private System.Windows.Forms.Button OkButton, CancelBtn;
     }
 }
