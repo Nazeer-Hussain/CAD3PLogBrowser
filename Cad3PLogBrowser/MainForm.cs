@@ -539,10 +539,9 @@ namespace Cad3PLogBrowser
             }
 
             ApiTree.Nodes.Add(root);
+            // Issue Fix: Start collapsed (only root expanded)
             root.Expand();
-            // Expand first level of API nodes
-            foreach (TreeNode child in root.Nodes)
-                child.Expand();
+            // Don't expand first level - let users expand as needed
 
             ApiTree.EndUpdate();
         }
@@ -573,10 +572,9 @@ namespace Cad3PLogBrowser
                 rootNode.Nodes.Add(BuildTreeNode(root));
 
             CallTree.Nodes.Add(rootNode);
+            // Issue Fix: Start collapsed (only root expanded)
             rootNode.Expand();
-            // Expand first level of call nodes
-            foreach (TreeNode child in rootNode.Nodes)
-                child.Expand();
+            // Don't expand first level - let users expand as needed
 
             CallTree.EndUpdate();
         }
@@ -935,6 +933,10 @@ namespace Cad3PLogBrowser
             }
             logListView.VirtualListSize = _virtualLines.Count;
             logListView.Invalidate();
+
+            // Issue Fix: Auto-resize columns to fit content
+            AutoResizeLogListColumns();
+
             UpdateStatusBar();
         }
 
@@ -951,6 +953,22 @@ namespace Cad3PLogBrowser
                 if (level == 'W') return ColourWarn;
             }
             return ColourInfo;
+        }
+
+        // Issue Fix: Auto-resize ListView columns to fit content
+        private void AutoResizeLogListColumns()
+        {
+            if (logListView.Columns.Count < 2) return;
+
+            // Line number column: auto-resize to content
+            logListView.Columns[0].Width = 80; // Fixed width for line numbers
+
+            // Log text column: fill remaining space
+            int remainingWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - 4;
+            if (remainingWidth > 0)
+            {
+                logListView.Columns[1].Width = remainingWidth;
+            }
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -1467,6 +1485,13 @@ namespace Cad3PLogBrowser
             }
             catch { /* Non-fatal */ }
         }
+
+        // Issue Fix: Auto-resize ListView columns when form resizes
+        private void logListView_Resize(object sender, EventArgs e)
+        {
+            AutoResizeLogListColumns();
+        }
+
         private void MainForm_ResizeBegin(object sender, EventArgs e) { }
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
         private void MainForm_Resize(object sender, EventArgs e) { }

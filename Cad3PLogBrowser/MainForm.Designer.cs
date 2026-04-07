@@ -597,15 +597,17 @@
             this.logListView.View = System.Windows.Forms.View.Details;
             this.logListView.SelectedIndexChanged += new System.EventHandler(this.listView1_SelectedIndexChanged);
             this.logListView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseUp_1);
+            this.logListView.Resize += new System.EventHandler(this.logListView_Resize);
             // 
             // colLineNumber
             // 
-            this.colLineNumber.Text = "";
-            this.colLineNumber.Width = 645;
+            this.colLineNumber.Text = "Line #";
+            this.colLineNumber.Width = 80;
             // 
             // colLogText
             // 
-            this.colLogText.Text = "";
+            this.colLogText.Text = "Log Text";
+            this.colLogText.Width = 600;
             // 
             // rawTab
             // 

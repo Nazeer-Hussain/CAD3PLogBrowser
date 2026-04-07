@@ -51,16 +51,60 @@ namespace Cad3PLogBrowser
         public void LoadGraph(CallGraph graph)
         {
             _graph     = graph;
-            _zoom      = 1.0f;
-            _panOffset = new PointF(0, 0);
             LayoutNodes();
+
+            // Issue Fix: Auto-fit zoom to show all nodes
+            AutoFitZoom();
+
+            _panOffset = new PointF(0, 0);
             Invalidate();
+        }
+
+        // Issue Fix: Calculate optimal zoom to fit all nodes on screen
+        private void AutoFitZoom()
+        {
+            if (_graph == null || _graph.Nodes.Count == 0)
+            {
+                _zoom = 1.0f;
+                return;
+            }
+
+            // Find bounding box of all nodes
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            foreach (var node in _graph.Nodes.Values)
+            {
+                minX = Math.Min(minX, node.X - NodeWidth / 2f);
+                maxX = Math.Max(maxX, node.X + NodeWidth / 2f);
+                minY = Math.Min(minY, node.Y - NodeHeight / 2f);
+                maxY = Math.Max(maxY, node.Y + NodeHeight / 2f);
+            }
+
+            float graphWidth = maxX - minX;
+            float graphHeight = maxY - minY;
+
+            if (graphWidth < 1f || graphHeight < 1f)
+            {
+                _zoom = 1.0f;
+                return;
+            }
+
+            // Calculate zoom to fit with some padding
+            float panelWidth = this.Width - 40;  // 20px padding on each side
+            float panelHeight = this.Height - 60; // Extra padding for legend
+
+            float zoomX = panelWidth / graphWidth;
+            float zoomY = panelHeight / graphHeight;
+
+            _zoom = Math.Min(zoomX, zoomY);
+            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, _zoom * 0.9f)); // 90% to add margin
         }
 
         public void ResetView()
         {
-            _zoom      = 1.0f;
             _panOffset = new PointF(0, 0);
+            AutoFitZoom();
             Invalidate();
         }
 
