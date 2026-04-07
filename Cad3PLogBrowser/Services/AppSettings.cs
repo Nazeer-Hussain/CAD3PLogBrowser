@@ -10,8 +10,8 @@ namespace Cad3PLogBrowser.Services
 {
     /// <summary>
     /// Typed application settings stored as JSON in the user's AppData folder.
-    /// All config is portable — no registry writes (except splitter position kept for
-    /// backwards compat via SettingsService).
+    /// All config is portable — no registry writes.
+    /// Location: %AppData%\CAD3PLogBrowser\settings.json
     /// </summary>
     public class AppSettings
     {
