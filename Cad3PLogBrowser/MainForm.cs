@@ -299,27 +299,36 @@ namespace Cad3PLogBrowser
 
         private void SaveSettings()
         {
-            _settingsService.SaveSplitterDistance(mainSplitContainer.SplitterDistance);
-            if (!string.IsNullOrEmpty(_currentFilePath))
-                _settingsService.SaveLastDirectory(Path.GetDirectoryName(_currentFilePath));
-
-            // Feature 1a/1b: Save window state
-            if (this.WindowState == FormWindowState.Normal)
+            try
             {
-                _appSettings.WindowLeft = this.Left;
-                _appSettings.WindowTop = this.Top;
-                _appSettings.WindowWidth = this.Width;
-                _appSettings.WindowHeight = this.Height;
-                _appSettings.WindowState = "Normal";
-            }
-            else if (this.WindowState == FormWindowState.Maximized)
-            {
-                _appSettings.WindowState = "Maximized";
-                // Keep last normal position/size for when user un-maximizes
-            }
+                // Update all settings in AppSettings object first (no I/O)
+                _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
 
-            _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
-            _appSettings.Save();
+                if (!string.IsNullOrEmpty(_currentFilePath))
+                    _appSettings.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+
+                // Feature 1a/1b: Save window state
+                if (this.WindowState == FormWindowState.Normal)
+                {
+                    _appSettings.WindowLeft = this.Left;
+                    _appSettings.WindowTop = this.Top;
+                    _appSettings.WindowWidth = this.Width;
+                    _appSettings.WindowHeight = this.Height;
+                    _appSettings.WindowState = "Normal";
+                }
+                else if (this.WindowState == FormWindowState.Maximized)
+                {
+                    _appSettings.WindowState = "Maximized";
+                    // Keep last normal position/size for when user un-maximizes
+                }
+
+                // Save everything in one operation (single I/O)
+                _appSettings.Save();
+            }
+            catch
+            {
+                // Non-fatal: settings save failure should not prevent exit
+            }
         }
 
         // ── Status bar ────────────────────────────────────────────────────────
@@ -1436,11 +1445,28 @@ namespace Cad3PLogBrowser
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            SaveSettings();
-            _logFileService.Dispose();
+            try
+            {
+                SaveSettings();
+            }
+            catch { /* Non-fatal */ }
+
+            try
+            {
+                _logFileService?.Dispose();
+            }
+            catch { /* Non-fatal */ }
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e) { }
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Stop file watching immediately to prevent blocking on close
+            try
+            {
+                _logFileService?.StopWatching();
+            }
+            catch { /* Non-fatal */ }
+        }
         private void MainForm_ResizeBegin(object sender, EventArgs e) { }
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
         private void MainForm_Resize(object sender, EventArgs e) { }
