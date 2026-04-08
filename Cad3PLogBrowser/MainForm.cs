@@ -404,8 +404,6 @@ namespace Cad3PLogBrowser
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
             HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
-            showCallTreeMenuItem.CheckedChanged += (s, e) => SyncTreeVisibility();
-            showApiListMenuItem.CheckedChanged  += (s, e) => SyncTreeVisibility();
             hideAllMenuItem.Click += (s, e) =>
             {
                 HideTabsButton.Checked = !HideTabsButton.Checked;
@@ -729,27 +727,24 @@ namespace Cad3PLogBrowser
         // ── Tree visibility ───────────────────────────────────────────────────
         private void SyncTreeVisibility()
         {
-            bool showCall = CallTreeButton.Checked || showCallTreeMenuItem.Checked;
-            bool showApi  = ApiTreeButton.Checked  || showApiListMenuItem.Checked;
+            bool showCall = CallTreeButton.Checked;
+            bool showApi  = ApiTreeButton.Checked;
 
             // Make trees mutually exclusive - only one can be visible at a time
             if (showCall && showApi)
             {
-                // Both checked - toggle to the one that was just clicked
-                // Determine which was clicked by checking if it was previously unchecked
-                if (!CallTree.Visible && showCall)
+                // Both checked - determine which was just clicked
+                if (!CallTree.Visible)
                 {
                     // Call Tree was just checked, hide API Tree
                     showApi = false;
                     ApiTreeButton.Checked = false;
-                    showApiListMenuItem.Checked = false;
                 }
                 else
                 {
                     // API Tree was just checked, hide Call Tree
                     showCall = false;
                     CallTreeButton.Checked = false;
-                    showCallTreeMenuItem.Checked = false;
                 }
             }
 
@@ -759,13 +754,10 @@ namespace Cad3PLogBrowser
                 // Default to Call Tree if both are unchecked
                 showCall = true;
                 CallTreeButton.Checked = true;
-                showCallTreeMenuItem.Checked = true;
             }
 
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
-            showCallTreeMenuItem.Checked = CallTreeButton.Checked = showCall;
-            showApiListMenuItem.Checked  = ApiTreeButton.Checked  = showApi;
             LayoutTrees();
         }
 
@@ -774,18 +766,14 @@ namespace Cad3PLogBrowser
         {
             // Ensure only API Tree is visible
             CallTreeButton.Checked = false;
-            showCallTreeMenuItem.Checked = false;
             ApiTreeButton.Checked = true;
-            showApiListMenuItem.Checked = true;
         }
 
         private void ShowCallTree()
         {
             // Ensure only Call Tree is visible
             ApiTreeButton.Checked = false;
-            showApiListMenuItem.Checked = false;
             CallTreeButton.Checked = true;
-            showCallTreeMenuItem.Checked = true;
         }
 
         private void SyncTabVisibility()

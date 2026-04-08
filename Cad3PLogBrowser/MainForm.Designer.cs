@@ -1,4 +1,4 @@
-ï»¿namespace Cad3PLogBrowser
+namespace Cad3PLogBrowser
 {
     partial class MainForm
     {
@@ -53,9 +53,6 @@
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showApiListMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.viewSeparatorAfterTree = new System.Windows.Forms.ToolStripSeparator();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -346,38 +343,10 @@
             // viewMenuItem
             // 
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showCallTreeMenuItem,
-            this.showApiListMenuItem,
-            this.viewSeparatorAfterTree,
             this.tabsMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
-            this.viewMenuItem.Text = "â€ª&View";
-            // 
-            // showCallTreeMenuItem
-            // 
-            this.showCallTreeMenuItem.Checked = true;
-            this.showCallTreeMenuItem.CheckOnClick = true;
-            this.showCallTreeMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.showCallTreeMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.treeview;
-            this.showCallTreeMenuItem.Name = "showCallTreeMenuItem";
-            this.showCallTreeMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.showCallTreeMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showCallTreeMenuItem.Text = "&CallTree";
-            // 
-            // showApiListMenuItem
-            // 
-            this.showApiListMenuItem.CheckOnClick = true;
-            this.showApiListMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.apiview2;
-            this.showApiListMenuItem.Name = "showApiListMenuItem";
-            this.showApiListMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.showApiListMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showApiListMenuItem.Text = "&ApiList";
-            // 
-            // viewSeparatorAfterTree
-            // 
-            this.viewSeparatorAfterTree.Name = "viewSeparatorAfterTree";
-            this.viewSeparatorAfterTree.Size = new System.Drawing.Size(175, 6);
+            this.viewMenuItem.Text = "?&View";
             // 
             // tabsMenuItem
             // 
@@ -399,7 +368,7 @@
             this.hideAllMenuItem.Size = new System.Drawing.Size(167, 22);
             this.hideAllMenuItem.Text = "&HideAll";
             // 
-            // showTab1MenuItem â€” Log
+            // showTab1MenuItem — Log
             // 
             this.showTab1MenuItem.CheckOnClick = true;
             this.showTab1MenuItem.Checked = true;
@@ -408,7 +377,7 @@
             this.showTab1MenuItem.Text = "Log";
             this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem â€” Performance
+            // showTab2MenuItem — Performance
             // 
             this.showTab2MenuItem.CheckOnClick = true;
             this.showTab2MenuItem.Checked = true;
@@ -417,7 +386,7 @@
             this.showTab2MenuItem.Text = "Performance";
             this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem â€” Log Details
+            // showTab3MenuItem — Log Details
             // 
             this.showTab3MenuItem.CheckOnClick = true;
             this.showTab3MenuItem.Checked = true;
@@ -426,7 +395,7 @@
             this.showTab3MenuItem.Text = "Log Details";
             this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem â€” Call Graph
+            // showTab4MenuItem — Call Graph
             // 
             this.showTab4MenuItem.CheckOnClick = true;
             this.showTab4MenuItem.Checked = true;
@@ -641,7 +610,7 @@
             this.rawTab.Text = "rawTab";
             this.rawTab.UseVisualStyleBackColor = true;
             // 
-            // performanceTab â€” Performance
+            // performanceTab — Performance
             // 
             this.performanceView = new System.Windows.Forms.ListView();
             this.perfColName = new System.Windows.Forms.ColumnHeader();
@@ -686,7 +655,7 @@
             this.perfColSelf.Text = "Self (ms)";
             this.perfColSelf.Width = 80;
             // 
-            // logDetailTab â€” Log Details
+            // logDetailTab — Log Details
             // 
             this.logDetailBox = new System.Windows.Forms.RichTextBox();
             this.logDetailTab.Controls.Add(this.logDetailBox);
@@ -703,7 +672,7 @@
             this.logDetailBox.WordWrap = true;
             this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
             // 
-            // callGraphTab â€” Call Graph
+            // callGraphTab — Call Graph
             // 
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
@@ -829,39 +798,39 @@
             this.separatorAfterFilter.Name = "separatorAfterFilter";
             this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
             // 
-            // prevErrorButton â€” Feature B10
+            // prevErrorButton — Feature B10
             // 
             this.prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevErrorButton.Name = "prevErrorButton";
             this.prevErrorButton.Size = new System.Drawing.Size(23, 22);
-            this.prevErrorButton.Text = "â—„E";
+            this.prevErrorButton.Text = "?E";
             this.prevErrorButton.ToolTipText = "Previous Error (Shift+F8)";
             this.prevErrorButton.Click += new System.EventHandler(this.prevErrorButton_Click);
             // 
-            // nextErrorButton â€” Feature B10
+            // nextErrorButton — Feature B10
             // 
             this.nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextErrorButton.Name = "nextErrorButton";
             this.nextErrorButton.Size = new System.Drawing.Size(23, 22);
-            this.nextErrorButton.Text = "Eâ–º";
+            this.nextErrorButton.Text = "E?";
             this.nextErrorButton.ToolTipText = "Next Error (F8)";
             this.nextErrorButton.Click += new System.EventHandler(this.nextErrorButton_Click);
             // 
-            // prevWarningButton â€” Feature B10
+            // prevWarningButton — Feature B10
             // 
             this.prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevWarningButton.Name = "prevWarningButton";
             this.prevWarningButton.Size = new System.Drawing.Size(23, 22);
-            this.prevWarningButton.Text = "â—„W";
+            this.prevWarningButton.Text = "?W";
             this.prevWarningButton.ToolTipText = "Previous Warning (Ctrl+Shift+F8)";
             this.prevWarningButton.Click += new System.EventHandler(this.prevWarningButton_Click);
             // 
-            // nextWarningButton â€” Feature B10
+            // nextWarningButton — Feature B10
             // 
             this.nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextWarningButton.Name = "nextWarningButton";
             this.nextWarningButton.Size = new System.Drawing.Size(23, 22);
-            this.nextWarningButton.Text = "Wâ–º";
+            this.nextWarningButton.Text = "W?";
             this.nextWarningButton.ToolTipText = "Next Warning (Ctrl+F8)";
             this.nextWarningButton.Click += new System.EventHandler(this.nextWarningButton_Click);
             // 
@@ -1198,8 +1167,6 @@
         private System.Windows.Forms.ToolStripSeparator separatorBeforeHelp;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showApiListMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem hideAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab1MenuItem;
@@ -1215,7 +1182,6 @@
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
-        private System.Windows.Forms.ToolStripSeparator viewSeparatorAfterTree;
         private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
         private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
         private System.Windows.Forms.ListView logListView;
