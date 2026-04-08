@@ -29,6 +29,7 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowPerformanceTab   { get; set; } = true;
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
+        public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
 
         // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
         public int     WindowWidth          { get; set; } = 1024;

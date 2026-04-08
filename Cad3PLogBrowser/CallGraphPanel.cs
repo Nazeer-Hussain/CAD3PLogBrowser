@@ -30,21 +30,32 @@ namespace Cad3PLogBrowser
         private const float MinZoom      = 0.2f;
         private const float MaxZoom      = 4.0f;
 
-        // ── Colours ───────────────────────────────────────────────────────────
-        private static readonly Color NodeFill      = Color.FromArgb(220, 235, 255);
-        private static readonly Color NodeBorder    = Color.FromArgb(80, 130, 200);
-        private static readonly Color NodeHover     = Color.FromArgb(180, 210, 255);
-        private static readonly Color NodeText      = Color.FromArgb(20, 40, 80);
-        private static readonly Color EdgeColour    = Color.FromArgb(120, 140, 170);
-        private static readonly Color EdgeHighlight = Color.FromArgb(200, 80, 60);
-        private static readonly Color Background    = Color.FromArgb(245, 248, 252);
+        // ── Colours (Theme-aware) ─────────────────────────────────────────────
+        private Color NodeFill      => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(60, 60, 65) : Color.FromArgb(220, 235, 255);
+        private Color NodeBorder    => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(120, 120, 130) : Color.FromArgb(80, 130, 200);
+        private Color NodeHover     => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(80, 80, 90) : Color.FromArgb(180, 210, 255);
+        private Color NodeText      => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(220, 220, 220) : Color.FromArgb(20, 40, 80);
+        private Color EdgeColour    => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(100, 100, 110) : Color.FromArgb(120, 140, 170);
+        private Color EdgeHighlight => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(200, 100, 80) : Color.FromArgb(200, 80, 60);
+        private Color GraphBackground => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+            ? Color.FromArgb(30, 30, 30) : Color.FromArgb(245, 248, 252);
 
         public CallGraphPanel()
         {
             DoubleBuffered       = true;
             ResizeRedraw         = true;
-            BackColor            = Background;
             BorderStyle          = BorderStyle.None;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            e.Graphics.Clear(GraphBackground);
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -158,7 +169,7 @@ namespace Cad3PLogBrowser
         {
             string msg = "No call graph data.\nOpen a log file to generate the graph.";
             using (var font = new Font("Segoe UI", 11f))
-            using (var brush = new SolidBrush(Color.FromArgb(160, 160, 180)))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 var sz = g.MeasureString(msg, font);
                 g.DrawString(msg, font, brush,

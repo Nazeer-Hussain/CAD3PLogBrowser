@@ -201,11 +201,6 @@ namespace Cad3PLogBrowser
         }
         private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
 
-        // ── Log-level colours ─────────────────────────────────────────────────
-        private static readonly Color ColourError = Color.FromArgb(255, 220, 220);
-        private static readonly Color ColourWarn  = Color.FromArgb(255, 243, 205);
-        private static readonly Color ColourInfo  = SystemColors.Window;
-
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
         {
@@ -222,6 +217,7 @@ namespace Cad3PLogBrowser
             RestoreSettings();
             InitTreeViews();
             BuildMruMenu();
+            ApplyTheme();
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -232,6 +228,56 @@ namespace Cad3PLogBrowser
         {
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 LoadFileAsync(filePath);
+        }
+
+        public void ApplyTheme()
+        {
+            // Set the theme based on settings
+            var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
+            ThemeManager.SetTheme(theme);
+
+            // Apply to main form
+            ThemeManager.ApplyTheme(this);
+
+            // Update log-level colors based on theme
+            UpdateLogColors();
+
+            // Refresh the log view to apply new colors
+            if (logListView.VirtualMode && _virtualLines.Count > 0)
+            {
+                logListView.Invalidate();
+            }
+
+            // Refresh the call graph panel
+            if (callGraphPanel != null)
+            {
+                callGraphPanel.Invalidate();
+            }
+
+            // Refresh the performance view with theme-aware colors
+            if (_lastPerfStats != null && _lastPerfStats.Count > 0)
+            {
+                RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+            }
+        }
+
+        private void UpdateLogColors()
+        {
+            // Update the virtual lines with theme-appropriate colors
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var line = _virtualLines[i];
+                string text = line.Text;
+
+                if (text.Contains("ERROR") || text.Contains("EXCEPTION"))
+                    line.BackColour = ThemeManager.ErrorBackgroundColor;
+                else if (text.Contains("WARNING") || text.Contains("WARN"))
+                    line.BackColour = ThemeManager.WarningBackgroundColor;
+                else
+                    line.BackColour = ThemeManager.BackgroundColor;
+
+                _virtualLines[i] = line;
+            }
         }
 
         // ── Settings ──────────────────────────────────────────────────────────
@@ -693,7 +739,7 @@ namespace Cad3PLogBrowser
             performanceView.BeginUpdate();
             performanceView.Items.Clear();
 
-            // Summary row
+            // Summary row - use theme-aware color
             long sumTotal = 0; int sumCalls = 0;
             foreach (var s in stats) { sumTotal += s.TotalDurationMs; sumCalls += s.TimedCallCount; }
 
@@ -703,7 +749,18 @@ namespace Cad3PLogBrowser
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
             summary.SubItems.Add(string.Format("{0} unique APIs  |  {1} lines", stats.Count, totalLines));
-            summary.BackColor = Color.FromArgb(210, 225, 255);
+
+            // Theme-aware summary row color
+            if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
+            {
+                summary.BackColor = Color.FromArgb(50, 70, 90);
+                summary.ForeColor = Color.FromArgb(220, 220, 220);
+            }
+            else
+            {
+                summary.BackColor = Color.FromArgb(210, 225, 255);
+                summary.ForeColor = SystemColors.ControlText;
+            }
             summary.Font = new System.Drawing.Font(performanceView.Font, System.Drawing.FontStyle.Bold);
             performanceView.Items.Add(summary);
 
@@ -719,9 +776,21 @@ namespace Cad3PLogBrowser
                 item.SubItems.Add(s.SelfDurationMs  > 0 ? s.SelfDurationMs.ToString()   : "-");
 
                 if (s.TotalDurationMs >= threshold)
-                    item.BackColor = Color.FromArgb(255, 220, 220);
+                {
+                    item.BackColor = ThemeManager.ErrorBackgroundColor;
+                    item.ForeColor = ThemeManager.ForegroundColor;
+                }
                 else if (s.TotalDurationMs >= threshold / 10)
-                    item.BackColor = Color.FromArgb(255, 243, 205);
+                {
+                    item.BackColor = ThemeManager.WarningBackgroundColor;
+                    item.ForeColor = ThemeManager.ForegroundColor;
+                }
+                else
+                {
+                    // Use default theme background for normal items
+                    item.BackColor = ThemeManager.BackgroundColor;
+                    item.ForeColor = ThemeManager.ForegroundColor;
+                }
 
                 performanceView.Items.Add(item);
             }
@@ -1021,16 +1090,16 @@ namespace Cad3PLogBrowser
         private static Color GetLineColour(string line)
         {
             // Use the actual log level code (2nd colon-separated field: E=Error, W=Warning)
-            if (string.IsNullOrEmpty(line)) return ColourInfo;
+            if (string.IsNullOrEmpty(line)) return ThemeManager.BackgroundColor;
             // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
             int first = line.IndexOf(": ", StringComparison.Ordinal);
             if (first >= 0 && first + 3 < line.Length)
             {
                 char level = line[first + 2];
-                if (level == 'E') return ColourError;
-                if (level == 'W') return ColourWarn;
+                if (level == 'E') return ThemeManager.ErrorBackgroundColor;
+                if (level == 'W') return ThemeManager.WarningBackgroundColor;
             }
-            return ColourInfo;
+            return ThemeManager.BackgroundColor;
         }
 
         // Issue Fix: Auto-resize ListView columns to fit content

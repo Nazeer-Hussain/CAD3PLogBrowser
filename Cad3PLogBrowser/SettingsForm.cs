@@ -20,6 +20,7 @@ namespace Cad3PLogBrowser
             _mainForm = mainForm;
             _settings = mainForm.AppSettings;
             LoadCurrentSettings();
+            ThemeManager.ApplyTheme(this);
         }
 
         private void LoadCurrentSettings()
@@ -32,6 +33,14 @@ namespace Cad3PLogBrowser
 
             // Grok
             txtGrokUrl.Text = _settings.GrokUrl;
+
+            // Theme
+            cmbTheme.Items.Clear();
+            cmbTheme.Items.Add("Light");
+            cmbTheme.Items.Add("Dark");
+            cmbTheme.SelectedItem = _settings.Theme ?? "Light";
+            if (cmbTheme.SelectedIndex < 0)
+                cmbTheme.SelectedIndex = 0;
 
             // Highlight colour
             cmbHighlightColor.Items.Clear();
@@ -71,10 +80,14 @@ namespace Cad3PLogBrowser
 
             // Save other settings
             _settings.GrokUrl                = txtGrokUrl.Text.Trim();
+            _settings.Theme                  = cmbTheme.SelectedItem?.ToString() ?? "Light";
             _settings.HighlightColorName     = cmbHighlightColor.SelectedItem?.ToString() ?? "Yellow";
             _settings.SlowCallThresholdMs    = (long)nudSlowCallMs.Value;
             _settings.MaxFileSizeMbForListView = (long)nudMaxFileMb.Value;
             _settings.Save();
+
+            // Apply theme immediately
+            _mainForm.ApplyTheme();
 
             Hide();
         }
