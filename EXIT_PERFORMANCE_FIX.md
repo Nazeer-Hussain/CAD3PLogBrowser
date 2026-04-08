@@ -1,4 +1,4 @@
-﻿# File > Exit Performance Fix
+# File > Exit Performance Fix
 
 ## ? Issue Resolved
 
