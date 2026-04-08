@@ -104,9 +104,9 @@ Line #  | Log Text
 ? API Tree
   ?? ? CADSystemUnigraphics::addGenericName  (3 calls)
   ?? ? CADSystemUnigraphics::closeDocument  (5 calls)
-  ?   ?? ? CADSystemUnigraphics::closeDocument — Ln 1042
-  ?   ?? ? CADSystemUnigraphics::closeDocument — Ln 2891
-  ?   ?? ? CADSystemUnigraphics::closeDocument — Ln 3456
+  ?   ?? ? CADSystemUnigraphics::closeDocument  Ln 1042
+  ?   ?? ? CADSystemUnigraphics::closeDocument  Ln 2891
+  ?   ?? ? CADSystemUnigraphics::closeDocument  Ln 3456
   ?? ? CADSystemUnigraphics::connect  (2 calls)
 ```
 
