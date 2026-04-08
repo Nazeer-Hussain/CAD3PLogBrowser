@@ -205,4 +205,43 @@
   <data name="ABOUT_DESCRIPTION" xml:space="preserve">
     <value>About box description</value>
   </data>
+  <data name="MSG_FILE_SAVED" xml:space="preserve">
+    <value>{0} line(s) saved.</value>
+  </data>
+  <data name="MSG_SAVE_ERROR" xml:space="preserve">
+    <value>Could not save file:\n{0}</value>
+  </data>
+  <data name="MSG_NOT_FOUND" xml:space="preserve">
+    <value>'{0}' not found.</value>
+  </data>
+  <data name="MSG_NOT_API_CALL" xml:space="preserve">
+    <value>Selected line is not an API call line.</value>
+  </data>
+  <data name="MSG_NO_MATCHING_PAIR" xml:space="preserve">
+    <value>No matching pair found.</value>
+  </data>
+  <data name="MSG_NO_ERRORS" xml:space="preserve">
+    <value>No errors found in this log file.</value>
+  </data>
+  <data name="MSG_NO_WARNINGS" xml:space="preserve">
+    <value>No warnings found in this log file.</value>
+  </data>
+  <data name="MSG_GROK_NOT_CONFIGURED" xml:space="preserve">
+    <value>Please configure the Grok URL in Options > Settings first.\n\nExample: https://grok.example.com/search?q=</value>
+  </data>
+  <data name="MSG_BROWSER_LAUNCH_ERROR" xml:space="preserve">
+    <value>Failed to open browser:\n{0}</value>
+  </data>
+  <data name="MSG_BRANCH_EXPORTED" xml:space="preserve">
+    <value>Branch exported to:\n{0}</value>
+  </data>
+  <data name="MSG_LOAD_ERROR" xml:space="preserve">
+    <value>Could not load file: {0}\n\n{1}\n\n{2}</value>
+  </data>
+  <data name="DIALOG_EXPORT_BRANCH_TITLE" xml:space="preserve">
+    <value>Export Branch to CSV</value>
+  </data>
+  <data name="FILTER_CSV_FILES" xml:space="preserve">
+    <value>CSV files (*.csv)|*.csv|All files (*.*)|*.*</value>
+  </data>
 </root>

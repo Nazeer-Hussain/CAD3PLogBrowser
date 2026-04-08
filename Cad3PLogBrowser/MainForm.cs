@@ -404,8 +404,6 @@ namespace Cad3PLogBrowser
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
             HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
-            showCallTreeMenuItem.CheckedChanged += (s, e) => SyncTreeVisibility();
-            showApiListMenuItem.CheckedChanged  += (s, e) => SyncTreeVisibility();
             hideAllMenuItem.Click += (s, e) =>
             {
                 HideTabsButton.Checked = !HideTabsButton.Checked;
@@ -729,13 +727,53 @@ namespace Cad3PLogBrowser
         // ── Tree visibility ───────────────────────────────────────────────────
         private void SyncTreeVisibility()
         {
-            bool showCall = CallTreeButton.Checked || showCallTreeMenuItem.Checked;
-            bool showApi  = ApiTreeButton.Checked  || showApiListMenuItem.Checked;
+            bool showCall = CallTreeButton.Checked;
+            bool showApi  = ApiTreeButton.Checked;
+
+            // Make trees mutually exclusive - only one can be visible at a time
+            if (showCall && showApi)
+            {
+                // Both checked - determine which was just clicked
+                if (!CallTree.Visible)
+                {
+                    // Call Tree was just checked, hide API Tree
+                    showApi = false;
+                    ApiTreeButton.Checked = false;
+                }
+                else
+                {
+                    // API Tree was just checked, hide Call Tree
+                    showCall = false;
+                    CallTreeButton.Checked = false;
+                }
+            }
+
+            // Ensure at least one tree is always visible
+            if (!showCall && !showApi)
+            {
+                // Default to Call Tree if both are unchecked
+                showCall = true;
+                CallTreeButton.Checked = true;
+            }
+
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
-            showCallTreeMenuItem.Checked = CallTreeButton.Checked = showCall;
-            showApiListMenuItem.Checked  = ApiTreeButton.Checked  = showApi;
             LayoutTrees();
+        }
+
+        // Helper methods for tree switching
+        private void ShowApiTree()
+        {
+            // Ensure only API Tree is visible
+            CallTreeButton.Checked = false;
+            ApiTreeButton.Checked = true;
+        }
+
+        private void ShowCallTree()
+        {
+            // Ensure only Call Tree is visible
+            ApiTreeButton.Checked = false;
+            CallTreeButton.Checked = true;
         }
 
         private void SyncTabVisibility()
@@ -1512,7 +1550,11 @@ namespace Cad3PLogBrowser
         private void ApiTree_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
-                logContextMenu.Show(ApiTree, e.Location);
+            {
+                var node = ApiTree.GetNodeAt(e.Location);
+                if (node != null) ApiTree.SelectedNode = node;
+                treeContextMenu.Show(ApiTree, e.Location);
+            }
         }
 
         private void CallTree_MouseClick(object sender, MouseEventArgs e) { }
@@ -1520,7 +1562,189 @@ namespace Cad3PLogBrowser
         private void CallTree_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
-                logContextMenu.Show(CallTree, e.Location);
+            {
+                var node = CallTree.GetNodeAt(e.Location);
+                if (node != null) CallTree.SelectedNode = node;
+                treeContextMenu.Show(CallTree, e.Location);
+            }
+        }
+
+        // C6/J3: Tree context menu handlers
+        private TreeNode GetActiveTreeSelectedNode()
+        {
+            if (CallTree.Visible && CallTree.SelectedNode != null) return CallTree.SelectedNode;
+            if (ApiTree.Visible && ApiTree.SelectedNode != null) return ApiTree.SelectedNode;
+            return null;
+        }
+
+        private string GetMethodNameFromNode(TreeNode node)
+        {
+            if (node == null) return string.Empty;
+            string text = node.Text;
+            // Strip duration suffix like " [142 ms]" or call count like " (3 calls)"
+            int bracket = text.IndexOf(" [");
+            if (bracket > 0) return text.Substring(0, bracket).Trim();
+            int paren = text.IndexOf(" (");
+            if (paren > 0) return text.Substring(0, paren).Trim();
+            // Strip line number suffix like " — Ln 123"
+            int dash = text.IndexOf(" — ");
+            if (dash > 0) return text.Substring(0, dash).Trim();
+            return text.Trim();
+        }
+
+        // J3: Search in Grok
+        private void treeContextSearchInGrokMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = GetActiveTreeSelectedNode();
+            if (node == null) return;
+
+            string methodName = GetMethodNameFromNode(node);
+            string grokUrl = _appSettings?.GrokUrl?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(grokUrl))
+            {
+                MessageBox.Show(
+                    "Please configure the Grok URL in Options > Settings first.\n\n" +
+                    "Example: https://grok.example.com/search?q=",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                string url = grokUrl + Uri.EscapeDataString(methodName);
+                System.Diagnostics.Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open browser:\n{ex.Message}",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Copy node name
+        private void treeContextCopyNodeNameMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = GetActiveTreeSelectedNode();
+            if (node == null) return;
+            Clipboard.SetText(GetMethodNameFromNode(node));
+        }
+
+        // Copy subtree recursively as indented text
+        private void treeContextCopySubtreeMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = GetActiveTreeSelectedNode();
+            if (node == null) return;
+            var sb = new System.Text.StringBuilder();
+            AppendSubtreeText(node, sb, 0);
+            Clipboard.SetText(sb.ToString());
+        }
+
+        private void AppendSubtreeText(TreeNode node, System.Text.StringBuilder sb, int depth)
+        {
+            sb.AppendLine(new string(' ', depth * 2) + node.Text);
+            foreach (TreeNode child in node.Nodes)
+                AppendSubtreeText(child, sb, depth + 1);
+        }
+
+        // Export branch to CSV
+        private void treeContextExportBranchCsvMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = GetActiveTreeSelectedNode();
+            if (node == null) return;
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Export Branch to CSV";
+                dlg.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+                dlg.FileName = GetMethodNameFromNode(node).Replace("::", "_") + "_branch.csv";
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                var rows = new List<string> { "Method,Depth,Duration_ms" };
+                CollectBranchCsvRows(node, rows, 0);
+                File.WriteAllLines(dlg.FileName, rows);
+
+                MessageBox.Show($"Branch exported to:\n{dlg.FileName}",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void CollectBranchCsvRows(TreeNode node, List<string> rows, int depth)
+        {
+            string name = GetMethodNameFromNode(node);
+            // Extract duration from text like "MethodName [142 ms]"
+            string duration = "";
+            int b1 = node.Text.IndexOf('[');
+            int b2 = node.Text.IndexOf(" ms]");
+            if (b1 >= 0 && b2 > b1)
+                duration = node.Text.Substring(b1 + 1, b2 - b1 - 1).Trim();
+            rows.Add($"\"{name}\",{depth},{duration}");
+            foreach (TreeNode child in node.Nodes)
+                CollectBranchCsvRows(child, rows, depth + 1);
+        }
+
+        // Show in other tree (cross-reference)
+        private void treeContextShowInOtherTreeMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = GetActiveTreeSelectedNode();
+            if (node == null) return;
+
+            string methodName = GetMethodNameFromNode(node);
+
+            if (CallTree.Visible)
+            {
+                // Switch to API Tree and find matching node
+                ShowApiTree();
+                FindAndSelectApiTreeNode(methodName);
+            }
+            else
+            {
+                // Switch to Call Tree and find matching node
+                ShowCallTree();
+                FindAndSelectCallTreeNode(methodName);
+            }
+        }
+
+        private void FindAndSelectApiTreeNode(string methodName)
+        {
+            foreach (TreeNode root in ApiTree.Nodes)
+            {
+                foreach (TreeNode apiNode in root.Nodes)
+                {
+                    if (GetMethodNameFromNode(apiNode).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ApiTree.SelectedNode = apiNode;
+                        apiNode.EnsureVisible();
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void FindAndSelectCallTreeNode(string methodName)
+        {
+            foreach (TreeNode root in CallTree.Nodes)
+            {
+                if (FindNodeInTree(root.Nodes, methodName))
+                    return;
+            }
+        }
+
+        private bool FindNodeInTree(TreeNodeCollection nodes, string methodName)
+        {
+            foreach (TreeNode n in nodes)
+            {
+                if (GetMethodNameFromNode(n).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                {
+                    CallTree.SelectedNode = n;
+                    n.EnsureVisible();
+                    return true;
+                }
+                if (FindNodeInTree(n.Nodes, methodName))
+                    return true;
+            }
+            return false;
         }
 
         private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }

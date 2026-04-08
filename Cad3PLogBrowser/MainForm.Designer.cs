@@ -1,4 +1,4 @@
-ï»¿namespace Cad3PLogBrowser
+namespace Cad3PLogBrowser
 {
     partial class MainForm
     {
@@ -53,9 +53,6 @@
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showApiListMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.viewSeparatorAfterTree = new System.Windows.Forms.ToolStripSeparator();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -125,6 +122,16 @@
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.treeContextCopyNodeNameMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextCopySubtreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextExpandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextExportBranchCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
             this.treeIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
             this.treeIconList.ImageSize = new System.Drawing.Size(16, 16);
@@ -336,38 +343,10 @@
             // viewMenuItem
             // 
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showCallTreeMenuItem,
-            this.showApiListMenuItem,
-            this.viewSeparatorAfterTree,
             this.tabsMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
-            this.viewMenuItem.Text = "â€ª&View";
-            // 
-            // showCallTreeMenuItem
-            // 
-            this.showCallTreeMenuItem.Checked = true;
-            this.showCallTreeMenuItem.CheckOnClick = true;
-            this.showCallTreeMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.showCallTreeMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.treeview;
-            this.showCallTreeMenuItem.Name = "showCallTreeMenuItem";
-            this.showCallTreeMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.showCallTreeMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showCallTreeMenuItem.Text = "&CallTree";
-            // 
-            // showApiListMenuItem
-            // 
-            this.showApiListMenuItem.CheckOnClick = true;
-            this.showApiListMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.apiview2;
-            this.showApiListMenuItem.Name = "showApiListMenuItem";
-            this.showApiListMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.showApiListMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showApiListMenuItem.Text = "&ApiList";
-            // 
-            // viewSeparatorAfterTree
-            // 
-            this.viewSeparatorAfterTree.Name = "viewSeparatorAfterTree";
-            this.viewSeparatorAfterTree.Size = new System.Drawing.Size(175, 6);
+            this.viewMenuItem.Text = "?&View";
             // 
             // tabsMenuItem
             // 
@@ -389,7 +368,7 @@
             this.hideAllMenuItem.Size = new System.Drawing.Size(167, 22);
             this.hideAllMenuItem.Text = "&HideAll";
             // 
-            // showTab1MenuItem â€” Log
+            // showTab1MenuItem — Log
             // 
             this.showTab1MenuItem.CheckOnClick = true;
             this.showTab1MenuItem.Checked = true;
@@ -398,7 +377,7 @@
             this.showTab1MenuItem.Text = "Log";
             this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem â€” Performance
+            // showTab2MenuItem — Performance
             // 
             this.showTab2MenuItem.CheckOnClick = true;
             this.showTab2MenuItem.Checked = true;
@@ -407,7 +386,7 @@
             this.showTab2MenuItem.Text = "Performance";
             this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem â€” Log Details
+            // showTab3MenuItem — Log Details
             // 
             this.showTab3MenuItem.CheckOnClick = true;
             this.showTab3MenuItem.Checked = true;
@@ -416,7 +395,7 @@
             this.showTab3MenuItem.Text = "Log Details";
             this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem â€” Call Graph
+            // showTab4MenuItem — Call Graph
             // 
             this.showTab4MenuItem.CheckOnClick = true;
             this.showTab4MenuItem.Checked = true;
@@ -631,7 +610,7 @@
             this.rawTab.Text = "rawTab";
             this.rawTab.UseVisualStyleBackColor = true;
             // 
-            // performanceTab â€” Performance
+            // performanceTab — Performance
             // 
             this.performanceView = new System.Windows.Forms.ListView();
             this.perfColName = new System.Windows.Forms.ColumnHeader();
@@ -676,7 +655,7 @@
             this.perfColSelf.Text = "Self (ms)";
             this.perfColSelf.Width = 80;
             // 
-            // logDetailTab â€” Log Details
+            // logDetailTab — Log Details
             // 
             this.logDetailBox = new System.Windows.Forms.RichTextBox();
             this.logDetailTab.Controls.Add(this.logDetailBox);
@@ -693,7 +672,7 @@
             this.logDetailBox.WordWrap = true;
             this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
             // 
-            // callGraphTab â€” Call Graph
+            // callGraphTab — Call Graph
             // 
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
@@ -819,39 +798,39 @@
             this.separatorAfterFilter.Name = "separatorAfterFilter";
             this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
             // 
-            // prevErrorButton â€” Feature B10
+            // prevErrorButton — Feature B10
             // 
             this.prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevErrorButton.Name = "prevErrorButton";
             this.prevErrorButton.Size = new System.Drawing.Size(23, 22);
-            this.prevErrorButton.Text = "â—„E";
+            this.prevErrorButton.Text = "?E";
             this.prevErrorButton.ToolTipText = "Previous Error (Shift+F8)";
             this.prevErrorButton.Click += new System.EventHandler(this.prevErrorButton_Click);
             // 
-            // nextErrorButton â€” Feature B10
+            // nextErrorButton — Feature B10
             // 
             this.nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextErrorButton.Name = "nextErrorButton";
             this.nextErrorButton.Size = new System.Drawing.Size(23, 22);
-            this.nextErrorButton.Text = "Eâ–º";
+            this.nextErrorButton.Text = "E?";
             this.nextErrorButton.ToolTipText = "Next Error (F8)";
             this.nextErrorButton.Click += new System.EventHandler(this.nextErrorButton_Click);
             // 
-            // prevWarningButton â€” Feature B10
+            // prevWarningButton — Feature B10
             // 
             this.prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevWarningButton.Name = "prevWarningButton";
             this.prevWarningButton.Size = new System.Drawing.Size(23, 22);
-            this.prevWarningButton.Text = "â—„W";
+            this.prevWarningButton.Text = "?W";
             this.prevWarningButton.ToolTipText = "Previous Warning (Ctrl+Shift+F8)";
             this.prevWarningButton.Click += new System.EventHandler(this.prevWarningButton_Click);
             // 
-            // nextWarningButton â€” Feature B10
+            // nextWarningButton — Feature B10
             // 
             this.nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextWarningButton.Name = "nextWarningButton";
             this.nextWarningButton.Size = new System.Drawing.Size(23, 22);
-            this.nextWarningButton.Text = "Wâ–º";
+            this.nextWarningButton.Text = "W?";
             this.nextWarningButton.ToolTipText = "Next Warning (Ctrl+F8)";
             this.nextWarningButton.Click += new System.EventHandler(this.nextWarningButton_Click);
             // 
@@ -967,6 +946,72 @@
             this.logContextMenu.Name = "logContextMenu";
             this.logContextMenu.Size = new System.Drawing.Size(280, 200);
             // 
+            // contextCopyMenuItem
+            // 
+            this.contextCopyMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
+            this.contextCopyMenuItem.Name = "contextCopyMenuItem";
+            this.contextCopyMenuItem.ShortcutKeyDisplayString = "Ctrl+C";
+            this.contextCopyMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextCopyMenuItem.Text = "&Copy";
+            this.contextCopyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
+            // 
+            // contextSeparator1
+            // 
+            this.contextSeparator1.Name = "contextSeparator1";
+            this.contextSeparator1.Size = new System.Drawing.Size(277, 6);
+            // 
+            // contextFindMenuItem
+            // 
+            this.contextFindMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.contextFindMenuItem.Name = "contextFindMenuItem";
+            this.contextFindMenuItem.ShortcutKeyDisplayString = "Ctrl+F";
+            this.contextFindMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextFindMenuItem.Text = "&Find...";
+            this.contextFindMenuItem.Click += new System.EventHandler(this.findMenuItem_Click);
+            // 
+            // contextFilterMenuItem
+            // 
+            this.contextFilterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.contextFilterMenuItem.Name = "contextFilterMenuItem";
+            this.contextFilterMenuItem.ShortcutKeyDisplayString = "Ctrl+I";
+            this.contextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextFilterMenuItem.Text = "Fil&ter...";
+            this.contextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            // 
+            // contextSeparator2
+            // 
+            this.contextSeparator2.Name = "contextSeparator2";
+            this.contextSeparator2.Size = new System.Drawing.Size(277, 6);
+            // 
+            // contextExpandAllMenuItem
+            // 
+            this.contextExpandAllMenuItem.Name = "contextExpandAllMenuItem";
+            this.contextExpandAllMenuItem.ShortcutKeyDisplayString = "Ctrl+E";
+            this.contextExpandAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextExpandAllMenuItem.Text = "&Expand All";
+            this.contextExpandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // contextCollapseAllMenuItem
+            // 
+            this.contextCollapseAllMenuItem.Name = "contextCollapseAllMenuItem";
+            this.contextCollapseAllMenuItem.ShortcutKeyDisplayString = "Ctrl+W";
+            this.contextCollapseAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextCollapseAllMenuItem.Text = "&Collapse All";
+            this.contextCollapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // contextJumpToMatchingMenuItem
+            // 
+            this.contextJumpToMatchingMenuItem.Name = "contextJumpToMatchingMenuItem";
+            this.contextJumpToMatchingMenuItem.ShortcutKeyDisplayString = "Ctrl+G";
+            this.contextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.contextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
+            // 
+            // contextSeparator3
+            // 
+            this.contextSeparator3.Name = "contextSeparator3";
+            this.contextSeparator3.Size = new System.Drawing.Size(277, 6);
+            // 
             // contextRefreshMenuItem
             // 
             this.contextRefreshMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
@@ -979,18 +1024,87 @@
             // treeContextMenu
             // 
             this.treeContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.contextCopyMenuItem,
-            this.contextSeparator1,
-            this.contextFindMenuItem,
-            this.contextFilterMenuItem,
-            this.contextSeparator2,
-            this.contextExpandAllMenuItem,
-            this.contextCollapseAllMenuItem,
-            this.contextJumpToMatchingMenuItem,
-            this.contextSeparator3,
-            this.contextRefreshMenuItem});
+            this.treeContextCopyNodeNameMenuItem,
+            this.treeContextCopySubtreeMenuItem,
+            this.treeContextSeparator1,
+            this.treeContextExpandAllMenuItem,
+            this.treeContextCollapseAllMenuItem,
+            this.treeContextJumpToMatchingMenuItem,
+            this.treeContextSeparator2,
+            this.treeContextExportBranchCsvMenuItem,
+            this.treeContextSearchInGrokMenuItem,
+            this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
             this.treeContextMenu.Size = new System.Drawing.Size(280, 200);
+            // 
+            // treeContextCopyNodeNameMenuItem
+            // 
+            this.treeContextCopyNodeNameMenuItem.Name = "treeContextCopyNodeNameMenuItem";
+            this.treeContextCopyNodeNameMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCopyNodeNameMenuItem.Text = "Copy &Node Name";
+            this.treeContextCopyNodeNameMenuItem.Click += new System.EventHandler(this.treeContextCopyNodeNameMenuItem_Click);
+            // 
+            // treeContextCopySubtreeMenuItem
+            // 
+            this.treeContextCopySubtreeMenuItem.Name = "treeContextCopySubtreeMenuItem";
+            this.treeContextCopySubtreeMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCopySubtreeMenuItem.Text = "Copy &Subtree as Text";
+            this.treeContextCopySubtreeMenuItem.Click += new System.EventHandler(this.treeContextCopySubtreeMenuItem_Click);
+            // 
+            // treeContextSeparator1
+            // 
+            this.treeContextSeparator1.Name = "treeContextSeparator1";
+            this.treeContextSeparator1.Size = new System.Drawing.Size(277, 6);
+            // 
+            // treeContextExpandAllMenuItem
+            // 
+            this.treeContextExpandAllMenuItem.Name = "treeContextExpandAllMenuItem";
+            this.treeContextExpandAllMenuItem.ShortcutKeyDisplayString = "Ctrl+E";
+            this.treeContextExpandAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextExpandAllMenuItem.Text = "&Expand All";
+            this.treeContextExpandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // treeContextCollapseAllMenuItem
+            // 
+            this.treeContextCollapseAllMenuItem.Name = "treeContextCollapseAllMenuItem";
+            this.treeContextCollapseAllMenuItem.ShortcutKeyDisplayString = "Ctrl+W";
+            this.treeContextCollapseAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCollapseAllMenuItem.Text = "&Collapse All";
+            this.treeContextCollapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // treeContextJumpToMatchingMenuItem
+            // 
+            this.treeContextJumpToMatchingMenuItem.Name = "treeContextJumpToMatchingMenuItem";
+            this.treeContextJumpToMatchingMenuItem.ShortcutKeyDisplayString = "Ctrl+G";
+            this.treeContextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.treeContextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
+            // 
+            // treeContextSeparator2
+            // 
+            this.treeContextSeparator2.Name = "treeContextSeparator2";
+            this.treeContextSeparator2.Size = new System.Drawing.Size(277, 6);
+            // 
+            // treeContextExportBranchCsvMenuItem
+            // 
+            this.treeContextExportBranchCsvMenuItem.Name = "treeContextExportBranchCsvMenuItem";
+            this.treeContextExportBranchCsvMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextExportBranchCsvMenuItem.Text = "E&xport Branch to CSV...";
+            this.treeContextExportBranchCsvMenuItem.Click += new System.EventHandler(this.treeContextExportBranchCsvMenuItem_Click);
+            // 
+            // treeContextSearchInGrokMenuItem
+            // 
+            this.treeContextSearchInGrokMenuItem.Name = "treeContextSearchInGrokMenuItem";
+            this.treeContextSearchInGrokMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextSearchInGrokMenuItem.Text = "Search in &Grok";
+            this.treeContextSearchInGrokMenuItem.Click += new System.EventHandler(this.treeContextSearchInGrokMenuItem_Click);
+            // 
+            // treeContextShowInOtherTreeMenuItem
+            // 
+            this.treeContextShowInOtherTreeMenuItem.Name = "treeContextShowInOtherTreeMenuItem";
+            this.treeContextShowInOtherTreeMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextShowInOtherTreeMenuItem.Text = "Show in &API Tree";
+            this.treeContextShowInOtherTreeMenuItem.Click += new System.EventHandler(this.treeContextShowInOtherTreeMenuItem_Click);
             // 
             // contextFilterMenuItem
             // 
@@ -1119,8 +1233,6 @@
         private System.Windows.Forms.ToolStripSeparator separatorBeforeHelp;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showApiListMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem hideAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab1MenuItem;
@@ -1136,7 +1248,6 @@
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
-        private System.Windows.Forms.ToolStripSeparator viewSeparatorAfterTree;
         private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
         private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
         private System.Windows.Forms.ListView logListView;
@@ -1152,6 +1263,16 @@
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
         private System.Windows.Forms.ContextMenuStrip treeContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCopyNodeNameMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCopySubtreeMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem treeContextExpandAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCollapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextJumpToMatchingMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem treeContextExportBranchCsvMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;
         private System.Windows.Forms.ColumnHeader colLogText;
         private System.Windows.Forms.ToolStripProgressBar FileLoadProgress;
