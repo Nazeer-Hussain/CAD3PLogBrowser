@@ -1,6 +1,8 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,19 +33,42 @@ namespace Cad3PLogBrowser.Services
         /// Reads all lines from <paramref name="filePath"/> asynchronously.
         /// Uses FileShare.ReadWrite so log files still being written can be opened.
         /// </summary>
-        public Task<List<string>> ReadLinesAsync(string filePath)
+        /// <param name="filePath">Path to the log file</param>
+        /// <param name="progressCallback">Optional callback for progress updates (percentage 0-100, message)</param>
+        public Task<List<string>> ReadLinesAsync(string filePath, Action<int, string> progressCallback = null)
         {
             return Task.Run(() =>
             {
                 var lines = new List<string>();
+                var fileInfo = new FileInfo(filePath);
+                long fileSize = fileInfo.Length;
+                long bytesRead = 0;
+                int lastReportedProgress = 0;
+
                 using (var stream = new FileStream(filePath, FileMode.Open,
                     FileAccess.Read, FileShare.ReadWrite))
                 using (var reader = new StreamReader(stream, Encoding.UTF8,
                     detectEncodingFromByteOrderMarks: true))
                 {
                     string line;
+                    int lineCount = 0;
                     while ((line = reader.ReadLine()) != null)
+                    {
                         lines.Add(line);
+                        lineCount++;
+
+                        // Report progress every ~5%
+                        if (progressCallback != null && fileSize > 0)
+                        {
+                            bytesRead = stream.Position;
+                            int progress = (int)((bytesRead * 100) / fileSize);
+                            if (progress > lastReportedProgress + 5 || progress >= 100)
+                            {
+                                lastReportedProgress = progress;
+                                progressCallback(progress, $"Reading: {lineCount:N0} lines");
+                            }
+                        }
+                    }
                 }
                 return lines;
             });
@@ -53,12 +78,41 @@ namespace Cad3PLogBrowser.Services
         /// <summary>
         /// Writes <paramref name="lines"/> to <paramref name="filePath"/> as UTF-8 text.
         /// </summary>
-        public void WriteLines(string filePath, IEnumerable<string> lines)
+        /// <param name="filePath">Path to save the file</param>
+        /// <param name="lines">Lines to write</param>
+        /// <param name="progressCallback">Optional callback for progress updates (percentage 0-100, message)</param>
+        public void WriteLines(string filePath, IEnumerable<string> lines, Action<int, string> progressCallback = null)
         {
+            var linesList = lines as IList<string> ?? lines.ToList();
+            int totalLines = linesList.Count;
+            int linesWritten = 0;
+            int lastReportedProgress = 0;
+
             var sb = new StringBuilder();
-            foreach (var line in lines)
+            foreach (var line in linesList)
+            {
                 sb.AppendLine(line);
+                linesWritten++;
+
+                // Report progress every ~10%
+                if (progressCallback != null && totalLines > 1000)
+                {
+                    int progress = (linesWritten * 90) / totalLines; // Reserve 10% for disk write
+                    if (progress > lastReportedProgress + 10 || linesWritten == totalLines)
+                    {
+                        lastReportedProgress = progress;
+                        progressCallback(progress, $"Writing: {linesWritten:N0}/{totalLines:N0} lines");
+                    }
+                }
+            }
+
+            if (progressCallback != null)
+                progressCallback(95, "Saving to disk...");
+
             File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+
+            if (progressCallback != null)
+                progressCallback(100, "Complete");
         }
 
         // ── Watch ─────────────────────────────────────────────────────────────
