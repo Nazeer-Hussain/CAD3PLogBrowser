@@ -731,6 +731,37 @@ namespace Cad3PLogBrowser
         {
             bool showCall = CallTreeButton.Checked || showCallTreeMenuItem.Checked;
             bool showApi  = ApiTreeButton.Checked  || showApiListMenuItem.Checked;
+
+            // Make trees mutually exclusive - only one can be visible at a time
+            if (showCall && showApi)
+            {
+                // Both checked - toggle to the one that was just clicked
+                // Determine which was clicked by checking if it was previously unchecked
+                if (!CallTree.Visible && showCall)
+                {
+                    // Call Tree was just checked, hide API Tree
+                    showApi = false;
+                    ApiTreeButton.Checked = false;
+                    showApiListMenuItem.Checked = false;
+                }
+                else
+                {
+                    // API Tree was just checked, hide Call Tree
+                    showCall = false;
+                    CallTreeButton.Checked = false;
+                    showCallTreeMenuItem.Checked = false;
+                }
+            }
+
+            // Ensure at least one tree is always visible
+            if (!showCall && !showApi)
+            {
+                // Default to Call Tree if both are unchecked
+                showCall = true;
+                CallTreeButton.Checked = true;
+                showCallTreeMenuItem.Checked = true;
+            }
+
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
             showCallTreeMenuItem.Checked = CallTreeButton.Checked = showCall;
@@ -741,12 +772,18 @@ namespace Cad3PLogBrowser
         // Helper methods for tree switching
         private void ShowApiTree()
         {
+            // Ensure only API Tree is visible
+            CallTreeButton.Checked = false;
+            showCallTreeMenuItem.Checked = false;
             ApiTreeButton.Checked = true;
             showApiListMenuItem.Checked = true;
         }
 
         private void ShowCallTree()
         {
+            // Ensure only Call Tree is visible
+            ApiTreeButton.Checked = false;
+            showApiListMenuItem.Checked = false;
             CallTreeButton.Checked = true;
             showCallTreeMenuItem.Checked = true;
         }
