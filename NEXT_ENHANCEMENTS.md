@@ -100,7 +100,7 @@ Based on analysis of the codebase and the enhancement specification document, he
 
 **What to add:**
 - View > "Watch for File Changes" toggle menu item
-- On file change: update status bar with "File updated — click to reload" label
+- On file change: update status bar with "File updated â€” click to reload" label
 - Click label ? reload file preserving scroll position
 - Add "Auto-reload" option in Settings (on change ? reload immediately)
 - Tail mode: scroll to bottom on new content
@@ -245,7 +245,7 @@ Right-click on Tree Node:
 - Filter > "Filter by Time Range..." dialog
 - Two DateTimePicker controls (start and end)
 - Hide tree nodes outside window, keep parent nodes visible
-- Status bar: "Time filter active: HH:mm:ss – HH:mm:ss"
+- Status bar: "Time filter active: HH:mm:ss â€“ HH:mm:ss"
 - Filter > "Clear All Filters" option
 
 **Files to modify:**

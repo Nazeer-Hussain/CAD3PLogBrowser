@@ -254,12 +254,12 @@ ResetView()
 ```
 ? API Tree
   ?? ? API_Method1 (3 calls)
-  ?   ?? API_Method1 — Ln 10
-  ?   ?? API_Method1 — Ln 50
-  ?   ?? API_Method1 — Ln 100
+  ?   ?? API_Method1 â€” Ln 10
+  ?   ?? API_Method1 â€” Ln 50
+  ?   ?? API_Method1 â€” Ln 100
   ?? ? API_Method2 (5 calls)
-  ?   ?? API_Method2 — Ln 20
-  ?   ?? API_Method2 — Ln 30
+  ?   ?? API_Method2 â€” Ln 20
+  ?   ?? API_Method2 â€” Ln 30
   ?   ?? ... (all expanded)
 
   [100+ lines visible immediately - overwhelming!]
@@ -316,7 +316,7 @@ Line # | Log Text
                 ???????????
 
 [All nodes visible, properly scaled, edges connect]
-Scroll to zoom  •  Drag to pan  •  Hover to highlight
+Scroll to zoom  â€¢  Drag to pan  â€¢  Hover to highlight
 ```
 
 ---
