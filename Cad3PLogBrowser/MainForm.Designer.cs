@@ -125,6 +125,16 @@
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.treeContextCopyNodeNameMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextCopySubtreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextExpandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextExportBranchCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
             this.treeIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
             this.treeIconList.ImageSize = new System.Drawing.Size(16, 16);
@@ -979,18 +989,87 @@
             // treeContextMenu
             // 
             this.treeContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.contextCopyMenuItem,
-            this.contextSeparator1,
-            this.contextFindMenuItem,
-            this.contextFilterMenuItem,
-            this.contextSeparator2,
-            this.contextExpandAllMenuItem,
-            this.contextCollapseAllMenuItem,
-            this.contextJumpToMatchingMenuItem,
-            this.contextSeparator3,
-            this.contextRefreshMenuItem});
+            this.treeContextCopyNodeNameMenuItem,
+            this.treeContextCopySubtreeMenuItem,
+            this.treeContextSeparator1,
+            this.treeContextExpandAllMenuItem,
+            this.treeContextCollapseAllMenuItem,
+            this.treeContextJumpToMatchingMenuItem,
+            this.treeContextSeparator2,
+            this.treeContextExportBranchCsvMenuItem,
+            this.treeContextSearchInGrokMenuItem,
+            this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
             this.treeContextMenu.Size = new System.Drawing.Size(280, 200);
+            // 
+            // treeContextCopyNodeNameMenuItem
+            // 
+            this.treeContextCopyNodeNameMenuItem.Name = "treeContextCopyNodeNameMenuItem";
+            this.treeContextCopyNodeNameMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCopyNodeNameMenuItem.Text = "Copy &Node Name";
+            this.treeContextCopyNodeNameMenuItem.Click += new System.EventHandler(this.treeContextCopyNodeNameMenuItem_Click);
+            // 
+            // treeContextCopySubtreeMenuItem
+            // 
+            this.treeContextCopySubtreeMenuItem.Name = "treeContextCopySubtreeMenuItem";
+            this.treeContextCopySubtreeMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCopySubtreeMenuItem.Text = "Copy &Subtree as Text";
+            this.treeContextCopySubtreeMenuItem.Click += new System.EventHandler(this.treeContextCopySubtreeMenuItem_Click);
+            // 
+            // treeContextSeparator1
+            // 
+            this.treeContextSeparator1.Name = "treeContextSeparator1";
+            this.treeContextSeparator1.Size = new System.Drawing.Size(277, 6);
+            // 
+            // treeContextExpandAllMenuItem
+            // 
+            this.treeContextExpandAllMenuItem.Name = "treeContextExpandAllMenuItem";
+            this.treeContextExpandAllMenuItem.ShortcutKeyDisplayString = "Ctrl+E";
+            this.treeContextExpandAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextExpandAllMenuItem.Text = "&Expand All";
+            this.treeContextExpandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // treeContextCollapseAllMenuItem
+            // 
+            this.treeContextCollapseAllMenuItem.Name = "treeContextCollapseAllMenuItem";
+            this.treeContextCollapseAllMenuItem.ShortcutKeyDisplayString = "Ctrl+W";
+            this.treeContextCollapseAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextCollapseAllMenuItem.Text = "&Collapse All";
+            this.treeContextCollapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // treeContextJumpToMatchingMenuItem
+            // 
+            this.treeContextJumpToMatchingMenuItem.Name = "treeContextJumpToMatchingMenuItem";
+            this.treeContextJumpToMatchingMenuItem.ShortcutKeyDisplayString = "Ctrl+G";
+            this.treeContextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.treeContextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
+            // 
+            // treeContextSeparator2
+            // 
+            this.treeContextSeparator2.Name = "treeContextSeparator2";
+            this.treeContextSeparator2.Size = new System.Drawing.Size(277, 6);
+            // 
+            // treeContextExportBranchCsvMenuItem
+            // 
+            this.treeContextExportBranchCsvMenuItem.Name = "treeContextExportBranchCsvMenuItem";
+            this.treeContextExportBranchCsvMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextExportBranchCsvMenuItem.Text = "E&xport Branch to CSV...";
+            this.treeContextExportBranchCsvMenuItem.Click += new System.EventHandler(this.treeContextExportBranchCsvMenuItem_Click);
+            // 
+            // treeContextSearchInGrokMenuItem
+            // 
+            this.treeContextSearchInGrokMenuItem.Name = "treeContextSearchInGrokMenuItem";
+            this.treeContextSearchInGrokMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextSearchInGrokMenuItem.Text = "Search in &Grok";
+            this.treeContextSearchInGrokMenuItem.Click += new System.EventHandler(this.treeContextSearchInGrokMenuItem_Click);
+            // 
+            // treeContextShowInOtherTreeMenuItem
+            // 
+            this.treeContextShowInOtherTreeMenuItem.Name = "treeContextShowInOtherTreeMenuItem";
+            this.treeContextShowInOtherTreeMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextShowInOtherTreeMenuItem.Text = "Show in &API Tree";
+            this.treeContextShowInOtherTreeMenuItem.Click += new System.EventHandler(this.treeContextShowInOtherTreeMenuItem_Click);
             // 
             // contextFilterMenuItem
             // 
@@ -1152,6 +1231,16 @@
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
         private System.Windows.Forms.ContextMenuStrip treeContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCopyNodeNameMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCopySubtreeMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem treeContextExpandAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextCollapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextJumpToMatchingMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem treeContextExportBranchCsvMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;
         private System.Windows.Forms.ColumnHeader colLogText;
         private System.Windows.Forms.ToolStripProgressBar FileLoadProgress;
