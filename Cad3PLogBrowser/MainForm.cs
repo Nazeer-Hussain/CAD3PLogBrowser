@@ -1,7 +1,9 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
 using Cad3PLogBrowser.Services;
@@ -25,6 +27,7 @@ namespace Cad3PLogBrowser
         private AppSettings       _appSettings;
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
+        private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
 
         // Feature B10: Error/Warning navigation
         private List<int>         _errorLines       = new List<int>();
@@ -208,14 +211,14 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
 
-            _settingsService  = new SettingsService();
+            _appSettings = AppSettings.Load();
+            _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _logFileService   = new LogFileService(this);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
-            _appSettings = AppSettings.Load();
             RestoreSettings();
             InitTreeViews();
             BuildMruMenu();
@@ -263,6 +266,7 @@ namespace Cad3PLogBrowser
 
             // Feature 2a/2b: Default splitter to 30% if not set
             int dist = _settingsService.LoadSplitterDistance();
+
             if (dist > 0)
             {
                 mainSplitContainer.SplitterDistance = dist;
@@ -887,16 +891,41 @@ namespace Cad3PLogBrowser
             FileStatus.Image = Resources.yellow;
             FileLoadProgress.Visible = true;
             FileLoadProgress.Value = 0;
+            StatusFileName.Text = "Loading...";
 
             try
             {
-                var lines = await _logFileService.ReadLinesAsync(filePath);
+                // Read file with progress updates
+                var lines = await _logFileService.ReadLinesAsync(filePath, (progress, message) =>
+                {
+                    // Update UI on UI thread
+                    this.Invoke((Action)(() =>
+                    {
+                        FileLoadProgress.Value = progress;
+                        StatusFileName.Text = message;
+                    }));
+                });
+
                 _allLines        = lines;
                 _currentFilePath = filePath;
                 _searchService.Reset();
+                ClearHighlighting(); // Clear any previous search highlights
 
+                // Show processing message
+                StatusFileName.Text = "Processing log data...";
+                FileLoadProgress.Value = 0;
+
+                // Give UI a chance to update
+                await Task.Delay(10);
+
+                // Populate views with progress
                 PopulateVirtualListView(_allLines);
+                FileLoadProgress.Value = 33;
+                StatusFileName.Text = "Building call tree...";
+                await Task.Delay(10);
+
                 PopulateTrees(_allLines);
+                FileLoadProgress.Value = 100;
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = Resources.green_ball;
@@ -911,6 +940,7 @@ namespace Cad3PLogBrowser
             finally
             {
                 FileLoadProgress.Visible = false;
+                FileLoadProgress.Value = 0;
                 _isLoading = false;
             }
         }
@@ -952,8 +982,13 @@ namespace Cad3PLogBrowser
                     }
                 }
             }
-            logListView.VirtualListSize = _virtualLines.Count;
-            logListView.Invalidate();
+
+            // Safety check: ensure logListView is initialized
+            if (logListView != null)
+            {
+                logListView.VirtualListSize = _virtualLines.Count;
+                logListView.Invalidate();
+            }
             UpdateStatusBar();
         }
 
@@ -969,11 +1004,16 @@ namespace Cad3PLogBrowser
                     BackColour = GetLineColour(fl.Text)
                 });
             }
-            logListView.VirtualListSize = _virtualLines.Count;
-            logListView.Invalidate();
 
-            // Issue Fix: Auto-resize columns to fit content
-            AutoResizeLogListColumns();
+            // Safety check: ensure logListView is initialized
+            if (logListView != null)
+            {
+                logListView.VirtualListSize = _virtualLines.Count;
+                logListView.Invalidate();
+
+                // Issue Fix: Auto-resize columns to fit content
+                AutoResizeLogListColumns();
+            }
 
             UpdateStatusBar();
         }
@@ -996,7 +1036,8 @@ namespace Cad3PLogBrowser
         // Issue Fix: Auto-resize ListView columns to fit content
         private void AutoResizeLogListColumns()
         {
-            if (logListView.Columns.Count < 2) return;
+            // Safety check: ensure logListView is initialized
+            if (logListView == null || logListView.Columns.Count < 2) return;
 
             // Line number column: auto-resize to content
             logListView.Columns[0].Width = 80; // Fixed width for line numbers
@@ -1035,6 +1076,10 @@ namespace Cad3PLogBrowser
             filterMenuItem.Enabled   = FilterButton.Enabled  = loaded;
             FileStatus.Enabled       = loaded;
             FileLoadProgress.Enabled = loaded;
+
+            // Feature I1: Enable export filtered logs menu item (will be added to designer)
+            if (exportFilteredLogsMenuItem != null)
+                exportFilteredLogsMenuItem.Enabled = loaded;
         }
 
         // ── File menu ─────────────────────────────────────────────────────────
@@ -1051,22 +1096,49 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0) return;
             if (saveLogFileDialog.ShowDialog() != DialogResult.OK) return;
+
+            FileLoadProgress.Visible = true;
+            FileLoadProgress.Value = 0;
+            StatusFileName.Text = "Preparing to save...";
+
             try
             {
                 var lines = new List<string>();
                 if (logListView.SelectedIndices.Count > 0)
+                {
+                    StatusFileName.Text = "Collecting selected lines...";
                     foreach (int idx in logListView.SelectedIndices)
                         lines.Add(_virtualLines[idx].Text);
+                }
                 else
+                {
+                    StatusFileName.Text = "Collecting all lines...";
                     foreach (var vl in _virtualLines)
                         lines.Add(vl.Text);
+                }
 
-                _logFileService.WriteLines(saveLogFileDialog.FileName, lines);
+                FileLoadProgress.Value = 10;
+
+                // Save with progress callback
+                _logFileService.WriteLines(saveLogFileDialog.FileName, lines, (progress, message) =>
+                {
+                    this.Invoke((Action)(() =>
+                    {
+                        FileLoadProgress.Value = 10 + (progress * 90 / 100); // Scale to 10-100%
+                        StatusFileName.Text = message;
+                    }));
+                });
+
+                FileLoadProgress.Visible = false;
+                UpdateStatusBar();
+
                 MessageBox.Show(string.Format("{0} line(s) saved.", lines.Count),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
+                FileLoadProgress.Visible = false;
+                UpdateStatusBar();
                 MessageBox.Show(string.Format("Could not save file:\n{0}", ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1111,6 +1183,69 @@ namespace Cad3PLogBrowser
             Clipboard.SetText(_searchService.JoinForClipboard(lines));
         }
 
+        // ── Feature I1: Export Filtered Logs ──────────────────────────────────
+        private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_virtualLines.Count == 0)
+            {
+                MessageBox.Show("No log data to export.", Resources.TITLE,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Export Filtered Logs";
+                dlg.Filter = "Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + "_filtered.log";
+
+                if (!string.IsNullOrEmpty(_currentFilePath))
+                    dlg.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                FileLoadProgress.Visible = true;
+                FileLoadProgress.Value = 0;
+                StatusFileName.Text = "Exporting filtered logs...";
+
+                try
+                {
+                    var lines = new List<string>();
+                    foreach (var vl in _virtualLines)
+                        lines.Add(vl.Text);
+
+                    // Save with progress callback
+                    _logFileService.WriteLines(dlg.FileName, lines, (progress, message) =>
+                    {
+                        this.Invoke((Action)(() =>
+                        {
+                            FileLoadProgress.Value = progress;
+                            StatusFileName.Text = message;
+                        }));
+                    });
+
+                    FileLoadProgress.Visible = false;
+                    UpdateStatusBar();
+
+                    string filterInfo = string.IsNullOrEmpty(_activeFilterText) 
+                        ? "all lines" 
+                        : string.Format("filtered lines (filter: '{0}')", _activeFilterText);
+
+                    MessageBox.Show(
+                        string.Format("{0:N0} {1} exported successfully.\n\nFile: {2}",
+                            lines.Count, filterInfo, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    FileLoadProgress.Visible = false;
+                    UpdateStatusBar();
+                    MessageBox.Show(string.Format("Failed to export file:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         private void CopyButton_Click(object sender, EventArgs e) =>
             copyMenuItem_Click(sender, e);
 
@@ -1131,6 +1266,10 @@ namespace Cad3PLogBrowser
         private void FindButton_Click(object sender, EventArgs e) =>
             findMenuItem_Click(sender, e);
 
+        // Feature B8: Highlight search results
+        private string _lastHighlightTerm = "";
+        private bool _lastHighlightMatchCase = false;
+
         public void FindNext(string searchTerm, bool matchCase)
         {
             if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
@@ -1141,6 +1280,14 @@ namespace Cad3PLogBrowser
             int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase);
             if (idx >= 0)
             {
+                // Feature B8: Apply highlighting when search term changes
+                if (searchTerm != _lastHighlightTerm || matchCase != _lastHighlightMatchCase)
+                {
+                    HighlightSearchResults(searchTerm, matchCase);
+                    _lastHighlightTerm = searchTerm;
+                    _lastHighlightMatchCase = matchCase;
+                }
+
                 logListView.SelectedIndices.Clear();
                 logListView.SelectedIndices.Add(idx);
                 logListView.EnsureVisible(idx);
@@ -1151,6 +1298,67 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format("'{0}' not found.", searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+        }
+
+        // Feature B8: Highlight all search results in the log view
+        private void HighlightSearchResults(string searchTerm, bool matchCase)
+        {
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                ClearHighlighting();
+                return;
+            }
+
+            // Safety check: ensure _virtualLines is initialized
+            if (_virtualLines == null || _virtualLines.Count == 0)
+                return;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            // Update background colors for highlighted lines
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                if (vl.Text.IndexOf(searchTerm, comparison) >= 0)
+                {
+                    // Highlight color: Light yellow
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text = vl.Text,
+                        BackColour = Color.FromArgb(255, 255, 200)
+                    };
+                }
+            }
+
+            if (logListView != null)
+                logListView.Invalidate();
+        }
+
+        private void ClearHighlighting()
+        {
+            // Safety check: ensure _virtualLines is initialized
+            if (_virtualLines == null || _virtualLines.Count == 0)
+            {
+                _lastHighlightTerm = "";
+                return;
+            }
+
+            // Restore original colors based on log level
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                _virtualLines[i] = new VirtualLogLine
+                {
+                    LineNumber = vl.LineNumber,
+                    Text = vl.Text,
+                    BackColour = GetLineColour(vl.Text)
+                };
+            }
+
+            _lastHighlightTerm = "";
+            if (logListView != null)
+                logListView.Invalidate();
         }
 
         private void findNextMenuItem_Click(object sender, EventArgs e)
@@ -1329,6 +1537,7 @@ namespace Cad3PLogBrowser
             _activeFilterText = filterText; // Feature G5: Track active filter for status bar
             var filtered = _searchService.Filter(_allLines, filterText, matchCase);
             PopulateVirtualListViewFiltered(filtered);
+            ClearHighlighting(); // Clear search highlights when filter changes
         }
 
         // Feature B3: Clear filter and show all lines
@@ -1336,6 +1545,7 @@ namespace Cad3PLogBrowser
         {
             _activeFilterText = "";
             PopulateVirtualListView(_allLines);
+            ClearHighlighting(); // Clear search highlights when filter is cleared
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -1400,6 +1610,7 @@ namespace Cad3PLogBrowser
                     "─────────────────────────────────────────────────────────────────\r\n" +
                     "Ctrl+O              Open log file\r\n" +
                     "Ctrl+S              Save As (selection or all visible lines)\r\n" +
+                    "Ctrl+Shift+E        Export Filtered Logs (save visible lines)\r\n" +
                     "F5                  Refresh (reload, keep scroll position)\r\n" +
                     "Ctrl+R              Reload File from Disk (reset to top)\r\n" +
                     "Alt+F4              Exit\r\n\r\n" +
@@ -1482,9 +1693,11 @@ namespace Cad3PLogBrowser
             SetDocumentLoaded(false);
             LayoutTrees();
 
-            // Feature 2a: Set default splitter to 30% if not already set
-            if (mainSplitContainer.SplitterDistance == 285) // default/uninitialized value
+            // Feature 2a: Set default splitter to 30% only on first run (no saved value)
+            // Check if this is the first run (no saved splitter distance)
+            if (_appSettings.SplitterDistance <= 0)
             {
+                // First run - calculate 30% default
                 int defaultSplitter = (int)(this.ClientSize.Width * 0.3);
                 if (defaultSplitter > mainSplitContainer.Panel1MinSize && 
                     defaultSplitter < this.ClientSize.Width - mainSplitContainer.Panel2MinSize)
@@ -1492,11 +1705,31 @@ namespace Cad3PLogBrowser
                     mainSplitContainer.SplitterDistance = defaultSplitter;
                 }
             }
+            // else: RestoreSettings already set the splitter distance from saved value
 
             logTab.Text = "Log";
             performanceTab.Text = "Performance";
             logDetailTab.Text = "Log Details";
             callGraphTab.Text = "Call Graph";
+
+            // CRITICAL FIX: Restore splitter distance AFTER all window layout is complete
+            // Use BeginInvoke to run after the message queue is processed
+            if (_appSettings.SplitterDistance > 0)
+            {
+                int savedDistance = _appSettings.SplitterDistance;
+                this.BeginInvoke((Action)(() =>
+                {
+                    mainSplitContainer.SplitterDistance = savedDistance;
+
+                    // NOW form is fully loaded - enable saving
+                    _isFormLoaded = true;
+                }));
+            }
+            else
+            {
+                // No saved value - just enable saving
+                _isFormLoaded = true;
+            }
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -1522,6 +1755,37 @@ namespace Cad3PLogBrowser
                 _logFileService?.StopWatching();
             }
             catch { /* Non-fatal */ }
+
+            // PERFORMANCE FIX: Clear large data structures before form disposal
+            // This significantly speeds up form closing with large log files
+            try
+            {
+                // Suspend layout to speed up clearing
+                CallTree.BeginUpdate();
+                ApiTree.BeginUpdate();
+
+                // Clear tree views (can have thousands of nodes)
+                CallTree.Nodes.Clear();
+                ApiTree.Nodes.Clear();
+
+                CallTree.EndUpdate();
+                ApiTree.EndUpdate();
+
+                // Clear virtual list view
+                logListView.VirtualListSize = 0;
+                _virtualLines.Clear();
+
+                // Clear large collections
+                _allLines.Clear();
+                _apiNodes.Clear();
+                _lastEntries.Clear();
+                _errorLines.Clear();
+                _warningLines.Clear();
+            }
+            catch
+            {
+                /* Non-fatal */
+            }
         }
 
         // Issue Fix: Auto-resize ListView columns when form resizes
@@ -1534,7 +1798,20 @@ namespace Cad3PLogBrowser
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
         private void MainForm_Resize(object sender, EventArgs e) { }
         private void MainForm_SizeChanged(object sender, EventArgs e) { }
-        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e) => LayoutTrees();
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+            LayoutTrees();
+
+            // Only save splitter distance if form is fully loaded (not during initialization)
+            if (!_isFormLoaded)
+                return;
+
+            // Save splitter distance immediately to in-memory settings
+            if (_appSettings != null && mainSplitContainer != null)
+            {
+                _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
+            }
+        }
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e) { }
         private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e) { }
 

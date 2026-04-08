@@ -34,6 +34,7 @@ namespace Cad3PLogBrowser
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.refreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -169,6 +170,7 @@ namespace Cad3PLogBrowser
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
             this.saveAsMenuItem,
+            this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.refreshMenuItem,
             this.reloadMenuItem,
@@ -198,6 +200,14 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
             this.saveAsMenuItem.Text = "&Save As...";
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
+            // 
+            // exportFilteredLogsMenuItem
+            // 
+            this.exportFilteredLogsMenuItem.Name = "exportFilteredLogsMenuItem";
+            this.exportFilteredLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.E)));
+            this.exportFilteredLogsMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportFilteredLogsMenuItem.Text = "&Export Filtered Logs...";
+            this.exportFilteredLogsMenuItem.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
             // 
             // fileSeparatorAfterSave
             // 
@@ -1164,6 +1174,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;

@@ -14,9 +14,9 @@ namespace Cad3PLogBrowser.Services
 
         private readonly AppSettings _appSettings;
 
-        public SettingsService()
+        public SettingsService(AppSettings appSettings)
         {
-            _appSettings = AppSettings.Load();
+            _appSettings = appSettings;
         }
 
         // ── Read ──────────────────────────────────────────────────────────────
