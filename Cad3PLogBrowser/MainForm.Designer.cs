@@ -946,6 +946,72 @@ namespace Cad3PLogBrowser
             this.logContextMenu.Name = "logContextMenu";
             this.logContextMenu.Size = new System.Drawing.Size(280, 200);
             // 
+            // contextCopyMenuItem
+            // 
+            this.contextCopyMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
+            this.contextCopyMenuItem.Name = "contextCopyMenuItem";
+            this.contextCopyMenuItem.ShortcutKeyDisplayString = "Ctrl+C";
+            this.contextCopyMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextCopyMenuItem.Text = "&Copy";
+            this.contextCopyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
+            // 
+            // contextSeparator1
+            // 
+            this.contextSeparator1.Name = "contextSeparator1";
+            this.contextSeparator1.Size = new System.Drawing.Size(277, 6);
+            // 
+            // contextFindMenuItem
+            // 
+            this.contextFindMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.contextFindMenuItem.Name = "contextFindMenuItem";
+            this.contextFindMenuItem.ShortcutKeyDisplayString = "Ctrl+F";
+            this.contextFindMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextFindMenuItem.Text = "&Find...";
+            this.contextFindMenuItem.Click += new System.EventHandler(this.findMenuItem_Click);
+            // 
+            // contextFilterMenuItem
+            // 
+            this.contextFilterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.contextFilterMenuItem.Name = "contextFilterMenuItem";
+            this.contextFilterMenuItem.ShortcutKeyDisplayString = "Ctrl+I";
+            this.contextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextFilterMenuItem.Text = "Fil&ter...";
+            this.contextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            // 
+            // contextSeparator2
+            // 
+            this.contextSeparator2.Name = "contextSeparator2";
+            this.contextSeparator2.Size = new System.Drawing.Size(277, 6);
+            // 
+            // contextExpandAllMenuItem
+            // 
+            this.contextExpandAllMenuItem.Name = "contextExpandAllMenuItem";
+            this.contextExpandAllMenuItem.ShortcutKeyDisplayString = "Ctrl+E";
+            this.contextExpandAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextExpandAllMenuItem.Text = "&Expand All";
+            this.contextExpandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // contextCollapseAllMenuItem
+            // 
+            this.contextCollapseAllMenuItem.Name = "contextCollapseAllMenuItem";
+            this.contextCollapseAllMenuItem.ShortcutKeyDisplayString = "Ctrl+W";
+            this.contextCollapseAllMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextCollapseAllMenuItem.Text = "&Collapse All";
+            this.contextCollapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // contextJumpToMatchingMenuItem
+            // 
+            this.contextJumpToMatchingMenuItem.Name = "contextJumpToMatchingMenuItem";
+            this.contextJumpToMatchingMenuItem.ShortcutKeyDisplayString = "Ctrl+G";
+            this.contextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.contextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
+            // 
+            // contextSeparator3
+            // 
+            this.contextSeparator3.Name = "contextSeparator3";
+            this.contextSeparator3.Size = new System.Drawing.Size(277, 6);
+            // 
             // contextRefreshMenuItem
             // 
             this.contextRefreshMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
