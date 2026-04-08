@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
@@ -14,6 +15,7 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
             _mainForm = mainForm;
+            ThemeManager.ApplyTheme(this);
         }
 
         /// <summary>Triggers Find Next using the current search term — called by the menu shortcut.</summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Windows.Forms;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
@@ -16,6 +17,7 @@ namespace Cad3PLogBrowser
             labelCopyright.Text         = AssemblyCopyright;
             labelCompanyName.Text       = AssemblyCompany;
             textBoxDescription.Text     = AssemblyDescription;
+            ThemeManager.ApplyTheme(this);
         }
 
         #region Assembly attribute accessors
