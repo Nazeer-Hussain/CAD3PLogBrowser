@@ -1,4 +1,4 @@
-# ? SESSION COMPLETE: Features C6, I1, B8 Implementation
+﻿# ? SESSION COMPLETE: Features C6, I1, B8 Implementation
 
 ## ?? EXECUTIVE SUMMARY
 

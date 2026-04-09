@@ -1,4 +1,4 @@
-# Feature C6 Complete - Enhanced Right-Click Context Menu
+﻿# Feature C6 Complete - Enhanced Right-Click Context Menu
 
 ## ? Feature C6 Implemented
 

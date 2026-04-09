@@ -1,4 +1,4 @@
-# ?? BUG FIX: Null Reference Exception
+﻿# ?? BUG FIX: Null Reference Exception
 
 **Date:** 2025-01-15  
 **Issue:** ArgumentNullException on application startup  

@@ -1,4 +1,4 @@
-# Features C1, G4, and B10 (Partial) - Implementation Summary
+﻿# Features C1, G4, and B10 (Partial) - Implementation Summary
 
 ## ? COMPLETED FEATURES
 

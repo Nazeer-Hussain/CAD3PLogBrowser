@@ -1,4 +1,4 @@
-# ?? SPLITTER DISTANCE DEBUG GUIDE
+﻿# ?? SPLITTER DISTANCE DEBUG GUIDE
 
 **Issue:** Splitter distance still not persisting correctly  
 **Current Saved Value:** 498 pixels  

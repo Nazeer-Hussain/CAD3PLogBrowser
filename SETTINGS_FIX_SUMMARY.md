@@ -1,4 +1,4 @@
-# ? SETTINGS FIX - Quick Summary
+﻿# ? SETTINGS FIX - Quick Summary
 
 **Issue:** Settings (splitter distance) not being saved/restored  
 **Status:** ? FIXED  

@@ -1,4 +1,4 @@
-# ? ALL BUGS FIXED - Ready to Test!
+﻿# ? ALL BUGS FIXED - Ready to Test!
 
 **Date:** 2025-01-15  
 **Total Issues Fixed:** 3 major bugs  

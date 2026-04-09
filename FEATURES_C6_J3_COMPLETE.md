@@ -1,4 +1,4 @@
-# Features C6 & J3 Complete - Context Menus & Grok Integration
+ï»¿# Features C6 & J3 Complete - Context Menus & Grok Integration
 
 ## ? FEATURES C6 & J3 FULLY IMPLEMENTED
 
@@ -72,7 +72,7 @@ Final URL: https://grok.example.com/search?q=ProAssemblyCreate
 - ? URL encoding of method names
 - ? Strips duration suffixes `[142 ms]`
 - ? Strips call counts `(3 calls)`
-- ? Strips line numbers `— Ln 123`
+- ? Strips line numbers `â€” Ln 123`
 - ? Opens in default browser
 - ? Error handling if URL not configured
 - ? Helpful message if Grok URL is empty
@@ -320,7 +320,7 @@ Result:   https://grok.example.com/search?q=Pro%3A%3AAssembly%3A%3ACreate
 The `GetMethodNameFromNode()` method intelligently strips:
 - Duration suffixes: `" [142 ms]"` ? removed
 - Call counts: `" (3 calls)"` ? removed
-- Line numbers: `" — Ln 123"` ? removed
+- Line numbers: `" â€” Ln 123"` ? removed
 
 **Examples:**
 ```
@@ -330,7 +330,7 @@ Output: "ProAssemblyCreate"
 Input:  "ProPartCreate  (5 calls)"
 Output: "ProPartCreate"
 
-Input:  "ProSolidCreate — Ln 234"
+Input:  "ProSolidCreate â€” Ln 234"
 Output: "ProSolidCreate"
 ```
 

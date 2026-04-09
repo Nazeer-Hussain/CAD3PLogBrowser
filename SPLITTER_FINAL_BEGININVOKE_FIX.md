@@ -1,4 +1,4 @@
-# ? SPLITTER FIX - FINAL SOLUTION APPLIED
+﻿# ? SPLITTER FIX - FINAL SOLUTION APPLIED
 
 **Issue:** Splitter restored to 160 but then changed to 332 by window layout  
 **Root Cause:** Window maximize/layout recalculates splitter AFTER RestoreSettings  

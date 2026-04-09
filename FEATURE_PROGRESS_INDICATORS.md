@@ -1,4 +1,4 @@
-# ? FEATURE: Progress Bar for Long Operations
+﻿# ? FEATURE: Progress Bar for Long Operations
 
 **Date:** 2025-01-15  
 **Feature:** Visual progress feedback for file operations  

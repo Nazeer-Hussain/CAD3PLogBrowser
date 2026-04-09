@@ -1,4 +1,4 @@
-# Registry Dependency Removed - Pure JSON Storage
+﻿# Registry Dependency Removed - Pure JSON Storage
 
 ## ? Registry Dependency Completely Removed
 

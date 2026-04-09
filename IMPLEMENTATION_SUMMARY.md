@@ -1,4 +1,4 @@
-# Implementation Summary - 5 High-Priority Features
+﻿# Implementation Summary - 5 High-Priority Features
 
 ## Features Implemented
 

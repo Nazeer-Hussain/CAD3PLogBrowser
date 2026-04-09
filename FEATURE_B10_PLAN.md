@@ -1,4 +1,4 @@
-# Feature B10 Implementation Plan
+﻿# Feature B10 Implementation Plan
 
 ## Feature B10 - Quick Navigation (Next/Prev Error/Warning)
 

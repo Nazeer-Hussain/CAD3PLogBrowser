@@ -1,4 +1,4 @@
-# Git Commit Message
+﻿# Git Commit Message
 
 ```
 feat: implement A3, H1, C3, G5, B3 high-priority features

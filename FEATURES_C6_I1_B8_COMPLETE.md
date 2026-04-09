@@ -1,4 +1,4 @@
-# ? FEATURES C6, I1, B8 IMPLEMENTATION COMPLETE
+﻿# ? FEATURES C6, I1, B8 IMPLEMENTATION COMPLETE
 
 **Implementation Date:** 2025-01-15  
 **Features Implemented:** 3  

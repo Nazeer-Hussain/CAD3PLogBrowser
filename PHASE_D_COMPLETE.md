@@ -1,4 +1,4 @@
-# Phase D Complete - Window State & UI Defaults
+﻿# Phase D Complete - Window State & UI Defaults
 
 ## ? ALL FEATURES IMPLEMENTED
 
@@ -218,7 +218,7 @@ SelectDefaultTreeNode():
 
 | Setting | Default | Rationale |
 |---------|---------|-----------|
-| Window Size | 1024×768 | Standard fallback |
+| Window Size | 1024Ã—768 | Standard fallback |
 | Window Position | -1, -1 (not set) | Triggers maximize on first launch |
 | Window State | Maximized (first launch) | Shows full UI immediately |
 | Splitter | 30% width | Optimal tree:log ratio |

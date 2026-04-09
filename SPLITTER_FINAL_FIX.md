@@ -1,4 +1,4 @@
-# ? SPLITTER DISTANCE - FINAL FIX APPLIED!
+﻿# ? SPLITTER DISTANCE - FINAL FIX APPLIED!
 
 **Date:** 2025-01-15  
 **Issue:** Splitter distance changed from 498 ? 1033 during form initialization  

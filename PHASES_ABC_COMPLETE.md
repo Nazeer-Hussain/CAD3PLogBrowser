@@ -1,4 +1,4 @@
-# Phase A, B, C Complete - Implementation Summary
+﻿# Phase A, B, C Complete - Implementation Summary
 
 ## ? ALL THREE PHASES COMPLETE
 

@@ -1,4 +1,4 @@
-# ? STRING EXTERNALIZATION - SETUP COMPLETE
+﻿# ? STRING EXTERNALIZATION - SETUP COMPLETE
 
 **Date:** 2025-01-15  
 **Action:** Externalize hardcoded strings to resource files  
@@ -165,7 +165,7 @@ using Cad3PLogBrowser.Properties;
 **French (Strings.fr-FR.resx):**
 ```xml
 <data name="Msg_LinesSaved">
-  <value>{0} ligne(s) enregistr�e(s).</value>
+  <value>{0} ligne(s) enregistrée(s).</value>
 </data>
 ```
 

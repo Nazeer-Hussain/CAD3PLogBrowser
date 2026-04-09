@@ -1,4 +1,4 @@
-# Features Implemented - Quick Reference
+﻿# Features Implemented - Quick Reference
 
 ## ?? Summary
 5 high-priority features from the enhancement specification have been successfully implemented and tested.

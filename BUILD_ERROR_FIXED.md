@@ -1,4 +1,4 @@
-# ? BUILD ERROR FIXED
+﻿# ? BUILD ERROR FIXED
 
 **Date:** 2025-01-15  
 **Issue:** Build failed due to invalid character encoding in Strings.resx  
@@ -14,7 +14,7 @@ Invalid Resx file. Invalid character in the given encoding. Line 251, position 3
 ```
 
 **Location:** `Cad3PLogBrowser\Properties\Strings.resx` line 251  
-**Cause:** Em dash character (�) in XML causing encoding issues
+**Cause:** Em dash character (—) in XML causing encoding issues
 
 ---
 
