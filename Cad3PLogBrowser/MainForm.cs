@@ -1886,8 +1886,67 @@ namespace Cad3PLogBrowser
                 aboutDialog.ShowDialog(this);
         }
 
+        private void checkForUpdatesMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Open GitHub releases page
+                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open updates page:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void reportErrorsMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Open GitHub issues page
+                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues/new");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open issues page:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void viewHelpMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Try to open CHM help file if it exists
+                string helpFilePath = Path.Combine(Application.StartupPath, "Cad3PLogBrowser.chm");
+
+                if (File.Exists(helpFilePath))
+                {
+                    System.Diagnostics.Process.Start(helpFilePath);
+                }
+                else
+                {
+                    // If CHM doesn't exist, show keyboard shortcuts as fallback
+                    MessageBox.Show(
+                        "Help file (Cad3PLogBrowser.chm) not found.\n\n" +
+                        "Press Ctrl+K to view keyboard shortcuts,\n" +
+                        "or visit the GitHub repository for documentation.",
+                        Resources.TITLE, 
+                        MessageBoxButtons.OK, 
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open help file:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         private void helpMenuItem_Click(object sender, EventArgs e)
         {
+            // This should not be called - removed from designer
             ShowKeyboardShortcutsDialog();
         }
 

@@ -61,9 +61,9 @@ namespace Cad3PLogBrowser
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.helpSeparatorBeforeAbout = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.checkForUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.reportErrorsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.FileLoadProgress = new System.Windows.Forms.ToolStripProgressBar();
@@ -414,42 +414,42 @@ namespace Cad3PLogBrowser
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
-            this.keyboardShortcutsMenuItem,
-            this.helpSeparatorBeforeAbout,
-            this.aboutMenuItem});
+            this.aboutMenuItem,
+            this.checkForUpdatesMenuItem,
+            this.reportErrorsMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
             this.helpMenuItem.Text = "&Help";
-            this.helpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
             // 
             // viewHelpMenuItem
             // 
             this.viewHelpMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.help;
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.viewHelpMenuItem.Size = new System.Drawing.Size(220, 22);
-            this.viewHelpMenuItem.Text = "View &Help";
-            this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
-            // 
-            // keyboardShortcutsMenuItem
-            // 
-            this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
-            this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
-            this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
-            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
-            this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
-            // 
-            // helpSeparatorBeforeAbout
-            // 
-            this.helpSeparatorBeforeAbout.Name = "helpSeparatorBeforeAbout";
-            this.helpSeparatorBeforeAbout.Size = new System.Drawing.Size(159, 6);
+            this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.viewHelpMenuItem.Text = "&Help CHM";
+            this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // aboutMenuItem
             // 
             this.aboutMenuItem.Name = "aboutMenuItem";
-            this.aboutMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.aboutMenuItem.Size = new System.Drawing.Size(200, 22);
             this.aboutMenuItem.Text = "&About";
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
+            // 
+            // checkForUpdatesMenuItem
+            // 
+            this.checkForUpdatesMenuItem.Name = "checkForUpdatesMenuItem";
+            this.checkForUpdatesMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.checkForUpdatesMenuItem.Text = "&Check for Updates";
+            this.checkForUpdatesMenuItem.Click += new System.EventHandler(this.checkForUpdatesMenuItem_Click);
+            // 
+            // reportErrorsMenuItem
+            // 
+            this.reportErrorsMenuItem.Name = "reportErrorsMenuItem";
+            this.reportErrorsMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.reportErrorsMenuItem.Text = "&Report Errors...";
+            this.reportErrorsMenuItem.Click += new System.EventHandler(this.reportErrorsMenuItem_Click);
             // 
             // mainStatusStrip
             // 
@@ -1174,8 +1174,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
@@ -1207,7 +1205,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem copyMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findNextMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
         private System.Windows.Forms.ToolStrip mainToolStrip;
         private System.Windows.Forms.ToolStripButton OpenButton;
         private System.Windows.Forms.ToolStripButton SaveButton;
@@ -1254,8 +1251,11 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
-        private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
-        private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem checkForUpdatesMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem reportErrorsMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;
