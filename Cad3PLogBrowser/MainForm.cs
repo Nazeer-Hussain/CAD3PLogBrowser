@@ -1414,6 +1414,39 @@ namespace Cad3PLogBrowser
         private void CopyButton_Click(object sender, EventArgs e) =>
             copyMenuItem_Click(sender, e);
 
+        // ── Feature I4: Copy with Headers ────────────────────────────────────
+        private void contextCopyWithHeadersMenuItem_Click(object sender, EventArgs e)
+        {
+            if (logListView.SelectedIndices.Count == 0)
+            {
+                MessageBox.Show("No lines selected.", Resources.TITLE,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            // Add header line
+            sb.AppendLine("Line #\tLog Text");
+            sb.AppendLine("------\t--------");
+
+            // Add selected lines
+            var indices = new int[logListView.SelectedIndices.Count];
+            logListView.SelectedIndices.CopyTo(indices, 0);
+            Array.Sort(indices);
+
+            foreach (int idx in indices)
+            {
+                if (idx >= 0 && idx < _virtualLines.Count)
+                {
+                    var vl = _virtualLines[idx];
+                    sb.AppendLine(string.Format("{0}\t{1}", vl.LineNumber, vl.Text));
+                }
+            }
+
+            Clipboard.SetText(sb.ToString());
+            StatusFileName.Text = string.Format("Copied {0} lines with headers to clipboard.", indices.Length);
+        }
+
         private FindForm _findForm;
 
         private void findMenuItem_Click(object sender, EventArgs e)
