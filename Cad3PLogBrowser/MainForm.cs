@@ -480,7 +480,6 @@ namespace Cad3PLogBrowser
 
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
-            HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
 
             SyncTreeVisibility();
         }
@@ -878,8 +877,8 @@ namespace Cad3PLogBrowser
 
         private void SyncTabVisibility()
         {
-            mainTabControl.Appearance = HideTabsButton.Checked
-                ? TabAppearance.FlatButtons : TabAppearance.Normal;
+            // Hide tabs feature removed - tabs are always visible with proper labels
+            // mainTabControl.Appearance = TabAppearance.Normal;
         }
 
         private void LayoutTrees()
@@ -1367,6 +1366,12 @@ namespace Cad3PLogBrowser
         private void FindButton_Click(object sender, EventArgs e) =>
             findMenuItem_Click(sender, e);
 
+        private void FindNextButton_Click(object sender, EventArgs e)
+        {
+            if (_findForm != null)
+                _findForm.TriggerFindNext();
+        }
+
         // Feature B8: Highlight search results
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
@@ -1569,6 +1574,17 @@ namespace Cad3PLogBrowser
             exportFilteredLogsMenuItem.Enabled = !inProgress;
             openMenuItem.Enabled = !inProgress;
             reloadMenuItem.Enabled = !inProgress;
+
+            // Disable/enable corresponding toolbar buttons
+            ExpandAllButton.Enabled = !inProgress;
+            CollapseAllButton.Enabled = !inProgress;
+            FilterButton.Enabled = !inProgress;
+            FindButton.Enabled = !inProgress;
+            FindNextButton.Enabled = !inProgress;
+            SaveButton.Enabled = !inProgress;
+            SaveToXLSButton.Enabled = !inProgress;
+            OpenButton.Enabled = !inProgress;
+            RefreshButton.Enabled = !inProgress;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -1886,8 +1902,67 @@ namespace Cad3PLogBrowser
                 aboutDialog.ShowDialog(this);
         }
 
+        private void checkForUpdatesMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Open GitHub releases page
+                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open updates page:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void reportErrorsMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Open GitHub issues page
+                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues/new");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open issues page:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void viewHelpMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Try to open CHM help file if it exists
+                string helpFilePath = Path.Combine(Application.StartupPath, "Cad3PLogBrowser.chm");
+
+                if (File.Exists(helpFilePath))
+                {
+                    System.Diagnostics.Process.Start(helpFilePath);
+                }
+                else
+                {
+                    // If CHM doesn't exist, show keyboard shortcuts as fallback
+                    MessageBox.Show(
+                        "Help file (Cad3PLogBrowser.chm) not found.\n\n" +
+                        "Press Ctrl+K to view keyboard shortcuts,\n" +
+                        "or visit the GitHub repository for documentation.",
+                        Resources.TITLE, 
+                        MessageBoxButtons.OK, 
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open help file:\n{ex.Message}", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         private void helpMenuItem_Click(object sender, EventArgs e)
         {
+            // This should not be called - removed from designer
             ShowKeyboardShortcutsDialog();
         }
 

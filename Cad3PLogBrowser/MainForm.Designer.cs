@@ -61,9 +61,9 @@ namespace Cad3PLogBrowser
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.helpSeparatorBeforeAbout = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.checkForUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.reportErrorsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.FileLoadProgress = new System.Windows.Forms.ToolStripProgressBar();
@@ -85,25 +85,28 @@ namespace Cad3PLogBrowser
             this.mainToolStrip = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
+            this.SaveToXLSButton = new System.Windows.Forms.ToolStripButton();
             this.RefreshButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterRefresh = new System.Windows.Forms.ToolStripSeparator();
             this.CopyButton = new System.Windows.Forms.ToolStripButton();
             this.FindButton = new System.Windows.Forms.ToolStripButton();
+            this.FindNextButton = new System.Windows.Forms.ToolStripButton();
             this.FilterButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
+            this.ExpandAllButton = new System.Windows.Forms.ToolStripButton();
+            this.CollapseAllButton = new System.Windows.Forms.ToolStripButton();
+            this.JumpToMatchingButton = new System.Windows.Forms.ToolStripButton();
+            this.separatorAfterTreeOps = new System.Windows.Forms.ToolStripSeparator();
             this.prevErrorButton = new System.Windows.Forms.ToolStripButton();
             this.nextErrorButton = new System.Windows.Forms.ToolStripButton();
             this.prevWarningButton = new System.Windows.Forms.ToolStripButton();
             this.nextWarningButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterNavigation = new System.Windows.Forms.ToolStripSeparator();
-            this.SettingsButton = new System.Windows.Forms.ToolStripButton();
-            this.separatorAfterSettings = new System.Windows.Forms.ToolStripSeparator();
             this.CallTreeButton = new System.Windows.Forms.ToolStripButton();
             this.ApiTreeButton = new System.Windows.Forms.ToolStripButton();
-            this.separatorAfterApiTree = new System.Windows.Forms.ToolStripSeparator();
-            this.HideTabsButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripPerformanceButton = new System.Windows.Forms.ToolStripButton();
-            this.separatorBeforeHelp = new System.Windows.Forms.ToolStripSeparator();
+            this.separatorAfterTreeView = new System.Windows.Forms.ToolStripSeparator();
+            this.SettingsButton = new System.Windows.Forms.ToolStripButton();
+            this.separatorAfterSettings = new System.Windows.Forms.ToolStripSeparator();
             this.ShowHelpButton = new System.Windows.Forms.ToolStripButton();
             this.openLogFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.saveLogFileDialog = new System.Windows.Forms.SaveFileDialog();
@@ -414,42 +417,42 @@ namespace Cad3PLogBrowser
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
-            this.keyboardShortcutsMenuItem,
-            this.helpSeparatorBeforeAbout,
-            this.aboutMenuItem});
+            this.aboutMenuItem,
+            this.checkForUpdatesMenuItem,
+            this.reportErrorsMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
             this.helpMenuItem.Text = "&Help";
-            this.helpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
             // 
             // viewHelpMenuItem
             // 
             this.viewHelpMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.help;
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.viewHelpMenuItem.Size = new System.Drawing.Size(220, 22);
-            this.viewHelpMenuItem.Text = "View &Help";
-            this.viewHelpMenuItem.Click += new System.EventHandler(this.helpMenuItem_Click);
-            // 
-            // keyboardShortcutsMenuItem
-            // 
-            this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
-            this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
-            this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
-            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
-            this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
-            // 
-            // helpSeparatorBeforeAbout
-            // 
-            this.helpSeparatorBeforeAbout.Name = "helpSeparatorBeforeAbout";
-            this.helpSeparatorBeforeAbout.Size = new System.Drawing.Size(159, 6);
+            this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.viewHelpMenuItem.Text = "&Help CHM";
+            this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // aboutMenuItem
             // 
             this.aboutMenuItem.Name = "aboutMenuItem";
-            this.aboutMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.aboutMenuItem.Size = new System.Drawing.Size(200, 22);
             this.aboutMenuItem.Text = "&About";
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
+            // 
+            // checkForUpdatesMenuItem
+            // 
+            this.checkForUpdatesMenuItem.Name = "checkForUpdatesMenuItem";
+            this.checkForUpdatesMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.checkForUpdatesMenuItem.Text = "&Check for Updates";
+            this.checkForUpdatesMenuItem.Click += new System.EventHandler(this.checkForUpdatesMenuItem_Click);
+            // 
+            // reportErrorsMenuItem
+            // 
+            this.reportErrorsMenuItem.Name = "reportErrorsMenuItem";
+            this.reportErrorsMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.reportErrorsMenuItem.Text = "&Report Errors...";
+            this.reportErrorsMenuItem.Click += new System.EventHandler(this.reportErrorsMenuItem_Click);
             // 
             // mainStatusStrip
             // 
@@ -707,25 +710,28 @@ namespace Cad3PLogBrowser
             this.mainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.OpenButton,
             this.SaveButton,
+            this.SaveToXLSButton,
             this.RefreshButton,
             this.separatorAfterRefresh,
             this.CopyButton,
             this.FindButton,
+            this.FindNextButton,
             this.FilterButton,
             this.separatorAfterFilter,
+            this.ExpandAllButton,
+            this.CollapseAllButton,
+            this.JumpToMatchingButton,
+            this.separatorAfterTreeOps,
             this.prevErrorButton,
             this.nextErrorButton,
             this.prevWarningButton,
             this.nextWarningButton,
             this.separatorAfterNavigation,
-            this.SettingsButton,
-            this.separatorAfterSettings,
             this.CallTreeButton,
             this.ApiTreeButton,
-            this.separatorAfterApiTree,
-            this.HideTabsButton,
-            this.toolStripPerformanceButton,
-            this.separatorBeforeHelp,
+            this.separatorAfterTreeView,
+            this.SettingsButton,
+            this.separatorAfterSettings,
             this.ShowHelpButton});
             this.mainToolStrip.Location = new System.Drawing.Point(0, 26);
             this.mainToolStrip.Name = "mainToolStrip";
@@ -751,8 +757,18 @@ namespace Cad3PLogBrowser
             this.SaveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(23, 22);
-            this.SaveButton.Text = "Save As";
+            this.SaveButton.Text = "Save Selected";
             this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
+            // 
+            // SaveToXLSButton
+            // 
+            this.SaveToXLSButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.SaveToXLSButton.Image = global::Cad3PLogBrowser.Properties.Resources.save;
+            this.SaveToXLSButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.SaveToXLSButton.Name = "SaveToXLSButton";
+            this.SaveToXLSButton.Size = new System.Drawing.Size(23, 22);
+            this.SaveToXLSButton.Text = "Save to XLS";
+            this.SaveToXLSButton.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
             // 
             // RefreshButton
             // 
@@ -761,7 +777,7 @@ namespace Cad3PLogBrowser
             this.RefreshButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.RefreshButton.Name = "RefreshButton";
             this.RefreshButton.Size = new System.Drawing.Size(23, 22);
-            this.RefreshButton.Text = "Refresh";
+            this.RefreshButton.Text = "Reload from Disk";
             this.RefreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
             // 
             // separatorAfterRefresh
@@ -789,6 +805,16 @@ namespace Cad3PLogBrowser
             this.FindButton.Text = "Find";
             this.FindButton.Click += new System.EventHandler(this.FindButton_Click);
             // 
+            // FindNextButton
+            // 
+            this.FindNextButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.FindNextButton.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.FindNextButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.FindNextButton.Name = "FindNextButton";
+            this.FindNextButton.Size = new System.Drawing.Size(23, 22);
+            this.FindNextButton.Text = "Find Next (F3)";
+            this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
+            // 
             // FilterButton
             // 
             this.FilterButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
@@ -804,7 +830,39 @@ namespace Cad3PLogBrowser
             this.separatorAfterFilter.Name = "separatorAfterFilter";
             this.separatorAfterFilter.Size = new System.Drawing.Size(6, 25);
             // 
-            // prevErrorButton — Feature B10
+            // ExpandAllButton
+            // 
+            this.ExpandAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.ExpandAllButton.Name = "ExpandAllButton";
+            this.ExpandAllButton.Size = new System.Drawing.Size(70, 22);
+            this.ExpandAllButton.Text = "Expand All";
+            this.ExpandAllButton.ToolTipText = "Expand All Nodes (Ctrl+E)";
+            this.ExpandAllButton.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // CollapseAllButton
+            // 
+            this.CollapseAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.CollapseAllButton.Name = "CollapseAllButton";
+            this.CollapseAllButton.Size = new System.Drawing.Size(75, 22);
+            this.CollapseAllButton.Text = "Collapse All";
+            this.CollapseAllButton.ToolTipText = "Collapse All Nodes (Ctrl+W)";
+            this.CollapseAllButton.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // JumpToMatchingButton
+            // 
+            this.JumpToMatchingButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.JumpToMatchingButton.Name = "JumpToMatchingButton";
+            this.JumpToMatchingButton.Size = new System.Drawing.Size(95, 22);
+            this.JumpToMatchingButton.Text = "Jump ?";
+            this.JumpToMatchingButton.ToolTipText = "Jump to Matching Enter/Exit (Ctrl+G)";
+            this.JumpToMatchingButton.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
+            // 
+            // separatorAfterTreeOps
+            // 
+            this.separatorAfterTreeOps.Name = "separatorAfterTreeOps";
+            this.separatorAfterTreeOps.Size = new System.Drawing.Size(6, 25);
+            // 
+            // prevErrorButton - Feature B10
             // 
             this.prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevErrorButton.Name = "prevErrorButton";
@@ -845,7 +903,7 @@ namespace Cad3PLogBrowser
             this.separatorAfterNavigation.Name = "separatorAfterNavigation";
             this.separatorAfterNavigation.Size = new System.Drawing.Size(6, 25);
             // 
-            // SettingsButton
+            // CallTreeButton
             // 
             this.SettingsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.SettingsButton.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
@@ -871,6 +929,7 @@ namespace Cad3PLogBrowser
             this.CallTreeButton.Name = "CallTreeButton";
             this.CallTreeButton.Size = new System.Drawing.Size(23, 22);
             this.CallTreeButton.Text = "CallTree";
+            this.CallTreeButton.ToolTipText = "Show Call Tree";
             // 
             // ApiTreeButton
             // 
@@ -881,35 +940,28 @@ namespace Cad3PLogBrowser
             this.ApiTreeButton.Name = "ApiTreeButton";
             this.ApiTreeButton.Size = new System.Drawing.Size(23, 22);
             this.ApiTreeButton.Text = "ApiList";
+            this.ApiTreeButton.ToolTipText = "Show API Tree";
             // 
-            // separatorAfterApiTree
+            // separatorAfterTreeView
             // 
-            this.separatorAfterApiTree.Name = "separatorAfterApiTree";
-            this.separatorAfterApiTree.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterTreeView.Name = "separatorAfterTreeView";
+            this.separatorAfterTreeView.Size = new System.Drawing.Size(6, 25);
             // 
-            // HideTabsButton
+            // SettingsButton
             // 
-            this.HideTabsButton.CheckOnClick = true;
-            this.HideTabsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.HideTabsButton.Image = global::Cad3PLogBrowser.Properties.Resources.tabs;
-            this.HideTabsButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.HideTabsButton.Name = "HideTabsButton";
-            this.HideTabsButton.Size = new System.Drawing.Size(23, 22);
-            this.HideTabsButton.Text = "Hide Tabs";
+            this.SettingsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.SettingsButton.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
+            this.SettingsButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.SettingsButton.Name = "SettingsButton";
+            this.SettingsButton.Size = new System.Drawing.Size(23, 22);
+            this.SettingsButton.Text = "Settings";
+            this.SettingsButton.ToolTipText = "Settings (Ctrl+Shift+S)";
+            this.SettingsButton.Click += new System.EventHandler(this.SettingsButton_Click);
             // 
-            // toolStripPerformanceButton
+            // separatorAfterSettings
             // 
-            this.toolStripPerformanceButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripPerformanceButton.Image = ((System.Drawing.Image)(resources.GetObject("toolStripPerformanceButton.Image")));
-            this.toolStripPerformanceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripPerformanceButton.Name = "toolStripPerformanceButton";
-            this.toolStripPerformanceButton.Size = new System.Drawing.Size(23, 22);
-            this.toolStripPerformanceButton.Text = "toolStripPerformanceButton";
-            // 
-            // separatorBeforeHelp
-            // 
-            this.separatorBeforeHelp.Name = "separatorBeforeHelp";
-            this.separatorBeforeHelp.Size = new System.Drawing.Size(6, 25);
+            this.separatorAfterSettings.Name = "separatorAfterSettings";
+            this.separatorAfterSettings.Size = new System.Drawing.Size(6, 25);
             // 
             // ShowHelpButton
             // 
@@ -918,7 +970,9 @@ namespace Cad3PLogBrowser
             this.ShowHelpButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.ShowHelpButton.Name = "ShowHelpButton";
             this.ShowHelpButton.Size = new System.Drawing.Size(23, 22);
-            this.ShowHelpButton.Text = "toolStripButton14";
+            this.ShowHelpButton.Text = "Help";
+            this.ShowHelpButton.ToolTipText = "Help (F1)";
+            this.ShowHelpButton.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // openLogFileDialog
             // 
@@ -1174,8 +1228,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
@@ -1207,7 +1259,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem copyMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findNextMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
         private System.Windows.Forms.ToolStrip mainToolStrip;
         private System.Windows.Forms.ToolStripButton OpenButton;
         private System.Windows.Forms.ToolStripButton SaveButton;
@@ -1234,10 +1285,14 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripSeparator separatorAfterSettings;
         private System.Windows.Forms.ToolStripButton CallTreeButton;
         private System.Windows.Forms.ToolStripButton ApiTreeButton;
-        private System.Windows.Forms.ToolStripButton HideTabsButton;
-        private System.Windows.Forms.ToolStripButton toolStripPerformanceButton;
-        private System.Windows.Forms.ToolStripSeparator separatorBeforeHelp;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterTreeView;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
+        private System.Windows.Forms.ToolStripButton SaveToXLSButton;
+        private System.Windows.Forms.ToolStripButton FindNextButton;
+        private System.Windows.Forms.ToolStripButton ExpandAllButton;
+        private System.Windows.Forms.ToolStripButton CollapseAllButton;
+        private System.Windows.Forms.ToolStripButton JumpToMatchingButton;
+        private System.Windows.Forms.ToolStripSeparator separatorAfterTreeOps;
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showApiTreeMenuItem;
@@ -1246,7 +1301,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem showTab2MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab3MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab4MenuItem;
-        private System.Windows.Forms.ToolStripSeparator separatorAfterApiTree;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorBeforeExit;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFilter;
@@ -1254,8 +1308,11 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
-        private System.Windows.Forms.ToolStripSeparator helpSeparatorBeforeAbout;
-        private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem checkForUpdatesMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem reportErrorsMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;
