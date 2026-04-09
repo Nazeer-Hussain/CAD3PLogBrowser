@@ -123,6 +123,7 @@ namespace Cad3PLogBrowser
             this.fileWatchTimer = new System.Windows.Forms.Timer(this.components);
             this.logContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.contextCopyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextCopyWithHeadersMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.contextFindMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -1075,6 +1076,7 @@ namespace Cad3PLogBrowser
             // 
             this.logContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.contextCopyMenuItem,
+            this.contextCopyWithHeadersMenuItem,
             this.contextSeparator1,
             this.contextFindMenuItem,
             this.contextFilterMenuItem,
@@ -1085,7 +1087,7 @@ namespace Cad3PLogBrowser
             this.contextSeparator3,
             this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
-            this.logContextMenu.Size = new System.Drawing.Size(280, 200);
+            this.logContextMenu.Size = new System.Drawing.Size(280, 220);
             // 
             // contextCopyMenuItem
             // 
@@ -1095,6 +1097,13 @@ namespace Cad3PLogBrowser
             this.contextCopyMenuItem.Size = new System.Drawing.Size(280, 22);
             this.contextCopyMenuItem.Text = "&Copy";
             this.contextCopyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
+            // 
+            // contextCopyWithHeadersMenuItem
+            // 
+            this.contextCopyWithHeadersMenuItem.Name = "contextCopyWithHeadersMenuItem";
+            this.contextCopyWithHeadersMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextCopyWithHeadersMenuItem.Text = "Copy with &Headers";
+            this.contextCopyWithHeadersMenuItem.Click += new System.EventHandler(this.contextCopyWithHeadersMenuItem_Click);
             // 
             // contextSeparator1
             // 
@@ -1414,6 +1423,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextCopyWithHeadersMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextSeparator1;
         private System.Windows.Forms.ToolStripMenuItem contextFindMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextFilterMenuItem;
