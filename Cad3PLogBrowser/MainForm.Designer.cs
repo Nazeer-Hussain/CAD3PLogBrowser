@@ -44,6 +44,7 @@ namespace Cad3PLogBrowser
             this.copyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findNextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.findAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSeparatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
             this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -259,6 +260,7 @@ namespace Cad3PLogBrowser
             this.copyMenuItem,
             this.findMenuItem,
             this.findNextMenuItem,
+            this.findAllMenuItem,
             this.filterMenuItem,
             this.editSeparatorAfterFilter,
             this.expandAllMenuItem,
@@ -295,6 +297,14 @@ namespace Cad3PLogBrowser
             this.findNextMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F3;
             this.findNextMenuItem.Size = new System.Drawing.Size(258, 22);
             this.findNextMenuItem.Text = "Find &Next";
+            // 
+            // findAllMenuItem
+            // 
+            this.findAllMenuItem.Name = "findAllMenuItem";
+            this.findAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Alt) | System.Windows.Forms.Keys.F));
+            this.findAllMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.findAllMenuItem.Text = "Find &All...";
+            this.findAllMenuItem.Click += new System.EventHandler(this.findAllMenuItem_Click);
             // 
             // filterMenuItem
             // 
@@ -749,8 +759,10 @@ namespace Cad3PLogBrowser
             // 
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
+            this.callGraphExportButton = new System.Windows.Forms.Button();
             this.callGraphTab.Controls.Add(this.callGraphPanel);
             this.callGraphTab.Controls.Add(this.callGraphResetButton);
+            this.callGraphTab.Controls.Add(this.callGraphExportButton);
             this.callGraphTab.Location = new System.Drawing.Point(4, 25);
             this.callGraphTab.Name = "callGraphTab";
             this.callGraphTab.Padding = new System.Windows.Forms.Padding(3);
@@ -760,9 +772,14 @@ namespace Cad3PLogBrowser
             this.callGraphTab.UseVisualStyleBackColor = true;
             this.callGraphResetButton.Text = "Reset View";
             this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
-            this.callGraphResetButton.Size = new System.Drawing.Size(80, 26);
+            this.callGraphResetButton.Size = new System.Drawing.Size(85, 26);
             this.callGraphResetButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
             this.callGraphResetButton.Click += new System.EventHandler(this.callGraphResetButton_Click);
+            this.callGraphExportButton.Text = "Export PNG...";
+            this.callGraphExportButton.Location = new System.Drawing.Point(97, 6);
+            this.callGraphExportButton.Size = new System.Drawing.Size(100, 26);
+            this.callGraphExportButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+            this.callGraphExportButton.Click += new System.EventHandler(this.callGraphExportButton_Click);
             this.callGraphPanel.Location = new System.Drawing.Point(3, 38);
             this.callGraphPanel.Size = new System.Drawing.Size(682, 453);
             this.callGraphPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(
@@ -1313,6 +1330,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.TabPage callGraphTab;
         private Cad3PLogBrowser.CallGraphPanel callGraphPanel;
         private System.Windows.Forms.Button callGraphResetButton;
+        private System.Windows.Forms.Button callGraphExportButton;
         private System.Windows.Forms.ListView performanceView;
         private System.Windows.Forms.ColumnHeader perfColName;
         private System.Windows.Forms.ColumnHeader perfColCalls;
@@ -1332,6 +1350,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem copyMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findNextMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem findAllMenuItem;
         private System.Windows.Forms.ToolStrip mainToolStrip;
         private System.Windows.Forms.ToolStripButton OpenButton;
         private System.Windows.Forms.ToolStripButton SaveButton;

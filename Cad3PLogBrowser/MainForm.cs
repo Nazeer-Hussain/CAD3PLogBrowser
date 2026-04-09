@@ -1906,9 +1906,10 @@ namespace Cad3PLogBrowser
         private void nextWarningButton_Click(object sender, EventArgs e) =>
             NavigateToNextWarning();
 
-        public async void ApplyFilter(string filterText, bool matchCase)
+        public async void ApplyFilter(string filterText, bool matchCase, int? minDuration = null, 
+            DateTime? fromTime = null, DateTime? toTime = null)
         {
-            if (string.IsNullOrWhiteSpace(filterText))
+            if (string.IsNullOrWhiteSpace(filterText) && !minDuration.HasValue && !fromTime.HasValue)
             {
                 ClearFilter();
                 return;
@@ -1940,9 +1941,27 @@ namespace Cad3PLogBrowser
                         }
 
                         string line = _allLines[i];
-                        bool matches = matchCase 
-                            ? line.Contains(filterText)
-                            : line.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool matches = true;
+
+                        // Text filter
+                        if (!string.IsNullOrWhiteSpace(filterText))
+                        {
+                            matches = matchCase 
+                                ? line.Contains(filterText)
+                                : line.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
+                        }
+
+                        // Duration filter (Feature B5)
+                        if (matches && minDuration.HasValue)
+                        {
+                            matches = CheckDurationFilter(line, minDuration.Value);
+                        }
+
+                        // Time range filter (Feature B4)
+                        if (matches && (fromTime.HasValue || toTime.HasValue))
+                        {
+                            matches = CheckTimeRangeFilter(line, fromTime, toTime);
+                        }
 
                         if (matches)
                         {
@@ -2672,6 +2691,146 @@ namespace Cad3PLogBrowser
             mainToolStrip.Visible = showToolbarMenuItem.Checked;
             _appSettings.ShowToolbar = showToolbarMenuItem.Checked;
             _appSettings.Save();
+        }
+
+        // ── Feature B7: Find All Results Window ──────────────────────────────
+        private void findAllMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_virtualLines.Count == 0)
+            {
+                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Prompt for search term
+            string searchTerm = Microsoft.VisualBasic.Interaction.InputBox(
+                "Enter search term:",
+                "Find All",
+                "",
+                -1, -1);
+
+            if (string.IsNullOrWhiteSpace(searchTerm)) return;
+
+            // Search all lines
+            var results = new List<FindResult>();
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                if (_virtualLines[i].Text.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    results.Add(new FindResult
+                    {
+                        LineNumber = i + 1,
+                        LineText = _virtualLines[i].Text
+                    });
+                }
+            }
+
+            if (results.Count == 0)
+            {
+                MessageBox.Show($"No matches found for '{searchTerm}'.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Show results window
+            var resultsForm = new FindAllResultsForm(this, results, searchTerm);
+            resultsForm.Show(this);
+        }
+
+        public void JumpToLine(int lineNumber)
+        {
+            if (lineNumber < 1 || lineNumber > _virtualLines.Count) return;
+
+            int index = lineNumber - 1;
+            logListView.EnsureVisible(index);
+            logListView.SelectedIndices.Clear();
+            logListView.SelectedIndices.Add(index);
+            logListView.FocusedItem = logListView.Items[index];
+            Focus();
+        }
+
+        // ── Feature F6: Export Call Graph as PNG ─────────────────────────────
+        private void callGraphExportButton_Click(object sender, EventArgs e)
+        {
+            if (callGraphPanel == null) return;
+
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp|All files (*.*)|*.*";
+                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_callgraph.png";
+                dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    // Create high-resolution bitmap
+                    int width = Math.Max(800, callGraphPanel.Width);
+                    int height = Math.Max(600, callGraphPanel.Height);
+
+                    using (var bitmap = new Bitmap(width, height))
+                    {
+                        callGraphPanel.DrawToBitmap(bitmap, new Rectangle(0, 0, width, height));
+
+                        // Determine format from extension
+                        string ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+                        var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                        if (ext == ".jpg" || ext == ".jpeg")
+                            format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                        else if (ext == ".bmp")
+                            format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                        bitmap.Save(dialog.FileName, format);
+                    }
+
+                    MessageBox.Show($"Call Graph exported to:\n{dialog.FileName}",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not export Call Graph:\n{ex.Message}",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // ── Feature B5: Duration Threshold Filter ────────────────────────────
+        private bool CheckDurationFilter(string line, int minDurationMs)
+        {
+            // Look for duration pattern: [XX ms] or similar
+            var match = System.Text.RegularExpressions.Regex.Match(line, @"\[(\d+)\s*ms\]");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int duration))
+            {
+                return duration >= minDurationMs;
+            }
+            return false; // No duration found, exclude from filter
+        }
+
+        // ── Feature B4: Time Range Filter ────────────────────────────────────
+        private bool CheckTimeRangeFilter(string line, DateTime? fromTime, DateTime? toTime)
+        {
+            // Parse timestamp from log line (assumes format: YYYY-MM-DD HH:MM:SS)
+            var match = System.Text.RegularExpressions.Regex.Match(line, @"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})");
+            if (!match.Success) return false;
+
+            if (DateTime.TryParse(match.Groups[1].Value, out DateTime lineTime))
+            {
+                var timeOnly = lineTime.TimeOfDay;
+
+                if (fromTime.HasValue && timeOnly < fromTime.Value.TimeOfDay)
+                    return false;
+
+                if (toTime.HasValue && timeOnly > toTime.Value.TimeOfDay)
+                    return false;
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

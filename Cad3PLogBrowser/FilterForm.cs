@@ -21,14 +21,19 @@ namespace Cad3PLogBrowser
 
         private void ApplyButton_Click(object sender, EventArgs e)
         {
-            _mainForm.ApplyFilter(FilterTextBox.Text, MatchCaseCheckBox.Checked);
+            int? minDuration = chkEnableDuration.Checked ? (int?)nudMinDuration.Value : null;
+            DateTime? fromTime = chkEnableTimeRange.Checked ? (DateTime?)dtpFromTime.Value : null;
+            DateTime? toTime = chkEnableTimeRange.Checked ? (DateTime?)dtpToTime.Value : null;
+
+            _mainForm.ApplyFilter(FilterTextBox.Text, MatchCaseCheckBox.Checked, minDuration, fromTime, toTime);
             Hide();
         }
 
         private void ClearButton_Click(object sender, EventArgs e)
         {
-            //FilterTextBox.Clear();
-            _mainForm.ApplyFilter(string.Empty, false);
+            _mainForm.ApplyFilter(string.Empty, false, null, null, null);
+            chkEnableDuration.Checked = false;
+            chkEnableTimeRange.Checked = false;
             Hide();
         }
 
