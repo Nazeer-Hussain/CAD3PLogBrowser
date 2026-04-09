@@ -34,7 +34,7 @@ namespace Cad3PLogBrowser
             if (!string.IsNullOrEmpty(term) && !SearchTextBox.Items.Contains(term))
                 SearchTextBox.Items.Insert(0, term);
 
-            _mainForm.FindNext(term, MatchCaseCheckBox.Checked);
+            _mainForm.FindNext(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
         }
 
         private void CloseButton_Click(object sender, System.EventArgs e) => Hide();

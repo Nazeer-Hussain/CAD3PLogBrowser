@@ -31,6 +31,7 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowCallGraphTab     { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
+        public bool    ShowToolbar          { get; set; } = true;
 
         // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
         public int     WindowWidth          { get; set; } = 1024;
