@@ -13,10 +13,10 @@
 | ID | Feature | Priority | Status | Commit | Notes |
 |----|---------|----------|--------|--------|-------|
 | A1 | Multi-file Drag & Drop | HIGH | ? **DONE** | Earlier | Single file drag-drop works |
-| A2 | File > Open defaults to PTC_LOG_DIR | MED | ? PLANNED | - | Environment variable support |
+| A2 | File > Open defaults to PTC_LOG_DIR | MED | ? **DONE** | Earlier | Environment variable support |
 | A3 | Recent Files MRU (10 files) | HIGH | ? **DONE** | Earlier | Fully functional with clear option |
 | A4 | Auto-Reload / Tail Mode | HIGH | ? **DONE** | Earlier | File watcher implemented |
-| A5 | Multi-file Tabs | LOW | ? NOT STARTED | - | Future enhancement |
+| A5 | Multi-file Tabs | LOW | ? NOT STARTED | - | Future enhancement (v3.0) |
 
 ---
 
@@ -25,14 +25,14 @@
 | ID | Feature | Priority | Status | Commit | Notes |
 |----|---------|----------|--------|--------|-------|
 | B1 | Find with Match Case | HIGH | ? **DONE** | Earlier | FindForm implemented |
-| B2 | Regex Search | MED | ? PLANNED | - | Would need FindForm update |
+| B2 | Regex Search | MED | ? **DONE** | Earlier | UseRegexCheckBox in FindForm |
 | B3 | Filter (Contains/Regex) | HIGH | ? **DONE** | Earlier | FilterForm operational |
-| B4 | Time Range Filter | MED | ? PLANNED | - | New dialog needed |
-| B5 | Duration Threshold Filter | MED | ? PLANNED | - | Filter by execution time |
-| B6 | Search History | LOW | ? NOT STARTED | - | Store recent searches |
-| B7 | Find All (List Results) | MED | ? PLANNED | - | Show all matches |
+| B4 | Time Range Filter | MED | ? **DONE** | Earlier | CheckTimeRangeFilter method |
+| B5 | Duration Threshold Filter | MED | ? **DONE** | Earlier | CheckDurationFilter method |
+| B6 | Search History | LOW | ?? **50%** | - | UI exists, needs persistence |
+| B7 | Find All (List Results) | MED | ? **DONE** | Earlier | FindAllResultsForm |
 | B8 | Highlight Search Results | HIGH | ? **DONE** | Earlier | Background highlighting |
-| B9 | Jump to Line Number | MED | ? PLANNED | - | Direct line jump dialog |
+| B9 | Jump to Line Number | MED | ? **DONE** | Earlier | jumpToLineMenuItem_Click |
 | B10 | Next/Prev Error/Warning | HIGH | ? **DONE** | f8dda55 | Toolbar + shortcuts implemented |
 
 ---
@@ -89,7 +89,7 @@
 | F3 | Call Graph Node Click | MED | ? **DONE** | b8f6b7c | Statistics popup |
 | F4 | Call Graph Double-Click | MED | ? **DONE** | face583 | Zoom & center |
 | F5 | Call Graph Dark Theme Fix | HIGH | ? **DONE** | b8f6b7c | Legend visible |
-| F6 | Call Graph Export as Image | LOW | ? PLANNED | - | PNG/SVG export |
+| F6 | Call Graph Export as Image | LOW | ? **DONE** | Earlier | PNG/JPEG/BMP export |
 
 ---
 
@@ -122,9 +122,9 @@
 | ID | Feature | Priority | Status | Commit | Notes |
 |----|---------|----------|--------|--------|-------|
 | I1 | Export Filtered Logs | HIGH | ? **DONE** | Earlier | Save to XLS implemented |
-| I2 | Save Selected Branch | LOW | ? PLANNED | - | Right-click tree save |
-| I3 | Export Performance to CSV | MED | ? PLANNED | - | Perf stats export |
-| I4 | Copy with Headers | LOW | ? NOT STARTED | - | Include column headers |
+| I2 | Save Selected Branch | LOW | ? **DONE** | Earlier | treeContextSaveBranchMenuItem_Click |
+| I3 | Export Performance to CSV | MED | ? **DONE** | Earlier | exportPerformanceMenuItem_Click |
+| I4 | Copy with Headers | LOW | ? **DONE** | CURRENT | Context menu + clipboard |
 
 ---
 
@@ -191,20 +191,20 @@
 
 ### Overall Progress:
 - **Total Features Identified:** ~70+
-- **Features Completed:** ~60+ (85%+)
-- **Current Session Features:** 14/14 (100%)
-- **Ready to Merge:** 8 commits
+- **Features Completed:** ~67+ (95%+)
+- **Current Session Features:** 1/1 (100%)
+- **Ready to Merge:** Clean build
 
 ### By Phase:
-- Phase A (File Ops): 3/5 (60%)
-- Phase B (Search/Filter): 5/10 (50%)
-- Phase C (Tree Ops): 6/6 (100%) ?
+- Phase A (File Ops): 4/5 (80%) ?
+- Phase B (Search/Filter): 9/10 (90%) ?
+- Phase C (Tree Ops): 5/6 (83%)
 - Phase D (UI/UX): 7/7 (100%) ?
 - Phase E (Menu/Toolbar): 9/9 (100%) ?
-- Phase F (Call Graph): 5/6 (83%)
+- Phase F (Call Graph): 6/6 (100%) ?
 - Phase G (Theme): 5/5 (100%) ?
 - Phase H (Log Display): 4/5 (80%)
-- Phase I (Export): 1/4 (25%)
+- Phase I (Export): 4/4 (100%) ?
 - Phase J (Settings): 5/5 (100%) ?
 - Phase K (Performance): 5/5 (100%) ?
 - Phase L (Bug Fixes): 7/7 (100%) ?
@@ -214,61 +214,35 @@
 
 ## ?? PENDING FEATURES (For Next Iteration)
 
-### High Priority Remaining:
-1. ? **B2** - Regex Search (2 hours)
-   - Checkbox in FindForm
-   - Regex pattern validation
-   - Error handling
-
-2. ? **B7** - Find All Results Window (3 hours)
-   - Separate window showing all matches
-   - Click to jump to line
-   - Export results
-
-3. ? **I3** - Export Performance to CSV (1 hour)
-   - File > Export Performance...
-   - Context menu option
-   - CSV format with all columns
-
 ### Medium Priority Remaining:
-4. ? **B4** - Time Range Filter (3 hours)
-   - Dialog with from/to time
-   - Quick presets (Last hour, Last 10 min)
-   - Apply to current view
+1. ? **B6** - Search History Persistence (1 hour)
+   - ComboBox exists, needs JSON save/load
+   - Low priority enhancement
 
-5. ? **B5** - Duration Threshold Filter (2 hours)
-   - Show only calls > X ms
-   - Quick access from toolbar
-   - Integrates with existing filter
+2. ? **C5** - Tree Search/Filter (2 hours)
+   - TextBox above tree
+   - Filter visible nodes by name
+   - Medium priority
 
-6. ? **I2** - Save Selected Branch (2 hours)
-   - Right-click tree node
-   - "Save Branch to File..."
-   - ENTER to EXIT only
+3. ? **H5** - Font Selection (1 hour)
+   - Settings dialog option
+   - Apply to log view
+   - Low priority
 
-7. ? **F6** - Export Call Graph as Image (2 hours)
-   - PNG/SVG export
-   - High-res for documentation
-   - Context menu option
-
-### Low Priority:
-8. ? **A2** - PTC_LOG_DIR Environment Variable (1 hour)
-9. ? **A5** - Multi-file Tabs (8 hours)
-10. ? **B6** - Search History (1 hour)
-11. ? **B9** - Jump to Line Number (1 hour)
-12. ? **C5** - Tree Search/Filter (2 hours)
-13. ? **H5** - Font Selection (1 hour)
-14. ? **I4** - Copy with Headers (30 min)
+### Low Priority (Deferred to v3.0):
+4. ? **A5** - Multi-file Tabs (8+ hours)
+   - Major architectural change
+   - Defer to version 3.0
 
 ---
 
-## ?? RECOMMENDATION
+## ? FINAL RECOMMENDATION (UPDATED)
 
 ### Current Status: **EXCELLENT & READY TO SHIP**
 
-? **60+ features implemented** (85%+ completion)  
-? **14 major enhancements this session**  
-? **8 commits ready to merge**  
+? **67+ features implemented** (95%+ completion)  
+? **1 new feature added this session** (I4 - Copy with Headers)  
+? **9 features verified as already implemented**  
 ? **Clean build, professional quality**  
 ? **Modern, polished UI**  
 
@@ -276,16 +250,16 @@
 
 #### **NOW - Create PR & Merge**
 ```
-1. Create Pull Request with current 8 commits
+1. Create Pull Request with current changes
 2. Merge to master
-3. Tag release: v2.1.0 or v2.0.1
+3. Tag release: v2.2.0 (Feature Complete Release)
 4. Sync branches
 ```
 
 #### **NEXT - Future Enhancements (New Branch)**
 ```
-1. Create new branch: feature/additional-exports
-2. Implement: B2, B7, I3, I2 (export features)
+1. Create new branch: feature/final-polish
+2. Implement: B6, C5, H5 (polish features)
 3. Test and commit
 4. Create new PR
 5. Merge when ready
@@ -295,32 +269,20 @@
 
 ## ?? CURRENT SESSION ACHIEVEMENTS
 
-### ? Completed This Session (Phase M):
-1. ? Menu structure reorganization
-2. ? Renamed menu items (Save Selected, Save to XLS, etc.)
-3. ? Progress bars for all long operations
-4. ? ESC key cancellation
-5. ? 5 new toolbar buttons (Save XLS, Find Next, Expand, Collapse, Jump)
-6. ? Toolbar reorganized into 7 logical groups
-7. ? Call Graph debug information panel
-8. ? Call Graph node click for statistics
-9. ? Call Graph double-click to zoom/center
-10. ? Call Graph legend dark theme fix
-11. ? Modern flat icon generator (15 icons)
-12. ? Icon size selection (Small/Medium/Large)
-13. ? Keyboard shortcuts menu item
-14. ? Clickable status bar for cancellation
+### ? Completed This Session:
+1. ? Verified 9 features already implemented (A2, B2, B4, B5, B7, B9, F6, I2, I3)
+2. ? Implemented I4 - Copy with Headers
+3. ? Fixed duplicate method definitions
+4. ? Clean build achieved
+5. ? Updated documentation
 
 ### Files Modified:
 - MainForm.cs
 - MainForm.Designer.cs
-- CallGraphPanel.cs
-- IconGenerator.cs (NEW)
-- AppSettings.cs
-- SettingsForm.cs
-- SettingsForm.Designer.cs
-- LogFileService.cs
-- 49 .md files (UTF-8 encoding)
+- COMPREHENSIVE_FEATURE_CHECKLIST.md
+- IMPLEMENTATION_COMPLETE.md (NEW)
+- ACTUAL_MISSING_FEATURES.md (NEW)
+- missing_features_final_commit.txt (NEW)
 
 ---
 
@@ -329,26 +291,24 @@
 **? SHIP THE CURRENT WORK! ?**
 
 **Why:**
-- 14 major features completed
+- 95%+ of planned features done (67 of 70)
 - Professional, modern UI
 - Clean codebase
-- 85%+ of planned features done
-- Remaining features are enhancements, not critical
+- All critical features implemented
+- Remaining features are low-priority polish
 
 **Then:**
-- Start fresh iteration for exports and advanced features
+- Start fresh iteration for final polish (B6, C5, H5)
 - Clean git history
 - Easy code review
-- Users benefit sooner
+- Users benefit immediately
 
 ---
 
 ## ?? YOUR DECISION:
 
 **Option A:** Create PR now and merge (Recommended) ?  
-**Option B:** Continue adding 2-3 more features first  
-**Option C:** Implement all remaining features before merge  
+**Option B:** Implement remaining 3 features first (1-2 hours)  
+**Option C:** Defer remaining features to v3.0  
 
 **Current achievement is production-ready and impressive!** ??
-
-What would you like to do?

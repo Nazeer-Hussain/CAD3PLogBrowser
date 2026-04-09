@@ -13,7 +13,8 @@ Log view:  Clicking a tree node scrolls to that line + shows 10 previous lines
 context menu on call tree node has item "select log" on doing this, the current api name is highlighted in the log view from enter to exit 
 
 Performance Tab
-Click column header ? sort ascending. Click again ? sort descending.
+Click column header ? sort ascending. Click again ? sort descending.
+
 Filter Log Dialog
 Filter Log  [X]
 ----------------------------
@@ -29,7 +30,8 @@ Filter Log Entries
 
 Behaviour: user types a method name, clicks Add to add to the list.
 Clicking Filter applies the list ? tree shows only methods in the list.
-'Remove' removes selected term. 'Remove All' clears all terms.
+'Remove' removes selected term. 'Remove All' clears all terms.
+
 Settings Dialog
 Has these options to improve performance of the application
 Improve Performance
@@ -50,75 +52,190 @@ Steps to Reproduce / What you were doing
 ?? File C:\Users\<user>\AppData\Local\Temp\Cad3pLogBrowser.err
    will be added as attachment to the mail.
 
-  [Send Email]  [Cancel]
+  [Send Email]  [Cancel]
+
 
 
 
 Features List
-Drag & Drop (single & multiple files)Auto-Reload / Tail ModeOpen Multiple Logs in TabsMerge Multiple Log Files (time-sorted)Compressed Log Support (.zip / .gz)Session Restore (reopen last files on startup)
-Global Search / Find in Log (Ctrl+F)Advanced Search with RegexFilter by Method Name (Filter Dialog)Filter by Time RangeFilter by Duration ThresholdFilter by Log Level / TagFilter by Thread IDBookmark Log LinesJump to Matching ENTER/EXIT Pair (Edit Menu)Quick Navigation (Next/Prev Error/Warning)Expand/Collapse All (Toolbar + Edit Menu)Lazy Loading for Large LogsDuration Overlay + Checkmark/Cross Icons + Color CodingCall Tree Highlight Slow CallsSearch / Jump To within TreeRight-Click Context Menu (incl. Grok Search + Reload)API Flat Tree (one-level, API name + Line No as node)API Tree Grouped by Namespace/ClassAPI Invocation Details PanelHotspot Detection (top used APIs)Cross-Reference Jump (API ? Call Tree)Sort APIs (count / avg / total time)Export API List to CSVPerformance Tab (Method, Calls, Time, Max, Min, Avg, Total, Self Time)
-
-
-Top N Slowest CallsMost Frequently Called MethodsCall Depth AnalysisAggregate Statistics PanelLog Comparison / Diff (two log files)Flame Chart / Stack ViewTimeline / Gantt Chart of CallsVisual Call Graph with Zoom & PanDependency Graph (who calls whom)Heatmap (hot methods visual)Export Graph / Chart as Image
-Split Panel Resize + PersistDark Mode / Theme SupportDockable PanelsKeyboard Shortcuts + Cheat Sheet (all menu actions)Status Bar (log stats + selected node info)Tooltips with Extra InfoCopy & Save Log Snippet (clipboard + Save Selected)
-Node Annotations / NotesAbout / Version DialogReport Error / Crash Email DialogHelp CHM (Context-sensitive help file)Check for Updates
-Display/Hide Tab Panels (View Menu toggles)Export Filtered Logs (as .txt)Save Selected Branch to Disk (trimmed log / XLS)Export Call Tree (JSON / XML)Export Analytics Report (PDF / Excel)Screenshot / Snapshot of Graphs
-Settings Dialog (Grok URL, highlight color, thresholds, perf guards)Portable / No-Install Mode (all config in local JSON)Grok Integration (Search in Grok from context menu)Shareable Bookmarks / Annotations FileThread-wise ViewException Trace GroupingCorrelation ID / Request TrackingJump to Source Code (if path in log)Live Log Streaming (from running app)Plugin ArchitectureIntegration with Monitoring Tools
-
-AI Log SummarizerNatural Language Search / Q&AAnomaly DetectionRoot Cause SuggesterAuto-Generate Bug ReportConversational Log Assistant (Chat)
 Drag & Drop (single & multiple files)
-What it doesDrag one or more log files from Explorer onto the main form to open them automatically.Acceptance criteriaWorks on form, tree panel, and log panel. Non-log files show a friendly error. Does not duplicate file-open logic.
+Auto-Reload / Tail Mode
+Open Multiple Logs in Tabs
+Merge Multiple Log Files (time-sorted)
+Compressed Log Support (.zip / .gz)
+Session Restore (reopen last files on startup)
+
+Global Search / Find in Log (Ctrl+F)
+Advanced Search with Regex
+Filter by Method Name (Filter Dialog)
+Filter by Time Range
+Filter by Duration Threshold
+Filter by Log Level / Tag
+Filter by Thread ID
+Bookmark Log Lines
+Jump to Matching ENTER/EXIT Pair (Edit Menu)
+Quick Navigation (Next/Prev Error/Warning)
+Expand/Collapse All (Toolbar + Edit Menu)
+Lazy Loading for Large Logs
+Duration Overlay + Checkmark/Cross Icons + Color Coding
+Call Tree Highlight Slow Calls
+Search / Jump To within Tree
+Right-Click Context Menu (incl. Grok Search + Reload)
+API Flat Tree (one-level, API name + Line No as node)
+API Tree Grouped by Namespace/Class
+API Invocation Details Panel
+Hotspot Detection (top used APIs)
+Cross-Reference Jump (API ? Call Tree)
+Sort APIs (count / avg / total time)
+Export API List to CSV
+Performance Tab (Method, Calls, Time, Max, Min, Avg, Total, Self Time)
+
+
+
+Top N Slowest Calls
+Most Frequently Called Methods
+Call Depth Analysis
+Aggregate Statistics Panel
+Log Comparison / Diff (two log files)
+Flame Chart / Stack View
+Timeline / Gantt Chart of Calls
+Visual Call Graph with Zoom & Pan
+Dependency Graph (who calls whom)
+Heatmap (hot methods visual)
+Export Graph / Chart as Image
+
+Split Panel Resize + Persist
+Dark Mode / Theme Support
+Dockable Panels
+Keyboard Shortcuts + Cheat Sheet (all menu actions)
+Status Bar (log stats + selected node info)
+Tooltips with Extra Info
+Copy & Save Log Snippet (clipboard + Save Selected)
+
+Node Annotations / Notes
+About / Version Dialog
+Report Error / Crash Email Dialog
+Help CHM (Context-sensitive help file)
+Check for Updates
+
+Display/Hide Tab Panels (View Menu toggles)
+Export Filtered Logs (as .txt)
+Save Selected Branch to Disk (trimmed log / XLS)
+Export Call Tree (JSON / XML)
+Export Analytics Report (PDF / Excel)
+Screenshot / Snapshot of Graphs
+
+Settings Dialog (Grok URL, highlight color, thresholds, perf guards)
+Portable / No-Install Mode (all config in local JSON)
+Grok Integration (Search in Grok from context menu)
+Shareable Bookmarks / Annotations File
+Thread-wise View
+Exception Trace Grouping
+Correlation ID / Request Tracking
+Jump to Source Code (if path in log)
+Live Log Streaming (from running app)
+Plugin Architecture
+Integration with Monitoring Tools
+
+
+AI Log Summarizer
+Natural Language Search / Q&A
+Anomaly Detection
+Root Cause Suggester
+Auto-Generate Bug Report
+Conversational Log Assistant (Chat)
+
+Drag & Drop (single & multiple files)
+What it does
+Drag one or more log files from Explorer onto the main form to open them automatically.
+Acceptance criteria
+Works on form, tree panel, and log panel. Non-log files show a friendly error. Does not duplicate file-open logic.
+
 Command-Line File Open
 In Program.cs, capture command-line args and pass to the main form.
 In Form_Load, if a valid file path was provided, call the existing open method.
-Missing file: MessageBox with clear error. No-argument launch unchanged.
+Missing file: MessageBox with clear error. No-argument launch unchanged.
+
 Recent Files MRU (last 10, default to PTC_LOG_DIR) [NEW]
-What it doesFile > Recent Files shows the last 10 opened files. File > Open defaults to the folder pointed to by the PTC_LOG_DIR environment variable.Acceptance criteriaFile > Open checks PTC_LOG_DIR env var first; falls back to last used directory if env var is absent. Recent list persists between sessions. Missing files are removed.Commit messageFile > Open: read PTC_LOG_DIR environment variable. If set and the folder exists,
+What it does
+File > Recent Files shows the last 10 opened files. File > Open defaults to the folder pointed to by the PTC_LOG_DIR environment variable.
+Acceptance criteria
+File > Open checks PTC_LOG_DIR env var first; falls back to last used directory if env var is absent. Recent list persists between sessions. Missing files are removed.
+Commit message
+File > Open: read PTC_LOG_DIR environment variable. If set and the folder exists,
   use it as the InitialDirectory for the OpenFileDialog.
   If PTC_LOG_DIR is not set, use the last used directory (saved in config.json).
 Save recent files list to recentfiles.json (max 10 entries, most recent first).
 Add File > 'Recent Files' submenu. Each entry opens that file.
 Missing file on click: show MessageBox and remove the entry.
-Add 'Clear Recent Files' at the bottom of the submenu.
+Add 'Clear Recent Files' at the bottom of the submenu.
+
 A4  ?  Auto-Reload / Tail Mode
-What it doesDetects when the open log file changes on disk. Shows a non-blocking status bar notification with a click-to-reload action.Use System.IO.FileSystemWatcher on the currently open file.
+What it does
+Detects when the open log file changes on disk. Shows a non-blocking status bar notification with a click-to-reload action.
+Use System.IO.FileSystemWatcher on the currently open file.
 On change: update a status bar label 'File updated ? click to reload' (NOT a MessageBox).
 Clicking the label reloads and rebuilds the tree, preserving scroll position.
-Add View > 'Watch for File Changes' toggle. Stop watcher when app closes or file changes.
+Add View > 'Watch for File Changes' toggle. Stop watcher when app closes or file changes.
+
 A5  ?  Open Multiple Logs in Tabs
-What it doesMultiple log files open simultaneously in separate tabs, each fully independent.Add a TabControl wrapping the main split panel.
+What it does
+Multiple log files open simultaneously in separate tabs, each fully independent.
+Add a TabControl wrapping the main split panel.
 Each tab has its own tree and log panel. File > Open and drag-drop open in new tabs.
 Right-click tab header: 'Close Tab', 'Close All Other Tabs'.
-Tab title = filename only; tooltip = full path.
+Tab title = filename only; tooltip = full path.
+
 A6  ?  Merge Multiple Log Files (time-sorted) [NEW]
-What it doesLoad two or more log files and merge into one chronological view with source labels per line.File > 'Merge Log Files...' opens a multi-select file dialog.
+What it does
+Load two or more log files and merge into one chronological view with source labels per line.
+File > 'Merge Log Files...' opens a multi-select file dialog.
 Parse each file; merge all events sorted by timestamp.
 Prefix each log line with source tag: [File1], [File2], etc.
-Build the call tree from the merged list. Status bar: 'Merged N files ? M lines'.
+Build the call tree from the merged list. Status bar: 'Merged N files ? M lines'.
+
 A7  ?  Compressed Log Support (.zip / .gz) [NEW]
-What it doesOpen .zip or .gz compressed log files directly without manual extraction.Detect .zip and .gz extensions in the file-open logic.
+What it does
+Open .zip or .gz compressed log files directly without manual extraction.
+Detect .zip and .gz extensions in the file-open logic.
 For .gz: use GZipStream to decompress into MemoryStream.
 For .zip: use ZipArchive. One entry ? open directly. Multiple entries ? pick dialog.
-Pass decompressed content to the existing log parser unchanged.
+Pass decompressed content to the existing log parser unchanged.
+
 A8  ?  Session Restore (reopen last files on startup) [NEW]
-What it doesReopens the files that were open when the app was last closed.On app close, save open file paths to session.json (next to exe).
+What it does
+Reopens the files that were open when the app was last closed.
+On app close, save open file paths to session.json (next to exe).
 On startup, read session.json and reopen each file (skip missing ones).
 Settings option: 'Restore last session on startup' (default: on).
-Fail silently if session.json is missing or corrupt.
+Fail silently if session.json is missing or corrupt.
+
 
 B1  ?  Global Search / Find in Log (Ctrl+F)
-What it doesFind bar in the raw log panel with match highlighting, Next/Previous navigation, and match count.Ctrl+F shows a panel at the bottom of the LogText tab.
+What it does
+Find bar in the raw log panel with match highlighting, Next/Previous navigation, and match count.
+Ctrl+F shows a panel at the bottom of the LogText tab.
 Panels: TextBox, Previous, Next, match count label, Match Case checkbox, X to close.
 Highlight all matches in yellow in the RichTextBox.
 Escape or X clears highlights and hides the bar.
-Also accessible from Edit > Find (Ctrl+F) and Edit > Find Next (F3).
+Also accessible from Edit > Find (Ctrl+F) and Edit > Find Next (F3).
+
 B2  ?  Advanced Search with Regex [NEW]
-What it doesExtends the find bar to support regular expression search patterns.Add a 'Regex' toggle button to the existing find bar.
+What it does
+Extends the find bar to support regular expression search patterns.
+Add a 'Regex' toggle button to the existing find bar.
 When active, compile the search text as a Regex pattern.
 Invalid regex: tint the TextBox border red + show tooltip with error message.
-Matches highlight identically to plain-text search.
+Matches highlight identically to plain-text search.
+
 B3  ?  Filter by Method Name (Filter Dialog) [NEW]
-What it doesEdit > Filter opens the Filter Log dialog. User builds a list of method names; the tree shows only matching nodes.UI designFilter Log dialog: dropdown + Add button, list of filter terms, Remove / Remove All / Filter / Close buttons. See UI Design Reference section.Acceptance criteriaWildcards supported. Adding a term to the list and clicking Filter applies immediately. Remove All clears the filter and shows all nodes.Add Edit > 'Filter...' menu item (also accessible from right-click context menu).
+What it does
+Edit > Filter opens the Filter Log dialog. User builds a list of method names; the tree shows only matching nodes.
+UI design
+Filter Log dialog: dropdown + Add button, list of filter terms, Remove / Remove All / Filter / Close buttons. See UI Design Reference section.
+Acceptance criteria
+Wildcards supported. Adding a term to the list and clicking Filter applies immediately. Remove All clears the filter and shows all nodes.
+Add Edit > 'Filter...' menu item (also accessible from right-click context menu).
 Open the Filter Log dialog as shown in the UI Design Reference:
   - A ComboBox (dropdown) at the top with an 'Add' button
   - A ListBox below showing all active filter terms
@@ -127,45 +244,75 @@ When Filter is clicked: hide tree nodes whose method names are not in the list.
 Show parent nodes of matching nodes to preserve hierarchy context.
 When Remove All is clicked: clear the list and show all nodes.
 Persist the filter list in memory for the session (not to disk).
-Status bar shows: 'Filter active: N methods' when a filter is applied.
+Status bar shows: 'Filter active: N methods' when a filter is applied.
+
 B4  ?  Filter by Time Range
-What it doesShows only call tree nodes within a user-specified time window.Add Filter > 'Filter by Time Range...' (or under Edit menu).
+What it does
+Shows only call tree nodes within a user-specified time window.
+Add Filter > 'Filter by Time Range...' (or under Edit menu).
 Dialog with two DateTimePicker controls (start and end, with milliseconds).
 Hide nodes outside the window. Show parent nodes of matching nodes.
 Status bar: 'Time filter active: HH:mm:ss ? HH:mm:ss'.
-Filter > 'Clear All Filters' resets all active filters.
+Filter > 'Clear All Filters' resets all active filters.
+
 B5  ?  Filter by Duration Threshold
-What it doesShows only calls exceeding a minimum duration in milliseconds.InputBox asks for threshold in ms.
+What it does
+Shows only calls exceeding a minimum duration in milliseconds.
+InputBox asks for threshold in ms.
 Hide nodes below threshold. Show parent nodes of matching nodes.
-Multiple filters (name, time, duration) apply simultaneously (AND logic).
+Multiple filters (name, time, duration) apply simultaneously (AND logic).
+
 B6  ?  Filter by Log Level / Tag
-What it doesCheckboxes above the LogText tab toggle visibility of DEBUG/INFO/WARN/ERROR lines.Toolbar with checkboxes: DEBUG, INFO, WARN, ERROR above the LogText panel.
+What it does
+Checkboxes above the LogText tab toggle visibility of DEBUG/INFO/WARN/ERROR lines.
+Toolbar with checkboxes: DEBUG, INFO, WARN, ERROR above the LogText panel.
 Unchecking a level hides matching lines in the log view.
-Detect level tags on file open; disable toolbar if none found.
+Detect level tags on file open; disable toolbar if none found.
+
 B7  ?  Filter by Thread ID [NEW]
-What it doesA dropdown filters both the call tree and log panel to show only entries from a selected thread.Commit messageParse thread IDs from log lines. Populate a toolbar ComboBox with 'All Threads' + each ID.
+What it does
+A dropdown filters both the call tree and log panel to show only entries from a selected thread.
+Commit message
+Parse thread IDs from log lines. Populate a toolbar ComboBox with 'All Threads' + each ID.
 Selecting a thread hides nodes and log lines from other threads.
 If no thread IDs detected, hide the ComboBox.
-Status bar indicator when filter is active.
+Status bar indicator when filter is active.
+
 B8  ?  Bookmark Log Lines
-What it doesMark tree nodes or log lines for quick return navigation. Listed in Bookmarks menu.Ctrl+B or right-click: 'Bookmark this'. Bookmarked nodes show a star or bold text.
+What it does
+Mark tree nodes or log lines for quick return navigation. Listed in Bookmarks menu.
+Ctrl+B or right-click: 'Bookmark this'. Bookmarked nodes show a star or bold text.
 Bookmarks menu lists all bookmarks. Clicking jumps to that node or line.
-Right-click bookmarked node: 'Remove Bookmark'. Session-only.
+Right-click bookmarked node: 'Remove Bookmark'. Session-only.
+
 B9  ?  Jump to Matching ENTER/EXIT Pair (Edit Menu) [NEW]
-What it doesFrom any ENTER node, jump to its EXIT and vice versa. Accessible from Edit menu as 'Jump to Matching Line Enter' and from tree right-click.When building the call tree, link each ENTER node to its EXIT node in TreeNode.Tag.
+What it does
+From any ENTER node, jump to its EXIT and vice versa. Accessible from Edit menu as 'Jump to Matching Line Enter' and from tree right-click.
+When building the call tree, link each ENTER node to its EXIT node in TreeNode.Tag.
 Add Edit > 'Jump to Matching Line Enter' ? jumps from selected ENTER to its EXIT or vice versa.
 Also available via right-click context menu: 'Go to EXIT' / 'Go to ENTER'.
 Selecting the option selects the paired node and scrolls it into view.
-Also highlights the corresponding line in the LogText tab.
+Also highlights the corresponding line in the LogText tab.
+
 B10  ?  Quick Navigation (Next/Prev Error/Warning) [NEW]
-What it doesToolbar buttons jump to the next or previous ERROR or WARN line in the log.On file open, index all ERROR and WARN line numbers.
+What it does
+Toolbar buttons jump to the next or previous ERROR or WARN line in the log.
+On file open, index all ERROR and WARN line numbers.
 Add toolbar buttons: ? Prev Warning, ? Next Warning, ? Prev Error, ? Next Error.
-Navigation wraps around. Status bar: 'N errors, M warnings'.
+Navigation wraps around. Status bar: 'N errors, M warnings'.
+
 
 Phase 3 ? Call Tree Enhancements + LogView  (C1 ? C6, H1 ? H2)
 ??  Build H1 (LogText tab design) and C3 (node icons) in the same session ? they depend on the same parsing pass.
 H1  ?  LogText Tab (two-column: line# + log text, prev 10 lines) [NEW]
-What it doesThe LogText tab (default right panel tab) shows a two-column grid: line number (auto-width) and log text. Clicking a tree node scrolls to that line and shows the 10 previous lines.UI designSee LogText Tab screenshot in UI Design Reference. Line number column is auto-sized to content. Selected line is highlighted in the colour from Settings > Highlight Color for Filter.Acceptance criteriaTwo columns render correctly. Clicking any tree node scrolls the log and highlights the target line. The 10 lines before the selected line are visible above it (or fewer if fewer lines exist before it).Commit messageReplace the existing raw log RichTextBox or ListBox with a two-column ListView or DataGridView.
+What it does
+The LogText tab (default right panel tab) shows a two-column grid: line number (auto-width) and log text. Clicking a tree node scrolls to that line and shows the 10 previous lines.
+UI design
+See LogText Tab screenshot in UI Design Reference. Line number column is auto-sized to content. Selected line is highlighted in the colour from Settings > Highlight Color for Filter.
+Acceptance criteria
+Two columns render correctly. Clicking any tree node scrolls the log and highlights the target line. The 10 lines before the selected line are visible above it (or fewer if fewer lines exist before it).
+Commit message
+Replace the existing raw log RichTextBox or ListBox with a two-column ListView or DataGridView.
 Column 1: line number (header 'Line #', auto-sized to the widest number, right-aligned).
 Column 2: log text (header 'Log', fills remaining width, horizontal scrollbar).
 Use a monospace font (Courier New) in the log column for alignment.
@@ -174,9 +321,14 @@ When a tree node is selected:
   - Highlight that row in the colour defined in Settings (default PowderBlue)
   - Ensure at least 10 rows above the selected line are visible (scroll accordingly)
 If fewer than 10 lines exist before the selected line, show all available lines.
-Default tab on file open: LogText tab is active.
+Default tab on file open: LogText tab is active.
+
 H2  ?  Display/Hide Tab Panels (View Menu toggles) [NEW]
-What it doesView menu allows toggling visibility of each right-panel tab (LogText, Performance, RPC, LogEditor) and switching between Call Tree and API Tree on the left.Acceptance criteriaOnly one tree (Call Tree or API Tree) is visible at a time. Each right tab can be hidden. 'Show Tabs' / 'Hide Tabs' toggles all right tabs.Add to View menu:
+What it does
+View menu allows toggling visibility of each right-panel tab (LogText, Performance, RPC, LogEditor) and switching between Call Tree and API Tree on the left.
+Acceptance criteria
+Only one tree (Call Tree or API Tree) is visible at a time. Each right tab can be hidden. 'Show Tabs' / 'Hide Tabs' toggles all right tabs.
+Add to View menu:
   'Show Call Tree' (toggle, checked when Call Tree is active)
   'Show API Tree' (toggle, checked when API Tree is active)
   - Only one can be checked at a time; selecting one deselects the other
@@ -187,24 +339,43 @@ What it doesView menu allows toggling visibility of each right-panel tab (LogTe
   'Log View' ? switches to and shows the LogText tab
   'Performance View' ? switches to the Performance tab
   'Call Graph' ? opens the Call Graph panel
-Save last active tree type and tab visibility to config.json.
+Save last active tree type and tab visibility to config.json.
+
 C1  ?  Expand / Collapse All (Toolbar + Edit Menu) [NEW]
-What it doesToolbar buttons and Edit menu items to expand or collapse all tree nodes. Also 'Expand to Level N'.Commit messagefeat: add expand/collapse all and expand-to-depth to call tree
+What it does
+Toolbar buttons and Edit menu items to expand or collapse all tree nodes. Also 'Expand to Level N'.
+Commit message
+feat: add expand/collapse all and expand-to-depth to call tree
+
 Prompt:
 Add 'Expand All' and 'Collapse All' toolbar buttons.
 Also in Edit menu: 'Expand All' and 'Collapse All'.
 Right-click context menu: same two options.
 'Expand to Level...' (context menu) shows InputBox for depth number.
-Initially on file open: expand to first level only (root node children visible).
+Initially on file open: expand to first level only (root node children visible).
+
 C2  ?  Lazy Loading for Large Logs [NEW]
-What it doesTree loads only top-level nodes initially; children load on expand. Keeps UI responsive for large logs.Commit messagefeat: add lazy loading to call tree for large log files
+What it does
+Tree loads only top-level nodes initially; children load on expand. Keeps UI responsive for large logs.
+Commit message
+feat: add lazy loading to call tree for large log files
+
 Prompt:
 Build only root nodes on initial load. Add a 'Loading...' placeholder child to nodes with children.
 Handle BeforeExpand: build and insert real children, remove placeholder.
 Pre-build data structure in memory so expansion is fast.
-Show a progress bar in the status bar during initial parse.
+Show a progress bar in the status bar during initial parse.
+
 C3  ?  Duration Overlay + Checkmark/Cross Icons + Color Coding [NEW]
-What it doesEach tree node shows a ? (ENTER/EXIT matched) or ? (unmatched) icon, execution duration in brackets, and is color-coded by speed.UI designNodes: ? icon when ENTER and EXIT both found in log. ? icon when EXIT is missing or ENTER has no match. Duration: 'MethodName [142 ms]'. Color: green < 100ms, amber 100?500ms, red > 500ms.Acceptance criteriaIcons are flat-style (not 3D). Duration shows [? ms] if EXIT is missing. Thresholds are class-level constants referencing settings values.Commit messagefeat: add checkmark/cross icons, duration overlay and color coding to call tree
+What it does
+Each tree node shows a ? (ENTER/EXIT matched) or ? (unmatched) icon, execution duration in brackets, and is color-coded by speed.
+UI design
+Nodes: ? icon when ENTER and EXIT both found in log. ? icon when EXIT is missing or ENTER has no match. Duration: 'MethodName [142 ms]'. Color: green < 100ms, amber 100?500ms, red > 500ms.
+Acceptance criteria
+Icons are flat-style (not 3D). Duration shows [? ms] if EXIT is missing. Thresholds are class-level constants referencing settings values.
+Commit message
+feat: add checkmark/cross icons, duration overlay and color coding to call tree
+
 Prompt:
 Use flat icon images (? green, ? red) from the project's image list on each TreeNode.
 Assign ? icon if both ENTER and EXIT log lines are found for the node.
@@ -215,21 +386,38 @@ FAST_MS and SLOW_MS are class-level constants that read from Settings on load.
 Default: FAST_MS = 100, SLOW_MS = 500.
 Add a TopMost root node labelled 'Call - Tree' at the top of the Call Tree.
 Add a TopMost root node labelled 'API - Tree' at the top of the API Tree.
-Use flat toolbar-style icons throughout (not 3D/raised appearance).
+Use flat toolbar-style icons throughout (not 3D/raised appearance).
+
 C4  ?  Highlight Slow Calls
-What it doesRight-click prompts for a threshold; nodes above it get a red background. Clearable.Commit messagefeat: add highlight slow calls feature to call tree
+What it does
+Right-click prompts for a threshold; nodes above it get a red background. Clearable.
+Commit message
+feat: add highlight slow calls feature to call tree
+
 Prompt:
 Right-click: 'Highlight calls slower than...' InputBox for threshold ms.
 Set BackColor = light red (#FFD7D7) on nodes exceeding threshold.
-Toolbar button or context menu: 'Clear All Highlights'.
+Toolbar button or context menu: 'Clear All Highlights'.
+
 C5  ?  Search / Jump To within Tree
-What it doesSearch box above the call tree finds nodes by method name with Next/Previous and match count.Commit messagefeat: add search box with jump-to for call tree nodes
+What it does
+Search box above the call tree finds nodes by method name with Next/Previous and match count.
+Commit message
+feat: add search box with jump-to for call tree nodes
+
 Prompt:
 TextBox + Find/Next/Previous buttons above the TreeView.
 Case-insensitive. First match: select and scroll. Match count: '3 of 7 matches'.
-Escape clears search and highlights.
+Escape clears search and highlights.
+
 C6  ?  Right-Click Context Menu (incl. Grok Search + Reload) [NEW]
-What it doesComprehensive right-click menu on tree nodes. Includes all Edit menu actions plus Grok search and disk reload. Matches the context menu items noted by the product owner.Menu itemsCopy Node Name | Reload from Disk | Expand All | Collapse All | Filter... | Search in Grok | 컴 | Copy Subtree as Text | Export Branch to CSV | 컴 | Go to EXIT/ENTER | Show in API TreeCommit messagefeat: add rich right-click context menu to call tree including Grok and reload
+What it does
+Comprehensive right-click menu on tree nodes. Includes all Edit menu actions plus Grok search and disk reload. Matches the context menu items noted by the product owner.
+Menu items
+Copy Node Name | Reload from Disk | Expand All | Collapse All | Filter... | Search in Grok | 컴 | Copy Subtree as Text | Export Branch to CSV | 컴 | Go to EXIT/ENTER | Show in API Tree
+Commit message
+feat: add rich right-click context menu to call tree including Grok and reload
+
 Prompt:
 Add a ContextMenuStrip to the TreeView with these items in order:
   'Copy Node Name'             ? copies just the method name to clipboard
@@ -246,11 +434,20 @@ Add a ContextMenuStrip to the TreeView with these items in order:
   'Export Branch to CSV'       ? saves method, depth, duration of node+children to CSV
   separator
   'Jump to Matching ENTER/EXIT'? same as B9
-  'Show in API Tree'           ? switches to API Tree tab and highlights this method
+  'Show in API Tree'           ? switches to API Tree tab and highlights this method
+
 
 Phase 4 ? API View  (D1 ? D7)
 D1  ?  API Flat Tree (one-level, API name + Line No as node) [NEW]
-What it doesThe API Tree shows unique API names as root nodes (one level). Child nodes = each invocation, labelled as 'API name ? Line No'.UI designSee API Tree screenshot in UI Design Reference. Root nodes show ?/? icons. Children use 'MethodName ? Line 1042' as the label. TopMost root node labelled 'API - Tree'.Acceptance criteriaDistinct API calls each get one root node. Multiple invocations of the same API appear as child nodes with line numbers. Initially first level expanded.Commit messagefeat: add API tree with one-level grouping and line-number child nodes
+What it does
+The API Tree shows unique API names as root nodes (one level). Child nodes = each invocation, labelled as 'API name ? Line No'.
+UI design
+See API Tree screenshot in UI Design Reference. Root nodes show ?/? icons. Children use 'MethodName ? Line 1042' as the label. TopMost root node labelled 'API - Tree'.
+Acceptance criteria
+Distinct API calls each get one root node. Multiple invocations of the same API appear as child nodes with line numbers. Initially first level expanded.
+Commit message
+feat: add API tree with one-level grouping and line-number child nodes
+
 Prompt:
 Add a Tab alongside the Call Tree: 'Call Tree' tab and 'API Tree' tab.
 Build the API Tree from the parsed log data:
@@ -260,47 +457,88 @@ Build the API Tree from the parsed log data:
 Add a TopMost root node labelled 'API - Tree' at the top.
 Apply ?/? icons same as Call Tree: ? if ENTER/EXIT both found, ? if EXIT missing.
 Expand to first level on load (root nodes visible, children collapsed).
-Use flat icons consistent with the Call Tree.
+Use flat icons consistent with the Call Tree.
+
 D2  ?  API Tree Grouped by Namespace/Class [NEW]
-What it doesOptional grouped view of the API Tree by namespace or class prefix.Commit messagefeat: add namespace/class grouping toggle to API tree
+What it does
+Optional grouped view of the API Tree by namespace or class prefix.
+Commit message
+feat: add namespace/class grouping toggle to API tree
+
 Prompt:
 Add 'Flat View' / 'Grouped View' toggle button above the API Tree.
 In Grouped View, split method names by '.' and group by first N segments.
-N configurable via spinner (default: 1). Separator configurable in Settings.
+N configurable via spinner (default: 1). Separator configurable in Settings.
+
 D3  ?  API Invocation Details Panel
-What it doesSelecting a root method node in the API Tree shows stats (total calls, avg/min/max time) and a list of all invocations in the right panel.Commit messagefeat: add API invocation details panel
+What it does
+Selecting a root method node in the API Tree shows stats (total calls, avg/min/max time) and a list of all invocations in the right panel.
+Commit message
+feat: add API invocation details panel
+
 Prompt:
 When a root method node is selected in API Tree, show in the right panel:
   Summary header: Total Calls | Total Time | Avg Time | Min Time | Max Time
   List: each invocation with timestamp, duration, log line number.
-Selecting a child invocation node scrolls the LogText tab to that line.
+Selecting a child invocation node scrolls the LogText tab to that line.
+
 D4  ?  Hotspot Detection (top used APIs) [NEW]
-What it doesAutomatically flags the most heavily used or slowest methods in the API Tree with visual indicators.Commit messagefeat: add hotspot detection highlighting to API tree
+What it does
+Automatically flags the most heavily used or slowest methods in the API Tree with visual indicators.
+Commit message
+feat: add hotspot detection highlighting to API tree
+
 Prompt:
 After building the API tree, flag top 5 most-called and top 5 slowest with icons.
 'Show Hotspots Only' toggle shows only flagged nodes.
-Hover tooltip: 'Top 3 most called' or 'Top 2 slowest avg'.
+Hover tooltip: 'Top 3 most called' or 'Top 2 slowest avg'.
+
 D5  ?  Cross-Reference Jump (API ? Call Tree)
-What it doesDouble-clicking an API invocation jumps to that node in the Call Tree, and vice versa.Commit messagefeat: add cross-reference jump between API tree and call tree
+What it does
+Double-clicking an API invocation jumps to that node in the Call Tree, and vice versa.
+Commit message
+feat: add cross-reference jump between API tree and call tree
+
 Prompt:
 In API invocation list, 'Jump to Call Tree' button per row.
-In Call Tree right-click: 'Show in API Tree'.
+In Call Tree right-click: 'Show in API Tree'.
+
 D6  ?  Sort APIs (count / avg / total time) [NEW]
-What it doesComboBox above the API Tree controls the sort order of root method nodes.Commit messagefeat: add sortable columns to API summary view
+What it does
+ComboBox above the API Tree controls the sort order of root method nodes.
+Commit message
+feat: add sortable columns to API summary view
+
 Prompt:
 Add sort ComboBox: Call Count / Avg Time / Total Time / Name. + Asc/Desc toggle.
 Re-sort and rebuild API tree when sort changes.
-Default: Call Count descending.
+Default: Call Count descending.
+
 D7  ?  Export API List to CSV
-What it doesFile > Export > 'API Summary to CSV...' saves method stats to a CSV file.Commit messagefeat: add export API summary to CSV
+What it does
+File > Export > 'API Summary to CSV...' saves method stats to a CSV file.
+Commit message
+feat: add export API summary to CSV
+
 Prompt:
 SaveFileDialog with *.csv filter.
 Columns: Method Name, Call Count, Total Time (ms), Avg Time (ms), Min (ms), Max (ms).
-Confirm with MessageBox after save.
+Confirm with MessageBox after save.
+
 
 Phase 5 ? Performance Analytics  (E1 ? E6)
 E1  ?  Performance Tab (Method, Calls, Time, Max, Min, Avg, Total, Self Time) [NEW]
-What it doesThe Performance right-panel tab shows a grid of all methods with timing statistics. 'Self Time' is the time spent within the method excluding time taken by child calls.UI designSee Performance Tab screenshot in UI Design Reference. Columns: Method Name | No of Calls | Time | Max Time | Min Time | Average Time | Total Time | Self Time. Click column header to sort.Self TimeSelf Time = Total Time of this method ? sum of Total Time of all direct children. This isolates the method's own cost from sub-calls.Acceptance criteriaAll eight columns present. Sortable by clicking header. Clicking a row selects that method in the API Tree. Optionally dynamically updates as tree nodes are browsed (controlled by Settings toggle).Commit messagefeat: add performance tab with self-time column and sortable columns
+What it does
+The Performance right-panel tab shows a grid of all methods with timing statistics. 'Self Time' is the time spent within the method excluding time taken by child calls.
+UI design
+See Performance Tab screenshot in UI Design Reference. Columns: Method Name | No of Calls | Time | Max Time | Min Time | Average Time | Total Time | Self Time. Click column header to sort.
+Self Time
+Self Time = Total Time of this method ? sum of Total Time of all direct children. This isolates the method's own cost from sub-calls.
+Acceptance criteria
+All eight columns present. Sortable by clicking header. Clicking a row selects that method in the API Tree. Optionally dynamically updates as tree nodes are browsed (controlled by Settings toggle).
+Commit message
+feat: add performance tab with self-time column and sortable columns
+
 Prompt:
 Replace or enhance the existing Performance tab in the right-panel TabControl.
 Use a DataGridView with these columns:
@@ -312,118 +550,212 @@ Double-click a row: navigate to that method in the API Tree.
 If Settings > 'Dynamically Update Performance Numbers' is checked:
   Update the Performance tab in real time as the user clicks tree nodes.
   Note: this is slow for large logs ? warn the user in the status bar if log > 50MB.
-Otherwise, populate once on file open and update only on explicit refresh.
+Otherwise, populate once on file open and update only on explicit refresh.
+
 E2  ?  Top N Slowest Calls
-What it doesA 'Top Slowest' sub-view inside the Performance tab listing the N worst individual invocations.Commit messagefeat: add top N slowest calls view to performance tab
+What it does
+A 'Top Slowest' sub-view inside the Performance tab listing the N worst individual invocations.
+Commit message
+feat: add top N slowest calls view to performance tab
+
 Prompt:
 Add a 'Top Slowest' tab or button group inside the Performance tab.
 NumericUpDown spinner for N (default 10).
 Columns: Rank | Method Name | Duration (ms) | Timestamp | Log Line #.
-Double-click: jump to node in Call Tree. Top 3 rows red, 4?10 amber.
+Double-click: jump to node in Call Tree. Top 3 rows red, 4?10 amber.
+
 E3  ?  Most Frequently Called Methods
-What it doesRanked list by call count with proportional bar indicator.Commit messagefeat: add most frequently called methods view to performance tab
+What it does
+Ranked list by call count with proportional bar indicator.
+Commit message
+feat: add most frequently called methods view to performance tab
+
 Prompt:
 Columns: Rank | Method Name | Call Count | % of Total Calls.
 Visual bar in the Count column proportional to highest count.
-Double-click: open in API Tree detail panel.
+Double-click: open in API Tree detail panel.
+
 E4  ?  Call Depth Analysis
-What it doesReports max and average call stack depth and the deepest call chains.Commit messagefeat: add call depth analysis view to performance tab
+What it does
+Reports max and average call stack depth and the deepest call chains.
+Commit message
+feat: add call depth analysis view to performance tab
+
 Prompt:
 Show: Maximum depth, Average depth, Top 5 deepest chains (A > B > C > D).
-Clicking a chain highlights that branch in the Call Tree.
+Clicking a chain highlights that branch in the Call Tree.
+
 E5  ?  Aggregate Statistics Panel [NEW]
-What it doesCollapsible panel at the top of the main form showing key log stats at a glance.Commit messagefeat: add aggregate statistics summary panel
+What it does
+Collapsible panel at the top of the main form showing key log stats at a glance.
+Commit message
+feat: add aggregate statistics summary panel
+
 Prompt:
 Panel below toolbar: Total lines | Total methods | Total duration | Unique methods | Errors | Warnings.
 Populate immediately on file load. Toggle button to collapse/expand.
-Auto-collapse if screen height < 800px.
+Auto-collapse if screen height < 800px.
+
 E6  ?  Log Comparison / Diff (two log files) [NEW]
-What it doesLoad a baseline and current log; generates a diff showing performance regressions and new/removed methods.Commit messagefeat: add log comparison/diff view for two log files
+What it does
+Load a baseline and current log; generates a diff showing performance regressions and new/removed methods.
+Commit message
+feat: add log comparison/diff view for two log files
+
 Prompt:
 File > 'Compare Two Logs...' ? open two file dialogs (Baseline, Current).
 Diff table: Method | Baseline Avg | Current Avg | Delta | Status (Faster/Slower/New/Removed).
-Sort by absolute delta descending. Plain-English summary paragraph at the top.
+Sort by absolute delta descending. Plain-English summary paragraph at the top.
+
 
 Phase 6 ? Visualization  (F1 ? F6)
 F1  ?  Flame Chart / Stack View
-What it doesHorizontal bar chart on a time axis showing method calls as bars, nested by call depth.Commit messagefeat: add flame chart timeline visualization
+What it does
+Horizontal bar chart on a time axis showing method calls as bars, nested by call depth.
+Commit message
+feat: add flame chart timeline visualization
+
 Prompt:
 View > 'Flame Chart'. GDI+ double-buffered Panel.
 X = time (ms from log start), Y = call depth. Consistent color per method name.
 Mouse-wheel zooms X. Click bar: select Call Tree node.
-Hover tooltip: method name, start time, duration.
+Hover tooltip: method name, start time, duration.
+
 F2  ?  Timeline / Gantt Chart of Calls [NEW]
-What it doesGantt-style chart with each method as a horizontal bar on a shared time axis.Commit messagefeat: add Gantt-style timeline chart of method calls
+What it does
+Gantt-style chart with each method as a horizontal bar on a shared time axis.
+Commit message
+feat: add Gantt-style timeline chart of method calls
+
 Prompt:
 'Timeline' tab inside Flame Chart form or separate View menu entry.
 Each row = one method invocation. Color by duration category. Vertical + horizontal zoom.
-Click bar: jump to corresponding tree node.
+Click bar: jump to corresponding tree node.
+
 F3  ?  Visual Call Graph with Zoom & Pan
-What it doesDirected node-link graph with zoom, pan, and minimap.Commit messagefeat: add visual call graph with zoom, pan, and minimap
+What it does
+Directed node-link graph with zoom, pan, and minimap.
+Commit message
+feat: add visual call graph with zoom, pan, and minimap
+
 Prompt:
 View > 'Call Graph'. GDI+ double-buffered Panel.
 Nodes = methods. Arrows = caller ? callee. Arrow thickness = call frequency.
 Hierarchical top-down layout. Mouse-wheel zoom. Drag-to-pan.
-Minimap in bottom-right corner. Click node: select in API Tree.
+Minimap in bottom-right corner. Click node: select in API Tree.
+
 F4  ?  Dependency Graph (who calls whom) [NEW]
-What it doesFor a selected method, shows all callers on the left and all callees on the right.Commit messagefeat: add dependency graph for selected method
+What it does
+For a selected method, shows all callers on the left and all callees on the right.
+Commit message
+feat: add dependency graph for selected method
+
 Prompt:
 Right-click in API Tree: 'Show Dependencies'.
 Three-column layout: parents | selected method | children.
-Double-click any node to make it the new centre.
+Double-click any node to make it the new centre.
+
 F5  ?  Heatmap (hot methods visual) [NEW]
-What it doesA grid of rectangles, one per method, colored by call frequency or total time.Commit messagefeat: add method heatmap visualization
+What it does
+A grid of rectangles, one per method, colored by call frequency or total time.
+Commit message
+feat: add method heatmap visualization
+
 Prompt:
 View > 'Heatmap'. Grid of rectangles, size ? total time, color = heat level.
 Toggle: color by call count or total time. Click cell: select in API Tree.
-Hover tooltip: method name, count, total time.
+Hover tooltip: method name, count, total time.
+
 F6  ?  Export Graph / Chart as Image
-What it doesSave any visual panel (call graph, flame chart, heatmap) as a PNG file.Commit messagefeat: add export graph and chart panels as PNG
+What it does
+Save any visual panel (call graph, flame chart, heatmap) as a PNG file.
+Commit message
+feat: add export graph and chart panels as PNG
+
 Prompt:
 Right-click on visual panel: 'Export as PNG...' + File > Export > '[Name] as PNG...'
-Export full content (not just viewport) at screen DPI. Confirm with MessageBox.
+Export full content (not just viewport) at screen DPI. Confirm with MessageBox.
+
 
 Phase 7 ? Usability, UI & Settings  (G1 ? G12, J1 ? J3)
 G1  ?  Split Panel Resize + Persist
-What it doesThe splitter between tree and log panels is draggable; position is saved between sessions.Commit messagefeat: persist split panel position across sessions
+What it does
+The splitter between tree and log panels is draggable; position is saved between sessions.
+Commit message
+feat: persist split panel position across sessions
+
 Prompt:
 SplitContainer.IsSplitterFixed = false. Min panel size = 200px.
-Save SplitterDistance to config.json on close. Restore on load.
+Save SplitterDistance to config.json on close. Restore on load.
+
 G2  ?  Dark Mode / Theme Support [NEW]
-What it doesToggle between Light and Dark colour themes via View menu. Persists between sessions.Commit messagefeat: add dark mode and theme toggle
+What it does
+Toggle between Light and Dark colour themes via View menu. Persists between sessions.
+Commit message
+feat: add dark mode and theme toggle
+
 Prompt:
 ThemeManager class with Light and Dark presets.
 Apply theme to: Form, TreeView, RichTextBox/DataGridView, Panels, Labels, Buttons, MenuStrip.
-View > 'Dark Mode' toggle. Save to config.json. Apply before Form_Load to prevent white flash.
+View > 'Dark Mode' toggle. Save to config.json. Apply before Form_Load to prevent white flash.
+
 G3  ?  Dockable Panels [NEW]
-What it doesPerformance, Flame Chart, and other secondary panels can be docked or floated.Commit messagefeat: add dockable panel support for secondary views
+What it does
+Performance, Flame Chart, and other secondary panels can be docked or floated.
+Commit message
+feat: add dockable panel support for secondary views
+
 Prompt:
 Use WeifenLuo DockPanel Suite (NuGet).
 Convert Performance Dashboard, Flame Chart, Call Graph, Heatmap to DockContent.
-Save layout to dockstate.xml on close. Restore on startup.
+Save layout to dockstate.xml on close. Restore on startup.
+
 G4  ?  Keyboard Shortcuts + Cheat Sheet (all menu actions) [NEW]
-What it doesAll menu actions have keyboard shortcuts. Help > (shortcut) shows a cheat sheet. Shortcuts match the menu structure.Key shortcutsCtrl+O: Open | F5: Reload from Disk | Ctrl+F: Find | F3: Find Next | Ctrl+B: Bookmark | Ctrl+E: Expand All | Ctrl+W: Collapse All | Ctrl+G: Jump to Matching Pair | F1: Help | Ctrl+D: Performance | Ctrl+Shift+C: Call GraphCommit messagefeat: add keyboard shortcuts to all menu actions and add cheat sheet dialog
+What it does
+All menu actions have keyboard shortcuts. Help > (shortcut) shows a cheat sheet. Shortcuts match the menu structure.
+Key shortcuts
+Ctrl+O: Open | F5: Reload from Disk | Ctrl+F: Find | F3: Find Next | Ctrl+B: Bookmark | Ctrl+E: Expand All | Ctrl+W: Collapse All | Ctrl+G: Jump to Matching Pair | F1: Help | Ctrl+D: Performance | Ctrl+Shift+C: Call Graph
+Commit message
+feat: add keyboard shortcuts to all menu actions and add cheat sheet dialog
+
 Prompt:
 Add keyboard shortcut assignments to all menu items as listed above.
 Help > 'Keyboard Shortcuts' opens a read-only dialog listing all shortcuts.
-Auto-generate the dialog content from the menu ShortcutKey properties.
+Auto-generate the dialog content from the menu ShortcutKey properties.
+
 G5  ?  Status Bar (log stats + selected node info) [NEW]
-What it doesStatusStrip at the bottom showing file info, active filter state, and selected node details. Also shows warnings when performance mode is active.Commit messagefeat: add status bar with log stats, filter state and selection info
+What it does
+StatusStrip at the bottom showing file info, active filter state, and selected node details. Also shows warnings when performance mode is active.
+Commit message
+feat: add status bar with log stats, filter state and selection info
+
 Prompt:
 StatusStrip panels:
   Left:   current filename + line count, e.g. 'app.log  |  4,231 lines'
   Centre: active filter, e.g. 'Filter: OpenFired, SaveFired' or 'Time filter: 10:23?10:25'
   Right:  selected node, e.g. 'CADSystemUnigraphics::setReadOnly  142ms  Line 304'
 When 'Dynamically Update Performance Numbers' is on and log > 50MB:
-  show a persistent amber warning: '? Large log ? performance updates may be slow'
+  show a persistent amber warning: '? Large log ? performance updates may be slow'
+
 G6  ?  Tooltips with Extra Info [NEW]
-What it doesHovering tree nodes and toolbar buttons shows descriptive tooltips.Commit messagefeat: add informative tooltips to tree nodes and toolbar buttons
+What it does
+Hovering tree nodes and toolbar buttons shows descriptive tooltips.
+Commit message
+feat: add informative tooltips to tree nodes and toolbar buttons
+
 Prompt:
 TreeView.ShowNodeToolTips = true. ToolTipText = full method name, depth, duration, line #.
 API tree node tooltip: count, avg, min, max.
-Toolbar button tooltips: usage description. Max 3 lines per tooltip.
+Toolbar button tooltips: usage description. Max 3 lines per tooltip.
+
 G7  ?  Copy & Save Log Snippet (clipboard + Save Selected) [NEW]
-What it doesRight-click context menu on the LogText panel for copy actions. File > Save Selected saves the selected tree node's log section to disk with a configurable filename suffix.File menuFile > 'Save Selected...' ? saves the log lines corresponding to the selected Call Tree node to disk. Default folder = PTC_LOG_DIR. Filename = method name + suffix from Settings. Also 'Save to XLS...' option.Commit messagefeat: add copy log snippet and File > Save Selected with configurable suffix
+What it does
+Right-click context menu on the LogText panel for copy actions. File > Save Selected saves the selected tree node's log section to disk with a configurable filename suffix.
+File menu
+File > 'Save Selected...' ? saves the log lines corresponding to the selected Call Tree node to disk. Default folder = PTC_LOG_DIR. Filename = method name + suffix from Settings. Also 'Save to XLS...' option.
+Commit message
+feat: add copy log snippet and File > Save Selected with configurable suffix
+
 Prompt:
 Right-click on LogText DataGridView:
   'Copy Selected Rows' ? copies selected rows to clipboard
@@ -438,21 +770,38 @@ File > 'Save Selected...':
 
 File > 'Save to XLS...':
   Same data as 'Save Selected' but exported as an Excel file using ClosedXML.
-  Columns: Line #, Timestamp, Log Text.
+  Columns: Line #, Timestamp, Log Text.
+
 G8  ?  Node Annotations / Notes
-What it doesAdd text notes to call tree nodes. Notes persist in a sidecar .notes.json file.Commit messagefeat: add node annotation/notes with sidecar file persistence
+What it does
+Add text notes to call tree nodes. Notes persist in a sidecar .notes.json file.
+Commit message
+feat: add node annotation/notes with sidecar file persistence
+
 Prompt:
 Right-click: 'Add/Edit Note...' InputBox. Annotated nodes show a pencil icon.
 Save to logfilename.notes.json in same folder. Load on file open.
-Right-click annotated node: 'Remove Note'.
+Right-click annotated node: 'Remove Note'.
+
 G9  ?  About / Version Dialog [NEW]
-What it doesHelp > About shows app name, version, open file, and a copy-version button. Matches the Help menu structure: About | Check for Updates | Report Errors.Commit messagefeat: add About dialog with version info
+What it does
+Help > About shows app name, version, open file, and a copy-version button. Matches the Help menu structure: About | Check for Updates | Report Errors.
+Commit message
+feat: add About dialog with version info
+
 Prompt:
 Help > About: app name (WWGM CAD 3P Log Browser), version, build date, current open file.
 'Copy Version Info' copies all details to clipboard for bug reports.
-OK button closes.
+OK button closes.
+
 G10  ?  Report Error / Crash Email Dialog [NEW]
-What it doesHelp > Report Errors opens a dialog to send a crash/error report by email. A .err file from the temp folder is automatically attached.UI designSee Report Error Dialog screenshot in UI Design Reference. Fields: recipient email(s) (semicolon-separated), Steps to Reproduce text area, .err file path shown as info. Buttons: Send Email, Cancel.Commit messagefeat: add Help > Report Errors email dialog with .err file attachment
+What it does
+Help > Report Errors opens a dialog to send a crash/error report by email. A .err file from the temp folder is automatically attached.
+UI design
+See Report Error Dialog screenshot in UI Design Reference. Fields: recipient email(s) (semicolon-separated), Steps to Reproduce text area, .err file path shown as info. Buttons: Send Email, Cancel.
+Commit message
+feat: add Help > Report Errors email dialog with .err file attachment
+
 Prompt:
 Add Help > 'Report Errors...' menu item.
 Dialog fields:
@@ -465,26 +814,43 @@ On 'Send Email': use System.Net.Mail.SmtpClient to send the email.
 Attach the .err file if it exists.
 Show success or failure MessageBox after sending.
 The error email address should be configurable in Settings (J1).
-The .err file path: Path.Combine(Path.GetTempPath(), 'Cad3pLogBrowser.err').
+The .err file path: Path.Combine(Path.GetTempPath(), 'Cad3pLogBrowser.err').
+
 G11  ?  Help CHM (Context-sensitive help file) [NEW]
-What it doesHelp > Help (F1) opens a compiled HTML Help (.chm) file. Help is context-sensitive where possible.Commit messagefeat: add Help CHM integration (F1)
+What it does
+Help > Help (F1) opens a compiled HTML Help (.chm) file. Help is context-sensitive where possible.
+Commit message
+feat: add Help CHM integration (F1)
+
 Prompt:
 Add Help > 'Help' menu item with shortcut F1.
 Use HelpProvider or direct call to Help.ShowHelp(form, 'LogBrowser.chm') on F1.
 Place LogBrowser.chm in the application folder.
 If the .chm file is not found, show a MessageBox: 'Help file not found: LogBrowser.chm'.
-Note: the .chm file itself must be authored separately. This feature just wires up the launch.
+Note: the .chm file itself must be authored separately. This feature just wires up the launch.
+
 G12  ?  Check for Updates [NEW]
-What it doesHelp > Check for Updates compares the current version against a version file on a network share or URL.Commit messagefeat: add Help > Check for Updates
+What it does
+Help > Check for Updates compares the current version against a version file on a network share or URL.
+Commit message
+feat: add Help > Check for Updates
+
 Prompt:
 Help > 'Check for Updates' makes a simple HTTP GET or network file read to a version endpoint.
 The update check URL is configurable in config.json field 'updateCheckUrl'.
 Compare response version string against Assembly version.
 If newer: MessageBox 'Version X.X is available. Download from [location].'
 If current: MessageBox 'You are running the latest version.'
-If URL is not configured or unreachable: show appropriate message, do not crash.
+If URL is not configured or unreachable: show appropriate message, do not crash.
+
 J1  ?  Settings Dialog (Grok URL, highlight color, thresholds, perf guards) [NEW]
-What it doesOptions > Settings opens the Settings dialog. Matches the UI design shown in screenshots exactly.UI designSee Settings Dialog screenshot in UI Design Reference. Groups: Default File Open Directory, Select Highlight Color, Initial TreeView, Grok Integration, When saving log snippet, Improve Performance.Commit messagefeat: add fully configured Settings dialog matching design spec
+What it does
+Options > Settings opens the Settings dialog. Matches the UI design shown in screenshots exactly.
+UI design
+See Settings Dialog screenshot in UI Design Reference. Groups: Default File Open Directory, Select Highlight Color, Initial TreeView, Grok Integration, When saving log snippet, Improve Performance.
+Commit message
+feat: add fully configured Settings dialog matching design spec
+
 Prompt:
 Options > 'Settings...' opens the Settings dialog with these controls:
 
@@ -516,106 +882,186 @@ Buttons: [OK] [Cancel]
 Save all settings to config.json next to the exe on OK. Load on startup.
 Apply highlight color immediately on OK without requiring app restart.
 If file size > threshold MB when opening a file, skip building the LogText tab content
-  and show a status bar warning: 'Log > 50MB ? list view disabled for performance'.
+  and show a status bar warning: 'Log > 50MB ? list view disabled for performance'.
+
 J2  ?  Portable / No-Install Mode (all config in local JSON)
-What it doesAll settings use JSON files next to the exe. Zero registry writes. Runs from USB or network share.Commit messagerefactor: convert all settings to local JSON files for portable mode
+What it does
+All settings use JSON files next to the exe. Zero registry writes. Runs from USB or network share.
+Commit message
+refactor: convert all settings to local JSON files for portable mode
+
 Prompt:
 Replace all ApplicationSettings/registry usage with reads/writes to JSON files next to exe:
   config.json, recentfiles.json, session.json
 Missing/corrupt files: recreate with defaults on startup ? do not crash.
-Test: copy entire app folder to different drive and launch.
+Test: copy entire app folder to different drive and launch.
+
 J3  ?  Grok Integration (Search in Grok from context menu) [NEW]
-What it doesRight-click on any tree node shows 'Search in Grok'. The method name is appended to the Grok URL from Settings and opened in the default browser.Commit messagefeat: add Grok search integration from tree context menu
+What it does
+Right-click on any tree node shows 'Search in Grok'. The method name is appended to the Grok URL from Settings and opened in the default browser.
+Commit message
+feat: add Grok search integration from tree context menu
+
 Prompt:
 Read 'grokUrl' from config.json.
 On 'Search in Grok': Process.Start(browser, grokUrl + Uri.EscapeDataString(methodName)).
 If grokUrl is empty in settings, show MessageBox: 'Please configure the Grok URL in Options > Settings.'
-The Grok URL field in Settings should include a placeholder example, e.g. 'https://grok.example.com/search?q='
+The Grok URL field in Settings should include a placeholder example, e.g. 'https://grok.example.com/search?q='
+
 
 Phase 8 ? Export & Reporting  (I1 ? I5, J4)
 I1  ?  Export Filtered Logs (as .txt) [NEW]
-What it doesSaves the currently visible (filtered) log lines to a new text file.Commit messagefeat: add export filtered log view to txt file
+What it does
+Saves the currently visible (filtered) log lines to a new text file.
+Commit message
+feat: add export filtered log view to txt file
+
 Prompt:
 File > Export > 'Filtered Log as Text...' SaveFileDialog with *.txt filter.
 Write only currently visible lines. Include header: source file, timestamp, active filters.
-Confirm with status bar message.
+Confirm with status bar message.
+
 I2  ?  Save Selected Branch to Disk (trimmed log / XLS) [NEW]
-What it doesFile > Save Selected saves only the log lines for the selected tree node (ENTER to EXIT) to a .log or .xls file. This is the same as G7's Save Selected, listed here also as an export feature.Commit messageSee G7 ? same implementation
+What it does
+File > Save Selected saves only the log lines for the selected tree node (ENTER to EXIT) to a .log or .xls file. This is the same as G7's Save Selected, listed here also as an export feature.
+Commit message
+See G7 ? same implementation
+
 Prompt:
 See G7 for full implementation details.
-This entry serves as a cross-reference in the Export phase.
+This entry serves as a cross-reference in the Export phase.
+
 I3  ?  Export Call Tree (JSON / XML) [NEW]
-What it doesExports the full parsed call tree structure to JSON or XML for external processing.Commit messagefeat: add export call tree as JSON and XML
+What it does
+Exports the full parsed call tree structure to JSON or XML for external processing.
+Commit message
+feat: add export call tree as JSON and XML
+
 Prompt:
 File > Export > 'Call Tree as JSON...' and 'Call Tree as XML...'
 JSON: array of method objects with method, depth, startTime, endTime, duration, children[].
-XML: nested <Method> elements with attributes. Use System.Text.Json / System.Xml.
+XML: nested <Method> elements with attributes. Use System.Text.Json / System.Xml.
+
 I4  ?  Export Analytics Report (PDF / Excel) [NEW]
-What it doesOne-click export of performance dashboard data to a formatted PDF or Excel report.Commit messagefeat: add export analytics report to PDF and Excel
+What it does
+One-click export of performance dashboard data to a formatted PDF or Excel report.
+Commit message
+feat: add export analytics report to PDF and Excel
+
 Prompt:
 Use ClosedXML for Excel, PdfSharp or iTextSharp for PDF (NuGet).
 Include: method stats table, top 10 slowest, most called methods.
-File > Export > 'Analytics Report as PDF...' and 'Analytics Report as Excel...'
+File > Export > 'Analytics Report as PDF...' and 'Analytics Report as Excel...'
+
 I5  ?  Screenshot / Snapshot of Graphs [NEW]
-What it doesCaptures the full main window or any visual panel as a PNG.Commit messagefeat: add screenshot snapshot for all visual panels and main window
+What it does
+Captures the full main window or any visual panel as a PNG.
+Commit message
+feat: add screenshot snapshot for all visual panels and main window
+
 Prompt:
 View > 'Take Screenshot': captures main form using Control.DrawToBitmap.
 Right-click visual panels: 'Export as PNG...'
-Auto-suggest filename: LogBrowser_screenshot_yyyyMMdd_HHmmss.png
+Auto-suggest filename: LogBrowser_screenshot_yyyyMMdd_HHmmss.png
+
 J4  ?  Shareable Bookmarks / Annotations File
-What it doesExport bookmarks and notes as a JSON file for sharing with team members.Commit messagefeat: add shareable bookmark and annotation export/import
+What it does
+Export bookmarks and notes as a JSON file for sharing with team members.
+Commit message
+feat: add shareable bookmark and annotation export/import
+
 Prompt:
 Bookmarks > 'Export Bookmarks...' ? JSON with method names, timestamps, notes.
-Bookmarks > 'Import Bookmarks...' ? merge or replace dialog.
+Bookmarks > 'Import Bookmarks...' ? merge or replace dialog.
+
 
 Phase 9 ? Advanced & Developer Features  (K1 ? K7)
 ??  These features are complex. Implement one per session after Phase 8 is stable.
 K1  ?  Thread-wise View [NEW]
-What it doesSeparate log view and call tree per thread ID.Commit messagefeat: add thread-wise view with per-thread call trees
+What it does
+Separate log view and call tree per thread ID.
+Commit message
+feat: add thread-wise view with per-thread call trees
+
 Prompt:
 View > 'Thread View' ? panel with ComboBox of thread IDs.
 Selecting a thread shows only that thread's call tree.
-'Side by Side' button: two thread trees in a split view.
+'Side by Side' button: two thread trees in a split view.
+
 K2  ?  Exception Trace Grouping [NEW]
-What it doesDetects exception patterns and groups them by type in the Performance tab.Commit messagefeat: add exception trace grouping and summary
+What it does
+Detects exception patterns and groups them by type in the Performance tab.
+Commit message
+feat: add exception trace grouping and summary
+
 Prompt:
 Scan for 'Exception', 'Error', 'Unhandled'. Group by exception type.
 'Exceptions' tab in Performance Dashboard: Type | Count | First Seen | Last Seen.
-Double-click: scroll to first occurrence.
+Double-click: scroll to first occurrence.
+
 K3  ?  Correlation ID / Request Tracking [NEW]
-What it doesFilter and view all events for a specific correlation/request ID end-to-end.Commit messagefeat: add correlation ID request-based log filtering
+What it does
+Filter and view all events for a specific correlation/request ID end-to-end.
+Commit message
+feat: add correlation ID request-based log filtering
+
 Prompt:
 Add correlation ID regex pattern to Settings.
 Filter > 'By Correlation ID...' with autocomplete dropdown.
-Shows only log lines and tree nodes belonging to that request.
+Shows only log lines and tree nodes belonging to that request.
+
 K4  ?  Jump to Source Code (if path in log) [NEW]
-What it doesIf a log line contains a source file path and line number, open it in the default editor.Commit messagefeat: add jump to source code from log line
+What it does
+If a log line contains a source file path and line number, open it in the default editor.
+Commit message
+feat: add jump to source code from log line
+
 Prompt:
 Parse 'at Class.Method in File.cs:line N' patterns.
 Right-click: 'Open in Editor'. Use Process.Start. Editor path configurable in Settings.
-Default: VS Code ? Visual Studio ? Notepad.
+Default: VS Code ? Visual Studio ? Notepad.
+
 K5  ?  Live Log Streaming (from running app) [NEW]
-What it doesLive mode incrementally parses new lines as they are appended to the log file.Commit messagefeat: add live log streaming mode
+What it does
+Live mode incrementally parses new lines as they are appended to the log file.
+Commit message
+feat: add live log streaming mode
+
 Prompt:
 Extend File Watcher into full Live Mode.
 New lines parsed incrementally and added to tree without full reload.
-Auto-scroll toggle. Green pulsing indicator in status bar. Pause/Resume button.
+Auto-scroll toggle. Green pulsing indicator in status bar. Pause/Resume button.
+
 K6  ?  Plugin Architecture [NEW]
-What it doesExtensible plugin system for custom parsers and export formats.Commit messagefeat: add plugin architecture with ILogBrowserPlugin interface
+What it does
+Extensible plugin system for custom parsers and export formats.
+Commit message
+feat: add plugin architecture with ILogBrowserPlugin interface
+
 Prompt:
 ILogBrowserPlugin interface: Initialize(host), Name, Description, Version.
-Load from /Plugins subfolder. Tools > 'Plugin Manager'. Document in PLUGINS.md.
+Load from /Plugins subfolder. Tools > 'Plugin Manager'. Document in PLUGINS.md.
+
 K7  ?  Integration with Monitoring Tools [NEW]
-What it doesPOST log analysis data to an external monitoring tool via REST.Commit messagefeat: add external monitoring tool integration via REST export
+What it does
+POST log analysis data to an external monitoring tool via REST.
+Commit message
+feat: add external monitoring tool integration via REST export
+
 Prompt:
 Tools > 'Export to Monitoring Tool...' ? endpoint URL + API key in Settings.
-POST JSON: method stats, errors, anomalies. Show HTTP status in result MessageBox.
+POST JSON: method stats, errors, anomalies. Show HTTP status in result MessageBox.
+
 
 Phase 10 ? AI Features  (L1 ? L6)
 ??  All AI features require a Claude API key in config.json field 'claudeApiKey'. Never hardcode the key in source.
 ?  Never send raw log file content to the AI API. Send only structured summaries (method names, counts, durations) to protect potentially sensitive log data.
 L1  ?  AI Log Summarizer
-What it doesOne-click plain-English summary of the current log covering performance, anomalies, and improvement suggestions.Commit messagefeat: add AI log summarizer using Claude API
+What it does
+One-click plain-English summary of the current log covering performance, anomalies, and improvement suggestions.
+Commit message
+feat: add AI log summarizer using Claude API
+
 Prompt:
 Add 'AI Summary' toolbar button.
 Collect: method list with call counts and durations, error count, max depth ? as structured text.
@@ -623,38 +1069,64 @@ Send to Claude API (claude-sonnet-4-20250514) with system prompt:
   'You are a software performance analyst. Analyze this call log summary and provide:
    1. Overall execution summary  2. Slowest methods  3. Anomalies  4. Improvement suggestions.'
 Show response in popup panel 'AI Analysis'. Loading spinner during call.
-API key read from config.json. If missing: prompt user to enter and save.
+API key read from config.json. If missing: prompt user to enter and save.
+
 L2  ?  Natural Language Search / Q&A [NEW]
-What it doesType a plain-English question about the log; AI answers directly.Commit messagefeat: add natural language search and Q&A for log data
+What it does
+Type a plain-English question about the log; AI answers directly.
+Commit message
+feat: add natural language search and Q&A for log data
+
 Prompt:
 Text input 'Ask about this log...' above the Call Tree.
 Send structured context (method stats) + question to Claude API.
-Show response inline. Keep last 3 Q&A pairs as conversation history.
+Show response inline. Keep last 3 Q&A pairs as conversation history.
+
 L3  ?  Anomaly Detection [NEW]
-What it doesCompares the current log against a saved baseline and flags unusual patterns.Commit messagefeat: add AI-assisted anomaly detection against baseline log
+What it does
+Compares the current log against a saved baseline and flags unusual patterns.
+Commit message
+feat: add AI-assisted anomaly detection against baseline log
+
 Prompt:
 Tools > 'Set as Baseline Log' ? save stats to baseline.json.
 On subsequent opens, compare automatically. Flag methods with >2x baseline avg or >50% call count change.
-'Anomalies' tab in Performance Dashboard. Optionally explain via Claude API.
+'Anomalies' tab in Performance Dashboard. Optionally explain via Claude API.
+
 L4  ?  Root Cause Suggester [NEW]
-What it doesSelect a slow node; AI explains likely cause and suggests code fixes.Commit messagefeat: add AI root cause suggester for selected tree node
+What it does
+Select a slow node; AI explains likely cause and suggests code fixes.
+Commit message
+feat: add AI root cause suggester for selected tree node
+
 Prompt:
 Right-click: 'Ask AI: Why is this slow?'
 Context: selected method, parent chain, children, duration, call count.
-Response in 'AI Root Cause Analysis' panel. Cache last 5 responses.
+Response in 'AI Root Cause Analysis' panel. Cache last 5 responses.
+
 L5  ?  Auto-Generate Bug Report [NEW]
-What it doesSelect a call tree branch; AI generates a structured bug report for Jira/Azure DevOps.Commit messagefeat: add AI auto-generate bug report from selected log branch
+What it does
+Select a call tree branch; AI generates a structured bug report for Jira/Azure DevOps.
+Commit message
+feat: add AI auto-generate bug report from selected log branch
+
 Prompt:
 Right-click: 'Generate Bug Report...'
 AI generates: Title, Description, Steps to reproduce, Expected vs Actual, Severity.
-Editable text panel + 'Copy to Clipboard' button.
+Editable text panel + 'Copy to Clipboard' button.
+
 L6  ?  Conversational Log Assistant (Chat) [NEW]
-What it doesA persistent chat panel for multi-turn conversation about the open log.Commit messagefeat: add conversational log assistant chat panel
+What it does
+A persistent chat panel for multi-turn conversation about the open log.
+Commit message
+feat: add conversational log assistant chat panel
+
 Prompt:
 View > 'Log Assistant' ? dockable chat panel.
 Chat history + message input. Full log stats context + last 6 turns per API call.
 Typing indicator. 'Clear Chat' button.
-Example prompt chips: 'Summarize this log', 'Slowest methods?', 'Any errors?'
+Example prompt chips: 'Summarize this log', 'Slowest methods?', 'Any errors?'
+
 
 Appendix ? Conventions & Quick Reference
 config.json Structure
@@ -683,7 +1155,8 @@ config.json Structure
   "splitterPosition":        300,
   "groupingSeparator":       ".",
   "groupingDepth":           1
-}
+}
+
 
 
 Flame Graph (stack visualization)
