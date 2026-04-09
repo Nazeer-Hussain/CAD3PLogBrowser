@@ -62,12 +62,19 @@ namespace Cad3PLogBrowser
         public void LoadGraph(CallGraph graph)
         {
             _graph     = graph;
-            LayoutNodes();
 
-            // Issue Fix: Auto-fit zoom to show all nodes
-            AutoFitZoom();
+            if (graph != null && graph.Nodes.Count > 0)
+            {
+                LayoutNodes();
+                AutoFitZoom();
+                _panOffset = new PointF(0, 0);
+            }
+            else
+            {
+                _zoom = 1.0f;
+                _panOffset = new PointF(0, 0);
+            }
 
-            _panOffset = new PointF(0, 0);
             Invalidate();
         }
 
@@ -154,27 +161,111 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            // Apply pan + zoom transform
+            // Save original state for legend drawing
+            var state = g.Save();
+
+            // Apply pan + zoom transform for graph elements
             g.TranslateTransform(
                 Width  / 2f + _panOffset.X,
                 Height / 2f + _panOffset.Y);
             g.ScaleTransform(_zoom, _zoom);
 
+            // Draw edges first (behind nodes)
             DrawEdges(g);
+
+            // Draw center crosshair for reference (helps with debugging positioning)
+            using (var pen = new Pen(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(60, 60, 65) 
+                : Color.FromArgb(200, 200, 210), 1f))
+            {
+                pen.DashStyle = DashStyle.Dash;
+                g.DrawLine(pen, -20, 0, 20, 0);  // Horizontal
+                g.DrawLine(pen, 0, -20, 0, 20);  // Vertical
+            }
+
+            // Draw nodes on top
             DrawNodes(g);
-            DrawLegend(e.Graphics); // legend in screen space — draw after resetting
+
+            // Restore transform for legend (draw in screen space)
+            g.Restore(state);
+
+            // Draw legend and status info
+            DrawLegend(g);
+            DrawDebugInfo(g);
+        }
+
+        private void DrawDebugInfo(Graphics g)
+        {
+            if (_graph == null) return;
+
+            // Show graph statistics in top-left corner
+            using (var font = new Font("Consolas", 8f))
+            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(180, 180, 190) 
+                : Color.FromArgb(80, 80, 90)))
+            using (var bgBrush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(200, 40, 40, 45)
+                : Color.FromArgb(200, 255, 255, 255)))
+            {
+                var lines = new List<string>
+                {
+                    $"Call Graph Debug Info:",
+                    $"├─ Nodes: {_graph.Nodes.Count}",
+                    $"├─ Edges: {_graph.Edges.Count}",
+                    $"├─ Zoom: {_zoom:F2}x ({_zoom * 100:F0}%)",
+                    $"├─ Pan: X={_panOffset.X:F0}, Y={_panOffset.Y:F0}",
+                    $"├─ Panel: {Width}x{Height}",
+                    $"└─ Status: " + (_graph.Nodes.Count > 0 ? "✓ Graph loaded" : "⚠ No data")
+                };
+
+                // Draw background
+                float lineHeight = font.Height;
+                var bgRect = new RectangleF(5, 5, 280, lines.Count * lineHeight + 10);
+                g.FillRectangle(bgBrush, bgRect);
+
+                // Draw text
+                float y = 8;
+                foreach (var line in lines)
+                {
+                    g.DrawString(line, font, brush, 8, y);
+                    y += lineHeight;
+                }
+            }
         }
 
         private void DrawEmptyMessage(Graphics g)
         {
-            string msg = "No call graph data.\nOpen a log file to generate the graph.";
-            using (var font = new Font("Segoe UI", 11f))
+            using (var titleFont = new Font("Segoe UI", 12f, FontStyle.Bold))
+            using (var textFont = new Font("Segoe UI", 9.5f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                var sz = g.MeasureString(msg, font);
-                g.DrawString(msg, font, brush,
-                    (Width  - sz.Width)  / 2f,
-                    (Height - sz.Height) / 2f);
+                var format = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center
+                };
+
+                // Title
+                string title = "📊 Call Graph Visualization";
+                g.DrawString(title, titleFont, brush, Width / 2f, Height / 2f - 80, format);
+
+                // Main message
+                string msg = "No call graph data available.\n\n" +
+                             "To generate a call graph, your log file must contain:\n" +
+                             "• API calls marked with [ENTER] and [EXIT]\n" +
+                             "• Format: [ENTER] FunctionName() or [EXIT] FunctionName()\n\n" +
+                             "The graph will show:\n" +
+                             "• Nodes = API functions\n" +
+                             "• Arrows = Calls between APIs\n" +
+                             "• Thickness = Call frequency\n\n" +
+                             "Once loaded, you can:\n" +
+                             "• Scroll to zoom in/out\n" +
+                             "• Drag to pan the graph\n" +
+                             "• Click nodes for details\n" +
+                             "• Hover to highlight connections";
+
+                var rect = new RectangleF(50, Height / 2f - 40, Width - 100, Height / 2f);
+                g.DrawString(msg, textFont, brush, rect, format);
             }
         }
 
@@ -318,10 +409,17 @@ namespace Cad3PLogBrowser
 
         private void DrawLegend(Graphics g)
         {
-            using (var font  = new Font("Segoe UI", 8f))
-            using (var brush = new SolidBrush(Color.FromArgb(100, 100, 120)))
+            using (var font = new Font("Segoe UI", 8f))
+            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(160, 160, 170)   // Light gray for dark theme
+                : Color.FromArgb(100, 100, 120))) // Dark gray for light theme
             {
-                string legend = "Scroll to zoom  •  Drag to pan  •  Hover a node to highlight its calls";
+                int nodeCount = _graph?.Nodes.Count ?? 0;
+                int edgeCount = _graph?.Edges.Count ?? 0;
+
+                string legend = nodeCount > 0 
+                    ? $"{nodeCount} APIs, {edgeCount} Calls  •  Scroll=Zoom  •  Drag=Pan  •  Click=Details  •  Hover=Highlight"
+                    : "Scroll to zoom  •  Drag to pan  •  Click node for details";
                 g.DrawString(legend, font, brush, 8, Height - 20);
 
                 string zoomLabel = string.Format("Zoom: {0:P0}", _zoom);
@@ -344,10 +442,58 @@ namespace Cad3PLogBrowser
             base.OnMouseDown(e);
             if (e.Button == MouseButtons.Left)
             {
+                // Check if clicking on a node
+                string hitNode = HitTestNode(e.Location);
+                if (hitNode != null)
+                {
+                    // Show node info
+                    ShowNodeInfo(hitNode, e.Location);
+                    return;
+                }
+
                 _isDragging   = true;
                 _lastMousePos = e.Location;
                 Cursor        = Cursors.SizeAll;
             }
+        }
+
+        private void ShowNodeInfo(string nodeName, Point location)
+        {
+            if (_graph == null || !_graph.Nodes.ContainsKey(nodeName)) return;
+
+            // Count incoming and outgoing calls
+            int incomingCalls = 0;
+            int outgoingCalls = 0;
+            var callers = new List<string>();
+            var callees = new List<string>();
+
+            foreach (var edge in _graph.Edges.Values)
+            {
+                if (edge.Callee == nodeName)
+                {
+                    incomingCalls += edge.Weight;
+                    if (!callers.Contains(edge.Caller))
+                        callers.Add(edge.Caller);
+                }
+                if (edge.Caller == nodeName)
+                {
+                    outgoingCalls += edge.Weight;
+                    if (!callees.Contains(edge.Callee))
+                        callees.Add(edge.Callee);
+                }
+            }
+
+            string info = $"API: {nodeName}\n\n" +
+                         $"Calls TO this API: {incomingCalls} (from {callers.Count} APIs)\n" +
+                         $"Calls FROM this API: {outgoingCalls} (to {callees.Count} APIs)";
+
+            if (callers.Count > 0)
+                info += $"\n\nCallers: {string.Join(", ", callers.ToArray())}";
+            if (callees.Count > 0)
+                info += $"\n\nCalls: {string.Join(", ", callees.ToArray())}";
+
+            MessageBox.Show(info, "Call Graph Node Details", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
