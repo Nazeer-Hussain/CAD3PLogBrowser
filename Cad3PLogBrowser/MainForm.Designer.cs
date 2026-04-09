@@ -36,26 +36,25 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
-            this.refreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.editSeparatorAfterCopy = new System.Windows.Forms.ToolStripSeparator();
             this.findMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findNextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.editSeparatorAfterFind = new System.Windows.Forms.ToolStripSeparator();
             this.filterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSeparatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
             this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.editSeparatorAfterCollapse = new System.Windows.Forms.ToolStripSeparator();
             this.jumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showApiTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.hideAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab2MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab3MenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -172,7 +171,6 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem,
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
-            this.refreshMenuItem,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
             this.exitMenuItem});
@@ -198,7 +196,7 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem.Name = "saveAsMenuItem";
             this.saveAsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.saveAsMenuItem.Text = "&Save As...";
+            this.saveAsMenuItem.Text = "Save &Selected...";
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
             // 
             // exportFilteredLogsMenuItem
@@ -206,7 +204,7 @@ namespace Cad3PLogBrowser
             this.exportFilteredLogsMenuItem.Name = "exportFilteredLogsMenuItem";
             this.exportFilteredLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.E)));
             this.exportFilteredLogsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportFilteredLogsMenuItem.Text = "&Export Filtered Logs...";
+            this.exportFilteredLogsMenuItem.Text = "Save to &XLS...";
             this.exportFilteredLogsMenuItem.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
             // 
             // fileSeparatorAfterSave
@@ -214,21 +212,14 @@ namespace Cad3PLogBrowser
             this.fileSeparatorAfterSave.Name = "fileSeparatorAfterSave";
             this.fileSeparatorAfterSave.Size = new System.Drawing.Size(257, 6);
             // 
-            // refreshMenuItem
-            // 
-            this.refreshMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
-            this.refreshMenuItem.Name = "refreshMenuItem";
-            this.refreshMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.refreshMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.refreshMenuItem.Text = "&Refresh";
-            this.refreshMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
-            // 
             // reloadMenuItem
             // 
+            this.reloadMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
             this.reloadMenuItem.Name = "reloadMenuItem";
-            this.reloadMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.R)));
+            this.reloadMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
             this.reloadMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.reloadMenuItem.Text = "R&eload File from Disk";
+            this.reloadMenuItem.Text = "&Reload from Disk";
+            this.reloadMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
             // 
             // fileSeparatorBeforeExit
             // 
@@ -247,14 +238,13 @@ namespace Cad3PLogBrowser
             // 
             this.editMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyMenuItem,
-            this.editSeparatorAfterCopy,
             this.findMenuItem,
             this.findNextMenuItem,
-            this.editSeparatorAfterFind,
             this.filterMenuItem,
             this.editSeparatorAfterFilter,
             this.expandAllMenuItem,
             this.collapseAllMenuItem,
+            this.editSeparatorAfterCollapse,
             this.jumpToMatchingMenuItem});
             this.editMenuItem.Name = "editMenuItem";
             this.editMenuItem.Size = new System.Drawing.Size(43, 22);
@@ -265,21 +255,16 @@ namespace Cad3PLogBrowser
             this.copyMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
             this.copyMenuItem.Name = "copyMenuItem";
             this.copyMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
-            this.copyMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.copyMenuItem.Size = new System.Drawing.Size(258, 22);
             this.copyMenuItem.Text = "&Copy";
             this.copyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
-            // 
-            // editSeparatorAfterCopy
-            // 
-            this.editSeparatorAfterCopy.Name = "editSeparatorAfterCopy";
-            this.editSeparatorAfterCopy.Size = new System.Drawing.Size(155, 6);
             // 
             // findMenuItem
             // 
             this.findMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.find;
             this.findMenuItem.Name = "findMenuItem";
             this.findMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.F)));
-            this.findMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.findMenuItem.Size = new System.Drawing.Size(258, 22);
             this.findMenuItem.Text = "&Find";
             this.findMenuItem.Click += new System.EventHandler(this.findMenuItem_Click);
             // 
@@ -287,13 +272,8 @@ namespace Cad3PLogBrowser
             // 
             this.findNextMenuItem.Name = "findNextMenuItem";
             this.findNextMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F3;
-            this.findNextMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.findNextMenuItem.Text = "Find&Next";
-            // 
-            // editSeparatorAfterFind
-            // 
-            this.editSeparatorAfterFind.Name = "editSeparatorAfterFind";
-            this.editSeparatorAfterFind.Size = new System.Drawing.Size(155, 6);
+            this.findNextMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.findNextMenuItem.Text = "Find &Next";
             // 
             // filterMenuItem
             // 
@@ -301,7 +281,7 @@ namespace Cad3PLogBrowser
             this.filterMenuItem.Name = "filterMenuItem";
             this.filterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
             this.filterMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.filterMenuItem.Text = "Fil&ter";
+            this.filterMenuItem.Text = "Fil&ter...";
             this.filterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
             // 
             // editSeparatorAfterFilter
@@ -325,12 +305,17 @@ namespace Cad3PLogBrowser
             this.collapseAllMenuItem.Text = "&Collapse All";
             this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
             // 
+            // editSeparatorAfterCollapse
+            // 
+            this.editSeparatorAfterCollapse.Name = "editSeparatorAfterCollapse";
+            this.editSeparatorAfterCollapse.Size = new System.Drawing.Size(255, 6);
+            // 
             // jumpToMatchingMenuItem
             // 
             this.jumpToMatchingMenuItem.Name = "jumpToMatchingMenuItem";
             this.jumpToMatchingMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
             this.jumpToMatchingMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.jumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
+            this.jumpToMatchingMenuItem.Text = "&Jump to Matching Enter/Exit";
             this.jumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
             // 
             // optionsMenuItem
@@ -353,65 +338,76 @@ namespace Cad3PLogBrowser
             // viewMenuItem
             // 
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showCallTreeMenuItem,
+            this.showApiTreeMenuItem,
             this.tabsMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
-            this.viewMenuItem.Text = "?&View";
+            this.viewMenuItem.Text = "&View";
+            // 
+            // showCallTreeMenuItem
+            // 
+            this.showCallTreeMenuItem.CheckOnClick = true;
+            this.showCallTreeMenuItem.Checked = true;
+            this.showCallTreeMenuItem.Name = "showCallTreeMenuItem";
+            this.showCallTreeMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.showCallTreeMenuItem.Text = "Show &Call Tree";
+            this.showCallTreeMenuItem.CheckedChanged += new System.EventHandler(this.showCallTreeMenuItem_CheckedChanged);
+            // 
+            // showApiTreeMenuItem
+            // 
+            this.showApiTreeMenuItem.CheckOnClick = true;
+            this.showApiTreeMenuItem.Checked = false;
+            this.showApiTreeMenuItem.Name = "showApiTreeMenuItem";
+            this.showApiTreeMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.showApiTreeMenuItem.Text = "Show &API Tree";
+            this.showApiTreeMenuItem.CheckedChanged += new System.EventHandler(this.showApiTreeMenuItem_CheckedChanged);
             // 
             // tabsMenuItem
             // 
             this.tabsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.hideAllMenuItem,
             this.showTab1MenuItem,
             this.showTab2MenuItem,
             this.showTab3MenuItem,
             this.showTab4MenuItem});
             this.tabsMenuItem.Name = "tabsMenuItem";
             this.tabsMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.tabsMenuItem.Text = "&Tabs";
+            this.tabsMenuItem.Text = "Show &Tabs";
             // 
-            // hideAllMenuItem
-            // 
-            this.hideAllMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.tabs;
-            this.hideAllMenuItem.Name = "hideAllMenuItem";
-            this.hideAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.H)));
-            this.hideAllMenuItem.Size = new System.Drawing.Size(167, 22);
-            this.hideAllMenuItem.Text = "&HideAll";
-            // 
-            // showTab1MenuItem — Log
+            // showTab1MenuItem - LogView
             // 
             this.showTab1MenuItem.CheckOnClick = true;
             this.showTab1MenuItem.Checked = true;
             this.showTab1MenuItem.Name = "showTab1MenuItem";
-            this.showTab1MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab1MenuItem.Text = "Log";
+            this.showTab1MenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showTab1MenuItem.Text = "&LogView";
             this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem — Performance
+            // showTab2MenuItem - Performance View
             // 
             this.showTab2MenuItem.CheckOnClick = true;
             this.showTab2MenuItem.Checked = true;
             this.showTab2MenuItem.Name = "showTab2MenuItem";
-            this.showTab2MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab2MenuItem.Text = "Performance";
+            this.showTab2MenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showTab2MenuItem.Text = "&Performance View";
             this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem — Log Details
+            // showTab3MenuItem - Details
             // 
             this.showTab3MenuItem.CheckOnClick = true;
             this.showTab3MenuItem.Checked = true;
             this.showTab3MenuItem.Name = "showTab3MenuItem";
-            this.showTab3MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab3MenuItem.Text = "Log Details";
+            this.showTab3MenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showTab3MenuItem.Text = "&Details";
             this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem — Call Graph
+            // showTab4MenuItem - CallGraph
             // 
             this.showTab4MenuItem.CheckOnClick = true;
             this.showTab4MenuItem.Checked = true;
             this.showTab4MenuItem.Name = "showTab4MenuItem";
-            this.showTab4MenuItem.Size = new System.Drawing.Size(167, 22);
-            this.showTab4MenuItem.Text = "Call Graph";
+            this.showTab4MenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showTab4MenuItem.Text = "&CallGraph";
             this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
             // 
             // helpMenuItem
@@ -1181,7 +1177,6 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
-        private System.Windows.Forms.ToolStripMenuItem refreshMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
@@ -1244,8 +1239,9 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripSeparator separatorBeforeHelp;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showApiTreeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem hideAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab1MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab2MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab3MenuItem;
@@ -1253,9 +1249,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripSeparator separatorAfterApiTree;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorBeforeExit;
-        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCopy;
-        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFind;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFilter;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCollapse;
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;

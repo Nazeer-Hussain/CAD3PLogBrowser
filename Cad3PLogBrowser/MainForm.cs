@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
@@ -28,6 +29,10 @@ namespace Cad3PLogBrowser
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
+
+        // ── Cancellation support for long-running operations ──────────────────
+        private CancellationTokenSource _cancellationTokenSource;
+        private string _currentOperation = string.Empty;
 
         // Feature B10: Error/Warning navigation
         private List<int>         _errorLines       = new List<int>();
@@ -112,6 +117,28 @@ namespace Cad3PLogBrowser
 
         private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
             SetTabVisible(callGraphTab, showTab4MenuItem.Checked);
+
+        private void showCallTreeMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showCallTreeMenuItem.Checked)
+            {
+                // Show Call Tree, hide API Tree
+                CallTreeButton.Checked = true;
+                ApiTreeButton.Checked = false;
+                showApiTreeMenuItem.Checked = false;
+            }
+        }
+
+        private void showApiTreeMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showApiTreeMenuItem.Checked)
+            {
+                // Show API Tree, hide Call Tree
+                ApiTreeButton.Checked = true;
+                CallTreeButton.Checked = false;
+                showCallTreeMenuItem.Checked = false;
+            }
+        }
 
         private ToolStripMenuItem _recentFilesMenuItem;
         private ToolStripSeparator _recentFilesSeparator;
@@ -454,11 +481,6 @@ namespace Cad3PLogBrowser
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
             HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
-            hideAllMenuItem.Click += (s, e) =>
-            {
-                HideTabsButton.Checked = !HideTabsButton.Checked;
-                SyncTabVisibility();
-            };
 
             SyncTreeVisibility();
         }
@@ -831,6 +853,11 @@ namespace Cad3PLogBrowser
 
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
+
+            // Update View menu items
+            showCallTreeMenuItem.Checked = showCall;
+            showApiTreeMenuItem.Checked = showApi;
+
             LayoutTrees();
         }
 
@@ -1137,8 +1164,7 @@ namespace Cad3PLogBrowser
         private void SetDocumentLoaded(bool loaded)
         {
             saveAsMenuItem.Enabled   = SaveButton.Enabled    = loaded;
-            refreshMenuItem.Enabled  = reloadMenuItem.Enabled
-                                     = RefreshButton.Enabled = loaded;
+            reloadMenuItem.Enabled   = RefreshButton.Enabled = loaded;
             copyMenuItem.Enabled     = CopyButton.Enabled    = loaded;
             findMenuItem.Enabled     = findNextMenuItem.Enabled
                                      = FindButton.Enabled    = loaded;
@@ -1161,55 +1187,61 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        private void saveAsMenuItem_Click(object sender, EventArgs e)
+        private async void saveAsMenuItem_Click(object sender, EventArgs e)
         {
             if (_virtualLines.Count == 0) return;
             if (saveLogFileDialog.ShowDialog() != DialogResult.OK) return;
 
-            FileLoadProgress.Visible = true;
-            FileLoadProgress.Value = 0;
-            StatusFileName.Text = "Preparing to save...";
+            var lines = new List<string>();
+            if (logListView.SelectedIndices.Count > 0)
+            {
+                foreach (int idx in logListView.SelectedIndices)
+                    lines.Add(_virtualLines[idx].Text);
+            }
+            else
+            {
+                foreach (var vl in _virtualLines)
+                    lines.Add(vl.Text);
+            }
+
+            StartOperation($"Saving {lines.Count:N0} lines");
 
             try
             {
-                var lines = new List<string>();
-                if (logListView.SelectedIndices.Count > 0)
+                await Task.Run(() =>
                 {
-                    StatusFileName.Text = "Collecting selected lines...";
-                    foreach (int idx in logListView.SelectedIndices)
-                        lines.Add(_virtualLines[idx].Text);
-                }
-                else
-                {
-                    StatusFileName.Text = "Collecting all lines...";
-                    foreach (var vl in _virtualLines)
-                        lines.Add(vl.Text);
-                }
+                    var token = _cancellationTokenSource.Token;
 
-                FileLoadProgress.Value = 10;
-
-                // Save with progress callback
-                _logFileService.WriteLines(saveLogFileDialog.FileName, lines, (progress, message) =>
-                {
-                    this.Invoke((Action)(() =>
+                    _logFileService.WriteLines(saveLogFileDialog.FileName, lines, (progress, message) =>
                     {
-                        FileLoadProgress.Value = 10 + (progress * 90 / 100); // Scale to 10-100%
-                        StatusFileName.Text = message;
-                    }));
+                        token.ThrowIfCancellationRequested();
+
+                        this.Invoke((Action)(() =>
+                        {
+                            FileLoadProgress.Style = ProgressBarStyle.Blocks;
+                            FileLoadProgress.Value = progress;
+                            StatusFileName.Text = $"{message} (Press ESC to cancel)";
+                        }));
+                    });
                 });
 
-                FileLoadProgress.Visible = false;
-                UpdateStatusBar();
-
-                MessageBox.Show(string.Format("{0} line(s) saved.", lines.Count),
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"{lines.Count:N0} line(s) saved.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = "Save operation cancelled.";
+                MessageBox.Show("Save operation was cancelled.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                FileLoadProgress.Visible = false;
-                UpdateStatusBar();
-                MessageBox.Show(string.Format("Could not save file:\n{0}", ex.Message),
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Could not save file:\n{ex.Message}", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                EndOperation();
             }
         }
 
@@ -1487,20 +1519,173 @@ namespace Cad3PLogBrowser
                 MessageBox.Show("No matching pair found.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ── C1: Expand / Collapse all ─────────────────────────────────────────
-        public void ExpandAllTrees()
+        // ── Operation Progress and Cancellation Support ───────────────────────
+        private void StartOperation(string operationName)
         {
-            CallTree.ExpandAll();
-            ApiTree.ExpandAll();
+            _currentOperation = operationName;
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            // Show progress bar and update status
+            FileLoadProgress.Style = ProgressBarStyle.Marquee;
+            FileLoadProgress.Visible = true;
+            StatusFileName.Text = $"{operationName}... (Press ESC to cancel)";
+
+            // Disable menu items during operation
+            SetOperationInProgress(true);
         }
 
-        public void CollapseAllTrees()
+        private void EndOperation()
         {
-            CallTree.CollapseAll();
-            ApiTree.CollapseAll();
-            // Keep root nodes expanded
-            foreach (TreeNode n in CallTree.Nodes) n.Expand();
-            foreach (TreeNode n in ApiTree.Nodes)  n.Expand();
+            FileLoadProgress.Visible = false;
+            FileLoadProgress.Style = ProgressBarStyle.Blocks;
+            StatusFileName.Text = string.Empty;
+            _currentOperation = string.Empty;
+
+            // Re-enable menu items
+            SetOperationInProgress(false);
+
+            UpdateStatusBar();
+        }
+
+        private void CancelCurrentOperation()
+        {
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+                StatusFileName.Text = $"{_currentOperation} cancelled.";
+            }
+        }
+
+        private void SetOperationInProgress(bool inProgress)
+        {
+            // Disable/enable menu items that could conflict with operations
+            expandAllMenuItem.Enabled = !inProgress;
+            collapseAllMenuItem.Enabled = !inProgress;
+            filterMenuItem.Enabled = !inProgress;
+            findMenuItem.Enabled = !inProgress;
+            findNextMenuItem.Enabled = !inProgress;
+            saveAsMenuItem.Enabled = !inProgress;
+            exportFilteredLogsMenuItem.Enabled = !inProgress;
+            openMenuItem.Enabled = !inProgress;
+            reloadMenuItem.Enabled = !inProgress;
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Handle ESC key to cancel operations
+            if (keyData == Keys.Escape && _cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                CancelCurrentOperation();
+                return true;
+            }
+
+            // Handle error/warning navigation shortcuts
+            switch (keyData)
+            {
+                case Keys.F8:                                    // Next Error
+                    NavigateToNextError();
+                    return true;
+                case Keys.Shift | Keys.F8:                       // Previous Error
+                    NavigateToPreviousError();
+                    return true;
+                case Keys.Control | Keys.F8:                     // Next Warning
+                    NavigateToNextWarning();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
+                    NavigateToPreviousWarning();
+                    return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        // ── C1: Expand / Collapse all ─────────────────────────────────────────
+        public async void ExpandAllTrees()
+        {
+            StartOperation("Expanding all nodes");
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    var token = _cancellationTokenSource.Token;
+
+                    this.Invoke((Action)(() => CallTree.BeginUpdate()));
+                    ExpandNodeRecursive(CallTree.Nodes, token);
+                    this.Invoke((Action)(() => CallTree.EndUpdate()));
+
+                    token.ThrowIfCancellationRequested();
+
+                    this.Invoke((Action)(() => ApiTree.BeginUpdate()));
+                    ExpandNodeRecursive(ApiTree.Nodes, token);
+                    this.Invoke((Action)(() => ApiTree.EndUpdate()));
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = "Expand operation cancelled.";
+            }
+            finally
+            {
+                EndOperation();
+            }
+        }
+
+        private void ExpandNodeRecursive(TreeNodeCollection nodes, CancellationToken token)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                token.ThrowIfCancellationRequested();
+
+                this.Invoke((Action)(() => node.Expand()));
+
+                if (node.Nodes.Count > 0)
+                {
+                    ExpandNodeRecursive(node.Nodes, token);
+                }
+            }
+        }
+
+        public async void CollapseAllTrees()
+        {
+            StartOperation("Collapsing all nodes");
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    var token = _cancellationTokenSource.Token;
+
+                    this.Invoke((Action)(() =>
+                    {
+                        CallTree.BeginUpdate();
+                        CallTree.CollapseAll();
+                        // Keep root nodes expanded
+                        foreach (TreeNode n in CallTree.Nodes) n.Expand();
+                        CallTree.EndUpdate();
+                    }));
+
+                    token.ThrowIfCancellationRequested();
+
+                    this.Invoke((Action)(() =>
+                    {
+                        ApiTree.BeginUpdate();
+                        ApiTree.CollapseAll();
+                        // Keep root nodes expanded
+                        foreach (TreeNode n in ApiTree.Nodes) n.Expand();
+                        ApiTree.EndUpdate();
+                    }));
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = "Collapse operation cancelled.";
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         // Feature C1: Menu event handlers
@@ -1601,12 +1786,68 @@ namespace Cad3PLogBrowser
         private void nextWarningButton_Click(object sender, EventArgs e) =>
             NavigateToNextWarning();
 
-        public void ApplyFilter(string filterText, bool matchCase)
+        public async void ApplyFilter(string filterText, bool matchCase)
         {
-            _activeFilterText = filterText; // Feature G5: Track active filter for status bar
-            var filtered = _searchService.Filter(_allLines, filterText, matchCase);
-            PopulateVirtualListViewFiltered(filtered);
-            ClearHighlighting(); // Clear search highlights when filter changes
+            if (string.IsNullOrWhiteSpace(filterText))
+            {
+                ClearFilter();
+                return;
+            }
+
+            StartOperation($"Filtering ({_allLines.Count:N0} lines)");
+
+            try
+            {
+                var filtered = await Task.Run(() =>
+                {
+                    var token = _cancellationTokenSource.Token;
+                    var results = new List<FilteredLine>();
+
+                    for (int i = 0; i < _allLines.Count; i++)
+                    {
+                        if (i % 1000 == 0) // Check cancellation every 1000 lines
+                        {
+                            token.ThrowIfCancellationRequested();
+
+                            // Update progress
+                            int progress = (int)((i / (double)_allLines.Count) * 100);
+                            this.Invoke((Action)(() => 
+                            {
+                                FileLoadProgress.Style = ProgressBarStyle.Blocks;
+                                FileLoadProgress.Value = progress;
+                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{_allLines.Count:N0} lines)";
+                            }));
+                        }
+
+                        string line = _allLines[i];
+                        bool matches = matchCase 
+                            ? line.Contains(filterText)
+                            : line.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        if (matches)
+                        {
+                            results.Add(new FilteredLine(i + 1, line));
+                        }
+                    }
+
+                    return results;
+                });
+
+                _activeFilterText = filterText;
+                PopulateVirtualListViewFiltered(filtered);
+                ClearHighlighting();
+
+                StatusFileName.Text = $"Filter applied: {filtered.Count:N0} of {_allLines.Count:N0} lines match.";
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = "Filter operation cancelled.";
+                ClearFilter();
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         // Feature B3: Clear filter and show all lines
@@ -1737,25 +1978,6 @@ namespace Cad3PLogBrowser
 
         // ── Form lifecycle ────────────────────────────────────────────────────
         // Feature B10: Keyboard shortcuts for error/warning navigation
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
-        {
-            switch (keyData)
-            {
-                case Keys.F8:                                    // Next Error
-                    NavigateToNextError();
-                    return true;
-                case Keys.Shift | Keys.F8:                       // Previous Error
-                    NavigateToPreviousError();
-                    return true;
-                case Keys.Control | Keys.F8:                     // Next Warning
-                    NavigateToNextWarning();
-                    return true;
-                case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
-                    NavigateToPreviousWarning();
-                    return true;
-            }
-            return base.ProcessCmdKey(ref msg, keyData);
-        }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
