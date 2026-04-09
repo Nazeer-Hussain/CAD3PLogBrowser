@@ -480,7 +480,6 @@ namespace Cad3PLogBrowser
 
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
-            HideTabsButton.CheckedChanged       += (s, e) => SyncTabVisibility();
 
             SyncTreeVisibility();
         }
@@ -878,8 +877,8 @@ namespace Cad3PLogBrowser
 
         private void SyncTabVisibility()
         {
-            mainTabControl.Appearance = HideTabsButton.Checked
-                ? TabAppearance.FlatButtons : TabAppearance.Normal;
+            // Hide tabs feature removed - tabs are always visible with proper labels
+            // mainTabControl.Appearance = TabAppearance.Normal;
         }
 
         private void LayoutTrees()
@@ -1367,6 +1366,12 @@ namespace Cad3PLogBrowser
         private void FindButton_Click(object sender, EventArgs e) =>
             findMenuItem_Click(sender, e);
 
+        private void FindNextButton_Click(object sender, EventArgs e)
+        {
+            if (_findForm != null)
+                _findForm.TriggerFindNext();
+        }
+
         // Feature B8: Highlight search results
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
@@ -1569,6 +1574,17 @@ namespace Cad3PLogBrowser
             exportFilteredLogsMenuItem.Enabled = !inProgress;
             openMenuItem.Enabled = !inProgress;
             reloadMenuItem.Enabled = !inProgress;
+
+            // Disable/enable corresponding toolbar buttons
+            ExpandAllButton.Enabled = !inProgress;
+            CollapseAllButton.Enabled = !inProgress;
+            FilterButton.Enabled = !inProgress;
+            FindButton.Enabled = !inProgress;
+            FindNextButton.Enabled = !inProgress;
+            SaveButton.Enabled = !inProgress;
+            SaveToXLSButton.Enabled = !inProgress;
+            OpenButton.Enabled = !inProgress;
+            RefreshButton.Enabled = !inProgress;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
