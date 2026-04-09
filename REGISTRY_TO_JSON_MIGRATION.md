@@ -1,4 +1,4 @@
-# Registry to JSON Migration - Complete Implementation
+﻿# Registry to JSON Migration - Complete Implementation
 
 ## ? Migration Complete
 

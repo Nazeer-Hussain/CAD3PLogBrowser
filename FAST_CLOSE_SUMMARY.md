@@ -1,4 +1,4 @@
-# ? QUICK SUMMARY: Fast Close Fix
+﻿# ? QUICK SUMMARY: Fast Close Fix
 
 **Problem:** Application takes 5-30 seconds to close when log file is loaded  
 **Cause:** TreeViews with thousands of nodes are slow to dispose  

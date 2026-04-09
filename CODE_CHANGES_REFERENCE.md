@@ -1,4 +1,4 @@
-# Code Changes Reference
+﻿# Code Changes Reference
 
 This document shows the key code changes made for each feature implementation.
 

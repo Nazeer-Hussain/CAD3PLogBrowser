@@ -1,4 +1,4 @@
-# ?? BUG FIX: Settings Not Being Saved (Splitter Distance)
+﻿# ?? BUG FIX: Settings Not Being Saved (Splitter Distance)
 
 **Date:** 2025-01-15  
 **Issue:** Settings (especially splitter distance) not persisting between sessions  

@@ -1,4 +1,4 @@
-# New Enhancement Requirements - Window State & UI Defaults
+﻿# New Enhancement Requirements - Window State & UI Defaults
 
 ## ?? Window State & UI Management Features
 

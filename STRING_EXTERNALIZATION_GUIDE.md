@@ -1,4 +1,4 @@
-# ?? STRING EXTERNALIZATION GUIDE
+ï»¿# ?? STRING EXTERNALIZATION GUIDE
 
 **Project:** CAD3PLogBrowser  
 **Date:** 2025-01-15  
@@ -178,7 +178,7 @@ Strings.Dialog_ExportBranchToCSV
 // Value: "Export Branch to CSV"
 
 Strings.Dialog_KeyboardShortcuts
-// Value: "Keyboard Shortcuts — WWGM CAD 3P Log Browser"
+// Value: "Keyboard Shortcuts â€” WWGM CAD 3P Log Browser"
 ```
 
 ### File Filters
@@ -580,7 +580,7 @@ Example:
   <value>Navigateur de Journal CAD 3P WWGM</value>
 </data>
 <data name="Msg_LinesSaved">
-  <value>{0} ligne(s) enregistrée(s).</value>
+  <value>{0} ligne(s) enregistrÃ©e(s).</value>
 </data>
 ```
 

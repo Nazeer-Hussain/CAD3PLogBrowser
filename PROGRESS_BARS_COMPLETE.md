@@ -1,4 +1,4 @@
-# ? PROGRESS BARS IMPLEMENTED - Quick Summary
+﻿# ? PROGRESS BARS IMPLEMENTED - Quick Summary
 
 **Feature:** Progress bars for all time-consuming file operations  
 **Status:** ? COMPLETE  

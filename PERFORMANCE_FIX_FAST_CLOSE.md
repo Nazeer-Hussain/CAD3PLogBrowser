@@ -1,4 +1,4 @@
-# ? PERFORMANCE FIX: Fast Application Close
+﻿# ? PERFORMANCE FIX: Fast Application Close
 
 **Issue:** Closing application takes a very long time when log file is loaded  
 **Root Cause:** TreeViews with thousands of nodes take long time to dispose  

@@ -1,4 +1,4 @@
-# ?? STRING REPLACEMENT EXAMPLES - CODE CHANGES
+﻿# ?? STRING REPLACEMENT EXAMPLES - CODE CHANGES
 
 **Reference:** Quick guide for replacing hardcoded strings  
 **File:** MainForm.cs  

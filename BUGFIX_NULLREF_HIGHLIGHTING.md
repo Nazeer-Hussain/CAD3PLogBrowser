@@ -1,4 +1,4 @@
-# ?? BUG FIX: NullReferenceException in Multiple Methods
+﻿# ?? BUG FIX: NullReferenceException in Multiple Methods
 
 **Date:** 2025-01-15  
 **Issue:** NullReferenceException at line 973 and other locations  

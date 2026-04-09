@@ -1,4 +1,4 @@
-# Toolbar Image Optimization Complete
+﻿# Toolbar Image Optimization Complete
 
 ## ? Issue Resolved
 
