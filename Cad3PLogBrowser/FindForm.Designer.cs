@@ -18,6 +18,7 @@ namespace Cad3PLogBrowser
             this.label1 = new System.Windows.Forms.Label();
             this.SearchTextBox = new System.Windows.Forms.ComboBox();
             this.MatchCaseCheckBox = new System.Windows.Forms.CheckBox();
+            this.UseRegexCheckBox = new System.Windows.Forms.CheckBox();
             this.FindNextButton = new System.Windows.Forms.Button();
             this.CloseButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
@@ -49,6 +50,15 @@ namespace Cad3PLogBrowser
             this.MatchCaseCheckBox.TabIndex = 2;
             this.MatchCaseCheckBox.Text = "Match case";
             //
+            // UseRegexCheckBox
+            //
+            this.UseRegexCheckBox.AutoSize = true;
+            this.UseRegexCheckBox.Location = new System.Drawing.Point(130, 63);
+            this.UseRegexCheckBox.Name = "UseRegexCheckBox";
+            this.UseRegexCheckBox.Size = new System.Drawing.Size(140, 21);
+            this.UseRegexCheckBox.TabIndex = 5;
+            this.UseRegexCheckBox.Text = "Use regular expression";
+            //
             // Findbutton
             //
             this.FindNextButton.Location = new System.Drawing.Point(290, 58);
@@ -79,6 +89,7 @@ namespace Cad3PLogBrowser
             this.ClientSize = new System.Drawing.Size(490, 104);
             this.Controls.Add(this.CloseButton);
             this.Controls.Add(this.FindNextButton);
+            this.Controls.Add(this.UseRegexCheckBox);
             this.Controls.Add(this.MatchCaseCheckBox);
             this.Controls.Add(this.SearchTextBox);
             this.Controls.Add(this.label1);
@@ -99,6 +110,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox SearchTextBox;
         private System.Windows.Forms.CheckBox MatchCaseCheckBox;
+        private System.Windows.Forms.CheckBox UseRegexCheckBox;
         private System.Windows.Forms.Button FindNextButton;
         private System.Windows.Forms.Button CloseButton;
     }

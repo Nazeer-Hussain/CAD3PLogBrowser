@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Cad3PLogBrowser.Services
 {
@@ -26,11 +27,12 @@ namespace Cad3PLogBrowser.Services
         /// <summary>
         /// Searches forward from the last match position for <paramref name="searchTerm"/>
         /// in <paramref name="lines"/>. Wraps around to the beginning.
+        /// Supports regex patterns if <paramref name="useRegex"/> is true.
         /// </summary>
         /// <returns>
         /// The zero-based index of the matched line, or -1 if not found.
         /// </returns>
-        public int FindNext(IList<string> lines, string searchTerm, bool matchCase)
+        public int FindNext(IList<string> lines, string searchTerm, bool matchCase, bool useRegex = false)
         {
             if (lines == null || lines.Count == 0 || string.IsNullOrEmpty(searchTerm))
                 return -1;
@@ -46,13 +48,40 @@ namespace Cad3PLogBrowser.Services
             }
 
             int start = _lastFoundIndex + 1;
-            for (int i = 0; i < lines.Count; i++)
+
+            if (useRegex)
             {
-                int idx = (start + i) % lines.Count;
-                if (lines[idx].IndexOf(searchTerm, comp) >= 0)
+                try
                 {
-                    _lastFoundIndex = idx;
-                    return idx;
+                    var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+                    var regex = new Regex(searchTerm, options);
+
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        int idx = (start + i) % lines.Count;
+                        if (regex.IsMatch(lines[idx]))
+                        {
+                            _lastFoundIndex = idx;
+                            return idx;
+                        }
+                    }
+                }
+                catch (ArgumentException) // RegexException derives from ArgumentException
+                {
+                    return -1; // Invalid regex pattern
+                }
+            }
+            else
+            {
+                // Standard string search
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    int idx = (start + i) % lines.Count;
+                    if (lines[idx].IndexOf(searchTerm, comp) >= 0)
+                    {
+                        _lastFoundIndex = idx;
+                        return idx;
+                    }
                 }
             }
 

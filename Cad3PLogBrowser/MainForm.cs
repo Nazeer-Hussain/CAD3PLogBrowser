@@ -1,5 +1,4 @@
 using System;
-using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -245,6 +244,10 @@ namespace Cad3PLogBrowser
             InitTreeViews();
             BuildMruMenu();
             ApplyTheme();
+
+            // Apply toolbar visibility from settings
+            showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
+            mainToolStrip.Visible = _appSettings.ShowToolbar;
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -1438,20 +1441,20 @@ namespace Cad3PLogBrowser
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
 
-        public void FindNext(string searchTerm, bool matchCase)
+        public void FindNext(string searchTerm, bool matchCase, bool useRegex = false)
         {
             if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
 
             var visibleLines = new List<string>(_virtualLines.Count);
             foreach (var vl in _virtualLines) visibleLines.Add(vl.Text);
 
-            int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase);
+            int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase, useRegex);
             if (idx >= 0)
             {
                 // Feature B8: Apply highlighting when search term changes
                 if (searchTerm != _lastHighlightTerm || matchCase != _lastHighlightMatchCase)
                 {
-                    HighlightSearchResults(searchTerm, matchCase);
+                    HighlightSearchResults(searchTerm, matchCase, useRegex);
                     _lastHighlightTerm = searchTerm;
                     _lastHighlightMatchCase = matchCase;
                 }
@@ -1469,7 +1472,7 @@ namespace Cad3PLogBrowser
         }
 
         // Feature B8: Highlight all search results in the log view
-        private void HighlightSearchResults(string searchTerm, bool matchCase)
+        private void HighlightSearchResults(string searchTerm, bool matchCase, bool useRegex = false)
         {
             if (string.IsNullOrEmpty(searchTerm))
             {
@@ -1481,26 +1484,56 @@ namespace Cad3PLogBrowser
             if (_virtualLines == null || _virtualLines.Count == 0)
                 return;
 
-            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-            // Update background colors for highlighted lines
-            for (int i = 0; i < _virtualLines.Count; i++)
+            try
             {
-                var vl = _virtualLines[i];
-                if (vl.Text.IndexOf(searchTerm, comparison) >= 0)
+                if (useRegex)
                 {
-                    // Highlight color: Light yellow
-                    _virtualLines[i] = new VirtualLogLine
-                    {
-                        LineNumber = vl.LineNumber,
-                        Text = vl.Text,
-                        BackColour = Color.FromArgb(255, 255, 200)
-                    };
-                }
-            }
+                    // Regex matching
+                    var options = matchCase ? System.Text.RegularExpressions.RegexOptions.None 
+                        : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                    var regex = new System.Text.RegularExpressions.Regex(searchTerm, options);
 
-            if (logListView != null)
+                    for (int i = 0; i < _virtualLines.Count; i++)
+                    {
+                        var vl = _virtualLines[i];
+                        if (regex.IsMatch(vl.Text))
+                        {
+                            _virtualLines[i] = new VirtualLogLine
+                            {
+                                LineNumber = vl.LineNumber,
+                                Text = vl.Text,
+                                BackColour = _appSettings.HighlightColor
+                            };
+                        }
+                    }
+                }
+                else
+                {
+                    // Standard string matching
+                    var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+                    for (int i = 0; i < _virtualLines.Count; i++)
+                    {
+                        var vl = _virtualLines[i];
+                        if (vl.Text.IndexOf(searchTerm, comparison) >= 0)
+                        {
+                            _virtualLines[i] = new VirtualLogLine
+                            {
+                                LineNumber = vl.LineNumber,
+                                Text = vl.Text,
+                                BackColour = _appSettings.HighlightColor
+                            };
+                        }
+                    }
+                }
+
                 logListView.Invalidate();
+            }
+            catch (ArgumentException ex) // Regex exception
+            {
+                MessageBox.Show($"Invalid regular expression:\n{ex.Message}",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void ClearHighlighting()
@@ -2462,5 +2495,183 @@ namespace Cad3PLogBrowser
         }
 
         private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }
+
+        // ── Feature I3: Export Performance to CSV ────────────────────────────
+        private void exportPerformanceMenuItem_Click(object sender, EventArgs e)
+        {
+            if (performanceView.Items.Count == 0)
+            {
+                MessageBox.Show("No performance data to export.\nLoad a log file first.", 
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_performance.csv";
+                dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath) 
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    using (var writer = new StreamWriter(dialog.FileName))
+                    {
+                        // Write header
+                        writer.WriteLine("API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File");
+
+                        // Write data (skip summary row if present)
+                        foreach (ListViewItem item in performanceView.Items)
+                        {
+                            if (item.Text == "──── TOTAL ────") continue;
+
+                            var values = new string[8];
+                            values[0] = EscapeCsv(item.Text);
+                            for (int i = 0; i < item.SubItems.Count && i < 8; i++)
+                                values[i] = EscapeCsv(item.SubItems[i].Text);
+
+                            writer.WriteLine(string.Join(",", values));
+                        }
+                    }
+
+                    MessageBox.Show($"Performance data exported to:\n{dialog.FileName}", 
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not export performance data:\n{ex.Message}", 
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private static string EscapeCsv(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+            return value;
+        }
+
+        // ── Feature B9: Jump to Line Number ──────────────────────────────────
+        private void jumpToLineMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_virtualLines.Count == 0)
+            {
+                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            string input = Microsoft.VisualBasic.Interaction.InputBox(
+                $"Enter line number (1 to {_virtualLines.Count}):",
+                "Jump to Line",
+                "",
+                -1, -1);
+
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            if (int.TryParse(input.Trim(), out int lineNum))
+            {
+                if (lineNum >= 1 && lineNum <= _virtualLines.Count)
+                {
+                    int index = lineNum - 1;
+                    logListView.EnsureVisible(index);
+                    logListView.SelectedIndices.Clear();
+                    logListView.SelectedIndices.Add(index);
+                    logListView.FocusedItem = logListView.Items[index];
+                }
+                else
+                {
+                    MessageBox.Show($"Line number must be between 1 and {_virtualLines.Count}.",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid line number.", Resources.TITLE, 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // ── Feature I2: Save Selected Branch ─────────────────────────────────
+        private void treeContextSaveBranchMenuItem_Click(object sender, EventArgs e)
+        {
+            TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            if (activeTree?.SelectedNode == null) return;
+
+            TreeNode selectedNode = activeTree.SelectedNode;
+            string methodName = GetMethodNameFromNode(selectedNode);
+
+            // Find the ENTER and EXIT lines for this method
+            var branchLines = new List<string>();
+            bool inBranch = false;
+            int depth = 0;
+
+            foreach (var line in _virtualLines)
+            {
+                string lineText = line.Text;
+
+                if (lineText.Contains("[ENTER]") && lineText.Contains(methodName))
+                {
+                    inBranch = true;
+                    depth = 1;
+                    branchLines.Add(lineText);
+                }
+                else if (inBranch)
+                {
+                    branchLines.Add(lineText);
+
+                    if (lineText.Contains("[ENTER]")) depth++;
+                    if (lineText.Contains("[EXIT]"))
+                    {
+                        depth--;
+                        if (depth == 0)
+                            break;
+                    }
+                }
+            }
+
+            if (branchLines.Count == 0)
+            {
+                MessageBox.Show($"Could not find ENTER/EXIT pair for '{methodName}'.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "Log files (*.log)|*.log|All files (*.*)|*.*";
+                dialog.FileName = methodName.Replace("::", "_") + _appSettings.SaveSnippetSuffix + ".log";
+                dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    File.WriteAllLines(dialog.FileName, branchLines);
+                    MessageBox.Show($"{branchLines.Count} line(s) saved to:\n{dialog.FileName}",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not save branch:\n{ex.Message}",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // ── Feature: Show/Hide Toolbar ───────────────────────────────────────
+        private void showToolbarMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            mainToolStrip.Visible = showToolbarMenuItem.Checked;
+            _appSettings.ShowToolbar = showToolbarMenuItem.Checked;
+            _appSettings.Save();
+        }
     }
 }
