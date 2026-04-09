@@ -61,6 +61,8 @@ namespace Cad3PLogBrowser
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.helpSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.checkForUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reportErrorsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -417,6 +419,8 @@ namespace Cad3PLogBrowser
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
+            this.keyboardShortcutsMenuItem,
+            this.helpSeparator1,
             this.aboutMenuItem,
             this.checkForUpdatesMenuItem,
             this.reportErrorsMenuItem});
@@ -432,6 +436,19 @@ namespace Cad3PLogBrowser
             this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
             this.viewHelpMenuItem.Text = "&Help CHM";
             this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
+            // 
+            // keyboardShortcutsMenuItem
+            // 
+            this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
+            this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
+            this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
+            this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
+            // 
+            // helpSeparator1
+            // 
+            this.helpSeparator1.Name = "helpSeparator1";
+            this.helpSeparator1.Size = new System.Drawing.Size(217, 6);
             // 
             // aboutMenuItem
             // 
@@ -489,6 +506,8 @@ namespace Cad3PLogBrowser
             this.StatusFileName.Spring = true;
             this.StatusFileName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.StatusFileName.Text = "";
+            this.StatusFileName.IsLink = true;
+            this.StatusFileName.Click += new System.EventHandler(this.StatusFileName_Click);
             // 
             // StatusLineCount
             // 
@@ -1310,6 +1329,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
         private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem keyboardShortcutsMenuItem;
+        private System.Windows.Forms.ToolStripSeparator helpSeparator1;
         private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
         private System.Windows.Forms.ToolStripMenuItem checkForUpdatesMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reportErrorsMenuItem;
