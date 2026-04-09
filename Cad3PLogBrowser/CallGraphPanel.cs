@@ -418,8 +418,8 @@ namespace Cad3PLogBrowser
                 int edgeCount = _graph?.Edges.Count ?? 0;
 
                 string legend = nodeCount > 0 
-                    ? $"{nodeCount} APIs, {edgeCount} Calls  •  Scroll=Zoom  •  Drag=Pan  •  Click=Details  •  Hover=Highlight"
-                    : "Scroll to zoom  •  Drag to pan  •  Click node for details";
+                    ? $"{nodeCount} APIs, {edgeCount} Calls  •  Scroll=Zoom  •  Drag=Pan  •  Click=Info  •  DblClick=Focus"
+                    : "Scroll to zoom  •  Drag to pan  •  Click/Double-click nodes for details";
                 g.DrawString(legend, font, brush, 8, Height - 20);
 
                 string zoomLabel = string.Format("Zoom: {0:P0}", _zoom);
@@ -454,6 +454,25 @@ namespace Cad3PLogBrowser
                 _isDragging   = true;
                 _lastMousePos = e.Location;
                 Cursor        = Cursors.SizeAll;
+            }
+        }
+
+        protected override void OnMouseDoubleClick(MouseEventArgs e)
+        {
+            base.OnMouseDoubleClick(e);
+
+            // Double-click to zoom and center on node
+            string hitNode = HitTestNode(e.Location);
+            if (hitNode != null && _graph != null && _graph.Nodes.TryGetValue(hitNode, out var node))
+            {
+                // Center on this node
+                _panOffset.X = -node.X * _zoom;
+                _panOffset.Y = -node.Y * _zoom;
+
+                // Zoom in a bit
+                _zoom = Math.Min(MaxZoom, _zoom * 1.5f);
+
+                Invalidate();
             }
         }
 
