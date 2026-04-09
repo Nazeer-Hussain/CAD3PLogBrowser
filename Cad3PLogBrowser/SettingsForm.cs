@@ -42,6 +42,15 @@ namespace Cad3PLogBrowser
             if (cmbTheme.SelectedIndex < 0)
                 cmbTheme.SelectedIndex = 0;
 
+            // Icon Size
+            cmbIconSize.Items.Clear();
+            cmbIconSize.Items.Add("Small");
+            cmbIconSize.Items.Add("Medium");
+            cmbIconSize.Items.Add("Large");
+            cmbIconSize.SelectedItem = _settings.ToolbarIconSize ?? "Medium";
+            if (cmbIconSize.SelectedIndex < 0)
+                cmbIconSize.SelectedIndex = 1; // Default to Medium
+
             // Highlight colour
             cmbHighlightColor.Items.Clear();
             foreach (string name in new[] { "Yellow", "Cyan", "LimeGreen", "Orange",
@@ -81,6 +90,7 @@ namespace Cad3PLogBrowser
             // Save other settings
             _settings.GrokUrl                = txtGrokUrl.Text.Trim();
             _settings.Theme                  = cmbTheme.SelectedItem?.ToString() ?? "Light";
+            _settings.ToolbarIconSize        = cmbIconSize.SelectedItem?.ToString() ?? "Medium";
             _settings.HighlightColorName     = cmbHighlightColor.SelectedItem?.ToString() ?? "Yellow";
             _settings.SlowCallThresholdMs    = (long)nudSlowCallMs.Value;
             _settings.MaxFileSizeMbForListView = (long)nudMaxFileMb.Value;

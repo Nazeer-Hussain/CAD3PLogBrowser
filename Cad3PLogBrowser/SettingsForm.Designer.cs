@@ -16,12 +16,14 @@ namespace Cad3PLogBrowser
             this.grpGrok            = new System.Windows.Forms.GroupBox();
             this.lblGrokUrl         = new System.Windows.Forms.Label();
             this.txtGrokUrl         = new System.Windows.Forms.TextBox();
-            this.grpAppearance      = new System.Windows.Forms.GroupBox();
+            this.grpAppearance = new System.Windows.Forms.GroupBox();
             this.lblHighlight       = new System.Windows.Forms.Label();
             this.cmbHighlightColor  = new System.Windows.Forms.ComboBox();
             this.panelColorPreview  = new System.Windows.Forms.Panel();
             this.lblTheme           = new System.Windows.Forms.Label();
             this.cmbTheme           = new System.Windows.Forms.ComboBox();
+            this.lblIconSize        = new System.Windows.Forms.Label();
+            this.cmbIconSize        = new System.Windows.Forms.ComboBox();
             this.grpPerf            = new System.Windows.Forms.GroupBox();
             this.lblSlowCall        = new System.Windows.Forms.Label();
             this.nudSlowCallMs      = new System.Windows.Forms.NumericUpDown();
@@ -70,8 +72,10 @@ namespace Cad3PLogBrowser
             this.grpAppearance.Controls.Add(this.panelColorPreview);
             this.grpAppearance.Controls.Add(this.lblTheme);
             this.grpAppearance.Controls.Add(this.cmbTheme);
+            this.grpAppearance.Controls.Add(this.lblIconSize);
+            this.grpAppearance.Controls.Add(this.cmbIconSize);
             this.grpAppearance.Location = new System.Drawing.Point(12, 168);
-            this.grpAppearance.Size = new System.Drawing.Size(400, 90);
+            this.grpAppearance.Size = new System.Drawing.Size(400, 120);
             this.grpAppearance.Text = "Appearance";
             this.lblTheme.AutoSize = true; this.lblTheme.Location = new System.Drawing.Point(12, 24); this.lblTheme.Text = "Theme:";
             this.cmbTheme.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -82,12 +86,15 @@ namespace Cad3PLogBrowser
             this.cmbHighlightColor.SelectedIndexChanged += new System.EventHandler(this.cmbHighlightColor_SelectedIndexChanged);
             this.panelColorPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelColorPreview.Location = new System.Drawing.Point(258, 51); this.panelColorPreview.Size = new System.Drawing.Size(60, 22);
+            this.lblIconSize.AutoSize = true; this.lblIconSize.Location = new System.Drawing.Point(12, 84); this.lblIconSize.Text = "Toolbar icon size:";
+            this.cmbIconSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbIconSize.Location = new System.Drawing.Point(108, 81); this.cmbIconSize.Size = new System.Drawing.Size(140, 24);
             // grpPerf
             this.grpPerf.Controls.Add(this.lblSlowCall);
             this.grpPerf.Controls.Add(this.nudSlowCallMs);
             this.grpPerf.Controls.Add(this.lblMaxFile);
             this.grpPerf.Controls.Add(this.nudMaxFileMb);
-            this.grpPerf.Location = new System.Drawing.Point(12, 266);
+            this.grpPerf.Location = new System.Drawing.Point(12, 296);
             this.grpPerf.Size = new System.Drawing.Size(400, 70);
             this.grpPerf.Text = "Performance Guards";
             this.lblSlowCall.AutoSize = true; this.lblSlowCall.Location = new System.Drawing.Point(12, 24); this.lblSlowCall.Text = "Slow call threshold (ms):";
@@ -97,17 +104,17 @@ namespace Cad3PLogBrowser
             this.nudMaxFileMb.Location = new System.Drawing.Point(200, 46); this.nudMaxFileMb.Size = new System.Drawing.Size(80, 22);
             this.nudMaxFileMb.Minimum = 1; this.nudMaxFileMb.Maximum = 2000; this.nudMaxFileMb.Value = 50;
             // Buttons
-            this.OkButton.Location = new System.Drawing.Point(248, 348); this.OkButton.Size = new System.Drawing.Size(75, 30);
+            this.OkButton.Location = new System.Drawing.Point(248, 378); this.OkButton.Size = new System.Drawing.Size(75, 30);
             this.OkButton.Text = "&OK"; this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
             this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CancelBtn.Location = new System.Drawing.Point(337, 348); this.CancelBtn.Size = new System.Drawing.Size(75, 30);
+            this.CancelBtn.Location = new System.Drawing.Point(337, 378); this.CancelBtn.Size = new System.Drawing.Size(75, 30);
             this.CancelBtn.Text = "&Cancel"; this.CancelBtn.Click += new System.EventHandler(this.CancelButton_Click);
             // Form
             this.AcceptButton = this.OkButton;
             this.CancelButton = this.CancelBtn;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(424, 390);
+            this.ClientSize = new System.Drawing.Size(424, 420);
             this.Controls.Add(this.grpTabs); this.Controls.Add(this.grpGrok);
             this.Controls.Add(this.grpAppearance); this.Controls.Add(this.grpPerf);
             this.Controls.Add(this.OkButton); this.Controls.Add(this.CancelBtn);
@@ -127,9 +134,9 @@ namespace Cad3PLogBrowser
 
         private System.Windows.Forms.GroupBox grpTabs, grpGrok, grpAppearance, grpPerf;
         private System.Windows.Forms.CheckBox chkShowLog, chkShowPerformance, chkShowLogDetails, chkShowCallGraph;
-        private System.Windows.Forms.Label lblGrokUrl, lblTheme, lblHighlight, lblSlowCall, lblMaxFile;
+        private System.Windows.Forms.Label lblGrokUrl, lblTheme, lblHighlight, lblSlowCall, lblMaxFile, lblIconSize;
         private System.Windows.Forms.TextBox txtGrokUrl;
-        private System.Windows.Forms.ComboBox cmbTheme, cmbHighlightColor;
+        private System.Windows.Forms.ComboBox cmbTheme, cmbHighlightColor, cmbIconSize;
         private System.Windows.Forms.Panel panelColorPreview;
         private System.Windows.Forms.NumericUpDown nudSlowCallMs, nudMaxFileMb;
         private System.Windows.Forms.Button OkButton, CancelBtn;

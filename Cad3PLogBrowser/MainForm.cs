@@ -1,4 +1,5 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -264,6 +265,9 @@ namespace Cad3PLogBrowser
 
             // Apply to main form
             ThemeManager.ApplyTheme(this);
+
+            // Apply icon size
+            ApplyIconSize();
 
             // Update log-level colors based on theme
             UpdateLogColors();
@@ -1110,6 +1114,65 @@ namespace Cad3PLogBrowser
             }
 
             UpdateStatusBar();
+        }
+
+        // ── Icon Size Management ──────────────────────────────────────────────
+        private void ApplyIconSize()
+        {
+            IconGenerator.IconSize iconSize;
+            switch (_appSettings.ToolbarIconSize)
+            {
+                case "Small":
+                    iconSize = IconGenerator.IconSize.Small;
+                    mainToolStrip.ImageScalingSize = new Size(16, 16);
+                    break;
+                case "Large":
+                    iconSize = IconGenerator.IconSize.Large;
+                    mainToolStrip.ImageScalingSize = new Size(32, 32);
+                    break;
+                default: // Medium
+                    iconSize = IconGenerator.IconSize.Medium;
+                    mainToolStrip.ImageScalingSize = new Size(24, 24);
+                    break;
+            }
+
+            // Generate and apply modern flat icons
+            IconGenerator.GenerateAllIcons(iconSize, 
+                out var openIcon, out var saveIcon, out var refreshIcon,
+                out var copyIcon, out var findIcon, out var filterIcon,
+                out var settingsIcon, out var helpIcon, out var expandIcon,
+                out var collapseIcon, out var treeIcon, out var exportIcon,
+                out var jumpIcon, out var errorIcon, out var warningIcon);
+
+            // Apply icons to toolbar buttons
+            OpenButton.Image = openIcon;
+            SaveButton.Image = saveIcon;
+            SaveToXLSButton.Image = exportIcon;
+            RefreshButton.Image = refreshIcon;
+            CopyButton.Image = copyIcon;
+            FindButton.Image = findIcon;
+            FindNextButton.Image = findIcon; // Reuse find icon
+            FilterButton.Image = filterIcon;
+            ExpandAllButton.Image = expandIcon;
+            CollapseAllButton.Image = collapseIcon;
+            CallTreeButton.Image = treeIcon;
+            ApiTreeButton.Image = treeIcon; // Reuse tree icon
+            SettingsButton.Image = settingsIcon;
+            ShowHelpButton.Image = helpIcon;
+
+            // Apply to error/warning navigation buttons (no images, use text)
+            // These buttons use text display
+
+            // Also apply to menu items for consistency
+            openMenuItem.Image = openIcon;
+            saveAsMenuItem.Image = saveIcon;
+            exportFilteredLogsMenuItem.Image = exportIcon;
+            reloadMenuItem.Image = refreshIcon;
+            copyMenuItem.Image = copyIcon;
+            findMenuItem.Image = findIcon;
+            filterMenuItem.Image = filterIcon;
+            settingsMenuItem.Image = settingsIcon;
+            viewHelpMenuItem.Image = helpIcon;
         }
 
         private static Color GetLineColour(string line)
