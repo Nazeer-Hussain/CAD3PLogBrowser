@@ -60,6 +60,7 @@ namespace Cad3PLogBrowser
             this.showApiTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab2MenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -387,6 +388,7 @@ namespace Cad3PLogBrowser
             this.showApiTreeMenuItem,
             this.tabsMenuItem,
             this.viewSeparator1,
+            this.selectFontMenuItem,
             this.showToolbarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
@@ -461,6 +463,13 @@ namespace Cad3PLogBrowser
             // 
             this.viewSeparator1.Name = "viewSeparator1";
             this.viewSeparator1.Size = new System.Drawing.Size(175, 6);
+            // 
+            // selectFontMenuItem
+            // 
+            this.selectFontMenuItem.Name = "selectFontMenuItem";
+            this.selectFontMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.selectFontMenuItem.Text = "Select &Font...";
+            this.selectFontMenuItem.Click += new System.EventHandler(this.selectFontMenuItem_Click);
             // 
             // showToolbarMenuItem
             // 
@@ -1399,6 +1408,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem showApiTreeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab1MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTab2MenuItem;

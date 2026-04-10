@@ -246,6 +246,9 @@ namespace Cad3PLogBrowser
             BuildMruMenu();
             ApplyTheme();
 
+            // Load saved font preferences
+            LoadLogFont();
+
             // Apply toolbar visibility from settings
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
             mainToolStrip.Visible = _appSettings.ShowToolbar;
@@ -3022,6 +3025,94 @@ namespace Cad3PLogBrowser
         public List<string> GetSearchHistory()
         {
             return _appSettings?.SearchHistory ?? new List<string>();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 5: Font Selection (H5)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handler for View → Select Font menu item.
+        /// </summary>
+        private void selectFontMenuItem_Click(object sender, EventArgs e)
+        {
+            SelectLogFont();
+        }
+
+        /// <summary>
+        /// Shows font selection dialog and applies chosen font to log view.
+        /// </summary>
+        private void SelectLogFont()
+        {
+            try
+            {
+                // Set current font in dialog
+                logFontDialog.Font = logListView.Font;
+
+                if (logFontDialog.ShowDialog() == DialogResult.OK)
+                {
+                    // Apply font to log list view
+                    logListView.Font = logFontDialog.Font;
+
+                    // Save to settings
+                    if (_appSettings != null)
+                    {
+                        _appSettings.LogFontFamily = logFontDialog.Font.FontFamily.Name;
+                        _appSettings.LogFontSize = logFontDialog.Font.Size;
+                        _appSettings.LogFontStyle = logFontDialog.Font.Style;
+
+                        // Save settings
+                        _appSettings.Save();
+                    }
+
+                    StatusFileName.Text = string.Format("Font changed to {0} {1}pt", 
+                        logFontDialog.Font.Name, logFontDialog.Font.Size);
+
+                    // Clear status after 3 seconds
+                    var timer = new System.Windows.Forms.Timer();
+                    timer.Interval = 3000;
+                    timer.Tick += (s, args) =>
+                    {
+                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        timer.Stop();
+                        timer.Dispose();
+                    };
+                    timer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format("Failed to change font:\n{0}", ex.Message), 
+                    "Font Error", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Loads saved font from settings.
+        /// Call this during form initialization.
+        /// </summary>
+        private void LoadLogFont()
+        {
+            try
+            {
+                if (_appSettings != null && 
+                    !string.IsNullOrEmpty(_appSettings.LogFontFamily))
+                {
+                    var font = new Font(
+                        _appSettings.LogFontFamily,
+                        _appSettings.LogFontSize > 0 ? _appSettings.LogFontSize : 9.0f,
+                        _appSettings.LogFontStyle);
+
+                    logListView.Font = font;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Use default font if loading fails
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
+            }
         }
     }
 }
