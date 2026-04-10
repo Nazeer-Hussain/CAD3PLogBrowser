@@ -1321,18 +1321,18 @@ namespace Cad3PLogBrowser
                     });
                 });
 
-                MessageBox.Show($"{lines.Count:N0} line(s) saved.", Resources.TITLE, 
+                MessageBox.Show(string.Format(Resources.MSG_FILE_SAVED, lines.Count), Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (OperationCanceledException)
             {
                 StatusFileName.Text = "Save operation cancelled.";
-                MessageBox.Show("Save operation was cancelled.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not save file:\n{ex.Message}", Resources.TITLE, 
+                MessageBox.Show(string.Format(Resources.MSG_SAVE_ERROR, ex.Message), Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
@@ -1378,7 +1378,7 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No log data to export.", Resources.TITLE,
+                MessageBox.Show(Resources.ERR_NO_DATA_TO_EXPORT, Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1610,7 +1610,7 @@ namespace Cad3PLogBrowser
             foreach (var e in _lastEntries)
                 if (e.LineNumber == selectedLine && e.IsApiCall) { current = e; break; }
 
-            if (current == null) { MessageBox.Show("Selected line is not an API call line.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            if (current == null) { MessageBox.Show(Resources.MSG_NOT_API_CALL, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
             int targetLine = -1;
             if (current.IsCallEnter)
@@ -1642,7 +1642,7 @@ namespace Cad3PLogBrowser
             if (targetLine > 0)
                 ScrollLogToLine(targetLine);
             else
-                MessageBox.Show("No matching pair found.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(Resources.MSG_NO_MATCHING_PAIR, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         // ── Operation Progress and Cancellation Support ───────────────────────
@@ -1866,7 +1866,7 @@ namespace Cad3PLogBrowser
         {
             if (_errorLines.Count == 0)
             {
-                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_ERRORS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1884,7 +1884,7 @@ namespace Cad3PLogBrowser
         {
             if (_errorLines.Count == 0)
             {
-                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_ERRORS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1903,7 +1903,7 @@ namespace Cad3PLogBrowser
         {
             if (_warningLines.Count == 0)
             {
-                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_WARNINGS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1921,7 +1921,7 @@ namespace Cad3PLogBrowser
         {
             if (_warningLines.Count == 0)
             {
-                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_WARNINGS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2192,10 +2192,10 @@ namespace Cad3PLogBrowser
                 else
                 {
                     // If CHM doesn't exist, show keyboard shortcuts as fallback
-                    MessageBox.Show(
-                        "Help file (Cad3PLogBrowser.chm) not found.\n\n" +
-                        "Press Ctrl+K to view keyboard shortcuts,\n" +
-                        "or visit the GitHub repository for documentation.",
+                    const string helpMessage = "Help file (Cad3PLogBrowser.chm) not found.\\n\\n" +
+                        "Press Ctrl+K to view keyboard shortcuts,\\n" +
+                        "or visit the GitHub repository for documentation.";
+                    MessageBox.Show(helpMessage,
                         Resources.TITLE, 
                         MessageBoxButtons.OK, 
                         MessageBoxIcon.Information);
@@ -2508,9 +2508,7 @@ namespace Cad3PLogBrowser
 
             if (string.IsNullOrEmpty(grokUrl))
             {
-                MessageBox.Show(
-                    "Please configure the Grok URL in Options > Settings first.\n\n" +
-                    "Example: https://grok.example.com/search?q=",
+                MessageBox.Show(Resources.MSG_GROK_NOT_CONFIGURED,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2659,7 +2657,7 @@ namespace Cad3PLogBrowser
         {
             if (performanceView.Items.Count == 0)
             {
-                MessageBox.Show("No performance data to export.\nLoad a log file first.", 
+                MessageBox.Show(Resources.ERR_NO_PERFORMANCE_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2719,7 +2717,7 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_NO_FILE_LOADED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2750,7 +2748,7 @@ namespace Cad3PLogBrowser
             }
             else
             {
-                MessageBox.Show("Invalid line number.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_INVALID_LINE_NUMBER, Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2837,7 +2835,7 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_NO_FILE_LOADED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -3479,7 +3477,7 @@ namespace Cad3PLogBrowser
         {
             if (_bookmarkService.Count == 0)
             {
-                MessageBox.Show("No bookmarks set.\n\nPress Ctrl+B to bookmark the current line.",
+                MessageBox.Show(Resources.ERR_NO_BOOKMARKS,
                     "Bookmarks", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -3536,7 +3534,7 @@ namespace Cad3PLogBrowser
         {
             if (_lastEntries == null || _lastEntries.Count == 0)
             {
-                MessageBox.Show("No call tree data to export.\nLoad a log file first.",
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -3575,7 +3573,7 @@ namespace Cad3PLogBrowser
         {
             if (_lastEntries == null || _lastEntries.Count == 0)
             {
-                MessageBox.Show("No call tree data to export.\nLoad a log file first.",
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -3614,7 +3612,7 @@ namespace Cad3PLogBrowser
         {
             if (timelinePanel == null || _lastEntries == null || _lastEntries.Count == 0)
             {
-                MessageBox.Show("No timeline data to export.\nLoad a log file and view the Timeline tab first.",
+                MessageBox.Show(Resources.ERR_NO_TIMELINE_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -3663,7 +3661,7 @@ namespace Cad3PLogBrowser
         {
             if (flameGraphPanel == null || _lastEntries == null || _lastEntries.Count == 0)
             {
-                MessageBox.Show("No flame graph data to export.\nLoad a log file and view the Flame Graph tab first.",
+                MessageBox.Show(Resources.ERR_NO_FLAME_GRAPH_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
