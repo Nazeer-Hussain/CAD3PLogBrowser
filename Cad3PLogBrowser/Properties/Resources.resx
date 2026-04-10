@@ -118,12 +118,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="graph1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\graph1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="blue_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\blue_ball.gif;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="refresh" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\refresh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -139,17 +133,11 @@
   <data name="copy" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\copy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="cross" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\cross.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="help" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\help.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="treeview" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\treeview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="check1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\check1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="TITLE" xml:space="preserve">
     <value>WWGM CAD 3P Log Browser</value>
@@ -157,20 +145,11 @@
   <data name="apiview" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\apiview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="About" xml:space="preserve">
-    <value>version 1.0.0.0</value>
-  </data>
   <data name="green_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\green_ball.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="cad3plog" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\cad3plog.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="apiview2" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\apiview2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="details" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\details.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="red_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\red_ball.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -181,29 +160,11 @@
   <data name="save" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\save.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="check2" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\check2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="performance" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\performance.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="tabs" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\tabs.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="open" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\open.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="remove" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\remove.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="graph2" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\graph2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="yellow" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\yellow.gif;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="ABOUT_DESCRIPTION" xml:space="preserve">
-    <value>About box description</value>
   </data>
   <data name="MSG_FILE_SAVED" xml:space="preserve">
     <value>{0} line(s) saved.</value>
@@ -227,7 +188,7 @@
     <value>No warnings found in this log file.</value>
   </data>
   <data name="MSG_GROK_NOT_CONFIGURED" xml:space="preserve">
-    <value>Please configure the Grok URL in Options > Settings first.\n\nExample: https://grok.example.com/search?q=</value>
+    <value>Please configure the Grok URL in Options &gt; Settings first.\n\nExample: https://grok.example.com/search?q=</value>
   </data>
   <data name="MSG_BROWSER_LAUNCH_ERROR" xml:space="preserve">
     <value>Failed to open browser:\n{0}</value>
@@ -243,5 +204,47 @@
   </data>
   <data name="FILTER_CSV_FILES" xml:space="preserve">
     <value>CSV files (*.csv)|*.csv|All files (*.*)|*.*</value>
+  </data>
+  <data name="ERR_SAVE_CANCELLED" xml:space="preserve">
+    <value>Save operation was cancelled.</value>
+  </data>
+  <data name="ERR_NO_DATA_TO_EXPORT" xml:space="preserve">
+    <value>No log data to export.</value>
+  </data>
+  <data name="ERR_NO_FILE_LOADED" xml:space="preserve">
+    <value>ERR_NO_FILE_LOADED</value>
+  </data>
+  <data name="ERR_INVALID_LINE_NUMBER" xml:space="preserve">
+    <value>Invalid line number.</value>
+  </data>
+  <data name="ERR_NO_BOOKMARKS" xml:space="preserve">
+    <value>No bookmarks set.\n\nPress Ctrl+B to bookmark the current line.</value>
+  </data>
+  <data name="ERR_NO_PERFORMANCE_DATA" xml:space="preserve">
+    <value>No performance data to export.\nLoad a log file first.</value>
+  </data>
+  <data name="ERR_NO_CALL_TREE_DATA" xml:space="preserve">
+    <value>No call tree data to export.\nLoad a log file first.</value>
+  </data>
+  <data name="ERR_NO_TIMELINE_DATA" xml:space="preserve">
+    <value>No timeline data to export.\nLoad a log file and view the Timeline tab first.</value>
+  </data>
+  <data name="ERR_NO_FLAME_GRAPH_DATA" xml:space="preserve">
+    <value>No flame graph data to export.\nLoad a log file and view the Flame Graph tab first.</value>
+  </data>
+  <data name="MSG_RESULTS_EXPORTED" xml:space="preserve">
+    <value>Results exported to:\n{0}</value>
+  </data>
+  <data name="MSG_CALL_TREE_EXPORTED_JSON" xml:space="preserve">
+    <value>Call tree exported to:\n{0}</value>
+  </data>
+  <data name="MSG_CALL_TREE_EXPORTED_XML" xml:space="preserve">
+    <value>Call tree exported to:\n{0}</value>
+  </data>
+  <data name="MSG_TIMELINE_EXPORTED" xml:space="preserve">
+    <value>Timeline exported to:\n{0}</value>
+  </data>
+  <data name="MSG_FLAME_GRAPH_EXPORTED" xml:space="preserve">
+    <value> Flame graph exported to:\n{0}</value>
   </data>
 </root>
