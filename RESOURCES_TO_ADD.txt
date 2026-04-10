@@ -1,0 +1,97 @@
+# RESOURCES TO ADD - Copy into Resources.resx
+
+Open Visual Studio ? Properties ? Resources.resx ? Add these strings:
+
+## Error Messages (18 new resources)
+
+```
+Name: ERR_EXPORT_FILE_FAILED
+Value: Failed to export file:\n{0}
+
+Name: ERR_NOT_FOUND
+Value: '{0}' not found.
+
+Name: ERR_INVALID_REGEX
+Value: Invalid regular expression:\n{0}
+
+Name: ERR_OPEN_UPDATES_FAILED
+Value: Could not open updates page:\n{0}
+
+Name: ERR_OPEN_ISSUES_FAILED
+Value: Could not open issues page:\n{0}
+
+Name: ERR_OPEN_HELP_FAILED
+Value: Could not open help file:\n{0}
+
+Name: ERR_BROWSER_FAILED
+Value: Failed to open browser:\n{0}
+
+Name: ERR_EXPORT_PERFORMANCE_FAILED
+Value: Could not export performance data:\n{0}
+
+Name: ERR_LINE_NUMBER_OUT_OF_RANGE
+Value: Line number must be between 1 and {0}.
+
+Name: ERR_NO_ENTER_EXIT_PAIR
+Value: Could not find ENTER/EXIT pair for '{0}'.
+
+Name: ERR_SAVE_BRANCH_FAILED
+Value: Could not save branch:\n{0}
+
+Name: ERR_NO_MATCHES_FOUND
+Value: No matches found for '{0}'.
+
+Name: ERR_EXPORT_CALL_GRAPH_FAILED
+Value: Could not export Call Graph:\n{0}
+
+Name: ERR_COPY_FAILED
+Value: Failed to copy to clipboard:\n{0}
+
+Name: ERR_EXPORT_TREE_FAILED
+Value: Failed to export tree:\n{0}
+
+Name: ERR_EXPORT_TIMELINE_FAILED
+Value: Failed to export timeline:\n{0}
+
+Name: ERR_EXPORT_FLAME_GRAPH_FAILED
+Value: Failed to export flame graph:\n{0}
+
+Name: ERR_FONT_CHANGE_FAILED
+Value: Failed to change font:\n{0}
+```
+
+## Success Messages (4 new resources)
+
+```
+Name: MSG_BRANCH_EXPORTED_TO
+Value: Branch exported to:\n{0}
+
+Name: MSG_PERFORMANCE_EXPORTED_TO
+Value: Performance data exported to:\n{0}
+
+Name: MSG_BRANCH_SAVED_TO
+Value: {0} line(s) saved to:\n{1}
+
+Name: MSG_CALL_GRAPH_EXPORTED_TO
+Value: Call Graph exported to:\n{0}
+```
+
+## Dialog Titles (1 new resource)
+
+```
+Name: DIALOG_TITLE_BOOKMARKS
+Value: Bookmarks
+```
+
+## Composite Messages (1 new resource)
+
+```
+Name: MSG_HELP_FILE_NOT_FOUND
+Value: Help file (Cad3PLogBrowser.chm) not found.\n\nPress Ctrl+K to view keyboard shortcuts,\nor visit the GitHub repository for documentation.
+```
+
+---
+
+## Total Resources to Add: 24
+
+After adding these and building, proceed to code updates.
