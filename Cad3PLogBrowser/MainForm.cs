@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -1339,14 +1340,7 @@ namespace Cad3PLogBrowser
         private void exitMenuItem_Click(object sender, EventArgs e) => Close();
 
         // ── Edit menu ─────────────────────────────────────────────────────────
-        private void copyMenuItem_Click(object sender, EventArgs e)
-        {
-            if (logListView.SelectedIndices.Count == 0) return;
-            var lines = new List<string>();
-            foreach (int idx in logListView.SelectedIndices)
-                lines.Add(_virtualLines[idx].Text);
-            Clipboard.SetText(_searchService.JoinForClipboard(lines));
-        }
+        // MOVED: copyMenuItem_Click is now in Feature 1 section below
 
         // ── Feature I1: Export Filtered Logs ──────────────────────────────────
         private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
@@ -1411,41 +1405,9 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private void CopyButton_Click(object sender, EventArgs e) =>
-            copyMenuItem_Click(sender, e);
+        // MOVED: CopyButton_Click is now in Feature 1 section below
 
-        // ── Feature I4: Copy with Headers ────────────────────────────────────
-        private void contextCopyWithHeadersMenuItem_Click(object sender, EventArgs e)
-        {
-            if (logListView.SelectedIndices.Count == 0)
-            {
-                MessageBox.Show("No lines selected.", Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            // Add header line
-            sb.AppendLine("Line #\tLog Text");
-            sb.AppendLine("------\t--------");
-
-            // Add selected lines
-            var indices = new int[logListView.SelectedIndices.Count];
-            logListView.SelectedIndices.CopyTo(indices, 0);
-            Array.Sort(indices);
-
-            foreach (int idx in indices)
-            {
-                if (idx >= 0 && idx < _virtualLines.Count)
-                {
-                    var vl = _virtualLines[idx];
-                    sb.AppendLine(string.Format("{0}\t{1}", vl.LineNumber, vl.Text));
-                }
-            }
-
-            Clipboard.SetText(sb.ToString());
-            StatusFileName.Text = string.Format("Copied {0} lines with headers to clipboard.", indices.Length);
-        }
+        // MOVED: contextCopyWithHeadersMenuItem_Click is now in Feature 3 section below
 
         private FindForm _findForm;
 
@@ -2271,6 +2233,13 @@ namespace Cad3PLogBrowser
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Save search history before closing
+            try
+            {
+                SaveSearchHistory();
+            }
+            catch { /* Non-fatal */ }
+
             // Stop file watching immediately to prevent blocking on close
             try
             {
@@ -2864,6 +2833,195 @@ namespace Cad3PLogBrowser
             }
 
             return false;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 1 & 3: Copy Menu Item Handlers (CRITICAL)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handles copy menu item click - copies selected log lines to clipboard.
+        /// </summary>
+        private void copyMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles context menu copy click.
+        /// </summary>
+        private void contextCopyMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles toolbar copy button click.
+        /// </summary>
+        private void CopyButton_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles copy with headers menu item click.
+        /// </summary>
+        private void contextCopyWithHeadersMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: true);
+        }
+
+        // (contextCopyWithHeadersMenuItem_Click combined above)
+
+        /// <summary>
+        /// Copies selected log lines to clipboard.
+        /// </summary>
+        /// <param name="includeHeaders">If true, includes "Line #\tLog Text" header.</param>
+        private void CopySelectedLinesToClipboard(bool includeHeaders)
+        {
+            try
+            {
+                if (logListView.SelectedIndices.Count == 0)
+                {
+                    StatusFileName.Text = "No lines selected";
+                    return;
+                }
+
+                var sb = new System.Text.StringBuilder();
+
+                // Add header if requested
+                if (includeHeaders)
+                {
+                    sb.AppendLine("Line #\tLog Text");
+                    sb.AppendLine("------\t--------");
+                }
+
+                // Copy selected indices to array and sort
+                var indices = new int[logListView.SelectedIndices.Count];
+                logListView.SelectedIndices.CopyTo(indices, 0);
+                Array.Sort(indices);
+
+                // Get text for each selected line
+                foreach (int index in indices)
+                {
+                    if (index >= 0 && index < _virtualLines.Count)
+                    {
+                        var line = _virtualLines[index];
+                        if (includeHeaders)
+                        {
+                            // Tab-separated format: Line# \t Text
+                            sb.AppendLine(string.Format("{0}\t{1}", line.LineNumber, line.Text));
+                        }
+                        else
+                        {
+                            // Just the log text
+                            sb.AppendLine(line.Text);
+                        }
+                    }
+                }
+
+                // Copy to clipboard
+                if (sb.Length > 0)
+                {
+                    Clipboard.SetText(sb.ToString());
+
+                    // Update status bar
+                    string message = includeHeaders 
+                        ? string.Format("Copied {0} line(s) with headers to clipboard", indices.Length)
+                        : string.Format("Copied {0} line(s) to clipboard", indices.Length);
+
+                    StatusFileName.Text = message;
+
+                    // Clear status after 3 seconds
+                    var timer = new System.Windows.Forms.Timer();
+                    timer.Interval = 3000;
+                    timer.Tick += (s, args) =>
+                    {
+                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        timer.Stop();
+                        timer.Dispose();
+                    };
+                    timer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format("Failed to copy to clipboard:\n{0}", ex.Message), 
+                    "Copy Error", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 2: Search History Persistence (B6)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private const string SEARCH_HISTORY_FILE = "search_history.json";
+        private const int MAX_SEARCH_HISTORY = 20;
+
+        /// <summary>
+        /// Saves search history to JSON file.
+        /// Call this when FindForm is closing or app is exiting.
+        /// </summary>
+        private void SaveSearchHistory()
+        {
+            try
+            {
+                var searchHistory = new List<string>();
+
+                // Get search history from app settings if available
+                if (_appSettings != null && _appSettings.SearchHistory != null)
+                {
+                    searchHistory = _appSettings.SearchHistory;
+                }
+
+                // Limit to MAX_SEARCH_HISTORY items
+                if (searchHistory.Count > MAX_SEARCH_HISTORY)
+                    searchHistory = searchHistory.Take(MAX_SEARCH_HISTORY).ToList();
+
+                // Save settings
+                if (_appSettings != null)
+                {
+                    _appSettings.SearchHistory = searchHistory;
+                    _appSettings.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Don't show error to user - just log it
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to save search history: {0}", ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Adds a search term to history.
+        /// </summary>
+        public void AddSearchHistory(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return;
+
+            if (_appSettings.SearchHistory == null)
+                _appSettings.SearchHistory = new List<string>();
+
+            // Remove if already exists
+            _appSettings.SearchHistory.Remove(searchTerm);
+
+            // Add to beginning
+            _appSettings.SearchHistory.Insert(0, searchTerm);
+
+            // Limit size
+            if (_appSettings.SearchHistory.Count > MAX_SEARCH_HISTORY)
+                _appSettings.SearchHistory = _appSettings.SearchHistory.Take(MAX_SEARCH_HISTORY).ToList();
+        }
+
+        /// <summary>
+        /// Gets search history.
+        /// </summary>
+        public List<string> GetSearchHistory()
+        {
+            return _appSettings?.SearchHistory ?? new List<string>();
         }
     }
 }

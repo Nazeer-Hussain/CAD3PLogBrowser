@@ -33,6 +33,14 @@ namespace Cad3PLogBrowser.Services
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;
 
+        // ── Font settings (Feature H5) ────────────────────────────────────────
+        public string     LogFontFamily     { get; set; } = "Consolas";
+        public float      LogFontSize       { get; set; } = 9.0f;
+        public FontStyle  LogFontStyle      { get; set; } = FontStyle.Regular;
+
+        // ── Search history (Feature B6) ───────────────────────────────────────
+        public List<string> SearchHistory   { get; set; } = new List<string>();
+
         // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
         public int     WindowWidth          { get; set; } = 1024;
         public int     WindowHeight         { get; set; } = 768;
