@@ -249,6 +249,9 @@ namespace Cad3PLogBrowser
             // Load saved font preferences
             LoadLogFont();
 
+            // Initialize tree search placeholder
+            InitializeTreeSearchBox();
+
             // Apply toolbar visibility from settings
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
             mainToolStrip.Visible = _appSettings.ShowToolbar;
@@ -3025,6 +3028,161 @@ namespace Cad3PLogBrowser
         public List<string> GetSearchHistory()
         {
             return _appSettings?.SearchHistory ?? new List<string>();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 4: Tree Search/Filter (C5)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private string _treeSearchText = string.Empty;
+        private const string TREE_SEARCH_PLACEHOLDER = "Search tree nodes...";
+
+        /// <summary>
+        /// Handler for tree search textbox - filters tree nodes in real-time.
+        /// </summary>
+        private void treeSearchTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                // Ignore if showing placeholder
+                if (textBox.ForeColor == SystemColors.GrayText)
+                    return;
+
+                FilterTreeNodes(textBox.Text);
+            }
+        }
+
+        /// <summary>
+        /// Handles Enter event - removes placeholder text.
+        /// </summary>
+        private void treeSearchTextBox_Enter(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (textBox.Text == TREE_SEARCH_PLACEHOLDER)
+                {
+                    textBox.Text = "";
+                    textBox.ForeColor = SystemColors.WindowText;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles Leave event - shows placeholder if empty.
+        /// </summary>
+        private void treeSearchTextBox_Leave(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (string.IsNullOrWhiteSpace(textBox.Text))
+                {
+                    textBox.Text = TREE_SEARCH_PLACEHOLDER;
+                    textBox.ForeColor = SystemColors.GrayText;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Filters tree nodes based on search text.
+        /// Matching nodes are highlighted in yellow.
+        /// </summary>
+        /// <param name="searchText">Text to search for in node names.</param>
+        private void FilterTreeNodes(string searchText)
+        {
+            _treeSearchText = searchText.ToLowerInvariant();
+
+            TreeView activeTree = CallTree.Visible ? CallTree : ApiTree;
+
+            if (string.IsNullOrWhiteSpace(_treeSearchText))
+            {
+                // Show all nodes
+                ShowAllTreeNodes(activeTree);
+                return;
+            }
+
+            // Filter nodes
+            activeTree.BeginUpdate();
+
+            foreach (TreeNode rootNode in activeTree.Nodes)
+            {
+                FilterTreeNodeRecursive(rootNode);
+            }
+
+            activeTree.EndUpdate();
+        }
+
+        /// <summary>
+        /// Recursively filters tree nodes.
+        /// A node is visible if it or any of its children match the search text.
+        /// </summary>
+        /// <returns>True if this node or any child matches.</returns>
+        private bool FilterTreeNodeRecursive(TreeNode node)
+        {
+            bool hasMatch = false;
+            bool nodeMatches = node.Text.ToLowerInvariant().Contains(_treeSearchText);
+
+            // Check children first
+            foreach (TreeNode child in node.Nodes)
+            {
+                if (FilterTreeNodeRecursive(child))
+                    hasMatch = true;
+            }
+
+            // Show node if it matches or has matching children
+            if (nodeMatches || hasMatch)
+            {
+                node.BackColor = nodeMatches ? Color.Yellow : Color.Transparent;
+                // Expand matching nodes to show context
+                if (hasMatch && !nodeMatches)
+                    node.Expand();
+                return true;
+            }
+            else
+            {
+                node.BackColor = Color.Transparent;
+                node.Collapse();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Shows all tree nodes (clears filter).
+        /// </summary>
+        private void ShowAllTreeNodes(TreeView tree)
+        {
+            tree.BeginUpdate();
+
+            foreach (TreeNode rootNode in tree.Nodes)
+            {
+                ClearTreeNodeFilter(rootNode);
+            }
+
+            tree.EndUpdate();
+        }
+
+        /// <summary>
+        /// Recursively clears filter highlighting from nodes.
+        /// </summary>
+        private void ClearTreeNodeFilter(TreeNode node)
+        {
+            node.BackColor = Color.Transparent;
+
+            foreach (TreeNode child in node.Nodes)
+            {
+                ClearTreeNodeFilter(child);
+            }
+        }
+
+        /// <summary>
+        /// Initializes the tree search textbox with placeholder text.
+        /// </summary>
+        private void InitializeTreeSearchBox()
+        {
+            if (treeSearchTextBox != null)
+            {
+                treeSearchTextBox.Text = TREE_SEARCH_PLACEHOLDER;
+                treeSearchTextBox.ForeColor = SystemColors.GrayText;
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -80,6 +80,7 @@ namespace Cad3PLogBrowser
             this.StatusLineCount = new System.Windows.Forms.ToolStripStatusLabel();
             this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
             this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
+            this.treeSearchTextBox = new System.Windows.Forms.TextBox();
             this.ApiTree = new System.Windows.Forms.TreeView();
             this.CallTree = new System.Windows.Forms.TreeView();
             this.mainTabControl = new System.Windows.Forms.TabControl();
@@ -598,6 +599,7 @@ namespace Cad3PLogBrowser
             // mainSplitContainer.Panel1
             // 
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
             this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
@@ -612,12 +614,29 @@ namespace Cad3PLogBrowser
             this.mainSplitContainer.TabIndex = 3;
             this.mainSplitContainer.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer1_SplitterMoved);
             // 
+            // treeSearchTextBox
+            // 
+            this.treeSearchTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.treeSearchTextBox.Location = new System.Drawing.Point(3, 3);
+            this.treeSearchTextBox.Name = "treeSearchTextBox";
+            this.treeSearchTextBox.Size = new System.Drawing.Size(279, 20);
+            this.treeSearchTextBox.TabIndex = 3;
+            this.treeSearchTextBox.Text = "";
+            this.treeSearchTextBox.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.treeSearchTextBox.Enter += new System.EventHandler(this.treeSearchTextBox_Enter);
+            this.treeSearchTextBox.Leave += new System.EventHandler(this.treeSearchTextBox_Leave);
+            this.treeSearchTextBox.TextChanged += new System.EventHandler(this.treeSearchTextBox_TextChanged);
+            // 
             // ApiTree
             // 
             this.ApiTree.ContextMenuStrip = this.treeContextMenu;
-            this.ApiTree.Location = new System.Drawing.Point(-1, 0);
+            this.ApiTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.ApiTree.Location = new System.Drawing.Point(-1, 26);
             this.ApiTree.Name = "ApiTree";
-            this.ApiTree.Size = new System.Drawing.Size(406, 234);
+            this.ApiTree.Size = new System.Drawing.Size(286, 208);
             this.ApiTree.TabIndex = 2;
             this.ApiTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ApiTree_AfterSelect);
             this.ApiTree.Click += new System.EventHandler(this.ApiTree_Click);
@@ -628,8 +647,10 @@ namespace Cad3PLogBrowser
             // 
             this.CallTree.ContextMenuStrip = this.treeContextMenu;
             this.CallTree.ImageList = this.treeIconList;
-            this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.CallTree.Location = new System.Drawing.Point(-1, 333);
+            this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.CallTree.Location = new System.Drawing.Point(-1, 26);
             this.CallTree.Name = "CallTree";
             this.CallTree.Size = new System.Drawing.Size(406, 186);
             this.CallTree.TabIndex = 0;
@@ -1340,6 +1361,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
+        private System.Windows.Forms.TextBox treeSearchTextBox;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage logTab;
         private System.Windows.Forms.TabPage rawTab;
