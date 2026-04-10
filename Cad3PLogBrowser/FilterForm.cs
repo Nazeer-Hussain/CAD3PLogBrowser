@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Models;
 
 namespace Cad3PLogBrowser
 {
@@ -21,19 +22,31 @@ namespace Cad3PLogBrowser
 
         private void ApplyButton_Click(object sender, EventArgs e)
         {
-            int? minDuration = chkEnableDuration.Checked ? (int?)nudMinDuration.Value : null;
-            DateTime? fromTime = chkEnableTimeRange.Checked ? (DateTime?)dtpFromTime.Value : null;
-            DateTime? toTime = chkEnableTimeRange.Checked ? (DateTime?)dtpToTime.Value : null;
+            var criteria = new FilterCriteria
+            {
+                SearchText = FilterTextBox.Text,
+                IsCaseSensitive = MatchCaseCheckBox.Checked,
+                MinimumDurationMs = chkEnableDuration.Checked ? (int?)nudMinDuration.Value : null,
+                FromTime = chkEnableTimeRange.Checked ? (DateTime?)dtpFromTime.Value : null,
+                ToTime = chkEnableTimeRange.Checked ? (DateTime?)dtpToTime.Value : null,
+                ThreadId = string.IsNullOrWhiteSpace(txtThreadId.Text) ? null : txtThreadId.Text.Trim(),
+                Level = cmbLogLevel.SelectedIndex > 0 ? (LogLevel?)(cmbLogLevel.SelectedIndex - 1) : null
+            };
 
-            _mainForm.ApplyFilter(FilterTextBox.Text, MatchCaseCheckBox.Checked, minDuration, fromTime, toTime);
+            _mainForm.ApplyFilter(criteria);
             Hide();
         }
 
         private void ClearButton_Click(object sender, EventArgs e)
         {
-            _mainForm.ApplyFilter(string.Empty, false, null, null, null);
+            FilterTextBox.Text = string.Empty;
+            MatchCaseCheckBox.Checked = false;
             chkEnableDuration.Checked = false;
             chkEnableTimeRange.Checked = false;
+            txtThreadId.Text = string.Empty;
+            cmbLogLevel.SelectedIndex = 0;
+
+            _mainForm.ClearFilter();
             Hide();
         }
 

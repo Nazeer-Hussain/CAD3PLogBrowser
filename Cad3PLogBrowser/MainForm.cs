@@ -557,6 +557,16 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
 
+            // Load flame graph and timeline
+            if (flameGraphPanel != null)
+                flameGraphPanel.LoadCallStack(callTree);
+
+            if (timelinePanel != null)
+            {
+                timelinePanel.LoadCallStack(callTree);
+                timelinePanel.TimelineEntrySelected += TimelinePanel_EntrySelected;
+            }
+
             // Feature 3a/3b: Auto-select topmost node after load
             SelectDefaultTreeNode();
         }
@@ -1939,10 +1949,24 @@ namespace Cad3PLogBrowser
         private void nextWarningButton_Click(object sender, EventArgs e) =>
             NavigateToNextWarning();
 
-        public async void ApplyFilter(string filterText, bool matchCase, int? minDuration = null, 
+        public void ApplyFilter(string filterText, bool matchCase, int? minDuration = null, 
             DateTime? fromTime = null, DateTime? toTime = null)
         {
-            if (string.IsNullOrWhiteSpace(filterText) && !minDuration.HasValue && !fromTime.HasValue)
+            var criteria = new Models.FilterCriteria
+            {
+                SearchText = filterText,
+                IsCaseSensitive = matchCase,
+                MinimumDurationMs = minDuration,
+                FromTime = fromTime,
+                ToTime = toTime
+            };
+
+            ApplyFilter(criteria);
+        }
+
+        public async void ApplyFilter(Models.FilterCriteria criteria)
+        {
+            if (criteria == null || !criteria.IsActive)
             {
                 ClearFilter();
                 return;
@@ -1952,61 +1976,58 @@ namespace Cad3PLogBrowser
 
             try
             {
+                // Parse all lines to LogEntry objects for proper filtering
+                var logEntries = new List<Models.LogEntry>();
+                for (int i = 0; i < _allLines.Count; i++)
+                {
+                    logEntries.Add(new Models.LogEntry
+                    {
+                        LineNumber = i + 1,
+                        Text = _allLines[i],
+                        // Parse level from line if possible
+                        Level = ParseLogLevel(_allLines[i])
+                    });
+                }
+
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
-                    var results = new List<FilteredLine>();
+                    var filterService = new Services.Search.FilterService();
+                    var filteredEntries = new List<Models.LogEntry>();
 
-                    for (int i = 0; i < _allLines.Count; i++)
+                    for (int i = 0; i < logEntries.Count; i++)
                     {
                         if (i % 1000 == 0) // Check cancellation every 1000 lines
                         {
                             token.ThrowIfCancellationRequested();
 
                             // Update progress
-                            int progress = (int)((i / (double)_allLines.Count) * 100);
+                            int progress = (int)((i / (double)logEntries.Count) * 100);
                             this.Invoke((Action)(() => 
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{_allLines.Count:N0} lines)";
+                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{logEntries.Count:N0} lines)";
                             }));
                         }
 
-                        string line = _allLines[i];
-                        bool matches = true;
+                        var entry = logEntries[i];
 
-                        // Text filter
-                        if (!string.IsNullOrWhiteSpace(filterText))
+                        // Use FilterService for comprehensive filtering
+                        if (MatchesFilter(entry, criteria))
                         {
-                            matches = matchCase 
-                                ? line.Contains(filterText)
-                                : line.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
-                        }
-
-                        // Duration filter (Feature B5)
-                        if (matches && minDuration.HasValue)
-                        {
-                            matches = CheckDurationFilter(line, minDuration.Value);
-                        }
-
-                        // Time range filter (Feature B4)
-                        if (matches && (fromTime.HasValue || toTime.HasValue))
-                        {
-                            matches = CheckTimeRangeFilter(line, fromTime, toTime);
-                        }
-
-                        if (matches)
-                        {
-                            results.Add(new FilteredLine(i + 1, line));
+                            filteredEntries.Add(entry);
                         }
                     }
 
-                    return results;
+                    return filteredEntries;
                 });
 
-                _activeFilterText = filterText;
-                PopulateVirtualListViewFiltered(filtered);
+                // Convert to FilteredLine format
+                var filteredLines = filtered.Select(e => new FilteredLine(e.LineNumber, e.Text)).ToList();
+
+                _activeFilterText = criteria.GetDescription();
+                PopulateVirtualListViewFiltered(filteredLines);
                 ClearHighlighting();
 
                 StatusFileName.Text = $"Filter applied: {filtered.Count:N0} of {_allLines.Count:N0} lines match.";
@@ -2028,6 +2049,77 @@ namespace Cad3PLogBrowser
             _activeFilterText = "";
             PopulateVirtualListView(_allLines);
             ClearHighlighting(); // Clear search highlights when filter is cleared
+        }
+
+        /// <summary>
+        /// Checks if a log entry matches the filter criteria.
+        /// Uses FilterService for comprehensive filtering.
+        /// </summary>
+        private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria)
+        {
+            // Text filter
+            if (!string.IsNullOrWhiteSpace(criteria.SearchText))
+            {
+                var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+                if (entry.Text.IndexOf(criteria.SearchText, comparison) < 0)
+                    return false;
+            }
+
+            // Duration filter
+            if (criteria.MinimumDurationMs.HasValue)
+            {
+                if (!CheckDurationFilter(entry.Text, criteria.MinimumDurationMs.Value))
+                    return false;
+            }
+
+            // Time range filter
+            if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
+            {
+                if (!CheckTimeRangeFilter(entry.Text, criteria.FromTime, criteria.ToTime))
+                    return false;
+            }
+
+            // Thread ID filter
+            if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
+            {
+                if (string.IsNullOrWhiteSpace(entry.ThreadId) ||
+                    !entry.ThreadId.Equals(criteria.ThreadId, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            // Log level filter
+            if (criteria.Level.HasValue)
+            {
+                if (entry.Level != criteria.Level.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Parses log level from a log line.
+        /// </summary>
+        private Models.LogLevel ParseLogLevel(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return Models.LogLevel.Info;
+
+            // Look for log level indicator (2nd field after first colon)
+            int first = line.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < line.Length)
+            {
+                char level = line[first + 2];
+                switch (level)
+                {
+                    case 'E': return Models.LogLevel.Error;
+                    case 'W': return Models.LogLevel.Warning;
+                    case 'I': return Models.LogLevel.Info;
+                    case 'D': return Models.LogLevel.Debug;
+                }
+            }
+
+            return Models.LogLevel.Info;
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -3416,6 +3508,103 @@ namespace Cad3PLogBrowser
 
             MessageBox.Show(sb.ToString(), "Bookmarks", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Timeline Panel Event Handler
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handles timeline entry selection - jumps to the line in log view.
+        /// </summary>
+        private void TimelinePanel_EntrySelected(object sender, Managers.TimelinePanel.TimelineEntry entry)
+        {
+            if (entry != null && entry.LineNumber > 0)
+            {
+                ScrollLogToLine(entry.LineNumber);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Export Tree as JSON/XML
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Exports call tree as JSON.
+        /// </summary>
+        private void exportTreeJsonMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show("No call tree data to export.\nLoad a log file first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.json";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    var exporter = new Services.Export.TreeExportService();
+                    exporter.ExportToJson(callTree, dlg.FileName);
+
+                    MessageBox.Show(string.Format("Call tree exported to:\n{0}", dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export tree:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Exports call tree as XML.
+        /// </summary>
+        private void exportTreeXmlMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show("No call tree data to export.\nLoad a log file first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.xml";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    var exporter = new Services.Export.TreeExportService();
+                    exporter.ExportToXml(callTree, dlg.FileName);
+
+                    MessageBox.Show(string.Format("Call tree exported to:\n{0}", dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export tree:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════

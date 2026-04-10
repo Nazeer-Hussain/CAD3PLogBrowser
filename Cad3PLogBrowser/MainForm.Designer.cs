@@ -36,6 +36,8 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
@@ -92,6 +94,8 @@ namespace Cad3PLogBrowser
             this.performanceTab = new System.Windows.Forms.TabPage();
             this.logDetailTab = new System.Windows.Forms.TabPage();
             this.callGraphTab = new System.Windows.Forms.TabPage();
+            this.flameGraphTab = new System.Windows.Forms.TabPage();
+            this.timelineTab = new System.Windows.Forms.TabPage();
             this.mainToolStrip = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
@@ -186,6 +190,8 @@ namespace Cad3PLogBrowser
             this.saveAsMenuItem,
             this.exportFilteredLogsMenuItem,
             this.exportPerformanceMenuItem,
+            this.exportTreeJsonMenuItem,
+            this.exportTreeXmlMenuItem,
             this.fileSeparatorAfterSave,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
@@ -229,6 +235,20 @@ namespace Cad3PLogBrowser
             this.exportPerformanceMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportPerformanceMenuItem.Text = "Export &Performance to CSV...";
             this.exportPerformanceMenuItem.Click += new System.EventHandler(this.exportPerformanceMenuItem_Click);
+            // 
+            // exportTreeJsonMenuItem
+            // 
+            this.exportTreeJsonMenuItem.Name = "exportTreeJsonMenuItem";
+            this.exportTreeJsonMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportTreeJsonMenuItem.Text = "Export Tree as &JSON...";
+            this.exportTreeJsonMenuItem.Click += new System.EventHandler(this.exportTreeJsonMenuItem_Click);
+            // 
+            // exportTreeXmlMenuItem
+            // 
+            this.exportTreeXmlMenuItem.Name = "exportTreeXmlMenuItem";
+            this.exportTreeXmlMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportTreeXmlMenuItem.Text = "Export Tree as X&ML...";
+            this.exportTreeXmlMenuItem.Click += new System.EventHandler(this.exportTreeXmlMenuItem_Click);
             // 
             // fileSeparatorAfterSave
             // 
@@ -664,6 +684,8 @@ namespace Cad3PLogBrowser
             this.mainTabControl.Controls.Add(this.performanceTab);
             this.mainTabControl.Controls.Add(this.logDetailTab);
             this.mainTabControl.Controls.Add(this.callGraphTab);
+            this.mainTabControl.Controls.Add(this.flameGraphTab);
+            this.mainTabControl.Controls.Add(this.timelineTab);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
             this.mainTabControl.Name = "mainTabControl";
@@ -801,6 +823,32 @@ namespace Cad3PLogBrowser
             this.callGraphTab.TabIndex = 4;
             this.callGraphTab.Text = "Call Graph";
             this.callGraphTab.UseVisualStyleBackColor = true;
+            // 
+            // flameGraphTab
+            // 
+            this.flameGraphPanel = new Cad3PLogBrowser.Managers.FlameGraphPanel();
+            this.flameGraphPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flameGraphTab.Controls.Add(this.flameGraphPanel);
+            this.flameGraphTab.Location = new System.Drawing.Point(4, 25);
+            this.flameGraphTab.Name = "flameGraphTab";
+            this.flameGraphTab.Padding = new System.Windows.Forms.Padding(3);
+            this.flameGraphTab.Size = new System.Drawing.Size(688, 494);
+            this.flameGraphTab.TabIndex = 5;
+            this.flameGraphTab.Text = "Flame Graph";
+            this.flameGraphTab.UseVisualStyleBackColor = true;
+            // 
+            // timelineTab
+            // 
+            this.timelinePanel = new Cad3PLogBrowser.Managers.TimelinePanel();
+            this.timelinePanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.timelineTab.Controls.Add(this.timelinePanel);
+            this.timelineTab.Location = new System.Drawing.Point(4, 25);
+            this.timelineTab.Name = "timelineTab";
+            this.timelineTab.Padding = new System.Windows.Forms.Padding(3);
+            this.timelineTab.Size = new System.Drawing.Size(688, 494);
+            this.timelineTab.TabIndex = 6;
+            this.timelineTab.Text = "Timeline";
+            this.timelineTab.UseVisualStyleBackColor = true;
             this.callGraphResetButton.Text = "Reset View";
             this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
             this.callGraphResetButton.Size = new System.Drawing.Size(85, 26);
@@ -1354,6 +1402,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
@@ -1363,6 +1413,10 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.TreeView CallTree;
         private System.Windows.Forms.TextBox treeSearchTextBox;
         private System.Windows.Forms.TabControl mainTabControl;
+        private System.Windows.Forms.TabPage flameGraphTab;
+        private System.Windows.Forms.TabPage timelineTab;
+        private Managers.FlameGraphPanel flameGraphPanel;
+        private Managers.TimelinePanel timelinePanel;
         private System.Windows.Forms.TabPage logTab;
         private System.Windows.Forms.TabPage rawTab;
         private System.Windows.Forms.TabPage performanceTab;
