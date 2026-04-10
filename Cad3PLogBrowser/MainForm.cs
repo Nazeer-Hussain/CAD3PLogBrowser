@@ -3706,6 +3706,91 @@ namespace Cad3PLogBrowser
         }
 
         // ═══════════════════════════════════════════════════════════════════════
+        // BOOKMARK MENU HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void toggleBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            ToggleBookmarkOnCurrentLine();
+        }
+
+        private void nextBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            NavigateToNextBookmark();
+        }
+
+        private void previousBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            NavigateToPreviousBookmark();
+        }
+
+        private void showBookmarksMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowBookmarkList();
+        }
+
+        private void clearBookmarksMenuItem_Click(object sender, EventArgs e)
+        {
+            ClearAllBookmarks();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // COPY WITH HEADERS MENU HANDLER
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void copyWithHeadersMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: true);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CLEAR FILTER MENU HANDLER
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void clearFilterMenuItem_Click(object sender, EventArgs e)
+        {
+            ClearFilter();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // TAB VISIBILITY HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void showFlameGraphTabMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (flameGraphTab != null && mainTabControl != null)
+            {
+                if (showFlameGraphTabMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(flameGraphTab))
+                        mainTabControl.TabPages.Add(flameGraphTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(flameGraphTab))
+                        mainTabControl.TabPages.Remove(flameGraphTab);
+                }
+            }
+        }
+
+        private void showTimelineTabMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (timelineTab != null && mainTabControl != null)
+            {
+                if (showTimelineTabMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(timelineTab))
+                        mainTabControl.TabPages.Add(timelineTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(timelineTab))
+                        mainTabControl.TabPages.Remove(timelineTab);
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
         // FEATURE 5: Font Selection (H5)
         // ═══════════════════════════════════════════════════════════════════════
 
