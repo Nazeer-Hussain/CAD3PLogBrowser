@@ -3555,7 +3555,7 @@ namespace Cad3PLogBrowser
                     var exporter = new Services.Export.TreeExportService();
                     exporter.ExportToJson(callTree, dlg.FileName);
 
-                    MessageBox.Show(string.Format("Call tree exported to:\n{0}", dlg.FileName),
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_TREE_EXPORTED_JSON, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -3594,7 +3594,7 @@ namespace Cad3PLogBrowser
                     var exporter = new Services.Export.TreeExportService();
                     exporter.ExportToXml(callTree, dlg.FileName);
 
-                    MessageBox.Show(string.Format("Call tree exported to:\n{0}", dlg.FileName),
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_TREE_EXPORTED_XML, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -3643,7 +3643,7 @@ namespace Cad3PLogBrowser
                     image.Save(dlg.FileName, format);
                     image.Dispose();
 
-                    MessageBox.Show(string.Format("Timeline exported to:\n{0}", dlg.FileName),
+                    MessageBox.Show(string.Format(Resources.MSG_TIMELINE_EXPORTED, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -3692,7 +3692,7 @@ namespace Cad3PLogBrowser
                     image.Save(dlg.FileName, format);
                     image.Dispose();
 
-                    MessageBox.Show(string.Format("Flame graph exported to:\n{0}", dlg.FileName),
+                    MessageBox.Show(string.Format(Resources.MSG_FLAME_GRAPH_EXPORTED, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
