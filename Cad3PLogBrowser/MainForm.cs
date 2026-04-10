@@ -3607,6 +3607,104 @@ namespace Cad3PLogBrowser
             }
         }
 
+        /// <summary>
+        /// Exports timeline visualization as an image.
+        /// </summary>
+        private void exportTimelineMenuItem_Click(object sender, EventArgs e)
+        {
+            if (timelinePanel == null || _lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show("No timeline data to export.\nLoad a log file and view the Timeline tab first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_timeline.png";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var image = timelinePanel.ExportAsImage(1920, 1080);
+
+                    // Determine format from extension
+                    string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                    var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                    if (ext == ".jpg" || ext == ".jpeg")
+                        format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                    else if (ext == ".bmp")
+                        format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                    image.Save(dlg.FileName, format);
+                    image.Dispose();
+
+                    MessageBox.Show(string.Format("Timeline exported to:\n{0}", dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export timeline:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Exports flame graph visualization as an image.
+        /// </summary>
+        private void exportFlameGraphMenuItem_Click(object sender, EventArgs e)
+        {
+            if (flameGraphPanel == null || _lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show("No flame graph data to export.\nLoad a log file and view the Flame Graph tab first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_flamegraph.png";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var image = flameGraphPanel.ExportAsImage(1920, 1080);
+
+                    // Determine format from extension
+                    string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                    var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                    if (ext == ".jpg" || ext == ".jpeg")
+                        format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                    else if (ext == ".bmp")
+                        format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                    image.Save(dlg.FileName, format);
+                    image.Dispose();
+
+                    MessageBox.Show(string.Format("Flame graph exported to:\n{0}", dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export flame graph:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════════════════
         // FEATURE 5: Font Selection (H5)
         // ═══════════════════════════════════════════════════════════════════════

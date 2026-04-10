@@ -38,6 +38,8 @@ namespace Cad3PLogBrowser
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportTimelineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportFlameGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
@@ -192,6 +194,8 @@ namespace Cad3PLogBrowser
             this.exportPerformanceMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
+            this.exportTimelineMenuItem,
+            this.exportFlameGraphMenuItem,
             this.fileSeparatorAfterSave,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
@@ -249,6 +253,20 @@ namespace Cad3PLogBrowser
             this.exportTreeXmlMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportTreeXmlMenuItem.Text = "Export Tree as X&ML...";
             this.exportTreeXmlMenuItem.Click += new System.EventHandler(this.exportTreeXmlMenuItem_Click);
+            // 
+            // exportTimelineMenuItem
+            // 
+            this.exportTimelineMenuItem.Name = "exportTimelineMenuItem";
+            this.exportTimelineMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportTimelineMenuItem.Text = "Export &Timeline as Image...";
+            this.exportTimelineMenuItem.Click += new System.EventHandler(this.exportTimelineMenuItem_Click);
+            // 
+            // exportFlameGraphMenuItem
+            // 
+            this.exportFlameGraphMenuItem.Name = "exportFlameGraphMenuItem";
+            this.exportFlameGraphMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportFlameGraphMenuItem.Text = "Export &Flame Graph as Image...";
+            this.exportFlameGraphMenuItem.Click += new System.EventHandler(this.exportFlameGraphMenuItem_Click);
             // 
             // fileSeparatorAfterSave
             // 
@@ -1404,6 +1422,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportTimelineMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportFlameGraphMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
