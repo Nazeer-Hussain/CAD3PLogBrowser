@@ -78,6 +78,9 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Managers\FlameGraphPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Managers\TreeViewManager.cs" />
     <Compile Include="Managers\LogViewManager.cs" />
     <Compile Include="Managers\PerformanceViewManager.cs" />
@@ -269,4 +272,3 @@
   </Target>
   -->
 </Project>
-
