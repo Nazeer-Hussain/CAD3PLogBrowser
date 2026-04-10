@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
 using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Services.Navigation;
 
 namespace Cad3PLogBrowser
 {
@@ -19,6 +20,7 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
+        private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
         private string            _currentFilePath = string.Empty;
@@ -239,6 +241,7 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _logFileService   = new LogFileService(this);
+            _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
@@ -1019,6 +1022,9 @@ namespace Cad3PLogBrowser
                 _searchService.Reset();
                 ClearHighlighting(); // Clear any previous search highlights
 
+                // Load bookmarks for this file
+                _bookmarkService.LoadBookmarks(filePath);
+
                 // Show processing message
                 StatusFileName.Text = "Processing log data...";
                 FileLoadProgress.Value = 0;
@@ -1071,11 +1077,20 @@ namespace Cad3PLogBrowser
 
             for (int i = 0; i < lines.Count; i++)
             {
+                int lineNumber = i + 1;
+                Color backColor = GetLineColour(lines[i]);
+
+                // Check if bookmarked - override color
+                if (_bookmarkService.IsBookmarked(lineNumber))
+                {
+                    backColor = Color.FromArgb(200, 230, 255); // Light blue for bookmarks
+                }
+
                 _virtualLines.Add(new VirtualLogLine
                 {
-                    LineNumber = (i + 1).ToString(),
+                    LineNumber = lineNumber.ToString(),
                     Text       = lines[i],
-                    BackColour = GetLineColour(lines[i])
+                    BackColour = backColor
                 });
 
                 // Feature B10: Index error and warning lines
@@ -1716,6 +1731,23 @@ namespace Cad3PLogBrowser
                 case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
                     NavigateToPreviousWarning();
                     return true;
+
+                // Bookmark shortcuts
+                case Keys.Control | Keys.B:                      // Toggle Bookmark
+                    ToggleBookmarkOnCurrentLine();
+                    return true;
+                case Keys.F2:                                    // Next Bookmark
+                    NavigateToNextBookmark();
+                    return true;
+                case Keys.Shift | Keys.F2:                       // Previous Bookmark
+                    NavigateToPreviousBookmark();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.B:        // Show Bookmarks
+                    ShowBookmarkList();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.Delete:   // Clear All Bookmarks
+                    ClearAllBookmarks();
+                    return true;
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
@@ -2138,6 +2170,13 @@ namespace Cad3PLogBrowser
                     "Shift+F8            Previous Error\r\n" +
                     "Ctrl+F8             Next Warning\r\n" +
                     "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
+                    "BOOKMARKS\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+B              Toggle Bookmark on current line\r\n" +
+                    "F2                  Next Bookmark\r\n" +
+                    "Shift+F2            Previous Bookmark\r\n" +
+                    "Ctrl+Shift+B        Show all Bookmarks\r\n" +
+                    "Ctrl+Shift+Del      Clear all Bookmarks\r\n\r\n" +
                     "VIEW MENU\r\n" +
                     "─────────────────────────────────────────────────────────────────\r\n" +
                     "Ctrl+T              Toggle Call Tree view\r\n" +
@@ -3183,6 +3222,200 @@ namespace Cad3PLogBrowser
                 treeSearchTextBox.Text = TREE_SEARCH_PLACEHOLDER;
                 treeSearchTextBox.ForeColor = SystemColors.GrayText;
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Bookmark Lines (2.8)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Toggles bookmark on currently selected line.
+        /// Keyboard shortcut: Ctrl+B
+        /// </summary>
+        private void ToggleBookmarkOnCurrentLine()
+        {
+            if (logListView.SelectedIndices.Count == 0)
+            {
+                StatusFileName.Text = "No line selected";
+                return;
+            }
+
+            int selectedIndex = logListView.SelectedIndices[0];
+            if (selectedIndex < 0 || selectedIndex >= _virtualLines.Count)
+                return;
+
+            int lineNumber = int.Parse(_virtualLines[selectedIndex].LineNumber);
+            bool added = _bookmarkService.ToggleBookmark(lineNumber);
+
+            // Update visual indication (mark with special color)
+            RefreshBookmarkVisuals();
+
+            string message = added 
+                ? string.Format("Bookmark added at line {0}", lineNumber)
+                : string.Format("Bookmark removed from line {0}", lineNumber);
+
+            StatusFileName.Text = message;
+
+            // Save bookmarks
+            _bookmarkService.SaveBookmarks();
+        }
+
+        /// <summary>
+        /// Navigates to the next bookmark.
+        /// Keyboard shortcut: F2
+        /// </summary>
+        private void NavigateToNextBookmark()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                return;
+            }
+
+            int currentLine = 1;
+            if (logListView.SelectedIndices.Count > 0)
+            {
+                int idx = logListView.SelectedIndices[0];
+                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+            }
+
+            int nextBookmark = _bookmarkService.GetNextBookmark(currentLine);
+            if (nextBookmark > 0)
+            {
+                JumpToLine(nextBookmark);
+                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                    _bookmarkService.GetAllBookmarksSorted().IndexOf(nextBookmark) + 1,
+                    _bookmarkService.Count);
+            }
+        }
+
+        /// <summary>
+        /// Navigates to the previous bookmark.
+        /// Keyboard shortcut: Shift+F2
+        /// </summary>
+        private void NavigateToPreviousBookmark()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                return;
+            }
+
+            int currentLine = _virtualLines.Count;
+            if (logListView.SelectedIndices.Count > 0)
+            {
+                int idx = logListView.SelectedIndices[0];
+                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+            }
+
+            int prevBookmark = _bookmarkService.GetPreviousBookmark(currentLine);
+            if (prevBookmark > 0)
+            {
+                JumpToLine(prevBookmark);
+                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                    _bookmarkService.GetAllBookmarksSorted().IndexOf(prevBookmark) + 1,
+                    _bookmarkService.Count);
+            }
+        }
+
+        /// <summary>
+        /// Clears all bookmarks.
+        /// </summary>
+        private void ClearAllBookmarks()
+        {
+            if (_bookmarkService.Count == 0)
+                return;
+
+            var result = MessageBox.Show(
+                string.Format("Clear all {0} bookmarks?", _bookmarkService.Count),
+                "Clear Bookmarks",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                _bookmarkService.ClearAllBookmarks();
+                _bookmarkService.SaveBookmarks();
+                RefreshBookmarkVisuals();
+                StatusFileName.Text = "All bookmarks cleared";
+            }
+        }
+
+        /// <summary>
+        /// Refreshes visual indication of bookmarked lines.
+        /// Bookmarked lines show with a blue background.
+        /// </summary>
+        private void RefreshBookmarkVisuals()
+        {
+            if (_virtualLines.Count == 0)
+                return;
+
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                int lineNum = int.Parse(vl.LineNumber);
+
+                if (_bookmarkService.IsBookmarked(lineNum))
+                {
+                    // Mark with blue background
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text = vl.Text,
+                        BackColour = Color.FromArgb(200, 230, 255) // Light blue
+                    };
+                }
+                else if (vl.BackColour == Color.FromArgb(200, 230, 255))
+                {
+                    // Remove bookmark color
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text = vl.Text,
+                        BackColour = GetLineColour(vl.Text)
+                    };
+                }
+            }
+
+            logListView.Invalidate();
+        }
+
+        /// <summary>
+        /// Shows a list of all bookmarks.
+        /// </summary>
+        private void ShowBookmarkList()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                MessageBox.Show("No bookmarks set.\n\nPress Ctrl+B to bookmark the current line.",
+                    "Bookmarks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var bookmarks = _bookmarkService.GetAllBookmarksSorted();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(string.Format("Bookmarks ({0}):", bookmarks.Count));
+            sb.AppendLine();
+
+            foreach (var lineNum in bookmarks)
+            {
+                // Find the line text
+                int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNum.ToString());
+                if (idx >= 0)
+                {
+                    string text = _virtualLines[idx].Text;
+                    if (text.Length > 80)
+                        text = text.Substring(0, 77) + "...";
+                    sb.AppendLine(string.Format("Line {0}: {1}", lineNum, text));
+                }
+                else
+                {
+                    sb.AppendLine(string.Format("Line {0}", lineNum));
+                }
+            }
+
+            MessageBox.Show(sb.ToString(), "Bookmarks", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
