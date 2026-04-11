@@ -140,7 +140,7 @@
     <value>..\images_blue\treeview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="TITLE" xml:space="preserve">
-    <value>WWGM CAD 3P Log Browser</value>
+    <value>WWGM CAD 3P Log Browser 2.0</value>
   </data>
   <data name="apiview" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images_blue\apiview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -246,5 +246,77 @@
   </data>
   <data name="MSG_FLAME_GRAPH_EXPORTED" xml:space="preserve">
     <value> Flame graph exported to:\n{0}</value>
+  </data>
+  <data name="ERR_EXPORT_FILE_FAILED" xml:space="preserve">
+    <value>Failed to export file:\n{0}</value>
+  </data>
+  <data name="ERR_NOT_FOUND" xml:space="preserve">
+    <value>'{0}' not found.</value>
+  </data>
+  <data name="ERR_INVALID_REGEX" xml:space="preserve">
+    <value>Invalid regular expression:\n{0}</value>
+  </data>
+  <data name="ERR_OPEN_UPDATES_FAILED" xml:space="preserve">
+    <value>Could not open updates page:\n{0}</value>
+  </data>
+  <data name="ERR_OPEN_ISSUES_FAILED" xml:space="preserve">
+    <value>Could not open issues page:\n{0}</value>
+  </data>
+  <data name="ERR_OPEN_HELP_FAILED" xml:space="preserve">
+    <value>Could not open help file:\n{0}</value>
+  </data>
+  <data name="ERR_BROWSER_FAILED" xml:space="preserve">
+    <value>Failed to open browser:\n{0}</value>
+  </data>
+  <data name="ERR_EXPORT_PERFORMANCE_FAILED" xml:space="preserve">
+    <value>Could not export performance data:\n{0}</value>
+  </data>
+  <data name="ERR_LINE_NUMBER_OUT_OF_RANGE" xml:space="preserve">
+    <value>Line number must be between 1 and {0}.</value>
+  </data>
+  <data name="ERR_NO_ENTER_EXIT_PAIR" xml:space="preserve">
+    <value>Could not find ENTER/EXIT pair for '{0}'.</value>
+  </data>
+  <data name="ERR_SAVE_BRANCH_FAILED" xml:space="preserve">
+    <value>Could not save branch:\n{0}</value>
+  </data>
+  <data name="ERR_NO_MATCHES_FOUND" xml:space="preserve">
+    <value>No matches found for '{0}'.</value>
+  </data>
+  <data name="ERR_EXPORT_CALL_GRAPH_FAILED" xml:space="preserve">
+    <value>Could not export Call Graph:\n{0}</value>
+  </data>
+  <data name="ERR_COPY_FAILED" xml:space="preserve">
+    <value>Failed to copy to clipboard:\n{0}</value>
+  </data>
+  <data name="ERR_EXPORT_TREE_FAILED" xml:space="preserve">
+    <value>Failed to export tree:\n{0}</value>
+  </data>
+  <data name="ERR_EXPORT_TIMELINE_FAILED" xml:space="preserve">
+    <value>Failed to export timeline:\n{0}</value>
+  </data>
+  <data name="ERR_EXPORT_FLAME_GRAPH_FAILED" xml:space="preserve">
+    <value>Failed to export flame graph:\n{0}</value>
+  </data>
+  <data name="ERR_FONT_CHANGE_FAILED" xml:space="preserve">
+    <value>Failed to change font:\n{0}</value>
+  </data>
+  <data name="MSG_BRANCH_EXPORTED_TO" xml:space="preserve">
+    <value>Branch exported to:\n{0}</value>
+  </data>
+  <data name="MSG_PERFORMANCE_EXPORTED_TO" xml:space="preserve">
+    <value>Performance data exported to:\n{0}</value>
+  </data>
+  <data name="MSG_BRANCH_SAVED_TO" xml:space="preserve">
+    <value>{0} line(s) saved to:\n{1}</value>
+  </data>
+  <data name="MSG_CALL_GRAPH_EXPORTED_TO" xml:space="preserve">
+    <value>Call Graph exported to:\n{0}</value>
+  </data>
+  <data name="DIALOG_TITLE_BOOKMARKS" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="MSG_HELP_FILE_NOT_FOUND" xml:space="preserve">
+    <value>Help file (Cad3PLogBrowser.chm) not found.\n\nPress Ctrl+K to view keyboard shortcuts,\nor visit the GitHub repository for documentation.</value>
   </data>
 </root>
