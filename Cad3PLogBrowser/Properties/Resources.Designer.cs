@@ -91,15 +91,6 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Export Branch to CSV.
-        /// </summary>
-        internal static string DIALOG_EXPORT_BRANCH_TITLE {
-            get {
-                return ResourceManager.GetString("DIALOG_EXPORT_BRANCH_TITLE", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Invalid line number..
         /// </summary>
         internal static string ERR_INVALID_LINE_NUMBER {
@@ -192,13 +183,6 @@ namespace Cad3PLogBrowser.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to CSV files (*.csv)|*.csv|All files (*.*)|*.*.
-        /// </summary>
-        internal static string FILTER_CSV_FILES {
-            get {
-                return ResourceManager.GetString("FILTER_CSV_FILES", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
@@ -239,14 +223,6 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to open browser:\n{0}.
-        /// </summary>
-        internal static string MSG_BROWSER_LAUNCH_ERROR {
-            get {
-                return ResourceManager.GetString("MSG_BROWSER_LAUNCH_ERROR", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to Call tree exported to:\n{0}.
         /// </summary>
@@ -291,16 +267,7 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MSG_GROK_NOT_CONFIGURED", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not load file: {0}\n\n{1}\n\n{2}.
-        /// </summary>
-        internal static string MSG_LOAD_ERROR {
-            get {
-                return ResourceManager.GetString("MSG_LOAD_ERROR", resourceCulture);
-            }
-        }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No errors found in this log file..
         /// </summary>
@@ -336,16 +303,7 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MSG_NOT_API_CALL", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; not found..
-        /// </summary>
-        internal static string MSG_NOT_FOUND {
-            get {
-                return ResourceManager.GetString("MSG_NOT_FOUND", resourceCulture);
-            }
-        }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Results exported to:\n{0}.
         /// </summary>
