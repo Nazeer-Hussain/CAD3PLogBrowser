@@ -6,7 +6,18 @@ Write-Host "  Hard-coded String Verification Script" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-$files = Get-ChildItem -Path "Cad3PLogBrowser" -Filter "*.cs" `
+# Support running from tools/ or root folder
+$sourcePath = if (Test-Path "Cad3PLogBrowser") {
+    "Cad3PLogBrowser"
+} elseif (Test-Path "..\Cad3PLogBrowser") {
+    "..\Cad3PLogBrowser"
+} else {
+    Write-Host "ERROR: Cad3PLogBrowser folder not found!" -ForegroundColor Red
+    Write-Host "Please run from project root or tools folder." -ForegroundColor Yellow
+    exit 1
+}
+
+$files = Get-ChildItem -Path $sourcePath -Filter "*.cs" `
     -Exclude "*Designer.cs","*AssemblyInfo.cs","Resources.Designer.cs" -Recurse
 
 Write-Host "Scanning $($files.Count) files..." -ForegroundColor White

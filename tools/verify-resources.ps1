@@ -6,10 +6,18 @@ Write-Host "  Resource Usage Verification Script" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Check if Resources.Designer.cs exists
-if (-not (Test-Path "Cad3PLogBrowser\Properties\Resources.Designer.cs")) {
+# Check if Resources.Designer.cs exists (support running from tools/ or root)
+$designerPath = if (Test-Path "Cad3PLogBrowser\Properties\Resources.Designer.cs") {
+    "Cad3PLogBrowser\Properties\Resources.Designer.cs"
+} elseif (Test-Path "..\Cad3PLogBrowser\Properties\Resources.Designer.cs") {
+    "..\Cad3PLogBrowser\Properties\Resources.Designer.cs"
+} else {
+    $null
+}
+
+if (-not $designerPath) {
     Write-Host "ERROR: Resources.Designer.cs not found!" -ForegroundColor Red
-    Write-Host "Please build the project first." -ForegroundColor Yellow
+    Write-Host "Please run this script from project root or tools folder." -ForegroundColor Yellow
     exit 1
 }
 
@@ -17,7 +25,7 @@ Write-Host "Analyzing resource usage..." -ForegroundColor White
 Write-Host ""
 
 # Get all resource names from Resources.Designer.cs
-$designerContent = Get-Content "Cad3PLogBrowser\Properties\Resources.Designer.cs" -Raw
+$designerContent = Get-Content $designerPath -Raw
 
 # Extract string resources
 $stringResources = [regex]::Matches($designerContent, 'internal static string (\w+)') | 
@@ -41,7 +49,14 @@ Write-Host "Checking usage in code files..." -ForegroundColor White
 
 foreach ($name in $allResources) {
     # Search for usage (excluding Resources.Designer.cs itself)
-    $usage = Select-String -Path "Cad3PLogBrowser\*.cs","Cad3PLogBrowser\**\*.cs" `
+    # Support running from tools/ or root folder
+    $searchPaths = if (Test-Path "Cad3PLogBrowser") {
+        @("Cad3PLogBrowser\*.cs","Cad3PLogBrowser\**\*.cs")
+    } else {
+        @("..\Cad3PLogBrowser\*.cs","..\Cad3PLogBrowser\**\*.cs")
+    }
+
+    $usage = Select-String -Path $searchPaths `
         -Pattern "Resources\.$name" -Exclude "Resources.Designer.cs" -ErrorAction SilentlyContinue
 
     if ($usage) {
