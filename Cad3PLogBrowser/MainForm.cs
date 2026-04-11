@@ -3475,7 +3475,7 @@ namespace Cad3PLogBrowser
             if (_bookmarkService.Count == 0)
             {
                 MessageBox.Show(Resources.ERR_NO_BOOKMARKS,
-                    "Bookmarks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Resources.DIALOG_TITLE_BOOKMARKS, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -3501,7 +3501,7 @@ namespace Cad3PLogBrowser
                 }
             }
 
-            MessageBox.Show(sb.ToString(), "Bookmarks", 
+            MessageBox.Show(sb.ToString(), Resources.DIALOG_TITLE_BOOKMARKS, 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
