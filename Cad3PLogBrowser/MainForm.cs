@@ -1430,7 +1430,7 @@ namespace Cad3PLogBrowser
                 {
                     FileLoadProgress.Visible = false;
                     UpdateStatusBar();
-                    MessageBox.Show(string.Format("Failed to export file:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FILE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -1492,7 +1492,7 @@ namespace Cad3PLogBrowser
             }
             else
             {
-                MessageBox.Show(string.Format("'{0}' not found.", searchTerm),
+                MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -1557,7 +1557,7 @@ namespace Cad3PLogBrowser
             }
             catch (ArgumentException ex) // Regex exception
             {
-                MessageBox.Show($"Invalid regular expression:\n{ex.Message}",
+                MessageBox.Show(string.Format(Resources.ERR_INVALID_REGEX, ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2159,7 +2159,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open updates page:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_UPDATES_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2173,7 +2173,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open issues page:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_ISSUES_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2192,10 +2192,7 @@ namespace Cad3PLogBrowser
                 else
                 {
                     // If CHM doesn't exist, show keyboard shortcuts as fallback
-                    const string helpMessage = "Help file (Cad3PLogBrowser.chm) not found.\\n\\n" +
-                        "Press Ctrl+K to view keyboard shortcuts,\\n" +
-                        "or visit the GitHub repository for documentation.";
-                    MessageBox.Show(helpMessage,
+                    MessageBox.Show(Resources.MSG_HELP_FILE_NOT_FOUND,
                         Resources.TITLE, 
                         MessageBoxButtons.OK, 
                         MessageBoxIcon.Information);
@@ -2203,7 +2200,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open help file:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_HELP_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2520,7 +2517,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open browser:\n{ex.Message}",
+                MessageBox.Show(string.Format(Resources.ERR_BROWSER_FAILED, ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -2568,7 +2565,7 @@ namespace Cad3PLogBrowser
                 CollectBranchCsvRows(node, rows, 0);
                 File.WriteAllLines(dlg.FileName, rows);
 
-                MessageBox.Show($"Branch exported to:\n{dlg.FileName}",
+                MessageBox.Show(string.Format(Resources.MSG_BRANCH_EXPORTED_TO, dlg.FileName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2693,12 +2690,12 @@ namespace Cad3PLogBrowser
                         }
                     }
 
-                    MessageBox.Show($"Performance data exported to:\n{dialog.FileName}", 
+                    MessageBox.Show(string.Format(Resources.MSG_PERFORMANCE_EXPORTED_TO, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not export performance data:\n{ex.Message}", 
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_PERFORMANCE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -2742,7 +2739,7 @@ namespace Cad3PLogBrowser
                 }
                 else
                 {
-                    MessageBox.Show($"Line number must be between 1 and {_virtualLines.Count}.",
+                    MessageBox.Show(string.Format(Resources.ERR_LINE_NUMBER_OUT_OF_RANGE, _virtualLines.Count),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
@@ -2793,7 +2790,7 @@ namespace Cad3PLogBrowser
 
             if (branchLines.Count == 0)
             {
-                MessageBox.Show($"Could not find ENTER/EXIT pair for '{methodName}'.",
+                MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -2811,12 +2808,12 @@ namespace Cad3PLogBrowser
                 try
                 {
                     File.WriteAllLines(dialog.FileName, branchLines);
-                    MessageBox.Show($"{branchLines.Count} line(s) saved to:\n{dialog.FileName}",
+                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not save branch:\n{ex.Message}",
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -2865,7 +2862,7 @@ namespace Cad3PLogBrowser
 
             if (results.Count == 0)
             {
-                MessageBox.Show($"No matches found for '{searchTerm}'.",
+                MessageBox.Show(string.Format(Resources.ERR_NO_MATCHES_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2924,12 +2921,12 @@ namespace Cad3PLogBrowser
                         bitmap.Save(dialog.FileName, format);
                     }
 
-                    MessageBox.Show($"Call Graph exported to:\n{dialog.FileName}",
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_GRAPH_EXPORTED_TO, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not export Call Graph:\n{ex.Message}",
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_CALL_GRAPH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -3081,8 +3078,8 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format("Failed to copy to clipboard:\n{0}", ex.Message), 
-                    "Copy Error", 
+                MessageBox.Show(string.Format(Resources.ERR_COPY_FAILED, ex.Message), 
+                    Resources.TITLE, 
                     MessageBoxButtons.OK, 
                     MessageBoxIcon.Error);
             }
@@ -3560,7 +3557,7 @@ namespace Cad3PLogBrowser
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format("Failed to export tree:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TREE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -3599,7 +3596,7 @@ namespace Cad3PLogBrowser
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format("Failed to export tree:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TREE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -3648,7 +3645,7 @@ namespace Cad3PLogBrowser
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format("Failed to export timeline:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TIMELINE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -3697,7 +3694,7 @@ namespace Cad3PLogBrowser
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format("Failed to export flame graph:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FLAME_GRAPH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -3843,8 +3840,8 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format("Failed to change font:\n{0}", ex.Message), 
-                    "Font Error", 
+                MessageBox.Show(string.Format(Resources.ERR_FONT_CHANGE_FAILED, ex.Message), 
+                    Resources.TITLE, 
                     MessageBoxButtons.OK, 
                     MessageBoxIcon.Error);
             }
