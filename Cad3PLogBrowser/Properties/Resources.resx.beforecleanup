@@ -187,6 +187,9 @@
   <data name="MSG_GROK_NOT_CONFIGURED" xml:space="preserve">
     <value>Please configure the Grok URL in Options &gt; Settings first.\n\nExample: https://grok.example.com/search?q=</value>
   </data>
+  <data name="MSG_BRANCH_EXPORTED" xml:space="preserve">
+    <value>Branch exported to:\n{0}</value>
+  </data>
   <data name="ERR_SAVE_CANCELLED" xml:space="preserve">
     <value>Save operation was cancelled.</value>
   </data>
