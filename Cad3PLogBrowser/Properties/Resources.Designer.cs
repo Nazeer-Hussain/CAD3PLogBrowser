@@ -19,7 +19,7 @@ namespace Cad3PLogBrowser.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -61,24 +61,6 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to version 1.0.0.0.
-        /// </summary>
-        internal static string About {
-            get {
-                return ResourceManager.GetString("About", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to About box description.
-        /// </summary>
-        internal static string ABOUT_DESCRIPTION {
-            get {
-                return ResourceManager.GetString("ABOUT_DESCRIPTION", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap apiview {
@@ -101,46 +83,6 @@ namespace Cad3PLogBrowser.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap blue_ball {
-            get {
-                object obj = ResourceManager.GetObject("blue_ball", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
-        /// </summary>
-        internal static System.Drawing.Icon cad3plog {
-            get {
-                object obj = ResourceManager.GetObject("cad3plog", resourceCulture);
-                return ((System.Drawing.Icon)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap check1 {
-            get {
-                object obj = ResourceManager.GetObject("check1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap check2 {
-            get {
-                object obj = ResourceManager.GetObject("check2", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap copy {
             get {
                 object obj = ResourceManager.GetObject("copy", resourceCulture);
@@ -149,22 +91,83 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized string similar to Invalid line number..
         /// </summary>
-        internal static System.Drawing.Bitmap cross {
+        internal static string ERR_INVALID_LINE_NUMBER {
             get {
-                object obj = ResourceManager.GetObject("cross", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ResourceManager.GetString("ERR_INVALID_LINE_NUMBER", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized string similar to No bookmarks set.\n\nPress Ctrl+B to bookmark the current line..
         /// </summary>
-        internal static System.Drawing.Bitmap details {
+        internal static string ERR_NO_BOOKMARKS {
             get {
-                object obj = ResourceManager.GetObject("details", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ResourceManager.GetString("ERR_NO_BOOKMARKS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No call tree data to export.\nLoad a log file first..
+        /// </summary>
+        internal static string ERR_NO_CALL_TREE_DATA {
+            get {
+                return ResourceManager.GetString("ERR_NO_CALL_TREE_DATA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No log data to export..
+        /// </summary>
+        internal static string ERR_NO_DATA_TO_EXPORT {
+            get {
+                return ResourceManager.GetString("ERR_NO_DATA_TO_EXPORT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ERR_NO_FILE_LOADED.
+        /// </summary>
+        internal static string ERR_NO_FILE_LOADED {
+            get {
+                return ResourceManager.GetString("ERR_NO_FILE_LOADED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No flame graph data to export.\nLoad a log file and view the Flame Graph tab first..
+        /// </summary>
+        internal static string ERR_NO_FLAME_GRAPH_DATA {
+            get {
+                return ResourceManager.GetString("ERR_NO_FLAME_GRAPH_DATA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No performance data to export.\nLoad a log file first..
+        /// </summary>
+        internal static string ERR_NO_PERFORMANCE_DATA {
+            get {
+                return ResourceManager.GetString("ERR_NO_PERFORMANCE_DATA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No timeline data to export.\nLoad a log file and view the Timeline tab first..
+        /// </summary>
+        internal static string ERR_NO_TIMELINE_DATA {
+            get {
+                return ResourceManager.GetString("ERR_NO_TIMELINE_DATA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save operation was cancelled..
+        /// </summary>
+        internal static string ERR_SAVE_CANCELLED {
+            get {
+                return ResourceManager.GetString("ERR_SAVE_CANCELLED", resourceCulture);
             }
         }
         
@@ -179,31 +182,13 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to CSV files (*.csv)|*.csv|All files (*.*)|*.*.
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap find {
             get {
                 object obj = ResourceManager.GetObject("find", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap graph1 {
-            get {
-                object obj = ResourceManager.GetObject("graph1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap graph2 {
-            get {
-                object obj = ResourceManager.GetObject("graph2", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -229,21 +214,129 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized string similar to Branch exported to:\n{0}.
         /// </summary>
-        internal static System.Drawing.Bitmap open {
+        internal static string MSG_BRANCH_EXPORTED {
             get {
-                object obj = ResourceManager.GetObject("open", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ResourceManager.GetString("MSG_BRANCH_EXPORTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        /// <summary>
+        ///   Looks up a localized string similar to Call tree exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_CALL_TREE_EXPORTED_JSON {
+            get {
+                return ResourceManager.GetString("MSG_CALL_TREE_EXPORTED_JSON", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Call tree exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_CALL_TREE_EXPORTED_XML {
+            get {
+                return ResourceManager.GetString("MSG_CALL_TREE_EXPORTED_XML", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} line(s) saved..
+        /// </summary>
+        internal static string MSG_FILE_SAVED {
+            get {
+                return ResourceManager.GetString("MSG_FILE_SAVED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  Flame graph exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_FLAME_GRAPH_EXPORTED {
+            get {
+                return ResourceManager.GetString("MSG_FLAME_GRAPH_EXPORTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please configure the Grok URL in Options &gt; Settings first.\n\nExample: https://grok.example.com/search?q=.
+        /// </summary>
+        internal static string MSG_GROK_NOT_CONFIGURED {
+            get {
+                return ResourceManager.GetString("MSG_GROK_NOT_CONFIGURED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No errors found in this log file..
+        /// </summary>
+        internal static string MSG_NO_ERRORS {
+            get {
+                return ResourceManager.GetString("MSG_NO_ERRORS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No matching pair found..
+        /// </summary>
+        internal static string MSG_NO_MATCHING_PAIR {
+            get {
+                return ResourceManager.GetString("MSG_NO_MATCHING_PAIR", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No warnings found in this log file..
+        /// </summary>
+        internal static string MSG_NO_WARNINGS {
+            get {
+                return ResourceManager.GetString("MSG_NO_WARNINGS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected line is not an API call line..
+        /// </summary>
+        internal static string MSG_NOT_API_CALL {
+            get {
+                return ResourceManager.GetString("MSG_NOT_API_CALL", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Results exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_RESULTS_EXPORTED {
+            get {
+                return ResourceManager.GetString("MSG_RESULTS_EXPORTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not save file:\n{0}.
+        /// </summary>
+        internal static string MSG_SAVE_ERROR {
+            get {
+                return ResourceManager.GetString("MSG_SAVE_ERROR", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Timeline exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_TIMELINE_EXPORTED {
+            get {
+                return ResourceManager.GetString("MSG_TIMELINE_EXPORTED", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap performance {
+        internal static System.Drawing.Bitmap open {
             get {
-                object obj = ResourceManager.GetObject("performance", resourceCulture);
+                object obj = ResourceManager.GetObject("open", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -271,16 +364,6 @@ namespace Cad3PLogBrowser.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap remove {
-            get {
-                object obj = ResourceManager.GetObject("remove", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap save {
             get {
                 object obj = ResourceManager.GetObject("save", resourceCulture);
@@ -294,16 +377,6 @@ namespace Cad3PLogBrowser.Properties {
         internal static System.Drawing.Bitmap settings {
             get {
                 object obj = ResourceManager.GetObject("settings", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap tabs {
-            get {
-                object obj = ResourceManager.GetObject("tabs", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -344,6 +417,222 @@ namespace Cad3PLogBrowser.Properties {
             get {
                 object obj = ResourceManager.GetObject("yellow", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not export performance data:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_PERFORMANCE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_PERFORMANCE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Line number must be between 1 and {0}..
+        /// </summary>
+        internal static string ERR_LINE_NUMBER_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("ERR_LINE_NUMBER_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find ENTER/EXIT pair for '{0}'..
+        /// </summary>
+        internal static string ERR_NO_ENTER_EXIT_PAIR {
+            get {
+                return ResourceManager.GetString("ERR_NO_ENTER_EXIT_PAIR", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not save branch:\n{0}.
+        /// </summary>
+        internal static string ERR_SAVE_BRANCH_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_SAVE_BRANCH_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No matches found for '{0}'..
+        /// </summary>
+        internal static string ERR_NO_MATCHES_FOUND {
+            get {
+                return ResourceManager.GetString("ERR_NO_MATCHES_FOUND", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not export Call Graph:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_CALL_GRAPH_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_CALL_GRAPH_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to copy to clipboard:\n{0}.
+        /// </summary>
+        internal static string ERR_COPY_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_COPY_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export tree:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_TREE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_TREE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export timeline:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_TIMELINE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_TIMELINE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export flame graph:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_FLAME_GRAPH_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_FLAME_GRAPH_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to change font:\n{0}.
+        /// </summary>
+        internal static string ERR_FONT_CHANGE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_FONT_CHANGE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Branch exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_BRANCH_EXPORTED_TO {
+            get {
+                return ResourceManager.GetString("MSG_BRANCH_EXPORTED_TO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Performance data exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_PERFORMANCE_EXPORTED_TO {
+            get {
+                return ResourceManager.GetString("MSG_PERFORMANCE_EXPORTED_TO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} line(s) saved to:\n{1}.
+        /// </summary>
+        internal static string MSG_BRANCH_SAVED_TO {
+            get {
+                return ResourceManager.GetString("MSG_BRANCH_SAVED_TO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Call Graph exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_CALL_GRAPH_EXPORTED_TO {
+            get {
+                return ResourceManager.GetString("MSG_CALL_GRAPH_EXPORTED_TO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bookmarks.
+        /// </summary>
+        internal static string DIALOG_TITLE_BOOKMARKS {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_BOOKMARKS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export file:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_FILE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_FILE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to '{0}' not found..
+        /// </summary>
+        internal static string ERR_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("ERR_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid regular expression:\n{0}.
+        /// </summary>
+        internal static string ERR_INVALID_REGEX {
+            get {
+                return ResourceManager.GetString("ERR_INVALID_REGEX", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not open updates page:\n{0}.
+        /// </summary>
+        internal static string ERR_OPEN_UPDATES_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_OPEN_UPDATES_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not open issues page:\n{0}.
+        /// </summary>
+        internal static string ERR_OPEN_ISSUES_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_OPEN_ISSUES_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not open help file:\n{0}.
+        /// </summary>
+        internal static string ERR_OPEN_HELP_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_OPEN_HELP_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to open browser:\n{0}.
+        /// </summary>
+        internal static string ERR_BROWSER_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_BROWSER_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Help file (Cad3PLogBrowser.chm) not found....
+        /// </summary>
+        internal static string MSG_HELP_FILE_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("MSG_HELP_FILE_NOT_FOUND", resourceCulture);
             }
         }
     }

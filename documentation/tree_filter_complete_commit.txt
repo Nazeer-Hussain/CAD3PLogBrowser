@@ -1,0 +1,67 @@
+feat: complete Tree Search/Filter UI (C5) - 100% implementation
+
+FEATURE C5: Tree Search/Filter - FULLY COMPLETE!
+
+What was added:
+1. Tree Search TextBox UI Component
+   - Added treeSearchTextBox to MainForm.Designer.cs
+   - Positioned at top of tree panel (above CallTree/ApiTree)
+   - Anchored to resize with panel
+   - Placeholder text: "Search tree nodes..."
+
+2. Event Handlers
+   - treeSearchTextBox_TextChanged - Real-time filtering
+   - treeSearchTextBox_Enter - Remove placeholder on focus
+   - treeSearchTextBox_Leave - Show placeholder when empty
+
+3. Placeholder Text Management
+   - InitializeTreeSearchBox() - Sets up placeholder
+   - Gray placeholder text when empty
+   - Normal text color when typing
+
+4. Search/Filter Methods (already implemented)
+   - FilterTreeNodes() - Main filter logic
+   - FilterTreeNodeRecursive() - Recursive node filtering
+   - ShowAllTreeNodes() - Clear all filters
+   - ClearTreeNodeFilter() - Remove highlighting
+
+How It Works:
+1. User types text in search box at top of tree panel
+2. Tree nodes filter in real-time as you type
+3. Matching nodes highlighted in YELLOW
+4. Parent nodes auto-expand to show matches
+5. Non-matching nodes collapse
+6. Clear search box to show all nodes again
+7. Works with both Call Tree and API Tree
+
+Features:
+? Real-time filtering (no search button needed)
+? Highlight matching nodes in yellow
+? Auto-expand parents of matches
+? Collapse non-matching branches
+? Placeholder text for better UX
+? Works with both tree views
+? Case-insensitive search
+? Clear by deleting text
+
+UI Layout:
+???????????????????????????????
+? [Search tree nodes...]      ? ? NEW TextBox
+???????????????????????????????
+? ? Call Tree                 ?
+?   ?? Method1 [142 ms]       ?
+?   ?? Method2 [23 ms]        ?
+???????????????????????????????
+
+Files Modified:
+- MainForm.Designer.cs (Added treeSearchTextBox control)
+- MainForm.cs (Added event handlers and initialization)
+
+Status: 90% ? 100% ?
+Build: Clean ?
+Ready for Testing: YES ?
+
+This completes Feature C5 - Tree Search/Filter!
+Now at 100% implementation with full UI integration.
+
+Signed-off-by: GitHub Copilot

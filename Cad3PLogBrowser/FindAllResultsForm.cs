@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using Cad3PLogBrowser.Properties;
 using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
@@ -155,13 +156,13 @@ namespace Cad3PLogBrowser
                         }
                     }
 
-                    MessageBox.Show($"Results exported to:\n{dialog.FileName}",
-                        "Find All Results", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show(string.Format(Resources.MSG_RESULTS_EXPORTED, dialog.FileName),
+                            Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not export results:\n{ex.Message}",
-                        "Find All Results", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(string.Format(Resources.MSG_SAVE_ERROR, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

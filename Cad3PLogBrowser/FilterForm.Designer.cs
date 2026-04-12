@@ -28,12 +28,18 @@ namespace Cad3PLogBrowser
             this.dtpFromTime = new System.Windows.Forms.DateTimePicker();
             this.lblToTime = new System.Windows.Forms.Label();
             this.dtpToTime = new System.Windows.Forms.DateTimePicker();
+            this.grpThreadLevel = new System.Windows.Forms.GroupBox();
+            this.lblThreadId = new System.Windows.Forms.Label();
+            this.txtThreadId = new System.Windows.Forms.TextBox();
+            this.lblLogLevel = new System.Windows.Forms.Label();
+            this.cmbLogLevel = new System.Windows.Forms.ComboBox();
             this.ApplyButton = new System.Windows.Forms.Button();
             this.ClearButton = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             this.SuspendLayout();
             this.grpDuration.SuspendLayout();
             this.grpTimeRange.SuspendLayout();
+            this.grpThreadLevel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudMinDuration)).BeginInit();
             //
             // label1
@@ -163,9 +169,63 @@ namespace Cad3PLogBrowser
             this.dtpToTime.Size = new System.Drawing.Size(165, 22);
             this.dtpToTime.TabIndex = 4;
             //
+            // grpThreadLevel - Features 2.5 & 2.6
+            //
+            this.grpThreadLevel.Controls.Add(this.lblThreadId);
+            this.grpThreadLevel.Controls.Add(this.txtThreadId);
+            this.grpThreadLevel.Controls.Add(this.lblLogLevel);
+            this.grpThreadLevel.Controls.Add(this.cmbLogLevel);
+            this.grpThreadLevel.Location = new System.Drawing.Point(12, 180);
+            this.grpThreadLevel.Name = "grpThreadLevel";
+            this.grpThreadLevel.Size = new System.Drawing.Size(473, 95);
+            this.grpThreadLevel.TabIndex = 8;
+            this.grpThreadLevel.TabStop = false;
+            this.grpThreadLevel.Text = "Thread & Level Filter";
+            //
+            // lblThreadId
+            //
+            this.lblThreadId.AutoSize = true;
+            this.lblThreadId.Location = new System.Drawing.Point(10, 25);
+            this.lblThreadId.Name = "lblThreadId";
+            this.lblThreadId.Size = new System.Drawing.Size(70, 17);
+            this.lblThreadId.TabIndex = 0;
+            this.lblThreadId.Text = "Thread ID:";
+            //
+            // txtThreadId
+            //
+            this.txtThreadId.Location = new System.Drawing.Point(85, 22);
+            this.txtThreadId.Name = "txtThreadId";
+            this.txtThreadId.Size = new System.Drawing.Size(150, 22);
+            this.txtThreadId.TabIndex = 1;
+            //
+            // lblLogLevel
+            //
+            this.lblLogLevel.AutoSize = true;
+            this.lblLogLevel.Location = new System.Drawing.Point(10, 55);
+            this.lblLogLevel.Name = "lblLogLevel";
+            this.lblLogLevel.Size = new System.Drawing.Size(70, 17);
+            this.lblLogLevel.TabIndex = 2;
+            this.lblLogLevel.Text = "Log Level:";
+            //
+            // cmbLogLevel
+            //
+            this.cmbLogLevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbLogLevel.FormattingEnabled = true;
+            this.cmbLogLevel.Items.AddRange(new object[] {
+            "(All)",
+            "Debug",
+            "Info",
+            "Warning",
+            "Error"});
+            this.cmbLogLevel.Location = new System.Drawing.Point(85, 52);
+            this.cmbLogLevel.Name = "cmbLogLevel";
+            this.cmbLogLevel.Size = new System.Drawing.Size(150, 24);
+            this.cmbLogLevel.TabIndex = 3;
+            this.cmbLogLevel.SelectedIndex = 0;
+            //
             // ApplyButton
             //
-            this.ApplyButton.Location = new System.Drawing.Point(103, 190);
+            this.ApplyButton.Location = new System.Drawing.Point(103, 285);
             this.ApplyButton.Name = "ApplyButton";
             this.ApplyButton.Size = new System.Drawing.Size(88, 31);
             this.ApplyButton.TabIndex = 3;
@@ -175,7 +235,7 @@ namespace Cad3PLogBrowser
             //
             // ClearButton
             //
-            this.ClearButton.Location = new System.Drawing.Point(201, 190);
+            this.ClearButton.Location = new System.Drawing.Point(201, 285);
             this.ClearButton.Name = "ClearButton";
             this.ClearButton.Size = new System.Drawing.Size(88, 31);
             this.ClearButton.TabIndex = 4;
@@ -186,7 +246,7 @@ namespace Cad3PLogBrowser
             // buttonClose
             //
             this.buttonClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonClose.Location = new System.Drawing.Point(299, 190);
+            this.buttonClose.Location = new System.Drawing.Point(299, 285);
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(88, 31);
             this.buttonClose.TabIndex = 5;
@@ -200,7 +260,8 @@ namespace Cad3PLogBrowser
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonClose;
-            this.ClientSize = new System.Drawing.Size(500, 235);
+            this.ClientSize = new System.Drawing.Size(500, 330);
+            this.Controls.Add(this.grpThreadLevel);
             this.Controls.Add(this.grpTimeRange);
             this.Controls.Add(this.grpDuration);
             this.Controls.Add(this.buttonClose);
@@ -220,6 +281,8 @@ namespace Cad3PLogBrowser
             this.grpDuration.PerformLayout();
             this.grpTimeRange.ResumeLayout(false);
             this.grpTimeRange.PerformLayout();
+            this.grpThreadLevel.ResumeLayout(false);
+            this.grpThreadLevel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudMinDuration)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -240,6 +303,11 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.DateTimePicker dtpFromTime;
         private System.Windows.Forms.Label lblToTime;
         private System.Windows.Forms.DateTimePicker dtpToTime;
+        private System.Windows.Forms.GroupBox grpThreadLevel;
+        private System.Windows.Forms.Label lblThreadId;
+        private System.Windows.Forms.TextBox txtThreadId;
+        private System.Windows.Forms.Label lblLogLevel;
+        private System.Windows.Forms.ComboBox cmbLogLevel;
         private System.Windows.Forms.Button ApplyButton;
         private System.Windows.Forms.Button ClearButton;
         private System.Windows.Forms.Button buttonClose;

@@ -78,6 +78,12 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Managers\FlameGraphPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Managers\TimelinePanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Managers\TreeViewManager.cs" />
     <Compile Include="Managers\LogViewManager.cs" />
     <Compile Include="Managers\PerformanceViewManager.cs" />
@@ -90,7 +96,9 @@
     <Compile Include="Models\VirtualLogLine.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
+    <Compile Include="Services\Export\TreeExportService.cs" />
     <Compile Include="Services\IconGenerator.cs" />
+    <Compile Include="Services\Navigation\BookmarkService.cs" />
     <Compile Include="Services\Navigation\LogNavigationService.cs" />
     <Compile Include="Services\Search\FilterService.cs" />
     <Compile Include="Services\ThemeManager.cs" />
@@ -269,4 +277,3 @@
   </Target>
   -->
 </Project>
-

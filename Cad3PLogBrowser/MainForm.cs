@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
 using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Services.Navigation;
 
 namespace Cad3PLogBrowser
 {
@@ -18,6 +20,7 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
+        private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
         private string            _currentFilePath = string.Empty;
@@ -238,12 +241,19 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _logFileService   = new LogFileService(this);
+            _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
             InitTreeViews();
             BuildMruMenu();
             ApplyTheme();
+
+            // Load saved font preferences
+            LoadLogFont();
+
+            // Initialize tree search placeholder
+            InitializeTreeSearchBox();
 
             // Apply toolbar visibility from settings
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
@@ -546,6 +556,16 @@ namespace Cad3PLogBrowser
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
+
+            // Load flame graph and timeline
+            if (flameGraphPanel != null)
+                flameGraphPanel.LoadCallStack(callTree);
+
+            if (timelinePanel != null)
+            {
+                timelinePanel.LoadCallStack(callTree);
+                timelinePanel.TimelineEntrySelected += TimelinePanel_EntrySelected;
+            }
 
             // Feature 3a/3b: Auto-select topmost node after load
             SelectDefaultTreeNode();
@@ -1012,6 +1032,9 @@ namespace Cad3PLogBrowser
                 _searchService.Reset();
                 ClearHighlighting(); // Clear any previous search highlights
 
+                // Load bookmarks for this file
+                _bookmarkService.LoadBookmarks(filePath);
+
                 // Show processing message
                 StatusFileName.Text = "Processing log data...";
                 FileLoadProgress.Value = 0;
@@ -1064,11 +1087,20 @@ namespace Cad3PLogBrowser
 
             for (int i = 0; i < lines.Count; i++)
             {
+                int lineNumber = i + 1;
+                Color backColor = GetLineColour(lines[i]);
+
+                // Check if bookmarked - override color
+                if (_bookmarkService.IsBookmarked(lineNumber))
+                {
+                    backColor = Color.FromArgb(200, 230, 255); // Light blue for bookmarks
+                }
+
                 _virtualLines.Add(new VirtualLogLine
                 {
-                    LineNumber = (i + 1).ToString(),
+                    LineNumber = lineNumber.ToString(),
                     Text       = lines[i],
-                    BackColour = GetLineColour(lines[i])
+                    BackColour = backColor
                 });
 
                 // Feature B10: Index error and warning lines
@@ -1289,18 +1321,18 @@ namespace Cad3PLogBrowser
                     });
                 });
 
-                MessageBox.Show($"{lines.Count:N0} line(s) saved.", Resources.TITLE, 
+                MessageBox.Show(string.Format(Resources.MSG_FILE_SAVED, lines.Count), Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (OperationCanceledException)
             {
                 StatusFileName.Text = "Save operation cancelled.";
-                MessageBox.Show("Save operation was cancelled.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not save file:\n{ex.Message}", Resources.TITLE, 
+                MessageBox.Show(string.Format(Resources.MSG_SAVE_ERROR, ex.Message), Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
@@ -1339,21 +1371,14 @@ namespace Cad3PLogBrowser
         private void exitMenuItem_Click(object sender, EventArgs e) => Close();
 
         // ── Edit menu ─────────────────────────────────────────────────────────
-        private void copyMenuItem_Click(object sender, EventArgs e)
-        {
-            if (logListView.SelectedIndices.Count == 0) return;
-            var lines = new List<string>();
-            foreach (int idx in logListView.SelectedIndices)
-                lines.Add(_virtualLines[idx].Text);
-            Clipboard.SetText(_searchService.JoinForClipboard(lines));
-        }
+        // MOVED: copyMenuItem_Click is now in Feature 1 section below
 
         // ── Feature I1: Export Filtered Logs ──────────────────────────────────
         private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No log data to export.", Resources.TITLE,
+                MessageBox.Show(Resources.ERR_NO_DATA_TO_EXPORT, Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1405,47 +1430,15 @@ namespace Cad3PLogBrowser
                 {
                     FileLoadProgress.Visible = false;
                     UpdateStatusBar();
-                    MessageBox.Show(string.Format("Failed to export file:\n{0}", ex.Message),
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FILE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
-        private void CopyButton_Click(object sender, EventArgs e) =>
-            copyMenuItem_Click(sender, e);
+        // MOVED: CopyButton_Click is now in Feature 1 section below
 
-        // ── Feature I4: Copy with Headers ────────────────────────────────────
-        private void contextCopyWithHeadersMenuItem_Click(object sender, EventArgs e)
-        {
-            if (logListView.SelectedIndices.Count == 0)
-            {
-                MessageBox.Show("No lines selected.", Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            // Add header line
-            sb.AppendLine("Line #\tLog Text");
-            sb.AppendLine("------\t--------");
-
-            // Add selected lines
-            var indices = new int[logListView.SelectedIndices.Count];
-            logListView.SelectedIndices.CopyTo(indices, 0);
-            Array.Sort(indices);
-
-            foreach (int idx in indices)
-            {
-                if (idx >= 0 && idx < _virtualLines.Count)
-                {
-                    var vl = _virtualLines[idx];
-                    sb.AppendLine(string.Format("{0}\t{1}", vl.LineNumber, vl.Text));
-                }
-            }
-
-            Clipboard.SetText(sb.ToString());
-            StatusFileName.Text = string.Format("Copied {0} lines with headers to clipboard.", indices.Length);
-        }
+        // MOVED: contextCopyWithHeadersMenuItem_Click is now in Feature 3 section below
 
         private FindForm _findForm;
 
@@ -1499,7 +1492,7 @@ namespace Cad3PLogBrowser
             }
             else
             {
-                MessageBox.Show(string.Format("'{0}' not found.", searchTerm),
+                MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -1564,7 +1557,7 @@ namespace Cad3PLogBrowser
             }
             catch (ArgumentException ex) // Regex exception
             {
-                MessageBox.Show($"Invalid regular expression:\n{ex.Message}",
+                MessageBox.Show(string.Format(Resources.ERR_INVALID_REGEX, ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -1617,7 +1610,7 @@ namespace Cad3PLogBrowser
             foreach (var e in _lastEntries)
                 if (e.LineNumber == selectedLine && e.IsApiCall) { current = e; break; }
 
-            if (current == null) { MessageBox.Show("Selected line is not an API call line.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            if (current == null) { MessageBox.Show(Resources.MSG_NOT_API_CALL, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
             int targetLine = -1;
             if (current.IsCallEnter)
@@ -1649,7 +1642,7 @@ namespace Cad3PLogBrowser
             if (targetLine > 0)
                 ScrollLogToLine(targetLine);
             else
-                MessageBox.Show("No matching pair found.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(Resources.MSG_NO_MATCHING_PAIR, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         // ── Operation Progress and Cancellation Support ───────────────────────
@@ -1747,6 +1740,23 @@ namespace Cad3PLogBrowser
                     return true;
                 case Keys.Control | Keys.Shift | Keys.F8:       // Previous Warning
                     NavigateToPreviousWarning();
+                    return true;
+
+                // Bookmark shortcuts
+                case Keys.Control | Keys.B:                      // Toggle Bookmark
+                    ToggleBookmarkOnCurrentLine();
+                    return true;
+                case Keys.F2:                                    // Next Bookmark
+                    NavigateToNextBookmark();
+                    return true;
+                case Keys.Shift | Keys.F2:                       // Previous Bookmark
+                    NavigateToPreviousBookmark();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.B:        // Show Bookmarks
+                    ShowBookmarkList();
+                    return true;
+                case Keys.Control | Keys.Shift | Keys.Delete:   // Clear All Bookmarks
+                    ClearAllBookmarks();
                     return true;
             }
 
@@ -1856,7 +1866,7 @@ namespace Cad3PLogBrowser
         {
             if (_errorLines.Count == 0)
             {
-                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_ERRORS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1874,7 +1884,7 @@ namespace Cad3PLogBrowser
         {
             if (_errorLines.Count == 0)
             {
-                MessageBox.Show("No errors found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_ERRORS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1893,7 +1903,7 @@ namespace Cad3PLogBrowser
         {
             if (_warningLines.Count == 0)
             {
-                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_WARNINGS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1911,7 +1921,7 @@ namespace Cad3PLogBrowser
         {
             if (_warningLines.Count == 0)
             {
-                MessageBox.Show("No warnings found in this log file.", Resources.TITLE, 
+                MessageBox.Show(Resources.MSG_NO_WARNINGS, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -1939,10 +1949,24 @@ namespace Cad3PLogBrowser
         private void nextWarningButton_Click(object sender, EventArgs e) =>
             NavigateToNextWarning();
 
-        public async void ApplyFilter(string filterText, bool matchCase, int? minDuration = null, 
+        public void ApplyFilter(string filterText, bool matchCase, int? minDuration = null, 
             DateTime? fromTime = null, DateTime? toTime = null)
         {
-            if (string.IsNullOrWhiteSpace(filterText) && !minDuration.HasValue && !fromTime.HasValue)
+            var criteria = new Models.FilterCriteria
+            {
+                SearchText = filterText,
+                IsCaseSensitive = matchCase,
+                MinimumDurationMs = minDuration,
+                FromTime = fromTime,
+                ToTime = toTime
+            };
+
+            ApplyFilter(criteria);
+        }
+
+        public async void ApplyFilter(Models.FilterCriteria criteria)
+        {
+            if (criteria == null || !criteria.IsActive)
             {
                 ClearFilter();
                 return;
@@ -1952,61 +1976,58 @@ namespace Cad3PLogBrowser
 
             try
             {
+                // Parse all lines to LogEntry objects for proper filtering
+                var logEntries = new List<Models.LogEntry>();
+                for (int i = 0; i < _allLines.Count; i++)
+                {
+                    logEntries.Add(new Models.LogEntry
+                    {
+                        LineNumber = i + 1,
+                        Text = _allLines[i],
+                        // Parse level from line if possible
+                        Level = ParseLogLevel(_allLines[i])
+                    });
+                }
+
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
-                    var results = new List<FilteredLine>();
+                    var filterService = new Services.Search.FilterService();
+                    var filteredEntries = new List<Models.LogEntry>();
 
-                    for (int i = 0; i < _allLines.Count; i++)
+                    for (int i = 0; i < logEntries.Count; i++)
                     {
                         if (i % 1000 == 0) // Check cancellation every 1000 lines
                         {
                             token.ThrowIfCancellationRequested();
 
                             // Update progress
-                            int progress = (int)((i / (double)_allLines.Count) * 100);
+                            int progress = (int)((i / (double)logEntries.Count) * 100);
                             this.Invoke((Action)(() => 
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{_allLines.Count:N0} lines)";
+                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{logEntries.Count:N0} lines)";
                             }));
                         }
 
-                        string line = _allLines[i];
-                        bool matches = true;
+                        var entry = logEntries[i];
 
-                        // Text filter
-                        if (!string.IsNullOrWhiteSpace(filterText))
+                        // Use FilterService for comprehensive filtering
+                        if (MatchesFilter(entry, criteria))
                         {
-                            matches = matchCase 
-                                ? line.Contains(filterText)
-                                : line.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
-                        }
-
-                        // Duration filter (Feature B5)
-                        if (matches && minDuration.HasValue)
-                        {
-                            matches = CheckDurationFilter(line, minDuration.Value);
-                        }
-
-                        // Time range filter (Feature B4)
-                        if (matches && (fromTime.HasValue || toTime.HasValue))
-                        {
-                            matches = CheckTimeRangeFilter(line, fromTime, toTime);
-                        }
-
-                        if (matches)
-                        {
-                            results.Add(new FilteredLine(i + 1, line));
+                            filteredEntries.Add(entry);
                         }
                     }
 
-                    return results;
+                    return filteredEntries;
                 });
 
-                _activeFilterText = filterText;
-                PopulateVirtualListViewFiltered(filtered);
+                // Convert to FilteredLine format
+                var filteredLines = filtered.Select(e => new FilteredLine(e.LineNumber, e.Text)).ToList();
+
+                _activeFilterText = criteria.GetDescription();
+                PopulateVirtualListViewFiltered(filteredLines);
                 ClearHighlighting();
 
                 StatusFileName.Text = $"Filter applied: {filtered.Count:N0} of {_allLines.Count:N0} lines match.";
@@ -2028,6 +2049,77 @@ namespace Cad3PLogBrowser
             _activeFilterText = "";
             PopulateVirtualListView(_allLines);
             ClearHighlighting(); // Clear search highlights when filter is cleared
+        }
+
+        /// <summary>
+        /// Checks if a log entry matches the filter criteria.
+        /// Uses FilterService for comprehensive filtering.
+        /// </summary>
+        private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria)
+        {
+            // Text filter
+            if (!string.IsNullOrWhiteSpace(criteria.SearchText))
+            {
+                var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+                if (entry.Text.IndexOf(criteria.SearchText, comparison) < 0)
+                    return false;
+            }
+
+            // Duration filter
+            if (criteria.MinimumDurationMs.HasValue)
+            {
+                if (!CheckDurationFilter(entry.Text, criteria.MinimumDurationMs.Value))
+                    return false;
+            }
+
+            // Time range filter
+            if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
+            {
+                if (!CheckTimeRangeFilter(entry.Text, criteria.FromTime, criteria.ToTime))
+                    return false;
+            }
+
+            // Thread ID filter
+            if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
+            {
+                if (string.IsNullOrWhiteSpace(entry.ThreadId) ||
+                    !entry.ThreadId.Equals(criteria.ThreadId, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            // Log level filter
+            if (criteria.Level.HasValue)
+            {
+                if (entry.Level != criteria.Level.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Parses log level from a log line.
+        /// </summary>
+        private Models.LogLevel ParseLogLevel(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return Models.LogLevel.Info;
+
+            // Look for log level indicator (2nd field after first colon)
+            int first = line.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < line.Length)
+            {
+                char level = line[first + 2];
+                switch (level)
+                {
+                    case 'E': return Models.LogLevel.Error;
+                    case 'W': return Models.LogLevel.Warning;
+                    case 'I': return Models.LogLevel.Info;
+                    case 'D': return Models.LogLevel.Debug;
+                }
+            }
+
+            return Models.LogLevel.Info;
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -2067,7 +2159,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open updates page:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_UPDATES_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2081,7 +2173,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open issues page:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_ISSUES_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2100,10 +2192,7 @@ namespace Cad3PLogBrowser
                 else
                 {
                     // If CHM doesn't exist, show keyboard shortcuts as fallback
-                    MessageBox.Show(
-                        "Help file (Cad3PLogBrowser.chm) not found.\n\n" +
-                        "Press Ctrl+K to view keyboard shortcuts,\n" +
-                        "or visit the GitHub repository for documentation.",
+                    MessageBox.Show(Resources.MSG_HELP_FILE_NOT_FOUND,
                         Resources.TITLE, 
                         MessageBoxButtons.OK, 
                         MessageBoxIcon.Information);
@@ -2111,7 +2200,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open help file:\n{ex.Message}", 
+                MessageBox.Show(string.Format(Resources.ERR_OPEN_HELP_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2170,6 +2259,13 @@ namespace Cad3PLogBrowser
                     "Shift+F8            Previous Error\r\n" +
                     "Ctrl+F8             Next Warning\r\n" +
                     "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
+                    "BOOKMARKS\r\n" +
+                    "─────────────────────────────────────────────────────────────────\r\n" +
+                    "Ctrl+B              Toggle Bookmark on current line\r\n" +
+                    "F2                  Next Bookmark\r\n" +
+                    "Shift+F2            Previous Bookmark\r\n" +
+                    "Ctrl+Shift+B        Show all Bookmarks\r\n" +
+                    "Ctrl+Shift+Del      Clear all Bookmarks\r\n\r\n" +
                     "VIEW MENU\r\n" +
                     "─────────────────────────────────────────────────────────────────\r\n" +
                     "Ctrl+T              Toggle Call Tree view\r\n" +
@@ -2271,6 +2367,13 @@ namespace Cad3PLogBrowser
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Save search history before closing
+            try
+            {
+                SaveSearchHistory();
+            }
+            catch { /* Non-fatal */ }
+
             // Stop file watching immediately to prevent blocking on close
             try
             {
@@ -2402,9 +2505,7 @@ namespace Cad3PLogBrowser
 
             if (string.IsNullOrEmpty(grokUrl))
             {
-                MessageBox.Show(
-                    "Please configure the Grok URL in Options > Settings first.\n\n" +
-                    "Example: https://grok.example.com/search?q=",
+                MessageBox.Show(Resources.MSG_GROK_NOT_CONFIGURED,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2416,7 +2517,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open browser:\n{ex.Message}",
+                MessageBox.Show(string.Format(Resources.ERR_BROWSER_FAILED, ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -2464,7 +2565,7 @@ namespace Cad3PLogBrowser
                 CollectBranchCsvRows(node, rows, 0);
                 File.WriteAllLines(dlg.FileName, rows);
 
-                MessageBox.Show($"Branch exported to:\n{dlg.FileName}",
+                MessageBox.Show(string.Format(Resources.MSG_BRANCH_EXPORTED_TO, dlg.FileName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2553,7 +2654,7 @@ namespace Cad3PLogBrowser
         {
             if (performanceView.Items.Count == 0)
             {
-                MessageBox.Show("No performance data to export.\nLoad a log file first.", 
+                MessageBox.Show(Resources.ERR_NO_PERFORMANCE_DATA,
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2589,12 +2690,12 @@ namespace Cad3PLogBrowser
                         }
                     }
 
-                    MessageBox.Show($"Performance data exported to:\n{dialog.FileName}", 
+                    MessageBox.Show(string.Format(Resources.MSG_PERFORMANCE_EXPORTED_TO, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not export performance data:\n{ex.Message}", 
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_PERFORMANCE_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -2613,7 +2714,7 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_NO_FILE_LOADED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2638,13 +2739,13 @@ namespace Cad3PLogBrowser
                 }
                 else
                 {
-                    MessageBox.Show($"Line number must be between 1 and {_virtualLines.Count}.",
+                    MessageBox.Show(string.Format(Resources.ERR_LINE_NUMBER_OUT_OF_RANGE, _virtualLines.Count),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             else
             {
-                MessageBox.Show("Invalid line number.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_INVALID_LINE_NUMBER, Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -2689,7 +2790,7 @@ namespace Cad3PLogBrowser
 
             if (branchLines.Count == 0)
             {
-                MessageBox.Show($"Could not find ENTER/EXIT pair for '{methodName}'.",
+                MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -2707,12 +2808,12 @@ namespace Cad3PLogBrowser
                 try
                 {
                     File.WriteAllLines(dialog.FileName, branchLines);
-                    MessageBox.Show($"{branchLines.Count} line(s) saved to:\n{dialog.FileName}",
+                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not save branch:\n{ex.Message}",
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -2731,7 +2832,7 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0)
             {
-                MessageBox.Show("No file loaded.", Resources.TITLE, 
+                MessageBox.Show(Resources.ERR_NO_FILE_LOADED, Resources.TITLE, 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2761,7 +2862,7 @@ namespace Cad3PLogBrowser
 
             if (results.Count == 0)
             {
-                MessageBox.Show($"No matches found for '{searchTerm}'.",
+                MessageBox.Show(string.Format(Resources.ERR_NO_MATCHES_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -2820,12 +2921,12 @@ namespace Cad3PLogBrowser
                         bitmap.Save(dialog.FileName, format);
                     }
 
-                    MessageBox.Show($"Call Graph exported to:\n{dialog.FileName}",
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_GRAPH_EXPORTED_TO, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Could not export Call Graph:\n{ex.Message}",
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_CALL_GRAPH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -2864,6 +2965,912 @@ namespace Cad3PLogBrowser
             }
 
             return false;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 1 & 3: Copy Menu Item Handlers (CRITICAL)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handles copy menu item click - copies selected log lines to clipboard.
+        /// </summary>
+        private void copyMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles context menu copy click.
+        /// </summary>
+        private void contextCopyMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles toolbar copy button click.
+        /// </summary>
+        private void CopyButton_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        /// <summary>
+        /// Handles copy with headers menu item click.
+        /// </summary>
+        private void contextCopyWithHeadersMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: true);
+        }
+
+        // (contextCopyWithHeadersMenuItem_Click combined above)
+
+        /// <summary>
+        /// Copies selected log lines to clipboard.
+        /// </summary>
+        /// <param name="includeHeaders">If true, includes "Line #\tLog Text" header.</param>
+        private void CopySelectedLinesToClipboard(bool includeHeaders)
+        {
+            try
+            {
+                if (logListView.SelectedIndices.Count == 0)
+                {
+                    StatusFileName.Text = "No lines selected";
+                    return;
+                }
+
+                var sb = new System.Text.StringBuilder();
+
+                // Add header if requested
+                if (includeHeaders)
+                {
+                    sb.AppendLine("Line #\tLog Text");
+                    sb.AppendLine("------\t--------");
+                }
+
+                // Copy selected indices to array and sort
+                var indices = new int[logListView.SelectedIndices.Count];
+                logListView.SelectedIndices.CopyTo(indices, 0);
+                Array.Sort(indices);
+
+                // Get text for each selected line
+                foreach (int index in indices)
+                {
+                    if (index >= 0 && index < _virtualLines.Count)
+                    {
+                        var line = _virtualLines[index];
+                        if (includeHeaders)
+                        {
+                            // Tab-separated format: Line# \t Text
+                            sb.AppendLine(string.Format("{0}\t{1}", line.LineNumber, line.Text));
+                        }
+                        else
+                        {
+                            // Just the log text
+                            sb.AppendLine(line.Text);
+                        }
+                    }
+                }
+
+                // Copy to clipboard
+                if (sb.Length > 0)
+                {
+                    Clipboard.SetText(sb.ToString());
+
+                    // Update status bar
+                    string message = includeHeaders 
+                        ? string.Format("Copied {0} line(s) with headers to clipboard", indices.Length)
+                        : string.Format("Copied {0} line(s) to clipboard", indices.Length);
+
+                    StatusFileName.Text = message;
+
+                    // Clear status after 3 seconds
+                    var timer = new System.Windows.Forms.Timer();
+                    timer.Interval = 3000;
+                    timer.Tick += (s, args) =>
+                    {
+                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        timer.Stop();
+                        timer.Dispose();
+                    };
+                    timer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERR_COPY_FAILED, ex.Message), 
+                    Resources.TITLE, 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 2: Search History Persistence (B6)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private const string SEARCH_HISTORY_FILE = "search_history.json";
+        private const int MAX_SEARCH_HISTORY = 20;
+
+        /// <summary>
+        /// Saves search history to JSON file.
+        /// Call this when FindForm is closing or app is exiting.
+        /// </summary>
+        private void SaveSearchHistory()
+        {
+            try
+            {
+                var searchHistory = new List<string>();
+
+                // Get search history from app settings if available
+                if (_appSettings != null && _appSettings.SearchHistory != null)
+                {
+                    searchHistory = _appSettings.SearchHistory;
+                }
+
+                // Limit to MAX_SEARCH_HISTORY items
+                if (searchHistory.Count > MAX_SEARCH_HISTORY)
+                    searchHistory = searchHistory.Take(MAX_SEARCH_HISTORY).ToList();
+
+                // Save settings
+                if (_appSettings != null)
+                {
+                    _appSettings.SearchHistory = searchHistory;
+                    _appSettings.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Don't show error to user - just log it
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to save search history: {0}", ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Adds a search term to history.
+        /// </summary>
+        public void AddSearchHistory(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return;
+
+            if (_appSettings.SearchHistory == null)
+                _appSettings.SearchHistory = new List<string>();
+
+            // Remove if already exists
+            _appSettings.SearchHistory.Remove(searchTerm);
+
+            // Add to beginning
+            _appSettings.SearchHistory.Insert(0, searchTerm);
+
+            // Limit size
+            if (_appSettings.SearchHistory.Count > MAX_SEARCH_HISTORY)
+                _appSettings.SearchHistory = _appSettings.SearchHistory.Take(MAX_SEARCH_HISTORY).ToList();
+        }
+
+        /// <summary>
+        /// Gets search history.
+        /// </summary>
+        public List<string> GetSearchHistory()
+        {
+            return _appSettings?.SearchHistory ?? new List<string>();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 4: Tree Search/Filter (C5)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private string _treeSearchText = string.Empty;
+        private const string TREE_SEARCH_PLACEHOLDER = "Search tree nodes...";
+
+        /// <summary>
+        /// Handler for tree search textbox - filters tree nodes in real-time.
+        /// </summary>
+        private void treeSearchTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                // Ignore if showing placeholder
+                if (textBox.ForeColor == SystemColors.GrayText)
+                    return;
+
+                FilterTreeNodes(textBox.Text);
+            }
+        }
+
+        /// <summary>
+        /// Handles Enter event - removes placeholder text.
+        /// </summary>
+        private void treeSearchTextBox_Enter(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (textBox.Text == TREE_SEARCH_PLACEHOLDER)
+                {
+                    textBox.Text = "";
+                    textBox.ForeColor = SystemColors.WindowText;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles Leave event - shows placeholder if empty.
+        /// </summary>
+        private void treeSearchTextBox_Leave(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (string.IsNullOrWhiteSpace(textBox.Text))
+                {
+                    textBox.Text = TREE_SEARCH_PLACEHOLDER;
+                    textBox.ForeColor = SystemColors.GrayText;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Filters tree nodes based on search text.
+        /// Matching nodes are highlighted in yellow.
+        /// </summary>
+        /// <param name="searchText">Text to search for in node names.</param>
+        private void FilterTreeNodes(string searchText)
+        {
+            _treeSearchText = searchText.ToLowerInvariant();
+
+            TreeView activeTree = CallTree.Visible ? CallTree : ApiTree;
+
+            if (string.IsNullOrWhiteSpace(_treeSearchText))
+            {
+                // Show all nodes
+                ShowAllTreeNodes(activeTree);
+                return;
+            }
+
+            // Filter nodes
+            activeTree.BeginUpdate();
+
+            foreach (TreeNode rootNode in activeTree.Nodes)
+            {
+                FilterTreeNodeRecursive(rootNode);
+            }
+
+            activeTree.EndUpdate();
+        }
+
+        /// <summary>
+        /// Recursively filters tree nodes.
+        /// A node is visible if it or any of its children match the search text.
+        /// </summary>
+        /// <returns>True if this node or any child matches.</returns>
+        private bool FilterTreeNodeRecursive(TreeNode node)
+        {
+            bool hasMatch = false;
+            bool nodeMatches = node.Text.ToLowerInvariant().Contains(_treeSearchText);
+
+            // Check children first
+            foreach (TreeNode child in node.Nodes)
+            {
+                if (FilterTreeNodeRecursive(child))
+                    hasMatch = true;
+            }
+
+            // Show node if it matches or has matching children
+            if (nodeMatches || hasMatch)
+            {
+                node.BackColor = nodeMatches ? Color.Yellow : Color.Transparent;
+                // Expand matching nodes to show context
+                if (hasMatch && !nodeMatches)
+                    node.Expand();
+                return true;
+            }
+            else
+            {
+                node.BackColor = Color.Transparent;
+                node.Collapse();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Shows all tree nodes (clears filter).
+        /// </summary>
+        private void ShowAllTreeNodes(TreeView tree)
+        {
+            tree.BeginUpdate();
+
+            foreach (TreeNode rootNode in tree.Nodes)
+            {
+                ClearTreeNodeFilter(rootNode);
+            }
+
+            tree.EndUpdate();
+        }
+
+        /// <summary>
+        /// Recursively clears filter highlighting from nodes.
+        /// </summary>
+        private void ClearTreeNodeFilter(TreeNode node)
+        {
+            node.BackColor = Color.Transparent;
+
+            foreach (TreeNode child in node.Nodes)
+            {
+                ClearTreeNodeFilter(child);
+            }
+        }
+
+        /// <summary>
+        /// Initializes the tree search textbox with placeholder text.
+        /// </summary>
+        private void InitializeTreeSearchBox()
+        {
+            if (treeSearchTextBox != null)
+            {
+                treeSearchTextBox.Text = TREE_SEARCH_PLACEHOLDER;
+                treeSearchTextBox.ForeColor = SystemColors.GrayText;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Bookmark Lines (2.8)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Toggles bookmark on currently selected line.
+        /// Keyboard shortcut: Ctrl+B
+        /// </summary>
+        private void ToggleBookmarkOnCurrentLine()
+        {
+            if (logListView.SelectedIndices.Count == 0)
+            {
+                StatusFileName.Text = "No line selected";
+                return;
+            }
+
+            int selectedIndex = logListView.SelectedIndices[0];
+            if (selectedIndex < 0 || selectedIndex >= _virtualLines.Count)
+                return;
+
+            int lineNumber = int.Parse(_virtualLines[selectedIndex].LineNumber);
+            bool added = _bookmarkService.ToggleBookmark(lineNumber);
+
+            // Update visual indication (mark with special color)
+            RefreshBookmarkVisuals();
+
+            string message = added 
+                ? string.Format("Bookmark added at line {0}", lineNumber)
+                : string.Format("Bookmark removed from line {0}", lineNumber);
+
+            StatusFileName.Text = message;
+
+            // Save bookmarks
+            _bookmarkService.SaveBookmarks();
+        }
+
+        /// <summary>
+        /// Navigates to the next bookmark.
+        /// Keyboard shortcut: F2
+        /// </summary>
+        private void NavigateToNextBookmark()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                return;
+            }
+
+            int currentLine = 1;
+            if (logListView.SelectedIndices.Count > 0)
+            {
+                int idx = logListView.SelectedIndices[0];
+                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+            }
+
+            int nextBookmark = _bookmarkService.GetNextBookmark(currentLine);
+            if (nextBookmark > 0)
+            {
+                JumpToLine(nextBookmark);
+                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                    _bookmarkService.GetAllBookmarksSorted().IndexOf(nextBookmark) + 1,
+                    _bookmarkService.Count);
+            }
+        }
+
+        /// <summary>
+        /// Navigates to the previous bookmark.
+        /// Keyboard shortcut: Shift+F2
+        /// </summary>
+        private void NavigateToPreviousBookmark()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                return;
+            }
+
+            int currentLine = _virtualLines.Count;
+            if (logListView.SelectedIndices.Count > 0)
+            {
+                int idx = logListView.SelectedIndices[0];
+                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+            }
+
+            int prevBookmark = _bookmarkService.GetPreviousBookmark(currentLine);
+            if (prevBookmark > 0)
+            {
+                JumpToLine(prevBookmark);
+                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                    _bookmarkService.GetAllBookmarksSorted().IndexOf(prevBookmark) + 1,
+                    _bookmarkService.Count);
+            }
+        }
+
+        /// <summary>
+        /// Clears all bookmarks.
+        /// </summary>
+        private void ClearAllBookmarks()
+        {
+            if (_bookmarkService.Count == 0)
+                return;
+
+            var result = MessageBox.Show(
+                string.Format("Clear all {0} bookmarks?", _bookmarkService.Count),
+                "Clear Bookmarks",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                _bookmarkService.ClearAllBookmarks();
+                _bookmarkService.SaveBookmarks();
+                RefreshBookmarkVisuals();
+                StatusFileName.Text = "All bookmarks cleared";
+            }
+        }
+
+        /// <summary>
+        /// Refreshes visual indication of bookmarked lines.
+        /// Bookmarked lines show with a blue background.
+        /// </summary>
+        private void RefreshBookmarkVisuals()
+        {
+            if (_virtualLines.Count == 0)
+                return;
+
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                int lineNum = int.Parse(vl.LineNumber);
+
+                if (_bookmarkService.IsBookmarked(lineNum))
+                {
+                    // Mark with blue background
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text = vl.Text,
+                        BackColour = Color.FromArgb(200, 230, 255) // Light blue
+                    };
+                }
+                else if (vl.BackColour == Color.FromArgb(200, 230, 255))
+                {
+                    // Remove bookmark color
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text = vl.Text,
+                        BackColour = GetLineColour(vl.Text)
+                    };
+                }
+            }
+
+            logListView.Invalidate();
+        }
+
+        /// <summary>
+        /// Shows a list of all bookmarks.
+        /// </summary>
+        private void ShowBookmarkList()
+        {
+            if (_bookmarkService.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_BOOKMARKS,
+                    Resources.DIALOG_TITLE_BOOKMARKS, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var bookmarks = _bookmarkService.GetAllBookmarksSorted();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(string.Format("Bookmarks ({0}):", bookmarks.Count));
+            sb.AppendLine();
+
+            foreach (var lineNum in bookmarks)
+            {
+                // Find the line text
+                int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNum.ToString());
+                if (idx >= 0)
+                {
+                    string text = _virtualLines[idx].Text;
+                    if (text.Length > 80)
+                        text = text.Substring(0, 77) + "...";
+                    sb.AppendLine(string.Format("Line {0}: {1}", lineNum, text));
+                }
+                else
+                {
+                    sb.AppendLine(string.Format("Line {0}", lineNum));
+                }
+            }
+
+            MessageBox.Show(sb.ToString(), Resources.DIALOG_TITLE_BOOKMARKS, 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Timeline Panel Event Handler
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handles timeline entry selection - jumps to the line in log view.
+        /// </summary>
+        private void TimelinePanel_EntrySelected(object sender, Managers.TimelinePanel.TimelineEntry entry)
+        {
+            if (entry != null && entry.LineNumber > 0)
+            {
+                ScrollLogToLine(entry.LineNumber);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE: Export Tree as JSON/XML
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Exports call tree as JSON.
+        /// </summary>
+        private void exportTreeJsonMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.json";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    var exporter = new Services.Export.TreeExportService();
+                    exporter.ExportToJson(callTree, dlg.FileName);
+
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_TREE_EXPORTED_JSON, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TREE_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Exports call tree as XML.
+        /// </summary>
+        private void exportTreeXmlMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.xml";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    var exporter = new Services.Export.TreeExportService();
+                    exporter.ExportToXml(callTree, dlg.FileName);
+
+                    MessageBox.Show(string.Format(Resources.MSG_CALL_TREE_EXPORTED_XML, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TREE_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Exports timeline visualization as an image.
+        /// </summary>
+        private void exportTimelineMenuItem_Click(object sender, EventArgs e)
+        {
+            if (timelinePanel == null || _lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_TIMELINE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_timeline.png";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var image = timelinePanel.ExportAsImage(1920, 1080);
+
+                    // Determine format from extension
+                    string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                    var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                    if (ext == ".jpg" || ext == ".jpeg")
+                        format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                    else if (ext == ".bmp")
+                        format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                    image.Save(dlg.FileName, format);
+                    image.Dispose();
+
+                    MessageBox.Show(string.Format(Resources.MSG_TIMELINE_EXPORTED, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TIMELINE_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Exports flame graph visualization as an image.
+        /// </summary>
+        private void exportFlameGraphMenuItem_Click(object sender, EventArgs e)
+        {
+            if (flameGraphPanel == null || _lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_FLAME_GRAPH_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_flamegraph.png";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var image = flameGraphPanel.ExportAsImage(1920, 1080);
+
+                    // Determine format from extension
+                    string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                    var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                    if (ext == ".jpg" || ext == ".jpeg")
+                        format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                    else if (ext == ".bmp")
+                        format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                    image.Save(dlg.FileName, format);
+                    image.Dispose();
+
+                    MessageBox.Show(string.Format(Resources.MSG_FLAME_GRAPH_EXPORTED, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FLAME_GRAPH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // BOOKMARK MENU HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void toggleBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            ToggleBookmarkOnCurrentLine();
+        }
+
+        private void nextBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            NavigateToNextBookmark();
+        }
+
+        private void previousBookmarkMenuItem_Click(object sender, EventArgs e)
+        {
+            NavigateToPreviousBookmark();
+        }
+
+        private void showBookmarksMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowBookmarkList();
+        }
+
+        private void clearBookmarksMenuItem_Click(object sender, EventArgs e)
+        {
+            ClearAllBookmarks();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // COPY WITH HEADERS MENU HANDLER
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void copyWithHeadersMenuItem_Click(object sender, EventArgs e)
+        {
+            CopySelectedLinesToClipboard(includeHeaders: true);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CLEAR FILTER MENU HANDLER
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void clearFilterMenuItem_Click(object sender, EventArgs e)
+        {
+            ClearFilter();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // TAB VISIBILITY HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void showFlameGraphTabMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (flameGraphTab != null && mainTabControl != null)
+            {
+                if (showFlameGraphTabMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(flameGraphTab))
+                        mainTabControl.TabPages.Add(flameGraphTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(flameGraphTab))
+                        mainTabControl.TabPages.Remove(flameGraphTab);
+                }
+            }
+        }
+
+        private void showTimelineTabMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (timelineTab != null && mainTabControl != null)
+            {
+                if (showTimelineTabMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(timelineTab))
+                        mainTabControl.TabPages.Add(timelineTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(timelineTab))
+                        mainTabControl.TabPages.Remove(timelineTab);
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE 5: Font Selection (H5)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Handler for View → Select Font menu item.
+        /// </summary>
+        private void selectFontMenuItem_Click(object sender, EventArgs e)
+        {
+            SelectLogFont();
+        }
+
+        /// <summary>
+        /// Shows font selection dialog and applies chosen font to log view.
+        /// </summary>
+        private void SelectLogFont()
+        {
+            try
+            {
+                // Set current font in dialog
+                logFontDialog.Font = logListView.Font;
+
+                if (logFontDialog.ShowDialog() == DialogResult.OK)
+                {
+                    // Apply font to log list view
+                    logListView.Font = logFontDialog.Font;
+
+                    // Save to settings
+                    if (_appSettings != null)
+                    {
+                        _appSettings.LogFontFamily = logFontDialog.Font.FontFamily.Name;
+                        _appSettings.LogFontSize = logFontDialog.Font.Size;
+                        _appSettings.LogFontStyle = logFontDialog.Font.Style;
+
+                        // Save settings
+                        _appSettings.Save();
+                    }
+
+                    StatusFileName.Text = string.Format("Font changed to {0} {1}pt", 
+                        logFontDialog.Font.Name, logFontDialog.Font.Size);
+
+                    // Clear status after 3 seconds
+                    var timer = new System.Windows.Forms.Timer();
+                    timer.Interval = 3000;
+                    timer.Tick += (s, args) =>
+                    {
+                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        timer.Stop();
+                        timer.Dispose();
+                    };
+                    timer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERR_FONT_CHANGE_FAILED, ex.Message), 
+                    Resources.TITLE, 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Loads saved font from settings.
+        /// Call this during form initialization.
+        /// </summary>
+        private void LoadLogFont()
+        {
+            try
+            {
+                if (_appSettings != null && 
+                    !string.IsNullOrEmpty(_appSettings.LogFontFamily))
+                {
+                    var font = new Font(
+                        _appSettings.LogFontFamily,
+                        _appSettings.LogFontSize > 0 ? _appSettings.LogFontSize : 9.0f,
+                        _appSettings.LogFontStyle);
+
+                    logListView.Font = font;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Use default font if loading fails
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
+            }
         }
     }
 }
