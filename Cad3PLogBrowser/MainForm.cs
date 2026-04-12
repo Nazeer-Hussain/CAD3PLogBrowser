@@ -599,11 +599,27 @@ namespace Cad3PLogBrowser
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
         {
+            // D6: Sort based on current mode
+            var sorted = new System.Collections.Generic.List<ApiCallNode>(apiNodes);
+            switch (_apiSortMode)
+            {
+                case ApiSortMode.ByCount:
+                    sorted.Sort((a, b) => b.LineNumbers.Count.CompareTo(a.LineNumbers.Count)); break;
+                case ApiSortMode.ByFirstLine:
+                    sorted.Sort((a, b) => a.FirstLine.CompareTo(b.FirstLine)); break;
+                default:
+                    sorted.Sort((a, b) => string.Compare(a.ApiName, b.ApiName, StringComparison.OrdinalIgnoreCase)); break;
+            }
+            apiNodes = sorted;
+
             ApiTree.BeginUpdate();
             ApiTree.Nodes.Clear();
 
             // Root node: "API Tree"
-            var root = new TreeNode("API Tree") { Tag = -1 };
+            string sortLabel = _apiSortMode == ApiSortMode.ByCount ? " [sorted: count ↓]"
+                             : _apiSortMode == ApiSortMode.ByFirstLine ? " [sorted: line]"
+                             : " [sorted: name]";
+            var root = new TreeNode("API Tree" + sortLabel) { Tag = -1 };
             root.NodeFont = new System.Drawing.Font(ApiTree.Font, System.Drawing.FontStyle.Bold);
 
             foreach (var node in apiNodes)
@@ -726,6 +742,10 @@ namespace Cad3PLogBrowser
         }
 
         // ── Performance tab ───────────────────────────────────────────────────
+        // ── API tree sort state (D6) ─────────────────────────────────────────
+        private enum ApiSortMode { ByName, ByCount, ByFirstLine }
+        private ApiSortMode _apiSortMode = ApiSortMode.ByName;
+
         // ── Performance tab sort state ────────────────────────────────────────
         private int  _perfSortColumn    = 2; // default: Total ms
         private bool _perfSortAscending = false;
@@ -845,6 +865,19 @@ namespace Cad3PLogBrowser
         }
 
         // ── Tree visibility ───────────────────────────────────────────────────
+        // D6: Sort API tree by name / call count / first line
+        public void SortApiTreeBy(string mode)
+        {
+            switch (mode)
+            {
+                case "count":    _apiSortMode = ApiSortMode.ByCount;    break;
+                case "line":     _apiSortMode = ApiSortMode.ByFirstLine; break;
+                default:         _apiSortMode = ApiSortMode.ByName;     break;
+            }
+            if (_apiNodes != null && _apiNodes.Count > 0)
+                PopulateApiTree(_apiNodes);
+        }
+
         private void SyncTreeVisibility()
         {
             bool showCall = CallTreeButton.Checked;
@@ -925,8 +958,73 @@ namespace Cad3PLogBrowser
         }
 
         // ── Tree → scroll log ─────────────────────────────────────────────────
-        private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e) =>
+        private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e)
+        {
             ScrollLogToLine(e.Node?.Tag);
+            ShowApiDetails(e.Node);  // D3: show invocation details
+        }
+
+        // D3: API Invocation Details Panel
+        private void ShowApiDetails(TreeNode node)
+        {
+            if (node == null || logDetailBox == null) return;
+            if (node.Tag == null || (node.Tag is int t && t < 0)) return;
+
+            // Find the API name from this node or its parent
+            string apiName = null;
+            var n = node;
+            while (n != null)
+            {
+                string lbl = n.Text;
+                // API root nodes have format "ApiName  (N calls)"
+                if (lbl.Contains("  (") && lbl.Contains(" calls)"))
+                {
+                    apiName = lbl.Substring(0, lbl.IndexOf("  ("));
+                    break;
+                }
+                // Child nodes have format "ApiName — Ln N"
+                if (lbl.Contains(" — Ln "))
+                {
+                    apiName = lbl.Substring(0, lbl.IndexOf(" — Ln "));
+                    break;
+                }
+                n = n.Parent;
+            }
+
+            if (string.IsNullOrEmpty(apiName)) return;
+
+            // Find matching API stats from performance data
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(string.Format("=== API Details: {0} ===", apiName));
+            sb.AppendLine();
+
+            // Basic invocation info from _apiNodes
+            var apiNode = _apiNodes?.Find(a => a.ApiName == apiName);
+            if (apiNode != null)
+            {
+                sb.AppendLine(string.Format("Total invocations : {0}", apiNode.LineNumbers.Count));
+                sb.AppendLine(string.Format("First occurrence  : Line {0}", apiNode.FirstLine));
+                sb.AppendLine();
+                sb.AppendLine("Invocation lines:");
+                foreach (int ln in apiNode.LineNumbers)
+                    sb.AppendLine(string.Format("  Line {0}", ln));
+            }
+
+            // Match/unmatch status
+            bool matched = AreAllApiCallsMatched(apiName);
+            sb.AppendLine();
+            sb.AppendLine(string.Format("ENTER/EXIT matched: {0}", matched ? "Yes ✓" : "No ✗ (missing EXIT)"));
+
+            if (logDetailBox.InvokeRequired)
+                logDetailBox.Invoke((Action)(() => logDetailBox.Text = sb.ToString()));
+            else
+                logDetailBox.Text = sb.ToString();
+
+            // Switch to Log Details tab to show it
+            if (mainTabControl != null && logDetailTab != null &&
+                mainTabControl.TabPages.Contains(logDetailTab))
+                mainTabControl.SelectedTab = logDetailTab;
+        }
 
         private void ApiTree_Click(object sender, EventArgs e) { }
         private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
