@@ -43,6 +43,16 @@ namespace Cad3PLogBrowser
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
         private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
 
+        // Feature F4: Dependency graph tab and panel
+        // NOTE: DependencyGraphPanel.cs exists but needs to be added to csproj
+        // TODO: Add via Visual Studio Solution Explorer: Right-click project → Add → Existing Item
+        //       Add: Managers\DependencyGraphPanel.cs
+        //       Add: Managers\AiAssistantPanel.cs
+        // private TabPage _dependencyGraphTab;
+        // private Managers.DependencyGraphPanel _dependencyGraphPanel;
+        // private Button _depGraphResetButton;
+        // private ToolStripMenuItem _showDependencyGraphMenuItem;
+
 
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
@@ -260,6 +270,8 @@ namespace Cad3PLogBrowser
 
             RestoreSettings();
             InitTreeViews();
+            // F4: Initialize dependency graph panel - commented until files added to project
+            // InitDependencyGraphPanel();
             // TODO: InitAiPanel(); // Deferred - AI features not yet implemented
             BuildMruMenu();
             ApplyTheme();
@@ -572,9 +584,12 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
 
-            // F4: Dependency graph - will be wired when Designer control is added
-            // Dependency graph service is ready, UI panel needs to be added to Designer
-            // var depGraph = _dependencyGraphService.Build(entries);
+            // F4: Load dependency graph - will work after panel files added to project
+            // if (_dependencyGraphPanel != null)
+            // {
+            //     var depGraph = _dependencyGraphService.Build(entries);
+            //     _dependencyGraphPanel.Load(depGraph);
+            // }
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
@@ -4230,5 +4245,226 @@ namespace Cad3PLogBrowser
                 System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
             }
         }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE F4: Dependency Graph Initialization
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Initializes the dependency graph tab and panel programmatically.
+        /// Creates tab, panel, and reset button.
+        /// NOTE: Currently commented out - files need to be added to csproj first.
+        /// TO ENABLE: 
+        /// 1. Close solution in Visual Studio
+        /// 2. Edit Cad3PLogBrowser.csproj
+        /// 3. Add these lines after FlameGraphPanel:
+        ///    <Compile Include="Managers\DependencyGraphPanel.cs">
+        ///      <SubType>Component</SubType>
+        ///    </Compile>
+        ///    <Compile Include="Managers\AiAssistantPanel.cs">
+        ///      <SubType>Component</SubType>
+        ///    </Compile>
+        /// 4. Uncomment field declarations in MainForm.cs (lines ~48-51)
+        /// 5. Uncomment this method body
+        /// 6. Uncomment call in constructor
+        /// 7. Uncomment code in PopulateTrees
+        /// </summary>
+        private void InitDependencyGraphPanel()
+        {
+            // TODO: Uncomment when DependencyGraphPanel is added to project
+            /*
+            // Create dependency graph tab
+            _dependencyGraphTab = new TabPage("Dependency Graph")
+            {
+                Name = "dependencyGraphTab",
+                UseVisualStyleBackColor = true
+            };
+
+            // Create dependency graph panel
+            _dependencyGraphPanel = new Managers.DependencyGraphPanel()
+            {
+                Dock = DockStyle.Fill,
+                Name = "dependencyGraphPanel"
+            };
+
+            // Create reset view button
+            _depGraphResetButton = new Button()
+            {
+                Text = "Reset View",
+                Size = new Size(100, 30),
+                Location = new Point(10, 10),
+                Name = "depGraphResetButton",
+                Anchor = AnchorStyles.Top | AnchorStyles.Left
+            };
+            _depGraphResetButton.Click += (s, e) => _dependencyGraphPanel?.ResetView();
+
+            // Add controls to tab
+            _dependencyGraphTab.Controls.Add(_dependencyGraphPanel);
+            _dependencyGraphTab.Controls.Add(_depGraphResetButton);
+
+            // Add tab to main tab control
+            if (mainTabControl != null)
+            {
+                mainTabControl.TabPages.Add(_dependencyGraphTab);
+            }
+
+            // Create View menu item for dependency graph
+            _showDependencyGraphMenuItem = new ToolStripMenuItem("Show &Dependency Graph")
+            {
+                Name = "showDependencyGraphMenuItem",
+                CheckOnClick = true,
+                Checked = true
+            };
+            _showDependencyGraphMenuItem.CheckedChanged += ShowDependencyGraphMenuItem_CheckedChanged;
+
+            // Add to View → Tabs menu (after existing tab menu items)
+            if (tabsMenuItem != null)
+            {
+                tabsMenuItem.DropDownItems.Add(_showDependencyGraphMenuItem);
+            }
+            */
+        }
+
+        /// <summary>
+        /// Handler for Show Dependency Graph menu item.
+        /// </summary>
+        private void ShowDependencyGraphMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            // TODO: Uncomment when DependencyGraphPanel is added to project
+            /*
+            if (_dependencyGraphTab != null && mainTabControl != null)
+            {
+                if (_showDependencyGraphMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(_dependencyGraphTab))
+                        mainTabControl.TabPages.Add(_dependencyGraphTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(_dependencyGraphTab))
+                        mainTabControl.TabPages.Remove(_dependencyGraphTab);
+                }
+            }
+            */
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURES L2-L6: AI Assistant Initialization
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Initializes AI Assistant panel and tab.
+        /// Creates AI panel with chat interface and analysis capabilities.
+        /// </summary>
+        private void InitAiPanel()
+        {
+            // TODO: Feature L2-L6 AI implementation
+            // This will be implemented when AI features are ready
+
+            /*
+            // Create AI tab
+            var aiTab = new TabPage("AI Assistant")
+            {
+                Name = "aiTab",
+                UseVisualStyleBackColor = true
+            };
+
+            // Create AI panel
+            _aiPanel = new Managers.AiAssistantPanel()
+            {
+                Dock = DockStyle.Fill,
+                Name = "aiAssistantPanel"
+            };
+
+            // Initialize AI service
+            _aiService = new Services.Analysis.AiLogService();
+
+            // Wire up events
+            _aiPanel.QuerySubmitted += AiPanel_QuerySubmitted;
+            _aiPanel.AnalyzeClicked += AiPanel_AnalyzeClicked;
+
+            // Add panel to tab
+            aiTab.Controls.Add(_aiPanel);
+
+            // Add tab to main control
+            if (mainTabControl != null)
+            {
+                mainTabControl.TabPages.Add(aiTab);
+            }
+
+            // Create View menu item
+            var showAiMenuItem = new ToolStripMenuItem("Show &AI Assistant")
+            {
+                Name = "showAiMenuItem",
+                CheckOnClick = true,
+                Checked = true
+            };
+            showAiMenuItem.CheckedChanged += (s, e) =>
+            {
+                if (aiTab != null && mainTabControl != null)
+                {
+                    if (showAiMenuItem.Checked)
+                    {
+                        if (!mainTabControl.TabPages.Contains(aiTab))
+                            mainTabControl.TabPages.Add(aiTab);
+                    }
+                    else
+                    {
+                        if (mainTabControl.TabPages.Contains(aiTab))
+                            mainTabControl.TabPages.Remove(aiTab);
+                    }
+                }
+            };
+
+            // Add to View menu
+            if (tabsMenuItem != null)
+            {
+                tabsMenuItem.DropDownItems.Add(showAiMenuItem);
+            }
+            */
+        }
+
+        // AI event handlers (will be implemented with AI features)
+        /*
+        private async void AiPanel_QuerySubmitted(object sender, string query)
+        {
+            if (_aiService == null || _aiPanel == null) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var response = await _aiService.SubmitQueryAsync(query, _allLines, _lastEntries);
+                _aiPanel.ShowResponse(response);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"AI query failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+
+        private async void AiPanel_AnalyzeClicked(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries.Count == 0) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var analysis = await _aiService.AnalyzeLogsAsync(_lastEntries);
+                _aiPanel.ShowAnalysis(analysis);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"AI analysis failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+        */
     }
 }
