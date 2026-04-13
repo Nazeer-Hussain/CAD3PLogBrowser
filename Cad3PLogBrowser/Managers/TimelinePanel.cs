@@ -36,7 +36,6 @@ namespace Cad3PLogBrowser.Managers
         private const float MIN_ZOOM = 0.1f;
         private const float MAX_ZOOM = 10.0f;
         private const int LEFT_MARGIN = 150; // Space for labels
-        private const int TOP_MARGIN = 80;   // Space for header + legend + time scale
 
         private DateTime _startTime;
         private DateTime _endTime;
@@ -150,9 +149,9 @@ namespace Cad3PLogBrowser.Managers
                 _panOffset = new PointF(0, 0);
 
                 // Draw all components
-                DrawTitle(g);
-                DrawTimeScale(g);
-                DrawDepthLabels(g);
+                DrawHeaderBar(g);
+                DrawTimeScale(g, 50);
+                DrawDepthLabels(g, 50);
 
                 foreach (var entry in _entries)
                 {
@@ -221,6 +220,9 @@ namespace Cad3PLogBrowser.Managers
 
         private void CalculateLayout()
         {
+            // Content starts at Y=0 in transform space (header offset handled by OnPaint transform)
+            const int CONTENT_START = 40; // Space for time scale labels
+
             float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
 
             foreach (var entry in _entries)
@@ -233,16 +235,17 @@ namespace Cad3PLogBrowser.Managers
                 float width = (entry.DurationMs / (float)_totalDurationMs) * availableWidth;
                 width = Math.Max(2, width); // Minimum 2px width
 
-                // Calculate Y position based on depth
-                float y = TOP_MARGIN + (entry.Depth * ROW_HEIGHT);
+                // Calculate Y position based on depth (relative to content area)
+                float y = CONTENT_START + (entry.Depth * ROW_HEIGHT);
 
                 entry.Bounds = new RectangleF(x, y, width, ROW_HEIGHT - 2);
             }
         }
 
-        // ??????????????????????????????????????????????????????????????????????
+
+        // ======================================================================
         // Rendering
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -257,21 +260,29 @@ namespace Cad3PLogBrowser.Managers
                 return;
             }
 
-            // Draw title/header first (no transform)
-            DrawTitle(g);
+            // LAYER 1: Draw background
+            g.Clear(ThemeManager.BackgroundColor);
 
-            // Draw time scale and depth labels (no transform - they use TOP_MARGIN)
-            DrawTimeScale(g);
-            DrawDepthLabels(g);
+            // LAYER 2: Draw header bar (ALWAYS at top, no transform)
+            DrawHeaderBar(g);
 
-            // Save state before applying transform
+            // LAYER 3: Setup content area (below header)
+            const int HEADER_HEIGHT = 50;
+            Rectangle contentArea = new Rectangle(0, HEADER_HEIGHT, this.ClientSize.Width, this.ClientSize.Height - HEADER_HEIGHT);
+
+            // LAYER 4: Draw time scale and depth labels (no transform, but use content area Y offset)
+            DrawTimeScale(g, HEADER_HEIGHT);
+            DrawDepthLabels(g, HEADER_HEIGHT);
+
+            // LAYER 5: Setup clipping and transform for timeline entries
             var state = g.Save();
+            g.SetClip(contentArea);
 
-            // Apply transform ONLY for timeline entry bars
-            g.TranslateTransform(_panOffset.X, _panOffset.Y);
+            // Apply transform for timeline entry bars only
+            g.TranslateTransform(contentArea.X + _panOffset.X, contentArea.Y + _panOffset.Y);
             g.ScaleTransform(_zoom, _zoom);
 
-            // Draw timeline entries (with transform)
+            // Draw timeline entries
             foreach (var entry in _entries)
             {
                 DrawTimelineEntry(g, entry);
@@ -281,47 +292,54 @@ namespace Cad3PLogBrowser.Managers
             g.Restore(state);
         }
 
-        private void DrawTimeScale(Graphics g)
+        private void DrawTimeScale(Graphics g, int headerHeight)
         {
-            // Note: Called without transform already
+            // Note: Called without transform, positioned below header
+            const int SCALE_TOP = 10;
+
             using (var pen = new Pen(ThemeManager.BorderColor, 1f))
             using (var font = new Font("Segoe UI", 7f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                // Draw time markers every 100ms or appropriate interval
+                // Draw time markers
                 float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
                 int intervals = 10;
                 float intervalWidth = availableWidth / intervals;
                 long intervalMs = _totalDurationMs / intervals;
 
+                int baseY = headerHeight + SCALE_TOP;
+
                 for (int i = 0; i <= intervals; i++)
                 {
                     float x = LEFT_MARGIN + (i * intervalWidth);
-                    g.DrawLine(pen, x, TOP_MARGIN - 5, x, TOP_MARGIN);
+                    g.DrawLine(pen, x, baseY + 15, x, baseY + 20);
 
                     string label = $"{i * intervalMs}ms";
                     var size = g.MeasureString(label, font);
-                    g.DrawString(label, font, brush, x - size.Width / 2, TOP_MARGIN - 20);
+                    g.DrawString(label, font, brush, x - size.Width / 2, baseY);
                 }
 
                 // Draw baseline
-                g.DrawLine(pen, LEFT_MARGIN, TOP_MARGIN, LEFT_MARGIN + availableWidth, TOP_MARGIN);
+                g.DrawLine(pen, LEFT_MARGIN, baseY + 20, LEFT_MARGIN + availableWidth, baseY + 20);
             }
         }
 
-        private void DrawDepthLabels(Graphics g)
+        private void DrawDepthLabels(Graphics g, int headerHeight)
         {
-            // Note: Called without transform already
+            // Note: Called without transform, positioned below header
+            const int SCALE_TOP = 10;
 
             int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
 
             using (var font = new Font("Segoe UI", 7f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
+                int baseY = headerHeight + SCALE_TOP + 20;
+
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
-                    float y = TOP_MARGIN + (depth * ROW_HEIGHT) + ROW_HEIGHT / 2;
-                    g.DrawString($"D{depth}", font, brush, 5, y - 6);
+                    float y = baseY + (depth * ROW_HEIGHT);
+                    g.DrawString($"D{depth}", font, brush, 10, y + 5);
                 }
             }
         }
@@ -459,115 +477,58 @@ namespace Cad3PLogBrowser.Managers
             }
         }
 
-        private void DrawTitle(Graphics g)
+        /// <summary>
+        /// Draws a clean, professional header bar.
+        /// </summary>
+        private void DrawHeaderBar(Graphics g)
         {
-            // Note: Already called without transform
+            const int HEADER_HEIGHT = 50;
 
-            // Draw modern header bar
-            var headerHeight = 35;
+            // Draw header background
             var headerColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(37, 37, 38) : Color.FromArgb(240, 240, 240);
+                ? Color.FromArgb(37, 37, 38) : Color.FromArgb(245, 245, 245);
 
             using (var headerBrush = new SolidBrush(headerColor))
             {
-                g.FillRectangle(headerBrush, 0, 0, this.Width, headerHeight);
+                g.FillRectangle(headerBrush, 0, 0, this.Width, HEADER_HEIGHT);
             }
 
-            // Draw subtle border at bottom of header
+            // Draw bottom border
             using (var borderPen = new Pen(ThemeManager.BorderColor, 1))
             {
-                g.DrawLine(borderPen, 0, headerHeight, this.Width, headerHeight);
+                g.DrawLine(borderPen, 0, HEADER_HEIGHT - 1, this.Width, HEADER_HEIGHT - 1);
             }
 
-            // Draw icon and title
-            string title = $"?? Timeline View - Method Execution Over Time";
+            // Draw title (left side)
+            string title = "Timeline View - Method Execution Over Time";
 
-            using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
+            using (var font = new Font("Segoe UI", 10f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                g.DrawString(title, font, brush, 12, 8);
+                g.DrawString(title, font, brush, 10, 8);
             }
 
-            // Draw zoom level indicator
-            if (_zoom != 1.0f)
-            {
-                var zoomText = $"?? Zoom: {_zoom:F1}x";
-                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
-                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
-                {
-                    g.DrawString(zoomText, font, brush, 350, 25);
-                }
-            }
-
-            // Draw interactive instructions (right side of header)
-            string instructions = "??? Scroll: Zoom - Drag: Pan - Click: Jump to Log - Right-Click: Reset";
+            // Draw zoom indicator (left side, below title)
+            string zoomText = $"Zoom: {_zoom:P0}";
             using (var font = new Font("Segoe UI", 8f))
-            using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
+            using (var brush = new SolidBrush(Color.FromArgb(100, 100, 100)))
+            {
+                g.DrawString(zoomText, font, brush, 10, 28);
+            }
+
+            // Draw instructions (right side)
+            string instructions = "Mouse Wheel: Zoom | Drag: Pan | Click: Jump to Log | Right-Click: Reset";
+            using (var font = new Font("Segoe UI", 8f))
+            using (var brush = new SolidBrush(Color.FromArgb(100, 100, 100)))
             {
                 var size = g.MeasureString(instructions, font);
-                g.DrawString(instructions, font, brush, this.Width - size.Width - 12, 10);
-            }
-
-            // Draw legend if data exists
-            if (_entries.Count > 0)
-            {
-                var legendY = headerHeight + 10;
-                DrawLegend(g, 12, legendY);
+                g.DrawString(instructions, font, brush, this.Width - size.Width - 10, 18);
             }
         }
 
-        /// <summary>
-        /// Draws a color legend for the timeline.
-        /// </summary>
-        private void DrawLegend(Graphics g, int x, int y)
-        {
-            var legendItems = new[]
-            {
-                ("Length = Duration", Color.Empty),
-                ("Position = Time", Color.Empty),
-                ("", Color.Empty), // Spacer
-                ("Fast (<100ms)", Color.FromArgb(76, 175, 80)),
-                ("Medium (100-500ms)", Color.FromArgb(255, 152, 0)),
-                ("Slow (>500ms)", Color.FromArgb(244, 67, 54))
-            };
-
-            using (var font = new Font("Segoe UI", 8f))
-            {
-                var currentX = x;
-                foreach (var (text, color) in legendItems)
-                {
-                    if (string.IsNullOrEmpty(text))
-                    {
-                        currentX += 15; // Spacer
-                        continue;
-                    }
-
-                    // Draw color box if color specified
-                    if (color != Color.Empty)
-                    {
-                        using (var brush = new SolidBrush(color))
-                        using (var pen = new Pen(ThemeManager.BorderColor))
-                        {
-                            g.FillRectangle(brush, currentX, y + 2, 12, 12);
-                            g.DrawRectangle(pen, currentX, y + 2, 12, 12);
-                        }
-                        currentX += 18;
-                    }
-
-                    // Draw text
-                    using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
-                    {
-                        g.DrawString(text, font, brush, currentX, y);
-                        var size = g.MeasureString(text, font);
-                        currentX += (int)size.Width + 15;
-                    }
-                }
-            }
-        }
-
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
         // Mouse Events
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
 
         private void TimelinePanel_MouseWheel(object sender, MouseEventArgs e)
         {

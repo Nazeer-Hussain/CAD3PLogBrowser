@@ -208,10 +208,10 @@ namespace Cad3PLogBrowser.Managers
             if (totalDuration == 0)
                 totalDuration = 1; // Avoid division by zero
 
-            const float headerHeight = 65; // Header + legend space
-            float width = this.ClientSize.Width - 20; // Padding
-            float x = 10; // Start X position
-            float startY = headerHeight + 10; // Start below header with padding
+            // Content area dimensions (header is 50px, handled by transform in OnPaint)
+            float width = this.ClientSize.Width - 20; // 10px margin on each side
+            float x = 10; // Start X position with margin
+            float startY = 10; // Start Y with small margin (header offset handled by transform)
 
             // Layout root nodes or zoomed node
             var nodesToLayout = _zoomedNode != null 
@@ -251,9 +251,9 @@ namespace Cad3PLogBrowser.Managers
             }
         }
 
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
         // Rendering
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -269,18 +269,25 @@ namespace Cad3PLogBrowser.Managers
                 return;
             }
 
-            // Draw title/header first (fixed, no transform)
-            DrawTitle(g);
+            // LAYER 1: Draw background
+            g.Clear(ThemeManager.BackgroundColor);
 
-            // Save original transform
-            var originalTransform = g.Transform.Clone();
+            // LAYER 2: Draw header bar (ALWAYS at top, no transform)
+            DrawHeaderBar(g);
 
-            // Apply zoom and pan for content area
-            // Content starts at Y=65 (header 35px + legend 30px)
-            g.TranslateTransform(_panOffset.X, _panOffset.Y);
+            // LAYER 3: Setup content area (below header)
+            const int HEADER_HEIGHT = 50;
+            Rectangle contentArea = new Rectangle(0, HEADER_HEIGHT, this.ClientSize.Width, this.ClientSize.Height - HEADER_HEIGHT);
+
+            // Save state and setup clipping to content area
+            var state = g.Save();
+            g.SetClip(contentArea);
+
+            // Apply transform ONLY to content area
+            g.TranslateTransform(contentArea.X + _panOffset.X, contentArea.Y + _panOffset.Y);
             g.ScaleTransform(_zoom, _zoom);
 
-            // Draw nodes
+            // LAYER 4: Draw flame graph content
             var nodesToDraw = _zoomedNode != null 
                 ? new List<FlameGraphNode> { _zoomedNode }
                 : _rootNodes;
@@ -290,8 +297,8 @@ namespace Cad3PLogBrowser.Managers
                 DrawNodeRecursive(g, node);
             }
 
-            // Restore transform for any post-drawing
-            g.Transform = originalTransform;
+            // Restore state (remove clip and transform)
+            g.Restore(state);
         }
 
         private void DrawNodeRecursive(Graphics g, FlameGraphNode node)
@@ -448,111 +455,54 @@ namespace Cad3PLogBrowser.Managers
             }
         }
 
-        private void DrawTitle(Graphics g)
+        /// <summary>
+        /// Draws a clean, professional header bar.
+        /// </summary>
+        private void DrawHeaderBar(Graphics g)
         {
-            // Note: Already called without transform
+            const int HEADER_HEIGHT = 50;
 
-            // Draw modern header bar
-            var headerHeight = 35;
+            // Draw header background
             var headerColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(37, 37, 38) : Color.FromArgb(240, 240, 240);
+                ? Color.FromArgb(37, 37, 38) : Color.FromArgb(245, 245, 245);
 
             using (var headerBrush = new SolidBrush(headerColor))
             {
-                g.FillRectangle(headerBrush, 0, 0, this.Width, headerHeight);
+                g.FillRectangle(headerBrush, 0, 0, this.Width, HEADER_HEIGHT);
             }
 
-            // Draw subtle border at bottom of header
+            // Draw bottom border
             using (var borderPen = new Pen(ThemeManager.BorderColor, 1))
             {
-                g.DrawLine(borderPen, 0, headerHeight, this.Width, headerHeight);
+                g.DrawLine(borderPen, 0, HEADER_HEIGHT - 1, this.Width, HEADER_HEIGHT - 1);
             }
 
-            // Draw icon and title
+            // Draw title (left side)
             string title = _zoomedNode != null 
-                ? $"?? Flame Graph - Zoomed: {_zoomedNode.Name}"
-                : "?? Flame Graph - Performance Profiling";
+                ? $"Flame Graph - Zoomed: {_zoomedNode.Name}"
+                : "Flame Graph - Performance Profiling";
 
-            using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
+            using (var font = new Font("Segoe UI", 10f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                g.DrawString(title, font, brush, 12, 8);
+                g.DrawString(title, font, brush, 10, 8);
             }
 
-            // Draw interactive instructions (top right of header)
-            string instructions = "??? Scroll: Zoom - Drag: Pan - Click: Focus - Right-Click: Reset";
+            // Draw zoom indicator (left side, below title)
+            string zoomText = $"Zoom: {_zoom:P0}";
             using (var font = new Font("Segoe UI", 8f))
-            using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
+            using (var brush = new SolidBrush(Color.FromArgb(100, 100, 100)))
+            {
+                g.DrawString(zoomText, font, brush, 10, 28);
+            }
+
+            // Draw instructions (right side)
+            string instructions = "Mouse Wheel: Zoom | Drag: Pan | Click: Focus | Right-Click: Reset";
+            using (var font = new Font("Segoe UI", 8f))
+            using (var brush = new SolidBrush(Color.FromArgb(100, 100, 100)))
             {
                 var size = g.MeasureString(instructions, font);
-                g.DrawString(instructions, font, brush, this.Width - size.Width - 12, 10);
-            }
-
-            // Draw zoom level indicator (below title on left - no overlap)
-            if (_zoom != 1.0f)
-            {
-                var zoomText = $"[ZOOM] {_zoom:F1}x";
-                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
-                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
-                {
-                    g.DrawString(zoomText, font, brush, 350, 25);
-                }
-            }
-
-            // Draw legend if data exists
-            if (_rootNodes.Count > 0)
-            {
-                var legendY = 40;
-                DrawLegend(g, 12, legendY);
-            }
-        }
-
-        /// <summary>
-        /// Draws a color legend for the flame graph.
-        /// </summary>
-        private void DrawLegend(Graphics g, int x, int y)
-        {
-            var legendItems = new[]
-            {
-                ("Width = Time", Color.Empty),
-                ("Height = Depth", Color.Empty),
-                ("", Color.Empty), // Spacer
-                ("Fast (<100ms)", Color.FromArgb(76, 175, 80)),
-                ("Medium (100-500ms)", Color.FromArgb(255, 152, 0)),
-                ("Slow (>500ms)", Color.FromArgb(244, 67, 54))
-            };
-
-            using (var font = new Font("Segoe UI", 8f))
-            {
-                var currentX = x;
-                foreach (var (text, color) in legendItems)
-                {
-                    if (string.IsNullOrEmpty(text))
-                    {
-                        currentX += 15; // Spacer
-                        continue;
-                    }
-
-                    // Draw color box if color specified
-                    if (color != Color.Empty)
-                    {
-                        using (var brush = new SolidBrush(color))
-                        using (var pen = new Pen(ThemeManager.BorderColor))
-                        {
-                            g.FillRectangle(brush, currentX, y + 2, 12, 12);
-                            g.DrawRectangle(pen, currentX, y + 2, 12, 12);
-                        }
-                        currentX += 18;
-                    }
-
-                    // Draw text
-                    using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
-                    {
-                        g.DrawString(text, font, brush, currentX, y);
-                        var size = g.MeasureString(text, font);
-                        currentX += (int)size.Width + 15;
-                    }
-                }
+                g.DrawString(instructions, font, brush, this.Width - size.Width - 10, 18);
             }
         }
 
@@ -789,7 +739,7 @@ namespace Cad3PLogBrowser.Managers
                     DrawNodeRecursive(g, node);
                 }
 
-                DrawTitle(g);
+                DrawHeaderBar(g);
 
                 // Restore
                 _zoom = oldZoom;
