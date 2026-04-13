@@ -1076,19 +1076,10 @@ namespace Cad3PLogBrowser
 
         private void LayoutTrees()
         {
-            int h = mainSplitContainer.Panel1.ClientSize.Height;
-            int w = mainSplitContainer.Panel1.ClientSize.Width;
-            bool showCall = CallTree.Visible;
-            bool showApi  = ApiTree.Visible;
-
-            if (showCall && showApi)
-            {
-                int half = h / 2;
-                ApiTree.SetBounds(0, 0, w, half);
-                CallTree.SetBounds(0, half, w, h - half);
-            }
-            else if (showCall) CallTree.SetBounds(0, 0, w, h);
-            else if (showApi)  ApiTree.SetBounds(0, 0, w, h);
+            // NOTE: Trees now use Dock.Fill layout, so manual SetBounds is not needed
+            // Dock layout automatically handles sizing and positioning
+            // Trees are mutually exclusive (only one visible at a time)
+            // No manual layout required
         }
 
         // ── Tree → scroll log ─────────────────────────────────────────────────

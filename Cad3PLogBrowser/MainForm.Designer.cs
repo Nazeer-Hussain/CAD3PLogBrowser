@@ -743,11 +743,8 @@ namespace Cad3PLogBrowser
             // 
             // mainSplitContainer
             // 
-            this.mainSplitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.mainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainSplitContainer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.mainSplitContainer.Location = new System.Drawing.Point(0, 54);
             this.mainSplitContainer.Name = "mainSplitContainer";
             // 
             // mainSplitContainer.Panel1
@@ -763,7 +760,6 @@ namespace Cad3PLogBrowser
             this.mainSplitContainer.Panel2.AccessibleName = "TabPanel";
             this.mainSplitContainer.Panel2.Controls.Add(this.mainTabControl);
             this.mainSplitContainer.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
-            this.mainSplitContainer.Size = new System.Drawing.Size(987, 525);
             this.mainSplitContainer.SplitterDistance = 285;
             this.mainSplitContainer.TabIndex = 3;
             this.mainSplitContainer.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer1_SplitterMoved);
