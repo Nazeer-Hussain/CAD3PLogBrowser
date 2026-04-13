@@ -150,8 +150,8 @@ namespace Cad3PLogBrowser.Managers
 
                 // Draw all components
                 DrawHeaderBar(g);
-                DrawTimeScale(g, 50);
-                DrawDepthLabels(g, 50);
+
+                // Note: Time scale and entries drawn with transform in main OnPaint
 
                 foreach (var entry in _entries)
                 {
@@ -214,29 +214,32 @@ namespace Cad3PLogBrowser.Managers
                 return Color.FromArgb(255, 182, 193); // Light red
         }
 
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
         // Layout
-        // ??????????????????????????????????????????????????????????????????????
+        // ======================================================================
 
         private void CalculateLayout()
         {
-            // Content starts at Y=0 in transform space (header offset handled by OnPaint transform)
-            const int CONTENT_START = 40; // Space for time scale labels
+            // Timeline layout: X position represents TIME, Y position represents DEPTH
+            // Zoom affects ONLY horizontal (time) scale
+
+            const int TIME_SCALE_HEIGHT = 30; // Space for time axis labels
+            const int FIRST_ROW_Y = TIME_SCALE_HEIGHT + 10; // First entry starts here
 
             float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
 
             foreach (var entry in _entries)
             {
-                // Calculate X position based on start time
+                // X position: Based on start time (will be affected by horizontal zoom)
                 float offsetMs = (float)(entry.StartTime - _startTime).TotalMilliseconds;
                 float x = LEFT_MARGIN + (offsetMs / _totalDurationMs) * availableWidth;
 
-                // Calculate width based on duration
+                // Width: Based on duration (will be affected by horizontal zoom)
                 float width = (entry.DurationMs / (float)_totalDurationMs) * availableWidth;
                 width = Math.Max(2, width); // Minimum 2px width
 
-                // Calculate Y position based on depth (relative to content area)
-                float y = CONTENT_START + (entry.Depth * ROW_HEIGHT);
+                // Y position: Based on depth (NOT affected by zoom - rows stay same height)
+                float y = FIRST_ROW_Y + (entry.Depth * ROW_HEIGHT);
 
                 entry.Bounds = new RectangleF(x, y, width, ROW_HEIGHT - 2);
             }
@@ -260,86 +263,106 @@ namespace Cad3PLogBrowser.Managers
                 return;
             }
 
-            // LAYER 1: Draw background
+            // LAYER 1: Clear background
             g.Clear(ThemeManager.BackgroundColor);
 
-            // LAYER 2: Draw header bar (ALWAYS at top, no transform)
+            // LAYER 2: Draw fixed header (no transform)
             DrawHeaderBar(g);
 
-            // LAYER 3: Setup content area (below header)
+            // LAYER 3: Setup content area
             const int HEADER_HEIGHT = 50;
-            Rectangle contentArea = new Rectangle(0, HEADER_HEIGHT, this.ClientSize.Width, this.ClientSize.Height - HEADER_HEIGHT);
+            const int TIME_SCALE_HEIGHT = 30;
 
-            // LAYER 4: Draw time scale and depth labels (no transform, but use content area Y offset)
-            DrawTimeScale(g, HEADER_HEIGHT);
-            DrawDepthLabels(g, HEADER_HEIGHT);
-
-            // LAYER 5: Setup clipping and transform for timeline entries
+            // Draw time scale aligned with content (will be transformed)
             var state = g.Save();
-            g.SetClip(contentArea);
 
-            // Apply transform for timeline entry bars only
-            g.TranslateTransform(contentArea.X + _panOffset.X, contentArea.Y + _panOffset.Y);
-            g.ScaleTransform(_zoom, _zoom);
+            // Apply HORIZONTAL-ONLY transform for time axis
+            g.TranslateTransform(_panOffset.X, 0); // Only X offset
+            g.ScaleTransform(_zoom, 1.0f); // Only X zoom (time scaling)
 
-            // Draw timeline entries
+            // Draw time scale with horizontal transform
+            DrawTimeScaleTransformed(g, HEADER_HEIGHT);
+
+            // Draw timeline entries with same horizontal transform
             foreach (var entry in _entries)
             {
                 DrawTimelineEntry(g, entry);
             }
 
-            // Restore state
             g.Restore(state);
+
+            // Draw depth labels WITHOUT transform (fixed on left)
+            DrawDepthLabels(g, HEADER_HEIGHT);
         }
 
-        private void DrawTimeScale(Graphics g, int headerHeight)
+        /// <summary>
+        /// Draws time scale with horizontal transform applied (aligns with entries).
+        /// </summary>
+        private void DrawTimeScaleTransformed(Graphics g, int headerHeight)
         {
-            // Note: Called without transform, positioned below header
-            const int SCALE_TOP = 10;
+            const int TIME_SCALE_TOP = 10;
+            int baseY = headerHeight + TIME_SCALE_TOP;
 
             using (var pen = new Pen(ThemeManager.BorderColor, 1f))
             using (var font = new Font("Segoe UI", 7f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                // Draw time markers
+                // Draw time markers aligned with timeline entries
                 float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
                 int intervals = 10;
-                float intervalWidth = availableWidth / intervals;
                 long intervalMs = _totalDurationMs / intervals;
-
-                int baseY = headerHeight + SCALE_TOP;
 
                 for (int i = 0; i <= intervals; i++)
                 {
-                    float x = LEFT_MARGIN + (i * intervalWidth);
+                    // X position (affected by horizontal zoom/pan)
+                    float x = LEFT_MARGIN + (i * availableWidth / intervals);
+
+                    // Draw tick mark
                     g.DrawLine(pen, x, baseY + 15, x, baseY + 20);
 
+                    // Draw time label (reset transform for text)
+                    var textState = g.Save();
+                    g.ResetTransform(); // Remove transform for text readability
+
+                    // Calculate screen position
+                    float screenX = x * _zoom + _panOffset.X;
                     string label = $"{i * intervalMs}ms";
                     var size = g.MeasureString(label, font);
-                    g.DrawString(label, font, brush, x - size.Width / 2, baseY);
+                    g.DrawString(label, font, brush, screenX - size.Width / 2, baseY);
+
+                    g.Restore(textState);
                 }
 
-                // Draw baseline
-                g.DrawLine(pen, LEFT_MARGIN, baseY + 20, LEFT_MARGIN + availableWidth, baseY + 20);
+                // Draw baseline (affected by horizontal zoom/pan)
+                g.DrawLine(pen, LEFT_MARGIN, baseY + 20, 
+                          LEFT_MARGIN + availableWidth, baseY + 20);
             }
         }
 
+        /// <summary>
+        /// Draws depth labels on the left (NOT transformed - fixed position).
+        /// </summary>
         private void DrawDepthLabels(Graphics g, int headerHeight)
         {
-            // Note: Called without transform, positioned below header
-            const int SCALE_TOP = 10;
-
+            const int TIME_SCALE_HEIGHT = 30;
             int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
 
-            using (var font = new Font("Segoe UI", 7f))
+            using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                int baseY = headerHeight + SCALE_TOP + 20;
+                int baseY = headerHeight + TIME_SCALE_HEIGHT + 10;
 
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
-                    float y = baseY + (depth * ROW_HEIGHT);
-                    g.DrawString($"D{depth}", font, brush, 10, y + 5);
+                    float y = baseY + (depth * ROW_HEIGHT) + (ROW_HEIGHT / 2) - 4;
+                    g.DrawString($"L{depth}", font, brush, 10, y);
+                }
+
+                // Draw vertical separator line
+                using (var pen = new Pen(ThemeManager.BorderColor, 1f))
+                {
+                    g.DrawLine(pen, LEFT_MARGIN - 5, baseY, 
+                              LEFT_MARGIN - 5, baseY + ((maxDepth + 1) * ROW_HEIGHT));
                 }
             }
         }
@@ -532,6 +555,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void TimelinePanel_MouseWheel(object sender, MouseEventArgs e)
         {
+            // Timeline zoom: affects ONLY horizontal (time) scale
             float delta = e.Delta > 0 ? 1.2f : 0.8f;
             float newZoom = _zoom * delta;
 
@@ -539,25 +563,22 @@ namespace Cad3PLogBrowser.Managers
             {
                 _zoom = newZoom;
 
-                // Constrain pan offset after zoom change
-                // When zooming out below 1.0x, reset pan to keep content centered
+                // Timeline: Reset/constrain pan after zoom change
                 if (_zoom < 1.0f)
                 {
-                    // At zoom < 1.0, content is smaller than viewport, center it
+                    // At zoom < 1.0, content fits horizontally - reset pan
                     _panOffset.X = 0;
-                    _panOffset.Y = 0;
                 }
                 else
                 {
-                    // Constrain pan to valid range for current zoom
-                    float maxPanX = this.Width * 0.3f;
-                    float maxPanY = 50f;
-                    float minPanX = -this.Width * (_zoom - 1);
-                    float minPanY = -50f;
-
+                    // Constrain horizontal pan to valid range
+                    float maxPanX = 0; // Can't pan right
+                    float minPanX = -this.Width * (_zoom - 1); // Scales with zoom
                     _panOffset.X = Math.Max(minPanX, Math.Min(maxPanX, _panOffset.X));
-                    _panOffset.Y = Math.Max(minPanY, Math.Min(maxPanY, _panOffset.Y));
                 }
+
+                // Always keep Y offset at zero (no vertical scrolling)
+                _panOffset.Y = 0;
 
                 CalculateLayout();
                 Invalidate();
@@ -578,22 +599,17 @@ namespace Cad3PLogBrowser.Managers
         {
             if (_isDragging)
             {
-                // Pan with boundaries to prevent graphics showing in wrong places
+                // Timeline: HORIZONTAL panning only (scroll through time)
                 float deltaX = e.X - _lastMousePos.X;
-                float deltaY = e.Y - _lastMousePos.Y;
-
                 float newPanX = _panOffset.X + deltaX;
-                float newPanY = _panOffset.Y + deltaY;
 
-                // Constrain pan to reasonable boundaries
-                // For timeline, mainly constrain horizontal (time axis) panning
-                float maxPanX = this.Width * 0.3f;
-                float maxPanY = 50f; // Minimal vertical panning
-                float minPanX = -this.Width * Math.Max(0, _zoom - 1);
-                float minPanY = -50f;
+                // Constrain horizontal pan based on zoom
+                // Allow panning to see content beyond viewport when zoomed in
+                float maxPanX = 0; // Can't pan right (future time)
+                float minPanX = -this.Width * Math.Max(0, _zoom - 1); // Can pan left when zoomed
 
                 _panOffset.X = Math.Max(minPanX, Math.Min(maxPanX, newPanX));
-                _panOffset.Y = Math.Max(minPanY, Math.Min(maxPanY, newPanY));
+                _panOffset.Y = 0; // Always zero - no vertical panning
 
                 _lastMousePos = e.Location;
                 Invalidate();
