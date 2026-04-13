@@ -577,6 +577,27 @@ namespace Cad3PLogBrowser.Managers
             if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM)
             {
                 _zoom = newZoom;
+
+                // Constrain pan offset after zoom change
+                // When zooming out below 1.0x, reset pan to keep content centered
+                if (_zoom < 1.0f)
+                {
+                    // At zoom < 1.0, content is smaller than viewport, center it
+                    _panOffset.X = 0;
+                    _panOffset.Y = 0;
+                }
+                else
+                {
+                    // Constrain pan to valid range for current zoom
+                    float maxPanX = this.Width * 0.3f;
+                    float maxPanY = 50f;
+                    float minPanX = -this.Width * (_zoom - 1);
+                    float minPanY = -50f;
+
+                    _panOffset.X = Math.Max(minPanX, Math.Min(maxPanX, _panOffset.X));
+                    _panOffset.Y = Math.Max(minPanY, Math.Min(maxPanY, _panOffset.Y));
+                }
+
                 CalculateLayout();
                 Invalidate();
             }
