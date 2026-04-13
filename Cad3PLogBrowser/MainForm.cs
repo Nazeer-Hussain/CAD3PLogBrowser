@@ -60,7 +60,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Performance, LogDetails, CallGraph }
+        public enum TabId { Log, Raw, Performance, LogDetails, CallGraph, FlameGraph, Timeline }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -81,9 +81,12 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return logTab;
+                case TabId.Raw:         return rawTab;
                 case TabId.Performance: return performanceTab;
                 case TabId.LogDetails:  return logDetailTab;
                 case TabId.CallGraph:   return callGraphTab;
+                case TabId.FlameGraph:  return flameGraphTab;
+                case TabId.Timeline:    return timelineTab;
                 default:                return logTab;
             }
         }
@@ -93,9 +96,12 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return showTab1MenuItem;
-                case TabId.Performance: return showTab2MenuItem;
-                case TabId.LogDetails:  return showTab3MenuItem;
-                case TabId.CallGraph:   return showTab4MenuItem;
+                case TabId.Raw:         return showTab2MenuItem;
+                case TabId.Performance: return showTab3MenuItem;
+                case TabId.LogDetails:  return showTab4MenuItem;
+                case TabId.CallGraph:   return null; // No specific menu item
+                case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
+                case TabId.Timeline:    return showTimelineTabMenuItem;
                 default:                return null;
             }
         }
@@ -342,6 +348,22 @@ namespace Cad3PLogBrowser
                     line.BackColour = ThemeManager.BackgroundColor;
 
                 _virtualLines[i] = line;
+            }
+        }
+
+        public void ApplyToolbarVisibility()
+        {
+            mainToolStrip.Visible = _appSettings.ShowToolbar;
+            showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
+        }
+
+        public void ApplyFontSettings()
+        {
+            LoadLogFont();
+            // Refresh the log view to apply new font
+            if (logListView.VirtualMode && _virtualLines.Count > 0)
+            {
+                logListView.Invalidate();
             }
         }
 
