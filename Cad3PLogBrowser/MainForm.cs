@@ -20,6 +20,8 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
+        private DependencyGraphPanel      _dependencyGraphPanel;
+        private TabPage                   _dependencyGraphTab;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
