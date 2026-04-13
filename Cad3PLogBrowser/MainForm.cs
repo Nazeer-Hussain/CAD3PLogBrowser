@@ -2280,16 +2280,23 @@ namespace Cad3PLogBrowser
         {
             try
             {
-                // Try to open CHM help file if it exists
-                string helpFilePath = Path.Combine(Application.StartupPath, "Cad3PLogBrowser.chm");
+                // Try to open HTML help file
+                string helpFilePath = Path.Combine(Application.StartupPath, "Help", "UserGuide.html");
+
+                // Fallback to root directory if Help subfolder doesn't exist
+                if (!File.Exists(helpFilePath))
+                {
+                    helpFilePath = Path.Combine(Application.StartupPath, "UserGuide.html");
+                }
 
                 if (File.Exists(helpFilePath))
                 {
+                    // Open HTML help file in default browser
                     System.Diagnostics.Process.Start(helpFilePath);
                 }
                 else
                 {
-                    // If CHM doesn't exist, show keyboard shortcuts as fallback
+                    // If help file doesn't exist, show fallback message
                     MessageBox.Show(Resources.MSG_HELP_FILE_NOT_FOUND,
                         Resources.TITLE, 
                         MessageBoxButtons.OK, 
