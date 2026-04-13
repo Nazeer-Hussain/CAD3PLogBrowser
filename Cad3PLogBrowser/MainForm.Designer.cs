@@ -753,9 +753,9 @@ namespace Cad3PLogBrowser
             // mainSplitContainer.Panel1
             // 
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
-            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
-            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
+            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
             // mainSplitContainer.Panel2
