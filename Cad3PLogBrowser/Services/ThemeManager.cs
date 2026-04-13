@@ -144,6 +144,19 @@ namespace Cad3PLogBrowser.Services
                     treeView.ForeColor = ForegroundColor;
                     treeView.LineColor = BorderColor;
                     treeView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
+
+                    // IMPORTANT: Enable custom draw for dark theme to make expand/collapse symbols visible
+                    if (_currentTheme == Theme.Dark)
+                    {
+                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawAll;
+                        treeView.DrawNode -= TreeView_DrawNode; // Remove existing handler
+                        treeView.DrawNode += TreeView_DrawNode; // Add handler
+                    }
+                    else
+                    {
+                        treeView.DrawMode = TreeViewDrawMode.Normal;
+                        treeView.DrawNode -= TreeView_DrawNode;
+                    }
                 }
                 else if (control is TabControl tabControl)
                 {
@@ -447,6 +460,97 @@ namespace Cad3PLogBrowser.Services
             using (SolidBrush textBrush = new SolidBrush(tabForeColor))
             {
                 g.DrawString(tabPage.Text, tabControl.Font, textBrush, tabBounds, stringFormat);
+            }
+        }
+
+        // ?? Custom TreeView Drawing for Dark Theme - Visible Expand/Collapse ????
+        private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
+        {
+            TreeView treeView = sender as TreeView;
+            if (treeView == null) return;
+
+            // Use default drawing but with custom colors
+            e.DrawDefault = false;
+
+            // Draw background
+            Color backColor;
+            if ((e.State & TreeNodeStates.Selected) != 0)
+            {
+                backColor = DarkHighlight; // Blue for selected
+            }
+            else if ((e.State & TreeNodeStates.Hot) != 0)
+            {
+                backColor = Color.FromArgb(51, 51, 52); // Subtle hover
+            }
+            else
+            {
+                backColor = DarkBackground;
+            }
+
+            using (SolidBrush brush = new SolidBrush(backColor))
+            {
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            }
+
+            // Draw expand/collapse glyph if node has children
+            if (e.Node.Nodes.Count > 0)
+            {
+                Rectangle glyphRect = new Rectangle(e.Bounds.Left - 15, e.Bounds.Top + (e.Bounds.Height - 9) / 2, 9, 9);
+
+                // Draw glyph background
+                using (SolidBrush glyphBrush = new SolidBrush(Color.FromArgb(62, 62, 64)))
+                {
+                    e.Graphics.FillRectangle(glyphBrush, glyphRect);
+                }
+
+                // Draw glyph border
+                using (Pen glyphPen = new Pen(Color.FromArgb(160, 160, 160)))
+                {
+                    e.Graphics.DrawRectangle(glyphPen, glyphRect);
+                }
+
+                // Draw + or - symbol
+                using (Pen symbolPen = new Pen(Color.FromArgb(220, 220, 220), 1.5f))
+                {
+                    // Horizontal line (minus)
+                    e.Graphics.DrawLine(symbolPen, 
+                        glyphRect.Left + 2, glyphRect.Top + 4, 
+                        glyphRect.Right - 2, glyphRect.Top + 4);
+
+                    // Vertical line (only if collapsed - makes it a plus)
+                    if (!e.Node.IsExpanded)
+                    {
+                        e.Graphics.DrawLine(symbolPen, 
+                            glyphRect.Left + 4, glyphRect.Top + 2, 
+                            glyphRect.Left + 4, glyphRect.Bottom - 2);
+                    }
+                }
+            }
+
+            // Draw node icon if tree has ImageList
+            if (treeView.ImageList != null && e.Node.ImageIndex >= 0)
+            {
+                int imageX = e.Bounds.Left + 2;
+                int imageY = e.Bounds.Top + (e.Bounds.Height - treeView.ImageList.ImageSize.Height) / 2;
+                e.Graphics.DrawImage(treeView.ImageList.Images[e.Node.ImageIndex], imageX, imageY);
+            }
+
+            // Draw node text
+            Color textColor = (e.State & TreeNodeStates.Selected) != 0 
+                ? DarkHighlightText 
+                : DarkForeground;
+
+            using (SolidBrush textBrush = new SolidBrush(textColor))
+            {
+                int textX = e.Bounds.Left + (treeView.ImageList != null ? treeView.ImageList.ImageSize.Width + 4 : 2);
+                Rectangle textRect = new Rectangle(textX, e.Bounds.Top, e.Bounds.Width - textX, e.Bounds.Height);
+
+                StringFormat format = new StringFormat();
+                format.Alignment = StringAlignment.Near;
+                format.LineAlignment = StringAlignment.Center;
+                format.Trimming = StringTrimming.EllipsisCharacter;
+
+                e.Graphics.DrawString(e.Node.Text, treeView.Font, textBrush, textRect, format);
             }
         }
 

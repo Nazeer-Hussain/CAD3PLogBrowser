@@ -774,7 +774,7 @@ namespace Cad3PLogBrowser
             | System.Windows.Forms.AnchorStyles.Right)));
             this.treeSearchTextBox.Location = new System.Drawing.Point(3, 3);
             this.treeSearchTextBox.Name = "treeSearchTextBox";
-            this.treeSearchTextBox.Size = new System.Drawing.Size(279, 20);
+            this.treeSearchTextBox.Size = new System.Drawing.Size(279, 22);
             this.treeSearchTextBox.TabIndex = 3;
             this.treeSearchTextBox.Text = "";
             this.treeSearchTextBox.ForeColor = System.Drawing.SystemColors.GrayText;
@@ -788,9 +788,9 @@ namespace Cad3PLogBrowser
             this.ApiTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ApiTree.Location = new System.Drawing.Point(-1, 26);
+            this.ApiTree.Location = new System.Drawing.Point(0, 32);
             this.ApiTree.Name = "ApiTree";
-            this.ApiTree.Size = new System.Drawing.Size(286, 208);
+            this.ApiTree.Size = new System.Drawing.Size(283, 488);
             this.ApiTree.TabIndex = 2;
             this.ApiTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ApiTree_AfterSelect);
             this.ApiTree.Click += new System.EventHandler(this.ApiTree_Click);
@@ -804,9 +804,9 @@ namespace Cad3PLogBrowser
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.CallTree.Location = new System.Drawing.Point(-1, 26);
+            this.CallTree.Location = new System.Drawing.Point(0, 32);
             this.CallTree.Name = "CallTree";
-            this.CallTree.Size = new System.Drawing.Size(406, 186);
+            this.CallTree.Size = new System.Drawing.Size(283, 488);
             this.CallTree.TabIndex = 0;
             this.CallTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.CallTree_AfterSelect);
             this.CallTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseClick);
