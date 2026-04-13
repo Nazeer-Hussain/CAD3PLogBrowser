@@ -1,4 +1,4 @@
-# ?? Help File Images - Guide
+﻿# ?? Help File Images - Guide
 
 This document lists all images needed for the comprehensive help file.
 
