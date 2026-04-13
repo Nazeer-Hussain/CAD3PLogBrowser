@@ -78,6 +78,9 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Managers\AiAssistantPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Managers\DependencyGraphPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -90,6 +93,7 @@
     <Compile Include="Managers\TreeViewManager.cs" />
     <Compile Include="Managers\LogViewManager.cs" />
     <Compile Include="Managers\PerformanceViewManager.cs" />
+    <Compile Include="Models\AggregateStats.cs" />
     <Compile Include="Models\ApiCallNode.cs" />
     <Compile Include="Models\CallStackNode.cs" />
     <Compile Include="Models\FilterCriteria.cs" />
@@ -97,6 +101,7 @@
     <Compile Include="Models\PerformanceStatistics.cs" />
     <Compile Include="Models\SearchResult.cs" />
     <Compile Include="Models\VirtualLogLine.cs" />
+    <Compile Include="Services\Analysis\AiLogService.cs" />
     <Compile Include="Services\Analysis\DependencyGraphService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />

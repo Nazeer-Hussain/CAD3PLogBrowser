@@ -2,163 +2,278 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using Cad3PLogBrowser.Services.Analysis;
 
 namespace Cad3PLogBrowser.Managers
 {
     /// <summary>
-    /// L1–L6: AI Assistant tab panel.
-    /// Provides buttons for AI Summarize, Anomaly Detection, Root Cause,
-    /// Bug Report, and a chat interface for conversational log analysis.
-    /// IMPORTANT: Only structured summaries are sent to the API — never raw logs.
+    /// AI Assistant Panel - provides intelligent log analysis capabilities.
+    /// Features: Natural language queries, anomaly detection, performance insights, pattern recognition.
     /// </summary>
     public class AiAssistantPanel : Panel
     {
-        // ── Events ────────────────────────────────────────────────────────────
-        public event EventHandler<AiRequest> RequestSubmitted;
+        private TextBox _queryTextBox;
+        private Button _askButton;
+        private Button _summarizeButton;
+        private Button _detectAnomaliesButton;
+        private Button _analyzePerformanceButton;
+        private Button _findPatternsButton;
+        private RichTextBox _responseTextBox;
+        private Label _statusLabel;
+        private Panel _buttonPanel;
+        private bool _isThinking;
 
-        // ── Controls ─────────────────────────────────────────────────────────
-        private readonly RichTextBox _outputBox;
-        private readonly TextBox     _chatInput;
-        private readonly Button      _summarizeBtn, _anomalyBtn, _rootCauseBtn,
-                                     _bugReportBtn,  _sendChatBtn, _clearBtn;
-        private readonly Label       _noKeyLabel;
-        private readonly Panel       _buttonBar;
+        public event EventHandler<string> QuerySubmitted;
+        public event EventHandler SummarizeRequested;
+        public event EventHandler DetectAnomaliesRequested;
+        public event EventHandler AnalyzePerformanceRequested;
+        public event EventHandler FindPatternsRequested;
 
         public AiAssistantPanel()
         {
-            BackColor = Color.FromArgb(30, 32, 38);
+            InitializeComponent();
+        }
 
-            // Warning label shown when no API key
-            _noKeyLabel = new Label
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+
+            // Status label
+            _statusLabel = new Label
             {
-                Text      = "⚠  No Claude API key — add it in Options → Settings → AI tab.",
-                ForeColor = Color.FromArgb(255, 200, 80),
-                Dock      = DockStyle.Top,
-                Height    = 24,
-                Padding   = new Padding(4, 4, 0, 0),
-                Font      = new Font("Segoe UI", 8.5f)
+                Text = "?? AI Assistant - Ask questions about your log file",
+                AutoSize = false,
+                Height = 30,
+                Dock = DockStyle.Top,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Padding = new Padding(10, 5, 10, 5)
             };
 
-            // Output area
-            _outputBox = new RichTextBox
+            // Button panel
+            _buttonPanel = new Panel
             {
-                Dock      = DockStyle.Fill,
-                ReadOnly  = true,
-                BackColor = Color.FromArgb(22, 24, 30),
-                ForeColor = Color.FromArgb(210, 220, 235),
-                Font      = new Font("Consolas", 9f),
-                BorderStyle = BorderStyle.None,
-                ScrollBars  = RichTextBoxScrollBars.Vertical
+                Height = 80,
+                Dock = DockStyle.Top,
+                Padding = new Padding(10)
             };
 
-            // Chat input
-            var chatPanel = new Panel { Dock = DockStyle.Bottom, Height = 36 };
-            _chatInput = new TextBox
+            // Quick action buttons
+            _summarizeButton = new Button
             {
-                Dock        = DockStyle.Fill,
-                PlaceholderText = "Ask a question about this log session...",
-                Font        = new Font("Segoe UI", 9.5f),
-                BackColor   = Color.FromArgb(40, 44, 54),
-                ForeColor   = Color.FromArgb(210, 220, 235),
-                BorderStyle = BorderStyle.FixedSingle
+                Text = "?? Summarize",
+                Width = 120,
+                Height = 30,
+                Location = new Point(10, 10),
+                Font = new Font("Segoe UI", 9f)
             };
-            _chatInput.KeyDown += (s, e) =>
+            _summarizeButton.Click += (s, e) => SummarizeRequested?.Invoke(this, EventArgs.Empty);
+
+            _detectAnomaliesButton = new Button
             {
-                if (e.KeyCode == Keys.Enter && !e.Shift) { e.SuppressKeyPress = true; SendChat(); }
+                Text = "?? Detect Anomalies",
+                Width = 140,
+                Height = 30,
+                Location = new Point(140, 10),
+                Font = new Font("Segoe UI", 9f)
             };
-            _sendChatBtn = MakeButton("Send", 80, DockStyle.Right);
-            _sendChatBtn.Click += (s, e) => SendChat();
-            chatPanel.Controls.Add(_chatInput);
-            chatPanel.Controls.Add(_sendChatBtn);
+            _detectAnomaliesButton.Click += (s, e) => DetectAnomaliesRequested?.Invoke(this, EventArgs.Empty);
 
-            // Button bar
-            _buttonBar = new Panel { Dock = DockStyle.Bottom, Height = 34, BackColor = Color.FromArgb(35, 38, 46) };
-            _summarizeBtn = MakeButton("📋 Summarize",   110, DockStyle.Left);
-            _anomalyBtn   = MakeButton("🔍 Anomalies",   100, DockStyle.Left);
-            _rootCauseBtn = MakeButton("🎯 Root Cause",  100, DockStyle.Left);
-            _bugReportBtn = MakeButton("🐛 Bug Report",  100, DockStyle.Left);
-            _clearBtn     = MakeButton("🗑 Clear",         70, DockStyle.Right);
-            _summarizeBtn.Click += (s, e) => Raise(AiRequestType.Summarize);
-            _anomalyBtn.Click   += (s, e) => Raise(AiRequestType.Anomaly);
-            _rootCauseBtn.Click += (s, e) => Raise(AiRequestType.RootCause);
-            _bugReportBtn.Click += (s, e) => Raise(AiRequestType.BugReport);
-            _clearBtn.Click     += (s, e) => { _outputBox.Clear(); _chatHistory.Clear(); };
-            foreach (var btn in new[] { _summarizeBtn, _anomalyBtn, _rootCauseBtn, _bugReportBtn, _clearBtn })
-                _buttonBar.Controls.Add(btn);
+            _analyzePerformanceButton = new Button
+            {
+                Text = "? Performance",
+                Width = 120,
+                Height = 30,
+                Location = new Point(290, 10),
+                Font = new Font("Segoe UI", 9f)
+            };
+            _analyzePerformanceButton.Click += (s, e) => AnalyzePerformanceRequested?.Invoke(this, EventArgs.Empty);
 
-            Controls.Add(_outputBox);
-            Controls.Add(_noKeyLabel);
-            Controls.Add(chatPanel);
-            Controls.Add(_buttonBar);
+            _findPatternsButton = new Button
+            {
+                Text = "?? Find Patterns",
+                Width = 120,
+                Height = 30,
+                Location = new Point(420, 10),
+                Font = new Font("Segoe UI", 9f)
+            };
+            _findPatternsButton.Click += (s, e) => FindPatternsRequested?.Invoke(this, EventArgs.Empty);
+
+            _buttonPanel.Controls.AddRange(new Control[] { 
+                _summarizeButton, _detectAnomaliesButton, _analyzePerformanceButton, _findPatternsButton 
+            });
+
+            // Query input panel
+            var queryPanel = new Panel
+            {
+                Height = 60,
+                Dock = DockStyle.Top,
+                Padding = new Padding(10)
+            };
+
+            var queryLabel = new Label
+            {
+                Text = "Ask a question:",
+                AutoSize = true,
+                Location = new Point(10, 5),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            _queryTextBox = new TextBox
+            {
+                Width = 550,
+                Height = 25,
+                Location = new Point(10, 25),
+                Font = new Font("Segoe UI", 9f),
+                Text = "e.g., What caused the errors? Which APIs are slowest?",
+                ForeColor = SystemColors.GrayText
+            };
+            _queryTextBox.GotFocus += (s, e) =>
+            {
+                if (_queryTextBox.ForeColor == SystemColors.GrayText)
+                {
+                    _queryTextBox.Text = "";
+                    _queryTextBox.ForeColor = SystemColors.WindowText;
+                }
+            };
+            _queryTextBox.LostFocus += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(_queryTextBox.Text))
+                {
+                    _queryTextBox.Text = "e.g., What caused the errors? Which APIs are slowest?";
+                    _queryTextBox.ForeColor = SystemColors.GrayText;
+                }
+            };
+            _queryTextBox.KeyDown += QueryTextBox_KeyDown;
+
+            _askButton = new Button
+            {
+                Text = "Ask",
+                Width = 80,
+                Height = 25,
+                Location = new Point(570, 25),
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+            _askButton.Click += AskButton_Click;
+
+            queryPanel.Controls.AddRange(new Control[] { queryLabel, _queryTextBox, _askButton });
+
+            // Response text box
+            _responseTextBox = new RichTextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                Font = new Font("Consolas", 9f),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(10),
+                Text = "Welcome to AI Assistant!\n\n" +
+                       "Quick Actions:\n" +
+                       "  � Summarize - Get an overview of the log session\n" +
+                       "  � Detect Anomalies - Find unusual patterns or issues\n" +
+                       "  � Performance - Analyze slow operations\n" +
+                       "  � Find Patterns - Identify recurring issues\n\n" +
+                       "Or ask a question in natural language:\n" +
+                       "  � \"What caused the errors?\"\n" +
+                       "  � \"Which APIs are the slowest?\"\n" +
+                       "  � \"Are there any performance issues?\"\n" +
+                       "  � \"Show me anomalies\"\n\n" +
+                       "Note: AI analysis is based on log statistics and patterns, " +
+                       "not external API calls (works offline)."
+            };
+
+            // Add controls to panel
+            this.Controls.Add(_responseTextBox);
+            this.Controls.Add(queryPanel);
+            this.Controls.Add(_buttonPanel);
+            this.Controls.Add(_statusLabel);
+
+            this.ResumeLayout();
         }
 
-        // ── Chat history ──────────────────────────────────────────────────────
-        private readonly List<(string role, string content)> _chatHistory = new List<(string, string)>();
-
-        private void SendChat()
+        private void QueryTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            string q = _chatInput.Text.Trim();
-            if (string.IsNullOrEmpty(q)) return;
-            _chatInput.Clear();
-            Raise(AiRequestType.Chat, q);
+            if (e.KeyCode == Keys.Enter && !e.Shift)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                AskButton_Click(sender, e);
+            }
         }
 
-        private void Raise(AiRequestType type, string extra = null) =>
-            RequestSubmitted?.Invoke(this, new AiRequest { Type = type, UserMessage = extra });
-
-        // ── Public methods called by MainForm ─────────────────────────────────
-        public void ShowApiKeyWarning(bool missing) => _noKeyLabel.Visible = missing;
-
-        public void SetBusy(bool busy)
+        private void AskButton_Click(object sender, EventArgs e)
         {
-            foreach (var btn in new[] { _summarizeBtn, _anomalyBtn, _rootCauseBtn, _bugReportBtn, _sendChatBtn })
-                btn.Enabled = !busy;
-            _chatInput.Enabled = !busy;
-            if (busy) AppendOutput("\n⏳ Thinking...");
+            string query = _queryTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(query))
+                return;
+
+            QuerySubmitted?.Invoke(this, query);
         }
 
-        public void AppendOutput(string text)
+        public void ShowThinking(bool thinking)
         {
-            if (InvokeRequired) { Invoke((Action<string>)AppendOutput, text); return; }
-            _outputBox.AppendText(text + "\n");
-            _outputBox.ScrollToCaret();
+            _isThinking = thinking;
+
+            if (thinking)
+            {
+                _statusLabel.Text = "?? Analyzing...";
+                _askButton.Enabled = false;
+                _summarizeButton.Enabled = false;
+                _detectAnomaliesButton.Enabled = false;
+                _analyzePerformanceButton.Enabled = false;
+                _findPatternsButton.Enabled = false;
+                _responseTextBox.AppendText("\n\n?? Analyzing...\n");
+            }
+            else
+            {
+                _statusLabel.Text = "?? AI Assistant - Ask questions about your log file";
+                _askButton.Enabled = true;
+                _summarizeButton.Enabled = true;
+                _detectAnomaliesButton.Enabled = true;
+                _analyzePerformanceButton.Enabled = true;
+                _findPatternsButton.Enabled = true;
+            }
         }
 
-        public void AppendChatTurn(string role, string text)
+        public void ShowResponse(string response)
         {
-            _chatHistory.Add((role, text));
-            string label = role == "user" ? "You" : "Claude";
-            Color  color = role == "user" ? Color.FromArgb(130, 180, 255) : Color.FromArgb(160, 230, 160);
-            _outputBox.SelectionStart  = _outputBox.TextLength;
-            _outputBox.SelectionLength = 0;
-            _outputBox.SelectionColor  = color;
-            _outputBox.AppendText($"\n[{label}] ");
-            _outputBox.SelectionColor = Color.FromArgb(210, 220, 235);
-            _outputBox.AppendText(text + "\n");
-            _outputBox.ScrollToCaret();
+            _responseTextBox.SelectionStart = _responseTextBox.TextLength;
+            _responseTextBox.SelectionLength = 0;
+            _responseTextBox.SelectionFont = new Font("Consolas", 9f);
+            _responseTextBox.SelectionColor = Color.Black;
+            _responseTextBox.AppendText("\n");
+            _responseTextBox.AppendText(response);
+            _responseTextBox.AppendText("\n");
+            _responseTextBox.ScrollToCaret();
         }
 
-        public List<(string, string)> ChatHistory => _chatHistory;
-
-        // ── Helper ────────────────────────────────────────────────────────────
-        private static Button MakeButton(string text, int width, DockStyle dock) => new Button
+        public void ShowError(string error)
         {
-            Text      = text,
-            Width     = width,
-            Dock      = dock,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.FromArgb(50, 60, 80),
-            ForeColor = Color.FromArgb(210, 220, 240),
-            Font      = new Font("Segoe UI", 8.5f),
-            FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 120) }
-        };
-    }
+            _responseTextBox.SelectionStart = _responseTextBox.TextLength;
+            _responseTextBox.SelectionLength = 0;
+            _responseTextBox.SelectionFont = new Font("Consolas", 9f, FontStyle.Bold);
+            _responseTextBox.SelectionColor = Color.Red;
+            _responseTextBox.AppendText("\n? ERROR: ");
+            _responseTextBox.SelectionFont = new Font("Consolas", 9f);
+            _responseTextBox.AppendText(error);
+            _responseTextBox.AppendText("\n");
+            _responseTextBox.ScrollToCaret();
+        }
 
-    public enum AiRequestType { Summarize, Anomaly, RootCause, BugReport, Chat }
-    public class AiRequest
-    {
-        public AiRequestType Type        { get; set; }
-        public string        UserMessage { get; set; }
+        public void ShowAnalysis(string analysis)
+        {
+            ShowResponse(analysis);
+        }
+
+        public void ClearResponse()
+        {
+            _responseTextBox.Clear();
+            _responseTextBox.Text = "Ready for your questions...\n";
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            e.Graphics.Clear(this.BackColor);
+        }
     }
 }

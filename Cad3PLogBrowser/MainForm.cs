@@ -22,10 +22,9 @@ namespace Cad3PLogBrowser
         private readonly CallGraphService  _callGraphService;
         private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
         private readonly Services.Core.MergeLogService _mergeLogService;
-        // AI features (L1-L6) - framework ready, needs API key configuration
-        // private readonly Services.Analysis.AiLogService _aiService;
-        // private Managers.AiAssistantPanel _aiPanel;
-        // private TabPage _aiTab;
+        private Services.Analysis.AiLogService _aiService;
+        private Managers.AiAssistantPanel _aiPanel;
+        private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -260,7 +259,7 @@ namespace Cad3PLogBrowser
             _callGraphService = new CallGraphService();
             _dependencyGraphService = new Services.Analysis.DependencyGraphService();
             _mergeLogService  = new Services.Core.MergeLogService();
-            // _aiService        = new Services.Analysis.AiLogService("YOUR_API_KEY_HERE"); // TODO: Configure API key
+            _aiService        = new Services.Analysis.AiLogService();
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
@@ -268,7 +267,7 @@ namespace Cad3PLogBrowser
             RestoreSettings();
             InitTreeViews();
             InitDependencyGraphPanel();
-            // InitAiPanel(); // TODO: Uncomment when API key is configured
+            InitAiPanel();
             BuildMruMenu();
             ApplyTheme();
 
@@ -4348,15 +4347,8 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void InitAiPanel()
         {
-            // TODO: AI features require OpenAI API key configuration
-            // Uncomment this code after:
-            // 1. Setting up OpenAI API key in app settings
-            // 2. Initializing _aiService in constructor with API key
-            // 3. Implementing missing methods in AiAssistantPanel
-
-            /*
             // Create AI tab
-            var aiTab = new TabPage("AI Assistant")
+            _aiTab = new TabPage("AI Assistant")
             {
                 Name = "aiTab",
                 UseVisualStyleBackColor = true
@@ -4374,15 +4366,18 @@ namespace Cad3PLogBrowser
 
             // Wire up events
             _aiPanel.QuerySubmitted += AiPanel_QuerySubmitted;
-            _aiPanel.AnalyzeClicked += AiPanel_AnalyzeClicked;
+            _aiPanel.SummarizeRequested += AiPanel_SummarizeRequested;
+            _aiPanel.DetectAnomaliesRequested += AiPanel_DetectAnomaliesRequested;
+            _aiPanel.AnalyzePerformanceRequested += AiPanel_AnalyzePerformanceRequested;
+            _aiPanel.FindPatternsRequested += AiPanel_FindPatternsRequested;
 
             // Add panel to tab
-            aiTab.Controls.Add(_aiPanel);
+            _aiTab.Controls.Add(_aiPanel);
 
             // Add tab to main control
             if (mainTabControl != null)
             {
-                mainTabControl.TabPages.Add(aiTab);
+                mainTabControl.TabPages.Add(_aiTab);
             }
 
             // Create View menu item
@@ -4394,17 +4389,17 @@ namespace Cad3PLogBrowser
             };
             showAiMenuItem.CheckedChanged += (s, e) =>
             {
-                if (aiTab != null && mainTabControl != null)
+                if (_aiTab != null && mainTabControl != null)
                 {
                     if (showAiMenuItem.Checked)
                     {
-                        if (!mainTabControl.TabPages.Contains(aiTab))
-                            mainTabControl.TabPages.Add(aiTab);
+                        if (!mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Add(_aiTab);
                     }
                     else
                     {
-                        if (mainTabControl.TabPages.Contains(aiTab))
-                            mainTabControl.TabPages.Remove(aiTab);
+                        if (mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Remove(_aiTab);
                     }
                 }
             };
@@ -4414,19 +4409,19 @@ namespace Cad3PLogBrowser
             {
                 tabsMenuItem.DropDownItems.Add(showAiMenuItem);
             }
-            */
         }
 
-        // AI event handlers - TODO: Implement when API key is configured
-        /*
         private async void AiPanel_QuerySubmitted(object sender, string query)
         {
-            if (_aiService == null || _aiPanel == null) return;
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
 
             try
             {
                 _aiPanel.ShowThinking(true);
-                var response = await _aiService.SubmitQueryAsync(query, _allLines, _lastEntries);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
+                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var response = await _aiService.AnalyzeAsync(query, stats, perfStats, _lastEntries);
                 _aiPanel.ShowResponse(response);
             }
             catch (Exception ex)
@@ -4439,25 +4434,91 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private async void AiPanel_AnalyzeClicked(object sender, EventArgs e)
+        private async void AiPanel_SummarizeRequested(object sender, EventArgs e)
         {
-            if (_aiService == null || _aiPanel == null || _lastEntries.Count == 0) return;
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
 
             try
             {
                 _aiPanel.ShowThinking(true);
-                var analysis = await _aiService.AnalyzeLogsAsync(_lastEntries);
-                _aiPanel.ShowAnalysis(analysis);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
+                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var summary = await _aiService.SummarizeAsync(stats, perfStats);
+                _aiPanel.ShowResponse(summary);
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"AI analysis failed: {ex.Message}");
+                _aiPanel.ShowError($"Summarize failed: {ex.Message}");
             }
             finally
             {
                 _aiPanel.ShowThinking(false);
             }
         }
-        */
+
+        private async void AiPanel_DetectAnomaliesRequested(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
+                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var anomalies = await _aiService.DetectAnomaliesAsync(stats, perfStats);
+                _aiPanel.ShowResponse(anomalies);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"Anomaly detection failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+
+        private async void AiPanel_AnalyzePerformanceRequested(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _apiPerfStats == null) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var analysis = await _aiService.AnalyzePerformanceAsync(perfStats);
+                _aiPanel.ShowResponse(analysis);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"Performance analysis failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+
+        private async void AiPanel_FindPatternsRequested(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var patterns = await _aiService.FindPatternsAsync(_lastEntries);
+                _aiPanel.ShowResponse(patterns);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"Pattern finding failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
     }
 }
