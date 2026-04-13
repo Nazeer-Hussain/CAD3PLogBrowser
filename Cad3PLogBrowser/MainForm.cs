@@ -20,6 +20,11 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
+        private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
+        // TODO: AI features (L1-L6) - deferred
+        // private AiLogService              _aiService;
+        // private Managers.AiAssistantPanel _aiPanel;
+        // private TabPage                   _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -31,6 +36,12 @@ namespace Cad3PLogBrowser
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
+
+        // Feature C2: Lazy loading for large trees
+        private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
+        private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
+        private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
+
 
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
@@ -240,12 +251,14 @@ namespace Cad3PLogBrowser
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
+            _dependencyGraphService = new Services.Analysis.DependencyGraphService();
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
             InitTreeViews();
+            // TODO: InitAiPanel(); // Deferred - AI features not yet implemented
             BuildMruMenu();
             ApplyTheme();
 
@@ -298,9 +311,9 @@ namespace Cad3PLogBrowser
             }
 
             // Refresh the performance view with theme-aware colors
-            if (_lastPerfStats != null && _lastPerfStats.Count > 0)
+            if (_apiPerfStats != null && _apiPerfStats.Count > 0)
             {
-                RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+                RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
             }
         }
 
@@ -557,6 +570,10 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
 
+            // F4: Dependency graph - will be wired when Designer control is added
+            // Dependency graph service is ready, UI panel needs to be added to Designer
+            // var depGraph = _dependencyGraphService.Build(entries);
+
             // Load flame graph and timeline
             if (flameGraphPanel != null)
                 flameGraphPanel.LoadCallStack(callTree);
@@ -674,13 +691,23 @@ namespace Cad3PLogBrowser
         {
             CallTree.BeginUpdate();
             CallTree.Nodes.Clear();
+            _lazyChildrenMap.Clear(); // Clear lazy load cache
 
             // Root node: "Call Tree"
             var rootNode = new TreeNode("Call Tree") { Tag = -1 };
             rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
 
+            // Feature C2: Check total node count for lazy loading
+            int totalNodes = CountTotalNodes(roots);
+            bool useLazyLoading = totalNodes > LAZY_LOAD_THRESHOLD;
+
+            if (useLazyLoading)
+            {
+                StatusFileName.Text = string.Format("Large tree detected ({0:N0} nodes) - using lazy loading for performance", totalNodes);
+            }
+
             foreach (var root in roots)
-                rootNode.Nodes.Add(BuildTreeNode(root));
+                rootNode.Nodes.Add(BuildTreeNode(root, useLazyLoading));
 
             CallTree.Nodes.Add(rootNode);
             // Issue Fix: Start collapsed (only root expanded)
@@ -688,9 +715,60 @@ namespace Cad3PLogBrowser
             // Don't expand first level - let users expand as needed
 
             CallTree.EndUpdate();
+
+            // Wire up before expand event for lazy loading
+            if (useLazyLoading)
+            {
+                CallTree.BeforeExpand += CallTree_BeforeExpand;
+            }
         }
 
-        private static TreeNode BuildTreeNode(CallStackNode csNode)
+        // C2: Count total nodes in call tree
+        private int CountTotalNodes(List<CallStackNode> nodes)
+        {
+            int count = 0;
+            foreach (var node in nodes)
+            {
+                count++; // Count this node
+                count += CountTotalNodes(node.Children); // Count children recursively
+            }
+            return count;
+        }
+
+        // C2: Lazy loading handler - load children when node is expanded
+        private void CallTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        {
+            if (e.Node == null) return;
+
+            // Check if this node has lazy-loaded children waiting
+            if (_lazyChildrenMap.ContainsKey(e.Node))
+            {
+                var children = _lazyChildrenMap[e.Node];
+
+                // Remove placeholder
+                e.Node.Nodes.Clear();
+
+                // Add real children
+                foreach (var child in children)
+                {
+                    e.Node.Nodes.Add(BuildTreeNode(child, useLazyLoading: true));
+                }
+
+                // Remove from map - children are now loaded
+                _lazyChildrenMap.Remove(e.Node);
+
+                StatusFileName.Text = string.Format("Loaded {0} children for {1}", children.Count, GetMethodNameFromNode(e.Node));
+            }
+        }
+
+        // C2: Overload for backward compatibility (non-lazy)
+        private TreeNode BuildTreeNode(CallStackNode csNode)
+        {
+            return BuildTreeNode(csNode, useLazyLoading: false);
+        }
+
+        // C2: Build tree node with optional lazy loading
+        private TreeNode BuildTreeNode(CallStackNode csNode, bool useLazyLoading)
         {
             bool matched = csNode.ExitLineNumber > 0;
 
@@ -735,8 +813,30 @@ namespace Cad3PLogBrowser
                     tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
             }
 
-            foreach (var child in csNode.Children)
-                tn.Nodes.Add(BuildTreeNode(child));
+            // C2: Lazy loading - only add placeholder if node has children
+            if (csNode.Children != null && csNode.Children.Count > 0)
+            {
+                if (useLazyLoading)
+                {
+                    // Add placeholder node
+                    var placeholder = new TreeNode(LAZY_LOAD_PLACEHOLDER)
+                    {
+                        Tag = -2, // Special tag for placeholder
+                        ForeColor = Color.Gray,
+                        NodeFont = new Font(CallTree.Font, FontStyle.Italic)
+                    };
+                    tn.Nodes.Add(placeholder);
+
+                    // Store actual children for later loading
+                    _lazyChildrenMap[tn] = csNode.Children;
+                }
+                else
+                {
+                    // Normal loading - add all children immediately
+                    foreach (var child in csNode.Children)
+                        tn.Nodes.Add(BuildTreeNode(child, useLazyLoading));
+                }
+            }
 
             return tn;
         }
@@ -764,7 +864,7 @@ namespace Cad3PLogBrowser
         }
 
         private bool _perfHeaderWired = false;
-        private List<ApiPerfStats> _lastPerfStats = new List<ApiPerfStats>();
+        private List<ApiPerfStats> _apiPerfStats = new List<ApiPerfStats>();
         private int _lastTotalLines = 0;
 
         private void PerformanceView_ColumnClick(object sender, ColumnClickEventArgs e)
@@ -776,12 +876,12 @@ namespace Cad3PLogBrowser
                 _perfSortColumn    = e.Column;
                 _perfSortAscending = e.Column == 0; // API name sorts ascending by default
             }
-            RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+            RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
         }
 
         private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines)
         {
-            _lastPerfStats  = stats;
+            _apiPerfStats  = stats;
             _lastTotalLines = totalLines;
 
             // Sort a copy
@@ -962,6 +1062,19 @@ namespace Cad3PLogBrowser
         {
             ScrollLogToLine(e.Node?.Tag);
             ShowApiDetails(e.Node);  // D3: show invocation details
+
+            // D5: Cross-reference - highlight matching node in Call Tree if both visible
+            if (e.Node != null && CallTree.Nodes.Count > 0)
+            {
+                string methodName = GetMethodNameFromNode(e.Node);
+                if (!string.IsNullOrEmpty(methodName))
+                {
+                    // Don't trigger recursive selection events
+                    CallTree.AfterSelect -= CallTree_AfterSelect;
+                    TryHighlightInCallTree(methodName);
+                    CallTree.AfterSelect += CallTree_AfterSelect;
+                }
+            }
         }
 
         // D3: API Invocation Details Panel
@@ -1029,8 +1142,23 @@ namespace Cad3PLogBrowser
         private void ApiTree_Click(object sender, EventArgs e) { }
         private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
 
-        private void CallTree_AfterSelect(object sender, TreeViewEventArgs e) =>
+        private void CallTree_AfterSelect(object sender, TreeViewEventArgs e)
+        {
             ScrollLogToLine(e.Node?.Tag);
+
+            // D5: Cross-reference - highlight matching node in API Tree if both have data
+            if (e.Node != null && ApiTree.Nodes.Count > 0)
+            {
+                string methodName = GetMethodNameFromNode(e.Node);
+                if (!string.IsNullOrEmpty(methodName))
+                {
+                    // Don't trigger recursive selection events
+                    ApiTree.AfterSelect -= ApiTree_AfterSelect;
+                    TryHighlightInApiTree(methodName);
+                    ApiTree.AfterSelect += ApiTree_AfterSelect;
+                }
+            }
+        }
 
         private void ScrollLogToLine(object tag)
         {
@@ -1464,6 +1592,57 @@ namespace Cad3PLogBrowser
         {
             if (!string.IsNullOrEmpty(_currentFilePath))
                 LoadFileAsync(_currentFilePath);
+        }
+
+        // A6: Merge multiple log files (time-sorted)
+        private async void mergeLogsMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new OpenFileDialog())
+            {
+                dlg.Title       = "Select Log Files to Merge";
+                dlg.Filter      = "Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*";
+                dlg.Multiselect = true;
+                dlg.InitialDirectory = openLogFileDialog.InitialDirectory;
+                if (dlg.ShowDialog() != DialogResult.OK || dlg.FileNames.Length < 2)
+                {
+                    if (dlg.FileNames.Length < 2)
+                        MessageBox.Show("Please select at least 2 files to merge.",
+                            "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // TODO: Feature A6 - Merge logs implementation
+                MessageBox.Show("Merge logs feature is not yet implemented.", 
+                    "Coming Soon", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                /* Will be implemented as Feature A6
+                SetStatusMessage("Merging log files...");
+                FileLoadProgress.Visible = true;
+                FileLoadProgress.Value   = 0;
+                try
+                {
+                    var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
+                    _allLines        = merged;
+                    _currentFilePath = "[Merged: " + string.Join(", ",
+                        System.Array.ConvertAll(dlg.FileNames,
+                            p => System.IO.Path.GetFileName(p))) + "]";
+                    _searchService.Reset();
+                    PopulateVirtualListView(_allLines);
+                    PopulateTrees(_allLines);
+                    SetDocumentLoaded(true);
+                    FileStatus.Image = Resources.green_ball;
+                    UpdateStatusBar();
+                    SetStatusMessage(string.Format("Merged {0} files — {1} lines",
+                        dlg.FileNames.Length, merged.Count));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Merge failed:" + ex.Message,
+                        "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally { FileLoadProgress.Visible = false; }
+                */
+            }
         }
 
         private void exitMenuItem_Click(object sender, EventArgs e) => Close();
@@ -2709,6 +2888,57 @@ namespace Cad3PLogBrowser
                 ShowCallTree();
                 FindAndSelectCallTreeNode(methodName);
             }
+        }
+
+        // D5: Try to highlight matching node in API Tree (without switching views)
+        private void TryHighlightInApiTree(string methodName)
+        {
+            if (string.IsNullOrEmpty(methodName) || ApiTree.Nodes.Count == 0)
+                return;
+
+            // Search for matching API node
+            foreach (TreeNode root in ApiTree.Nodes)
+            {
+                foreach (TreeNode apiNode in root.Nodes)
+                {
+                    if (GetMethodNameFromNode(apiNode).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Highlight but don't scroll - just show it's selected
+                        ApiTree.SelectedNode = apiNode;
+                        return;
+                    }
+                }
+            }
+        }
+
+        // D5: Try to highlight matching node in Call Tree (without switching views)
+        private void TryHighlightInCallTree(string methodName)
+        {
+            if (string.IsNullOrEmpty(methodName) || CallTree.Nodes.Count == 0)
+                return;
+
+            // Search for first matching call tree node
+            foreach (TreeNode root in CallTree.Nodes)
+            {
+                if (FindAndHighlightInTree(root.Nodes, methodName))
+                    return;
+            }
+        }
+
+        private bool FindAndHighlightInTree(TreeNodeCollection nodes, string methodName)
+        {
+            foreach (TreeNode n in nodes)
+            {
+                if (GetMethodNameFromNode(n).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                {
+                    CallTree.SelectedNode = n;
+                    return true;
+                }
+                // Search children recursively (depth-first)
+                if (FindAndHighlightInTree(n.Nodes, methodName))
+                    return true;
+            }
+            return false;
         }
 
         private void FindAndSelectApiTreeNode(string methodName)

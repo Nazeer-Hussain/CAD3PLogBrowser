@@ -94,6 +94,7 @@
     <Compile Include="Models\PerformanceStatistics.cs" />
     <Compile Include="Models\SearchResult.cs" />
     <Compile Include="Models\VirtualLogLine.cs" />
+    <Compile Include="Services\Analysis\DependencyGraphService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
     <Compile Include="Services\Export\TreeExportService.cs" />
@@ -137,6 +138,7 @@
     <Compile Include="Services\Analysis\CallGraphService.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Services\Core\LogFileService.cs" />
+    <Compile Include="Services\Core\MergeLogService.cs" />
     <Compile Include="Services\Core\LogParserService.cs" />
     <Compile Include="Services\Search\SearchService.cs" />
     <Compile Include="Services\Core\SettingsService.cs" />
