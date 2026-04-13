@@ -1466,6 +1466,52 @@ namespace Cad3PLogBrowser
                 LoadFileAsync(_currentFilePath);
         }
 
+        // A6: Merge multiple log files (time-sorted)
+        private async void mergeLogsMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new OpenFileDialog())
+            {
+                dlg.Title       = "Select Log Files to Merge";
+                dlg.Filter      = "Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*";
+                dlg.Multiselect = true;
+                dlg.InitialDirectory = openLogFileDialog.InitialDirectory;
+                if (dlg.ShowDialog() != DialogResult.OK || dlg.FileNames.Length < 2)
+                {
+                    if (dlg.FileNames.Length < 2)
+                        MessageBox.Show("Please select at least 2 files to merge.",
+                            "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                SetStatusMessage("Merging log files...");
+                FileLoadProgress.Visible = true;
+                FileLoadProgress.Value   = 0;
+                try
+                {
+                    var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
+                    _allLines        = merged;
+                    _currentFilePath = "[Merged: " + string.Join(", ",
+                        System.Array.ConvertAll(dlg.FileNames,
+                            p => System.IO.Path.GetFileName(p))) + "]";
+                    _searchService.Reset();
+                    PopulateVirtualListView(_allLines);
+                    PopulateTrees(_allLines);
+                    SetDocumentLoaded(true);
+                    FileStatus.Image = Resources.green_ball;
+                    UpdateStatusBar();
+                    SetStatusMessage(string.Format("Merged {0} files — {1} lines",
+                        dlg.FileNames.Length, merged.Count));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Merge failed:
+" + ex.Message,
+                        "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally { FileLoadProgress.Visible = false; }
+            }
+        }
+
         private void exitMenuItem_Click(object sender, EventArgs e) => Close();
 
         // ── Edit menu ─────────────────────────────────────────────────────────

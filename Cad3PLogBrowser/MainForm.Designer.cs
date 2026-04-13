@@ -42,6 +42,7 @@ namespace Cad3PLogBrowser
             this.exportFlameGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mergeLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -200,6 +201,7 @@ namespace Cad3PLogBrowser
             // 
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
+            this.mergeLogsMenuItem,
             this.saveAsMenuItem,
             this.exportFilteredLogsMenuItem,
             this.exportPerformanceMenuItem,
@@ -283,6 +285,14 @@ namespace Cad3PLogBrowser
             // 
             this.fileSeparatorAfterSave.Name = "fileSeparatorAfterSave";
             this.fileSeparatorAfterSave.Size = new System.Drawing.Size(257, 6);
+            // 
+            // mergeLogsMenuItem
+            // 
+            this.mergeLogsMenuItem.Name = "mergeLogsMenuItem";
+            this.mergeLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
+            this.mergeLogsMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.mergeLogsMenuItem.Text = "&Merge Log Files...";
+            this.mergeLogsMenuItem.Click += new System.EventHandler(this.mergeLogsMenuItem_Click);
             // 
             // reloadMenuItem
             // 
@@ -870,7 +880,7 @@ namespace Cad3PLogBrowser
             this.rawTab.Text = "rawTab";
             this.rawTab.UseVisualStyleBackColor = true;
             // 
-            // performanceTab — Performance
+            // performanceTab ï¿½ Performance
             // 
             this.performanceView = new System.Windows.Forms.ListView();
             this.perfColName = new System.Windows.Forms.ColumnHeader();
@@ -915,7 +925,7 @@ namespace Cad3PLogBrowser
             this.perfColSelf.Text = "Self (ms)";
             this.perfColSelf.Width = 80;
             // 
-            // logDetailTab — Log Details
+            // logDetailTab ï¿½ Log Details
             // 
             this.logDetailBox = new System.Windows.Forms.RichTextBox();
             this.logDetailTab.Controls.Add(this.logDetailBox);
@@ -932,7 +942,7 @@ namespace Cad3PLogBrowser
             this.logDetailBox.WordWrap = true;
             this.logDetailBox.BackColor = System.Drawing.SystemColors.Window;
             // 
-            // callGraphTab — Call Graph
+            // callGraphTab ï¿½ Call Graph
             // 
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
@@ -1155,7 +1165,7 @@ namespace Cad3PLogBrowser
             this.prevErrorButton.ToolTipText = "Previous Error (Shift+F8)";
             this.prevErrorButton.Click += new System.EventHandler(this.prevErrorButton_Click);
             // 
-            // nextErrorButton — Feature B10
+            // nextErrorButton ï¿½ Feature B10
             // 
             this.nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextErrorButton.Name = "nextErrorButton";
@@ -1164,7 +1174,7 @@ namespace Cad3PLogBrowser
             this.nextErrorButton.ToolTipText = "Next Error (F8)";
             this.nextErrorButton.Click += new System.EventHandler(this.nextErrorButton_Click);
             // 
-            // prevWarningButton — Feature B10
+            // prevWarningButton ï¿½ Feature B10
             // 
             this.prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.prevWarningButton.Name = "prevWarningButton";
@@ -1173,7 +1183,7 @@ namespace Cad3PLogBrowser
             this.prevWarningButton.ToolTipText = "Previous Warning (Ctrl+Shift+F8)";
             this.prevWarningButton.Click += new System.EventHandler(this.prevWarningButton_Click);
             // 
-            // nextWarningButton — Feature B10
+            // nextWarningButton ï¿½ Feature B10
             // 
             this.nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.nextWarningButton.Name = "nextWarningButton";
@@ -1535,6 +1545,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem mergeLogsMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
         private System.Windows.Forms.TextBox treeSearchTextBox;

@@ -137,6 +137,7 @@
     <Compile Include="Services\Analysis\CallGraphService.cs" />
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Services\Core\LogFileService.cs" />
+    <Compile Include="Services\Core\MergeLogService.cs" />
     <Compile Include="Services\Core\LogParserService.cs" />
     <Compile Include="Services\Search\SearchService.cs" />
     <Compile Include="Services\Core\SettingsService.cs" />
