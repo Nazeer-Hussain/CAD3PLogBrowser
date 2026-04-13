@@ -751,8 +751,19 @@ namespace Cad3PLogBrowser
             // 
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
             this.mainSplitContainer.Panel1.Padding = new System.Windows.Forms.Padding(0, 0, 0, 0);
-            this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
-            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
+
+            // Create wrapper panel for trees
+            var treeContainerPanel = new System.Windows.Forms.Panel();
+            treeContainerPanel.Name = "treeContainerPanel";
+            treeContainerPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            treeContainerPanel.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
+
+            // Add trees to wrapper panel
+            treeContainerPanel.Controls.Add(this.CallTree);
+            treeContainerPanel.Controls.Add(this.ApiTree);
+
+            // Add wrapper and search box to Panel1
+            this.mainSplitContainer.Panel1.Controls.Add(treeContainerPanel);
             this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
