@@ -22,10 +22,10 @@ namespace Cad3PLogBrowser
         private readonly CallGraphService  _callGraphService;
         private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
         private readonly Services.Core.MergeLogService _mergeLogService;
-        // TODO: AI features (L1-L6) - deferred
-        // private AiLogService              _aiService;
+        // AI features (L1-L6) - framework ready, needs API key configuration
+        // private readonly Services.Analysis.AiLogService _aiService;
         // private Managers.AiAssistantPanel _aiPanel;
-        // private TabPage                   _aiTab;
+        // private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -44,14 +44,10 @@ namespace Cad3PLogBrowser
         private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
 
         // Feature F4: Dependency graph tab and panel
-        // NOTE: DependencyGraphPanel.cs exists but needs to be added to csproj
-        // TODO: Add via Visual Studio Solution Explorer: Right-click project → Add → Existing Item
-        //       Add: Managers\DependencyGraphPanel.cs
-        //       Add: Managers\AiAssistantPanel.cs
-        // private TabPage _dependencyGraphTab;
-        // private Managers.DependencyGraphPanel _dependencyGraphPanel;
-        // private Button _depGraphResetButton;
-        // private ToolStripMenuItem _showDependencyGraphMenuItem;
+        private TabPage _dependencyGraphTab;
+        private Managers.DependencyGraphPanel _dependencyGraphPanel;
+        private Button _depGraphResetButton;
+        private ToolStripMenuItem _showDependencyGraphMenuItem;
 
 
         // ── Cancellation support for long-running operations ──────────────────
@@ -264,15 +260,15 @@ namespace Cad3PLogBrowser
             _callGraphService = new CallGraphService();
             _dependencyGraphService = new Services.Analysis.DependencyGraphService();
             _mergeLogService  = new Services.Core.MergeLogService();
+            // _aiService        = new Services.Analysis.AiLogService("YOUR_API_KEY_HERE"); // TODO: Configure API key
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
             InitTreeViews();
-            // F4: Initialize dependency graph panel - commented until files added to project
-            // InitDependencyGraphPanel();
-            // TODO: InitAiPanel(); // Deferred - AI features not yet implemented
+            InitDependencyGraphPanel();
+            // InitAiPanel(); // TODO: Uncomment when API key is configured
             BuildMruMenu();
             ApplyTheme();
 
@@ -584,12 +580,12 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
 
-            // F4: Load dependency graph - will work after panel files added to project
-            // if (_dependencyGraphPanel != null)
-            // {
-            //     var depGraph = _dependencyGraphService.Build(entries);
-            //     _dependencyGraphPanel.Load(depGraph);
-            // }
+            // F4: Load dependency graph
+            if (_dependencyGraphPanel != null)
+            {
+                var depGraph = _dependencyGraphService.Build(entries);
+                _dependencyGraphPanel.Load(depGraph);
+            }
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
@@ -4271,8 +4267,6 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void InitDependencyGraphPanel()
         {
-            // TODO: Uncomment when DependencyGraphPanel is added to project
-            /*
             // Create dependency graph tab
             _dependencyGraphTab = new TabPage("Dependency Graph")
             {
@@ -4322,7 +4316,6 @@ namespace Cad3PLogBrowser
             {
                 tabsMenuItem.DropDownItems.Add(_showDependencyGraphMenuItem);
             }
-            */
         }
 
         /// <summary>
@@ -4330,8 +4323,6 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void ShowDependencyGraphMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            // TODO: Uncomment when DependencyGraphPanel is added to project
-            /*
             if (_dependencyGraphTab != null && mainTabControl != null)
             {
                 if (_showDependencyGraphMenuItem.Checked)
@@ -4345,7 +4336,6 @@ namespace Cad3PLogBrowser
                         mainTabControl.TabPages.Remove(_dependencyGraphTab);
                 }
             }
-            */
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -4358,8 +4348,11 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void InitAiPanel()
         {
-            // TODO: Feature L2-L6 AI implementation
-            // This will be implemented when AI features are ready
+            // TODO: AI features require OpenAI API key configuration
+            // Uncomment this code after:
+            // 1. Setting up OpenAI API key in app settings
+            // 2. Initializing _aiService in constructor with API key
+            // 3. Implementing missing methods in AiAssistantPanel
 
             /*
             // Create AI tab
@@ -4424,7 +4417,7 @@ namespace Cad3PLogBrowser
             */
         }
 
-        // AI event handlers (will be implemented with AI features)
+        // AI event handlers - TODO: Implement when API key is configured
         /*
         private async void AiPanel_QuerySubmitted(object sender, string query)
         {
