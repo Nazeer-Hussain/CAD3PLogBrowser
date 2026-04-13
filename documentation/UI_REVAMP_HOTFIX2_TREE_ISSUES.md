@@ -1,7 +1,7 @@
-# UI Revamp - Hot Fix 2: Tree Search Overlap and TreeView Expand/Collapse Visibility
+# UI Revamp - Hot Fix 2: Tree Search Overlap and TreeView Expand/Collapse Visibility (Updated)
 
 ## Overview
-Fixed critical issues with the tree panel layout where the search textbox overlapped the tree views, and TreeView expand/collapse symbols were invisible in dark theme making tree navigation impossible.
+Fixed critical issues with the tree panel layout where the search textbox overlapped the tree views, TreeView expand/collapse symbols were invisible in dark theme, and **root nodes were not visible** due to improper bounds calculation in custom drawing.
 
 ## Date
 December 2024
@@ -44,22 +44,83 @@ Now 7px gap (3+22+7=32) which is proper spacing!
 - ? Completely invisible in dark theme
 - ? Users couldn't tell if nodes were expandable
 - ? Tree navigation frustrating and confusing
+- ? **Root nodes not visible** - critical issue!
 
 #### Root Cause
-WinForms TreeView uses system-drawn glyphs that don't adapt to dark themes. The default expand/collapse symbols are drawn using system colors that assume light backgrounds.
+1. WinForms TreeView uses system-drawn glyphs that don't adapt to dark themes
+2. Default expand/collapse symbols assume light backgrounds
+3. **Original custom draw code had bounds calculation issues**:
+   - Used `e.Bounds` directly which clips at edges
+   - Text rectangle calculation didn't account for full tree width
+   - Icon bounds check was missing
+   - Glyph position could go negative for root nodes
 
-#### Solution
-Implemented custom owner-draw for TreeView in dark theme:
+#### Solution (Updated)
+Implemented improved custom owner-draw for TreeView in dark theme:
 
-**Custom Drawing Features**:
-1. ? Custom expand/collapse glyphs with visible borders
-2. ? Light gray borders and symbols on dark background
-3. ? Plus (+) symbol for collapsed nodes
-4. ? Minus (-) symbol for expanded nodes
-5. ? Selection highlighting with blue background
-6. ? Hover effect with subtle highlight
-7. ? Icon support preserved
-8. ? Text with proper contrast
+**Enhanced Drawing Features**:
+1. ? **Full-row background** - Extends to tree width, not just node bounds
+2. ? **Safe glyph positioning** - `Math.Max(indent - 15, 2)` ensures minimum X=2
+3. ? **Proper text bounds** - Calculates available width from tree width
+4. ? **Icon bounds check** - Validates ImageIndex before drawing
+5. ? **Root node visibility** - Handles indent=0 properly
+6. ? Custom expand/collapse glyphs with visible borders
+7. ? Plus (+) symbol for collapsed nodes
+8. ? Minus (-) symbol for expanded nodes
+9. ? Selection highlighting with blue background
+10. ? Hover effect with subtle highlight
+11. ? Icon support preserved
+12. ? Text with proper contrast and ellipsis
+
+#### Key Code Improvements
+
+**Full Row Background**:
+```csharp
+// Before - Only drew node bounds
+using (SolidBrush brush = new SolidBrush(backColor))
+{
+    e.Graphics.FillRectangle(brush, e.Bounds);
+}
+
+// After - Draw full row width
+Rectangle fullRowBounds = new Rectangle(0, e.Bounds.Top, treeView.Width, e.Bounds.Height);
+using (SolidBrush brush = new SolidBrush(backColor))
+{
+    e.Graphics.FillRectangle(brush, fullRowBounds);
+}
+```
+
+**Safe Glyph Positioning**:
+```csharp
+// Before - Could go negative!
+Rectangle glyphRect = new Rectangle(e.Bounds.Left - 15, ...);
+
+// After - Minimum X=2 ensures always visible
+int indent = e.Bounds.Left;
+int glyphX = Math.Max(indent - 15, 2); // Safe for root nodes!
+Rectangle glyphRect = new Rectangle(glyphX, glyphY, 9, 9);
+```
+
+**Proper Text Width Calculation**:
+```csharp
+// Before - Used e.Bounds.Width (clipped)
+Rectangle textRect = new Rectangle(textX, e.Bounds.Top, e.Bounds.Width - textX, e.Bounds.Height);
+
+// After - Use full available tree width
+int textX = indent + iconWidth + (iconWidth > 0 ? 4 : 2);
+int availableWidth = treeView.Width - textX - 2; // Full width minus used space
+Rectangle textRect = new Rectangle(textX, e.Bounds.Top, Math.Max(availableWidth, 50), e.Bounds.Height);
+```
+
+**Icon Bounds Validation**:
+```csharp
+// Before - Could crash if ImageIndex out of range
+if (treeView.ImageList != null && e.Node.ImageIndex >= 0)
+
+// After - Full validation
+if (treeView.ImageList != null && e.Node.ImageIndex >= 0 && 
+    e.Node.ImageIndex < treeView.ImageList.Images.Count)
+```
 
 ## Changes Made
 
@@ -228,6 +289,33 @@ Total panel height: ~523px
 
 ## Custom Glyph Design
 
+### Root Node Visibility Fix
+
+#### The Problem
+Root nodes (level 0) have `e.Bounds.Left` around 0-5 pixels. When calculating glyph position as `e.Bounds.Left - 15`, this resulted in negative X coordinates (e.g., -10), placing glyphs completely off-screen to the left!
+
+Additionally, the text rectangle was calculated from `e.Bounds.Width` which doesn't account for the full tree width, causing text to be clipped.
+
+#### The Solution
+```csharp
+// 1. Safe glyph positioning
+int indent = e.Bounds.Left;
+int glyphX = Math.Max(indent - 15, 2); // Never goes below X=2!
+
+// 2. Full-row background
+Rectangle fullRowBounds = new Rectangle(0, e.Bounds.Top, treeView.Width, e.Bounds.Height);
+
+// 3. Proper text width
+int availableWidth = treeView.Width - textX - 2;
+Rectangle textRect = new Rectangle(textX, e.Bounds.Top, Math.Max(availableWidth, 50), e.Bounds.Height);
+```
+
+**Result**: 
+- Root nodes always visible (glyphs at X?2)
+- Text never clipped (uses full tree width)
+- Selection highlights full row
+- Professional appearance
+
 ### Expand/Collapse Symbol
 ```
 Collapsed (Plus):        Expanded (Minus):
@@ -367,10 +455,11 @@ if ((e.State & TreeNodeStates.Hot) != 0)
 ## Related Issues
 
 Fixes user-reported problems:
-1. "Tree search overlaps the main tree"
-2. "Expanders/collapsers not visible in dark theme"
+1. "Tree search overlaps the main tree" ?
+2. "Expanders/collapsers not visible in dark theme" ?
+3. "Main form tree root node visibility issue" ?
 
-Both critical navigation issues are now resolved.
+All three critical navigation issues are now resolved.
 
 ## Next Steps
 

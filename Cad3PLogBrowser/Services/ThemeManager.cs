@@ -469,8 +469,11 @@ namespace Cad3PLogBrowser.Services
             TreeView treeView = sender as TreeView;
             if (treeView == null) return;
 
-            // Use default drawing but with custom colors
+            // Don't use default drawing
             e.DrawDefault = false;
+
+            // Extend bounds to fill the full row width for better selection visual
+            Rectangle fullRowBounds = new Rectangle(0, e.Bounds.Top, treeView.Width, e.Bounds.Height);
 
             // Draw background
             Color backColor;
@@ -489,13 +492,19 @@ namespace Cad3PLogBrowser.Services
 
             using (SolidBrush brush = new SolidBrush(backColor))
             {
-                e.Graphics.FillRectangle(brush, e.Bounds);
+                e.Graphics.FillRectangle(brush, fullRowBounds);
             }
+
+            // Calculate proper positions accounting for indent
+            int indent = e.Bounds.Left;
 
             // Draw expand/collapse glyph if node has children
             if (e.Node.Nodes.Count > 0)
             {
-                Rectangle glyphRect = new Rectangle(e.Bounds.Left - 15, e.Bounds.Top + (e.Bounds.Height - 9) / 2, 9, 9);
+                // Position glyph 15 pixels to the left of the node bounds
+                int glyphX = Math.Max(indent - 15, 2); // Ensure glyph is always visible (min X=2)
+                int glyphY = e.Bounds.Top + (e.Bounds.Height - 9) / 2;
+                Rectangle glyphRect = new Rectangle(glyphX, glyphY, 9, 9);
 
                 // Draw glyph background
                 using (SolidBrush glyphBrush = new SolidBrush(Color.FromArgb(62, 62, 64)))
@@ -528,9 +537,11 @@ namespace Cad3PLogBrowser.Services
             }
 
             // Draw node icon if tree has ImageList
-            if (treeView.ImageList != null && e.Node.ImageIndex >= 0)
+            int iconWidth = 0;
+            if (treeView.ImageList != null && e.Node.ImageIndex >= 0 && e.Node.ImageIndex < treeView.ImageList.Images.Count)
             {
-                int imageX = e.Bounds.Left + 2;
+                iconWidth = treeView.ImageList.ImageSize.Width;
+                int imageX = indent + 2;
                 int imageY = e.Bounds.Top + (e.Bounds.Height - treeView.ImageList.ImageSize.Height) / 2;
                 e.Graphics.DrawImage(treeView.ImageList.Images[e.Node.ImageIndex], imageX, imageY);
             }
@@ -542,13 +553,17 @@ namespace Cad3PLogBrowser.Services
 
             using (SolidBrush textBrush = new SolidBrush(textColor))
             {
-                int textX = e.Bounds.Left + (treeView.ImageList != null ? treeView.ImageList.ImageSize.Width + 4 : 2);
-                Rectangle textRect = new Rectangle(textX, e.Bounds.Top, e.Bounds.Width - textX, e.Bounds.Height);
+                // Position text after icon (if present) with proper padding
+                int textX = indent + iconWidth + (iconWidth > 0 ? 4 : 2);
+                int availableWidth = treeView.Width - textX - 2; // 2px right margin
+
+                Rectangle textRect = new Rectangle(textX, e.Bounds.Top, Math.Max(availableWidth, 50), e.Bounds.Height);
 
                 StringFormat format = new StringFormat();
                 format.Alignment = StringAlignment.Near;
                 format.LineAlignment = StringAlignment.Center;
                 format.Trimming = StringTrimming.EllipsisCharacter;
+                format.FormatFlags = StringFormatFlags.NoWrap;
 
                 e.Graphics.DrawString(e.Node.Text, treeView.Font, textBrush, textRect, format);
             }
