@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -73,7 +73,7 @@ namespace Cad3PLogBrowser.Managers
 
             // Add tooltip for better UX
             var tooltip = new ToolTip();
-            tooltip.SetToolTip(this, "?? Flame Graph: Scroll to zoom, drag to pan, click to focus on a function");
+            tooltip.SetToolTip(this, "[Flame Graph] Scroll to zoom, drag to pan, click to focus on a function");
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -386,11 +386,12 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Draw flame icon
-            using (var iconFont = new Font("Segoe UI", 48f))
-            using (var iconBrush = new SolidBrush(Color.FromArgb(255, 140, 0))) // Orange flame
+            using (var iconFont = new Font("Segoe UI", 48f, FontStyle.Bold))
+            using (var iconBrush = new SolidBrush(Color.FromArgb(255, 140, 0))) // Orange
             {
-                var iconSize = g.MeasureString("??", iconFont);
-                g.DrawString("??", iconFont, iconBrush, 
+                var iconText = "[FLAME]";
+                var iconSize = g.MeasureString(iconText, iconFont);
+                g.DrawString(iconText, iconFont, iconBrush, 
                     cardX + (cardWidth - iconSize.Width) / 2, cardY + 20);
             }
 
@@ -417,20 +418,20 @@ namespace Cad3PLogBrowser.Managers
             // Draw instructions
             var instructions = new[]
             {
-                "?? Open a log file with performance data to get started",
+                ">> Open a log file with performance data to get started",
                 "",
-                "?? What is a Flame Graph?",
-                "• Visual profiling: See where time is spent",
-                "• Width = Time spent in function",
-                "• Height = Call stack depth",
-                "• Color = Different functions (for distinction)",
+                "[?] What is a Flame Graph?",
+                "- Visual profiling: See where time is spent",
+                "- Width = Time spent in function",
+                "- Height = Call stack depth",
+                "- Color = Different functions (for distinction)",
                 "",
-                "??? How to Use:",
-                "• Hover over bars to see details",
-                "• Click a bar to zoom into that function",
-                "• Mouse wheel to zoom in/out",
-                "• Drag to pan around",
-                "• Right-click to reset view"
+                "[>] How to Use:",
+                "- Hover over bars to see details",
+                "- Click a bar to zoom into that function",
+                "- Mouse wheel to zoom in/out",
+                "- Drag to pan around",
+                "- Right-click to reset view"
             };
 
             using (var font = new Font("Segoe UI", 9f))
@@ -469,8 +470,8 @@ namespace Cad3PLogBrowser.Managers
 
             // Draw icon and title
             string title = _zoomedNode != null 
-                ? $"?? Flame Graph — Zoomed: {_zoomedNode.Name}"
-                : "?? Flame Graph — Performance Profiling";
+                ? $"?? Flame Graph - Zoomed: {_zoomedNode.Name}"
+                : "?? Flame Graph - Performance Profiling";
 
             using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
@@ -479,7 +480,7 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Draw interactive instructions (top right of header)
-            string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click: Reset";
+            string instructions = "??? Scroll: Zoom - Drag: Pan - Click: Focus - Right-Click: Reset";
             using (var font = new Font("Segoe UI", 8f))
             using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
             {
@@ -490,7 +491,7 @@ namespace Cad3PLogBrowser.Managers
             // Draw zoom level indicator (below title on left - no overlap)
             if (_zoom != 1.0f)
             {
-                var zoomText = $"?? Zoom: {_zoom:F1}x";
+                var zoomText = $"[ZOOM] {_zoom:F1}x";
                 using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
                 using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
                 {
@@ -619,9 +620,23 @@ namespace Cad3PLogBrowser.Managers
         {
             if (_isDragging)
             {
-                // Pan
-                _panOffset.X += e.X - _lastMousePos.X;
-                _panOffset.Y += e.Y - _lastMousePos.Y;
+                // Pan with boundaries to prevent graphics showing in wrong places
+                float deltaX = e.X - _lastMousePos.X;
+                float deltaY = e.Y - _lastMousePos.Y;
+
+                float newPanX = _panOffset.X + deltaX;
+                float newPanY = _panOffset.Y + deltaY;
+
+                // Constrain pan to reasonable boundaries
+                // Allow some panning but keep content mostly visible
+                float maxPanX = this.Width * 0.3f;
+                float maxPanY = 100f; // Keep header area clear
+                float minPanX = -this.Width * Math.Max(0, _zoom - 1);
+                float minPanY = -this.Height * Math.Max(0, _zoom - 1);
+
+                _panOffset.X = Math.Max(minPanX, Math.Min(maxPanX, newPanX));
+                _panOffset.Y = Math.Max(minPanY, Math.Min(maxPanY, newPanY));
+
                 _lastMousePos = e.Location;
                 Invalidate();
             }
@@ -813,3 +828,4 @@ namespace Cad3PLogBrowser.Managers
         }
     }
 }
+

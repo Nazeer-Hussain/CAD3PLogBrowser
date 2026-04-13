@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -79,7 +79,7 @@ namespace Cad3PLogBrowser.Managers
 
             // Add tooltip for better UX
             var tooltip = new ToolTip();
-            tooltip.SetToolTip(this, "?? Timeline: Scroll to zoom, drag to pan, click on events to jump to log");
+            tooltip.SetToolTip(this, "[Timeline] Scroll to zoom, drag to pan, click on events to jump to log");
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -396,11 +396,12 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Draw timeline icon
-            using (var iconFont = new Font("Segoe UI", 48f))
+            using (var iconFont = new Font("Segoe UI", 48f, FontStyle.Bold))
             using (var iconBrush = new SolidBrush(Color.FromArgb(0, 122, 204))) // Blue
             {
-                var iconSize = g.MeasureString("??", iconFont);
-                g.DrawString("??", iconFont, iconBrush, 
+                var iconText = "[TIME]";
+                var iconSize = g.MeasureString(iconText, iconFont);
+                g.DrawString(iconText, iconFont, iconBrush, 
                     cardX + (cardWidth - iconSize.Width) / 2, cardY + 20);
             }
 
@@ -427,21 +428,21 @@ namespace Cad3PLogBrowser.Managers
             // Draw instructions
             var instructions = new[]
             {
-                "?? Open a log file with call data to get started",
+                ">> Open a log file with call data to get started",
                 "",
-                "?? What is a Timeline View?",
-                "• Chronological visualization of API calls",
-                "• X-axis = Time progression",
-                "• Y-axis = Call stack depth",
-                "• Bar length = Duration of call",
-                "• Color = Performance (green/orange/red)",
+                "[?] What is a Timeline View?",
+                "- Chronological visualization of API calls",
+                "- X-axis = Time progression",
+                "- Y-axis = Call stack depth",
+                "- Bar length = Duration of call",
+                "- Color = Performance (green/orange/red)",
                 "",
-                "??? How to Use:",
-                "• Hover over bars to see call details",
-                "• Click a bar to jump to that log line",
-                "• Mouse wheel to zoom in/out",
-                "• Drag to pan left/right",
-                "• Right-click to reset view"
+                "[>] How to Use:",
+                "- Hover over bars to see call details",
+                "- Click a bar to jump to that log line",
+                "- Mouse wheel to zoom in/out",
+                "- Drag to pan left/right",
+                "- Right-click to reset view"
             };
 
             using (var font = new Font("Segoe UI", 9f))
@@ -479,7 +480,7 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Draw icon and title
-            string title = $"?? Timeline View — Method Execution Over Time";
+            string title = $"?? Timeline View - Method Execution Over Time";
 
             using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
@@ -499,7 +500,7 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Draw interactive instructions (right side of header)
-            string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Jump to Log • Right-Click: Reset";
+            string instructions = "??? Scroll: Zoom - Drag: Pan - Click: Jump to Log - Right-Click: Reset";
             using (var font = new Font("Segoe UI", 8f))
             using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
             {
@@ -595,8 +596,23 @@ namespace Cad3PLogBrowser.Managers
         {
             if (_isDragging)
             {
-                _panOffset.X += e.X - _lastMousePos.X;
-                _panOffset.Y += e.Y - _lastMousePos.Y;
+                // Pan with boundaries to prevent graphics showing in wrong places
+                float deltaX = e.X - _lastMousePos.X;
+                float deltaY = e.Y - _lastMousePos.Y;
+
+                float newPanX = _panOffset.X + deltaX;
+                float newPanY = _panOffset.Y + deltaY;
+
+                // Constrain pan to reasonable boundaries
+                // For timeline, mainly constrain horizontal (time axis) panning
+                float maxPanX = this.Width * 0.3f;
+                float maxPanY = 50f; // Minimal vertical panning
+                float minPanX = -this.Width * Math.Max(0, _zoom - 1);
+                float minPanY = -50f;
+
+                _panOffset.X = Math.Max(minPanX, Math.Min(maxPanX, newPanX));
+                _panOffset.Y = Math.Max(minPanY, Math.Min(maxPanY, newPanY));
+
                 _lastMousePos = e.Location;
                 Invalidate();
             }
@@ -677,3 +693,4 @@ namespace Cad3PLogBrowser.Managers
         }
     }
 }
+
