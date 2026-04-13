@@ -21,6 +21,7 @@ namespace Cad3PLogBrowser
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
         private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
+        private readonly Services.Core.MergeLogService _mergeLogService;
         // TODO: AI features (L1-L6) - deferred
         // private AiLogService              _aiService;
         // private Managers.AiAssistantPanel _aiPanel;
@@ -41,6 +42,16 @@ namespace Cad3PLogBrowser
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
         private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
+
+        // Feature F4: Dependency graph tab and panel
+        // NOTE: DependencyGraphPanel.cs exists but needs to be added to csproj
+        // TODO: Add via Visual Studio Solution Explorer: Right-click project → Add → Existing Item
+        //       Add: Managers\DependencyGraphPanel.cs
+        //       Add: Managers\AiAssistantPanel.cs
+        // private TabPage _dependencyGraphTab;
+        // private Managers.DependencyGraphPanel _dependencyGraphPanel;
+        // private Button _depGraphResetButton;
+        // private ToolStripMenuItem _showDependencyGraphMenuItem;
 
 
         // ── Cancellation support for long-running operations ──────────────────
@@ -252,12 +263,15 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _dependencyGraphService = new Services.Analysis.DependencyGraphService();
+            _mergeLogService  = new Services.Core.MergeLogService();
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
             RestoreSettings();
             InitTreeViews();
+            // F4: Initialize dependency graph panel - commented until files added to project
+            // InitDependencyGraphPanel();
             // TODO: InitAiPanel(); // Deferred - AI features not yet implemented
             BuildMruMenu();
             ApplyTheme();
@@ -570,9 +584,12 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
 
-            // F4: Dependency graph - will be wired when Designer control is added
-            // Dependency graph service is ready, UI panel needs to be added to Designer
-            // var depGraph = _dependencyGraphService.Build(entries);
+            // F4: Load dependency graph - will work after panel files added to project
+            // if (_dependencyGraphPanel != null)
+            // {
+            //     var depGraph = _dependencyGraphService.Build(entries);
+            //     _dependencyGraphPanel.Load(depGraph);
+            // }
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
@@ -1603,45 +1620,66 @@ namespace Cad3PLogBrowser
                 dlg.Filter      = "Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*";
                 dlg.Multiselect = true;
                 dlg.InitialDirectory = openLogFileDialog.InitialDirectory;
+
                 if (dlg.ShowDialog() != DialogResult.OK || dlg.FileNames.Length < 2)
                 {
-                    if (dlg.FileNames.Length < 2)
+                    if (dlg.FileNames.Length == 1)
+                    {
                         MessageBox.Show("Please select at least 2 files to merge.",
                             "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                     return;
                 }
 
-                // TODO: Feature A6 - Merge logs implementation
-                MessageBox.Show("Merge logs feature is not yet implemented.", 
-                    "Coming Soon", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Feature A6: Merge logs implementation
+                StartOperation($"Merging {dlg.FileNames.Length} log files");
 
-                /* Will be implemented as Feature A6
-                SetStatusMessage("Merging log files...");
-                FileLoadProgress.Visible = true;
-                FileLoadProgress.Value   = 0;
                 try
                 {
+                    // Merge files time-sorted
                     var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
-                    _allLines        = merged;
+
+                    // Update current file path to show merged state
                     _currentFilePath = "[Merged: " + string.Join(", ",
                         System.Array.ConvertAll(dlg.FileNames,
                             p => System.IO.Path.GetFileName(p))) + "]";
+
+                    _allLines = merged;
                     _searchService.Reset();
+                    ClearHighlighting();
+
+                    // Load merged data into UI
+                    StatusFileName.Text = "Processing merged log data...";
+                    FileLoadProgress.Value = 33;
+                    await Task.Delay(10);
+
                     PopulateVirtualListView(_allLines);
+                    FileLoadProgress.Value = 66;
+                    StatusFileName.Text = "Building call tree from merged logs...";
+                    await Task.Delay(10);
+
                     PopulateTrees(_allLines);
+                    FileLoadProgress.Value = 100;
+
                     SetDocumentLoaded(true);
                     FileStatus.Image = Resources.green_ball;
                     UpdateStatusBar();
-                    SetStatusMessage(string.Format("Merged {0} files — {1} lines",
-                        dlg.FileNames.Length, merged.Count));
+
+                    MessageBox.Show(
+                        string.Format("Successfully merged {0} files.\n\nTotal lines: {1:N0}\n\nEach line is prefixed with [filename] for traceability.",
+                            dlg.FileNames.Length, merged.Count),
+                        "Merge Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Merge failed:" + ex.Message,
+                    MessageBox.Show(
+                        string.Format("Merge failed:\n\n{0}", ex.Message),
                         "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                finally { FileLoadProgress.Visible = false; }
-                */
+                finally
+                {
+                    EndOperation();
+                }
             }
         }
 
@@ -4207,5 +4245,226 @@ namespace Cad3PLogBrowser
                 System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
             }
         }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE F4: Dependency Graph Initialization
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Initializes the dependency graph tab and panel programmatically.
+        /// Creates tab, panel, and reset button.
+        /// NOTE: Currently commented out - files need to be added to csproj first.
+        /// TO ENABLE: 
+        /// 1. Close solution in Visual Studio
+        /// 2. Edit Cad3PLogBrowser.csproj
+        /// 3. Add these lines after FlameGraphPanel:
+        ///    <Compile Include="Managers\DependencyGraphPanel.cs">
+        ///      <SubType>Component</SubType>
+        ///    </Compile>
+        ///    <Compile Include="Managers\AiAssistantPanel.cs">
+        ///      <SubType>Component</SubType>
+        ///    </Compile>
+        /// 4. Uncomment field declarations in MainForm.cs (lines ~48-51)
+        /// 5. Uncomment this method body
+        /// 6. Uncomment call in constructor
+        /// 7. Uncomment code in PopulateTrees
+        /// </summary>
+        private void InitDependencyGraphPanel()
+        {
+            // TODO: Uncomment when DependencyGraphPanel is added to project
+            /*
+            // Create dependency graph tab
+            _dependencyGraphTab = new TabPage("Dependency Graph")
+            {
+                Name = "dependencyGraphTab",
+                UseVisualStyleBackColor = true
+            };
+
+            // Create dependency graph panel
+            _dependencyGraphPanel = new Managers.DependencyGraphPanel()
+            {
+                Dock = DockStyle.Fill,
+                Name = "dependencyGraphPanel"
+            };
+
+            // Create reset view button
+            _depGraphResetButton = new Button()
+            {
+                Text = "Reset View",
+                Size = new Size(100, 30),
+                Location = new Point(10, 10),
+                Name = "depGraphResetButton",
+                Anchor = AnchorStyles.Top | AnchorStyles.Left
+            };
+            _depGraphResetButton.Click += (s, e) => _dependencyGraphPanel?.ResetView();
+
+            // Add controls to tab
+            _dependencyGraphTab.Controls.Add(_dependencyGraphPanel);
+            _dependencyGraphTab.Controls.Add(_depGraphResetButton);
+
+            // Add tab to main tab control
+            if (mainTabControl != null)
+            {
+                mainTabControl.TabPages.Add(_dependencyGraphTab);
+            }
+
+            // Create View menu item for dependency graph
+            _showDependencyGraphMenuItem = new ToolStripMenuItem("Show &Dependency Graph")
+            {
+                Name = "showDependencyGraphMenuItem",
+                CheckOnClick = true,
+                Checked = true
+            };
+            _showDependencyGraphMenuItem.CheckedChanged += ShowDependencyGraphMenuItem_CheckedChanged;
+
+            // Add to View → Tabs menu (after existing tab menu items)
+            if (tabsMenuItem != null)
+            {
+                tabsMenuItem.DropDownItems.Add(_showDependencyGraphMenuItem);
+            }
+            */
+        }
+
+        /// <summary>
+        /// Handler for Show Dependency Graph menu item.
+        /// </summary>
+        private void ShowDependencyGraphMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            // TODO: Uncomment when DependencyGraphPanel is added to project
+            /*
+            if (_dependencyGraphTab != null && mainTabControl != null)
+            {
+                if (_showDependencyGraphMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(_dependencyGraphTab))
+                        mainTabControl.TabPages.Add(_dependencyGraphTab);
+                }
+                else
+                {
+                    if (mainTabControl.TabPages.Contains(_dependencyGraphTab))
+                        mainTabControl.TabPages.Remove(_dependencyGraphTab);
+                }
+            }
+            */
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURES L2-L6: AI Assistant Initialization
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Initializes AI Assistant panel and tab.
+        /// Creates AI panel with chat interface and analysis capabilities.
+        /// </summary>
+        private void InitAiPanel()
+        {
+            // TODO: Feature L2-L6 AI implementation
+            // This will be implemented when AI features are ready
+
+            /*
+            // Create AI tab
+            var aiTab = new TabPage("AI Assistant")
+            {
+                Name = "aiTab",
+                UseVisualStyleBackColor = true
+            };
+
+            // Create AI panel
+            _aiPanel = new Managers.AiAssistantPanel()
+            {
+                Dock = DockStyle.Fill,
+                Name = "aiAssistantPanel"
+            };
+
+            // Initialize AI service
+            _aiService = new Services.Analysis.AiLogService();
+
+            // Wire up events
+            _aiPanel.QuerySubmitted += AiPanel_QuerySubmitted;
+            _aiPanel.AnalyzeClicked += AiPanel_AnalyzeClicked;
+
+            // Add panel to tab
+            aiTab.Controls.Add(_aiPanel);
+
+            // Add tab to main control
+            if (mainTabControl != null)
+            {
+                mainTabControl.TabPages.Add(aiTab);
+            }
+
+            // Create View menu item
+            var showAiMenuItem = new ToolStripMenuItem("Show &AI Assistant")
+            {
+                Name = "showAiMenuItem",
+                CheckOnClick = true,
+                Checked = true
+            };
+            showAiMenuItem.CheckedChanged += (s, e) =>
+            {
+                if (aiTab != null && mainTabControl != null)
+                {
+                    if (showAiMenuItem.Checked)
+                    {
+                        if (!mainTabControl.TabPages.Contains(aiTab))
+                            mainTabControl.TabPages.Add(aiTab);
+                    }
+                    else
+                    {
+                        if (mainTabControl.TabPages.Contains(aiTab))
+                            mainTabControl.TabPages.Remove(aiTab);
+                    }
+                }
+            };
+
+            // Add to View menu
+            if (tabsMenuItem != null)
+            {
+                tabsMenuItem.DropDownItems.Add(showAiMenuItem);
+            }
+            */
+        }
+
+        // AI event handlers (will be implemented with AI features)
+        /*
+        private async void AiPanel_QuerySubmitted(object sender, string query)
+        {
+            if (_aiService == null || _aiPanel == null) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var response = await _aiService.SubmitQueryAsync(query, _allLines, _lastEntries);
+                _aiPanel.ShowResponse(response);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"AI query failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+
+        private async void AiPanel_AnalyzeClicked(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries.Count == 0) return;
+
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var analysis = await _aiService.AnalyzeLogsAsync(_lastEntries);
+                _aiPanel.ShowAnalysis(analysis);
+            }
+            catch (Exception ex)
+            {
+                _aiPanel.ShowError($"AI analysis failed: {ex.Message}");
+            }
+            finally
+            {
+                _aiPanel.ShowThinking(false);
+            }
+        }
+        */
     }
 }
