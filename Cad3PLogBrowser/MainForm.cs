@@ -313,20 +313,8 @@ namespace Cad3PLogBrowser
             // Apply icon size
             ApplyIconSize();
 
-            // Update tree container panel background to match theme
-            if (treeContainerPanel != null)
-            {
-                treeContainerPanel.BackColor = ThemeManager.BackgroundColor;
-            }
-
-            // Force layout refresh for tree panel
-            if (mainSplitContainer?.Panel1 != null)
-            {
-                mainSplitContainer.Panel1.SuspendLayout();
-                treeSearchTextBox.BringToFront();
-                mainSplitContainer.Panel1.ResumeLayout(true);
-                mainSplitContainer.Panel1.PerformLayout();
-            }
+            // Refresh tree layout after theme/icon change
+            LayoutTrees();
 
             // Update log-level colors based on theme
             UpdateLogColors();
@@ -1097,10 +1085,37 @@ namespace Cad3PLogBrowser
 
         private void LayoutTrees()
         {
-            // NOTE: Trees now use Dock.Fill layout, so manual SetBounds is not needed
-            // Dock layout automatically handles sizing and positioning
-            // Trees are mutually exclusive (only one visible at a time)
-            // No manual layout required
+            // NOTE: Manual layout - search box at top, trees below
+            // This is simpler and more reliable than Dock which was causing issues
+
+            if (mainSplitContainer?.Panel1 == null) return;
+
+            int panelWidth = mainSplitContainer.Panel1.ClientSize.Width;
+            int panelHeight = mainSplitContainer.Panel1.ClientSize.Height;
+
+            // Position search box at top with 3px padding
+            treeSearchTextBox.Location = new Point(3, 3);
+            treeSearchTextBox.Width = panelWidth - 6;
+
+            // Position trees below search box (at Y=31 to give 6px spacing after 22px textbox)
+            int treeY = 31;
+            int treeHeight = panelHeight - treeY - 3; // Leave 3px at bottom
+            int treeWidth = panelWidth - 6;
+
+            if (CallTree.Visible)
+            {
+                CallTree.SetBounds(3, treeY, treeWidth, treeHeight);
+            }
+
+            if (ApiTree.Visible)
+            {
+                ApiTree.SetBounds(3, treeY, treeWidth, treeHeight);
+            }
+        }
+
+        private void Panel1_Resize(object sender, EventArgs e)
+        {
+            LayoutTrees();
         }
 
         // ── Tree → scroll log ─────────────────────────────────────────────────
