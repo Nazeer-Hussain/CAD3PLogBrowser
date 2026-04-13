@@ -768,10 +768,11 @@ namespace Cad3PLogBrowser
             // 
             this.treeSearchTextBox.Dock = System.Windows.Forms.DockStyle.Top;
             this.treeSearchTextBox.Name = "treeSearchTextBox";
-            this.treeSearchTextBox.Height = 25;
+            this.treeSearchTextBox.Height = 28;
             this.treeSearchTextBox.TabIndex = 3;
             this.treeSearchTextBox.Text = "";
             this.treeSearchTextBox.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.treeSearchTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 3, 5);
             this.treeSearchTextBox.Enter += new System.EventHandler(this.treeSearchTextBox_Enter);
             this.treeSearchTextBox.Leave += new System.EventHandler(this.treeSearchTextBox_Leave);
             this.treeSearchTextBox.TextChanged += new System.EventHandler(this.treeSearchTextBox_TextChanged);

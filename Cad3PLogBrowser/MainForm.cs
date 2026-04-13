@@ -277,6 +277,9 @@ namespace Cad3PLogBrowser
             BuildMruMenu();
             ApplyTheme();
 
+            // Ensure search box is on top (above trees)
+            treeSearchTextBox.BringToFront();
+
             // Load saved font preferences
             LoadLogFont();
 
@@ -1049,6 +1052,9 @@ namespace Cad3PLogBrowser
             // Update View menu items
             showCallTreeMenuItem.Checked = showCall;
             showApiTreeMenuItem.Checked = showApi;
+
+            // Ensure search box stays on top
+            treeSearchTextBox.BringToFront();
 
             LayoutTrees();
         }
