@@ -313,6 +313,15 @@ namespace Cad3PLogBrowser
             // Apply icon size
             ApplyIconSize();
 
+            // Force layout refresh for tree panel
+            if (mainSplitContainer?.Panel1 != null)
+            {
+                mainSplitContainer.Panel1.SuspendLayout();
+                treeSearchTextBox.BringToFront();
+                mainSplitContainer.Panel1.ResumeLayout(true);
+                mainSplitContainer.Panel1.PerformLayout();
+            }
+
             // Update log-level colors based on theme
             UpdateLogColors();
 

@@ -750,6 +750,7 @@ namespace Cad3PLogBrowser
             // mainSplitContainer.Panel1
             // 
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
+            this.mainSplitContainer.Panel1.Padding = new System.Windows.Forms.Padding(0, 0, 0, 0);
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
@@ -772,7 +773,6 @@ namespace Cad3PLogBrowser
             this.treeSearchTextBox.TabIndex = 3;
             this.treeSearchTextBox.Text = "";
             this.treeSearchTextBox.ForeColor = System.Drawing.SystemColors.GrayText;
-            this.treeSearchTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 3, 5);
             this.treeSearchTextBox.Enter += new System.EventHandler(this.treeSearchTextBox_Enter);
             this.treeSearchTextBox.Leave += new System.EventHandler(this.treeSearchTextBox_Leave);
             this.treeSearchTextBox.TextChanged += new System.EventHandler(this.treeSearchTextBox_TextChanged);
