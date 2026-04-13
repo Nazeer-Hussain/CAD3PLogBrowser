@@ -313,6 +313,12 @@ namespace Cad3PLogBrowser
             // Apply icon size
             ApplyIconSize();
 
+            // Update tree container panel background to match theme
+            if (treeContainerPanel != null)
+            {
+                treeContainerPanel.BackColor = ThemeManager.BackgroundColor;
+            }
+
             // Force layout refresh for tree panel
             if (mainSplitContainer?.Panel1 != null)
             {

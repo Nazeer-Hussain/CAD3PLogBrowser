@@ -752,18 +752,18 @@ namespace Cad3PLogBrowser
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
             this.mainSplitContainer.Panel1.Padding = new System.Windows.Forms.Padding(0, 0, 0, 0);
 
-            // Create wrapper panel for trees
-            var treeContainerPanel = new System.Windows.Forms.Panel();
-            treeContainerPanel.Name = "treeContainerPanel";
-            treeContainerPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            treeContainerPanel.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
+            // Create wrapper panel for trees as a proper field
+            this.treeContainerPanel = new System.Windows.Forms.Panel();
+            this.treeContainerPanel.Name = "treeContainerPanel";
+            this.treeContainerPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.treeContainerPanel.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
 
             // Add trees to wrapper panel
-            treeContainerPanel.Controls.Add(this.CallTree);
-            treeContainerPanel.Controls.Add(this.ApiTree);
+            this.treeContainerPanel.Controls.Add(this.CallTree);
+            this.treeContainerPanel.Controls.Add(this.ApiTree);
 
             // Add wrapper and search box to Panel1
-            this.mainSplitContainer.Panel1.Controls.Add(treeContainerPanel);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeContainerPanel);
             this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
@@ -1546,6 +1546,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem mergeLogsMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
+        private System.Windows.Forms.Panel treeContainerPanel;
         private System.Windows.Forms.TextBox treeSearchTextBox;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage flameGraphTab;
