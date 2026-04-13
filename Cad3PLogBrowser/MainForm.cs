@@ -21,6 +21,7 @@ namespace Cad3PLogBrowser
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
         private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
+        private readonly Services.Core.MergeLogService _mergeLogService;
         // TODO: AI features (L1-L6) - deferred
         // private AiLogService              _aiService;
         // private Managers.AiAssistantPanel _aiPanel;
@@ -252,6 +253,7 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _dependencyGraphService = new Services.Analysis.DependencyGraphService();
+            _mergeLogService  = new Services.Core.MergeLogService();
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
@@ -1603,45 +1605,66 @@ namespace Cad3PLogBrowser
                 dlg.Filter      = "Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*";
                 dlg.Multiselect = true;
                 dlg.InitialDirectory = openLogFileDialog.InitialDirectory;
+
                 if (dlg.ShowDialog() != DialogResult.OK || dlg.FileNames.Length < 2)
                 {
-                    if (dlg.FileNames.Length < 2)
+                    if (dlg.FileNames.Length == 1)
+                    {
                         MessageBox.Show("Please select at least 2 files to merge.",
                             "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                     return;
                 }
 
-                // TODO: Feature A6 - Merge logs implementation
-                MessageBox.Show("Merge logs feature is not yet implemented.", 
-                    "Coming Soon", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Feature A6: Merge logs implementation
+                StartOperation($"Merging {dlg.FileNames.Length} log files");
 
-                /* Will be implemented as Feature A6
-                SetStatusMessage("Merging log files...");
-                FileLoadProgress.Visible = true;
-                FileLoadProgress.Value   = 0;
                 try
                 {
+                    // Merge files time-sorted
                     var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
-                    _allLines        = merged;
+
+                    // Update current file path to show merged state
                     _currentFilePath = "[Merged: " + string.Join(", ",
                         System.Array.ConvertAll(dlg.FileNames,
                             p => System.IO.Path.GetFileName(p))) + "]";
+
+                    _allLines = merged;
                     _searchService.Reset();
+                    ClearHighlighting();
+
+                    // Load merged data into UI
+                    StatusFileName.Text = "Processing merged log data...";
+                    FileLoadProgress.Value = 33;
+                    await Task.Delay(10);
+
                     PopulateVirtualListView(_allLines);
+                    FileLoadProgress.Value = 66;
+                    StatusFileName.Text = "Building call tree from merged logs...";
+                    await Task.Delay(10);
+
                     PopulateTrees(_allLines);
+                    FileLoadProgress.Value = 100;
+
                     SetDocumentLoaded(true);
                     FileStatus.Image = Resources.green_ball;
                     UpdateStatusBar();
-                    SetStatusMessage(string.Format("Merged {0} files — {1} lines",
-                        dlg.FileNames.Length, merged.Count));
+
+                    MessageBox.Show(
+                        string.Format("Successfully merged {0} files.\n\nTotal lines: {1:N0}\n\nEach line is prefixed with [filename] for traceability.",
+                            dlg.FileNames.Length, merged.Count),
+                        "Merge Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Merge failed:" + ex.Message,
+                    MessageBox.Show(
+                        string.Format("Merge failed:\n\n{0}", ex.Message),
                         "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                finally { FileLoadProgress.Visible = false; }
-                */
+                finally
+                {
+                    EndOperation();
+                }
             }
         }
 
