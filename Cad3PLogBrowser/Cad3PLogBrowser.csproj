@@ -94,6 +94,7 @@
     <Compile Include="Models\PerformanceStatistics.cs" />
     <Compile Include="Models\SearchResult.cs" />
     <Compile Include="Models\VirtualLogLine.cs" />
+    <Compile Include="Services\Analysis\DependencyGraphService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
     <Compile Include="Services\Export\TreeExportService.cs" />

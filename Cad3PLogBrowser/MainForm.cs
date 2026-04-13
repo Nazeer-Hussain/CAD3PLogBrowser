@@ -20,9 +20,8 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
-        // TODO: Dependency graph and AI features (F4, L1-L6) - deferred
-        // private DependencyGraphPanel      _dependencyGraphPanel;
-        // private TabPage                   _dependencyGraphTab;
+        private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
+        // TODO: AI features (L1-L6) - deferred
         // private AiLogService              _aiService;
         // private Managers.AiAssistantPanel _aiPanel;
         // private TabPage                   _aiTab;
@@ -252,6 +251,7 @@ namespace Cad3PLogBrowser
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
+            _dependencyGraphService = new Services.Analysis.DependencyGraphService();
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
@@ -569,6 +569,10 @@ namespace Cad3PLogBrowser
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, lines.Count);
             callGraphPanel.LoadGraph(graph);
+
+            // F4: Dependency graph - will be wired when Designer control is added
+            // Dependency graph service is ready, UI panel needs to be added to Designer
+            // var depGraph = _dependencyGraphService.Build(entries);
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
