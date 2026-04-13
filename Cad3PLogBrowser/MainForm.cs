@@ -38,6 +38,12 @@ namespace Cad3PLogBrowser
         private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
 
+        // Feature C2: Lazy loading for large trees
+        private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
+        private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
+        private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
+
+
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
         private string _currentOperation = string.Empty;
@@ -681,13 +687,23 @@ namespace Cad3PLogBrowser
         {
             CallTree.BeginUpdate();
             CallTree.Nodes.Clear();
+            _lazyChildrenMap.Clear(); // Clear lazy load cache
 
             // Root node: "Call Tree"
             var rootNode = new TreeNode("Call Tree") { Tag = -1 };
             rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
 
+            // Feature C2: Check total node count for lazy loading
+            int totalNodes = CountTotalNodes(roots);
+            bool useLazyLoading = totalNodes > LAZY_LOAD_THRESHOLD;
+
+            if (useLazyLoading)
+            {
+                StatusFileName.Text = string.Format("Large tree detected ({0:N0} nodes) - using lazy loading for performance", totalNodes);
+            }
+
             foreach (var root in roots)
-                rootNode.Nodes.Add(BuildTreeNode(root));
+                rootNode.Nodes.Add(BuildTreeNode(root, useLazyLoading));
 
             CallTree.Nodes.Add(rootNode);
             // Issue Fix: Start collapsed (only root expanded)
@@ -695,9 +711,60 @@ namespace Cad3PLogBrowser
             // Don't expand first level - let users expand as needed
 
             CallTree.EndUpdate();
+
+            // Wire up before expand event for lazy loading
+            if (useLazyLoading)
+            {
+                CallTree.BeforeExpand += CallTree_BeforeExpand;
+            }
         }
 
-        private static TreeNode BuildTreeNode(CallStackNode csNode)
+        // C2: Count total nodes in call tree
+        private int CountTotalNodes(List<CallStackNode> nodes)
+        {
+            int count = 0;
+            foreach (var node in nodes)
+            {
+                count++; // Count this node
+                count += CountTotalNodes(node.Children); // Count children recursively
+            }
+            return count;
+        }
+
+        // C2: Lazy loading handler - load children when node is expanded
+        private void CallTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        {
+            if (e.Node == null) return;
+
+            // Check if this node has lazy-loaded children waiting
+            if (_lazyChildrenMap.ContainsKey(e.Node))
+            {
+                var children = _lazyChildrenMap[e.Node];
+
+                // Remove placeholder
+                e.Node.Nodes.Clear();
+
+                // Add real children
+                foreach (var child in children)
+                {
+                    e.Node.Nodes.Add(BuildTreeNode(child, useLazyLoading: true));
+                }
+
+                // Remove from map - children are now loaded
+                _lazyChildrenMap.Remove(e.Node);
+
+                StatusFileName.Text = string.Format("Loaded {0} children for {1}", children.Count, GetMethodNameFromNode(e.Node));
+            }
+        }
+
+        // C2: Overload for backward compatibility (non-lazy)
+        private TreeNode BuildTreeNode(CallStackNode csNode)
+        {
+            return BuildTreeNode(csNode, useLazyLoading: false);
+        }
+
+        // C2: Build tree node with optional lazy loading
+        private TreeNode BuildTreeNode(CallStackNode csNode, bool useLazyLoading)
         {
             bool matched = csNode.ExitLineNumber > 0;
 
@@ -742,8 +809,30 @@ namespace Cad3PLogBrowser
                     tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
             }
 
-            foreach (var child in csNode.Children)
-                tn.Nodes.Add(BuildTreeNode(child));
+            // C2: Lazy loading - only add placeholder if node has children
+            if (csNode.Children != null && csNode.Children.Count > 0)
+            {
+                if (useLazyLoading)
+                {
+                    // Add placeholder node
+                    var placeholder = new TreeNode(LAZY_LOAD_PLACEHOLDER)
+                    {
+                        Tag = -2, // Special tag for placeholder
+                        ForeColor = Color.Gray,
+                        NodeFont = new Font(CallTree.Font, FontStyle.Italic)
+                    };
+                    tn.Nodes.Add(placeholder);
+
+                    // Store actual children for later loading
+                    _lazyChildrenMap[tn] = csNode.Children;
+                }
+                else
+                {
+                    // Normal loading - add all children immediately
+                    foreach (var child in csNode.Children)
+                        tn.Nodes.Add(BuildTreeNode(child, useLazyLoading));
+                }
+            }
 
             return tn;
         }
