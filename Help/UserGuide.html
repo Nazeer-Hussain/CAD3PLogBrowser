@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD 3P Log Browser - Complete User Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .content-box {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            font-size: 2em;
+        }
+
+        h3 {
+            color: #764ba2;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .toc {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .toc > ul > li {
+            margin: 15px 0;
+        }
+
+        .toc ul ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-block;
+            padding: 5px 0;
+        }
+
+        .toc a:hover {
+            color: #764ba2;
+            transform: translateX(5px);
+        }
+
+        .feature {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 5px solid #667eea;
+        }
+
+        .feature h4 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .keyboard-shortcut {
+            background-color: #34495e;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 0 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .menu-path {
+            color: #27ae60;
+            font-weight: bold;
+            background-color: #e8f5e9;
+            padding: 3px 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .note::before {
+            content: "?? Note: ";
+            font-weight: bold;
+        }
+
+        .tip {
+            background-color: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .tip::before {
+            content: "?? Tip: ";
+            font-weight: bold;
+        }
+
+        .warning {
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning::before {
+            content: "?? Important: ";
+            font-weight: bold;
+        }
+
+        .screenshot {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+
+        .screenshot img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .screenshot-placeholder {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 60px 20px;
+            margin: 20px 0;
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .screenshot-caption {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .badge-new {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-pro {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .badge-required {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .footer {
+            background-color: #34495e;
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 50px;
+        }
+
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content-box {
+                padding: 20px;
+            }
+
+            .step-list li {
+                padding-left: 45px;
+            }
+
+            .step-list li::before {
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+
+            .header, .footer {
+                background: white;
+                color: black;
+            }
+
+            .content-box {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>?? CAD 3P Log Browser</h1>
+            <p>Complete User Guide - Version 2.0</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="content-box toc">
+            <h2>?? Table of Contents</h2>
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#getting-started">Getting Started</a>
+                    <ul>
+                        <li><a href="#opening-files">Opening Log Files</a></li>
+                        <li><a href="#interface">Understanding the Interface</a></li>
+                        <li><a href="#first-analysis">Your First Analysis</a></li>
+                    </ul>
+                </li>
+                <li><a href="#file-operations">File Operations</a></li>
+                <li><a href="#search-filter">Search & Filter</a></li>
+                <li><a href="#bookmarks">Bookmarks</a></li>
+                <li><a href="#navigation">Navigation</a></li>
+                <li><a href="#tree-views">Tree Views</a></li>
+                <li><a href="#performance">Performance Analysis</a></li>
+                <li><a href="#visualizations">Visualizations</a></li>
+                <li><a href="#export">Export Features</a></li>
+                <li><a href="#settings">Settings & Configuration</a></li>
+                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+                <li><a href="#workflows">Common Workflows</a></li>
+                <li><a href="#tips">Tips & Tricks</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+        </div>
+
+        <div class="content-box">
+            <h2 id="introduction">?? Introduction</h2>
+
+            <p>CAD 3P Log Browser is a professional log file analyzer designed specifically for analyzing performance logs from CAD applications. It provides powerful search, filtering, visualization, and export capabilities to help developers and support teams quickly diagnose performance issues and understand application behavior.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Main application window showing all key areas
+                <div class="screenshot-caption">Filename: main-window.png - Overview of CAD 3P Log Browser interface</div>
+            </div>
+
+            <h3>Key Features</h3>
+            <ul>
+                <li>? <strong>77 Complete Features</strong> - Comprehensive log analysis toolset</li>
+                <li>? <strong>Advanced Search</strong> - Text search with regex support</li>
+                <li>? <strong>Powerful Filtering</strong> - Multi-criteria filtering (duration, time, thread, level)</li>
+                <li>? <strong>Rich Visualizations</strong> - Call trees, flame graphs, timelines, call graphs</li>
+                <li>? <strong>Performance Analysis</strong> - Detailed statistics with color-coded heatmaps</li>
+                <li>? <strong>Multiple Export Formats</strong> - CSV, XLS, JSON, XML, images</li>
+                <li>? <strong>Bookmarks</strong> - Mark important lines for quick reference</li>
+                <li>? <strong>Large File Support</strong> - Efficiently handles 500,000+ lines</li>
+            </ul>
+
+            <h3>Who Should Use This?</h3>
+            <ul>
+                <li><strong>Developers:</strong> Debug performance issues and understand call flows</li>
+                <li><strong>QA Engineers:</strong> Analyze test results and identify bottlenecks</li>
+                <li><strong>Support Teams:</strong> Diagnose customer issues from log files</li>
+                <li><strong>Performance Engineers:</strong> Profile application behavior and optimize code</li>
+            </ul>
+        </div>
+
+        <div class="content-box">
+            <h2 id="getting-started">?? Getting Started</h2>
+
+            <h3 id="opening-files">Opening Log Files</h3>
+
+            <p>There are multiple ways to open a log file in CAD 3P Log Browser:</p>
+
+            <div class="feature">
+                <h4>Method 1: File Menu</h4>
+                <ol class="step-list">
+                    <li>Click <span class="menu-path">File ? Open</span> or press <span class="keyboard-shortcut">Ctrl+O</span></li>
+                    <li>Navigate to your log file location</li>
+                    <li>Select the .log file</li>
+                    <li>Click "Open"</li>
+                </ol>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: File ? Open menu
+                <div class="screenshot-caption">Filename: file-open-menu.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Method 2: Toolbar Button</h4>
+                <p>Click the <strong>Open</strong> button on the toolbar (folder icon)</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Toolbar with Open button highlighted
+                <div class="screenshot-caption">Filename: toolbar-open.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Method 3: Drag and Drop</h4>
+                <p>Simply drag a .log file from Windows Explorer and drop it onto the application window</p>
+            </div>
+
+            <div class="feature">
+                <h4>Method 4: Recent Files</h4>
+                <p>Access your last 10 opened files via <span class="menu-path">File ? Recent Files</span></p>
+            </div>
+
+            <div class="tip">
+                The application automatically detects the default log directory from the PTC_LOG_DIR environment variable or uses your configured directory from Settings.
+            </div>
+
+            <h3 id="interface">Understanding the Interface</h3>
+
+            <p>The CAD 3P Log Browser interface is divided into several key areas:</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Main interface with labeled areas (Menu, Toolbar, Log View, Tree Panel, Tab Panel, Status Bar)
+                <div class="screenshot-caption">Filename: interface-overview.png - Annotated interface showing all major components</div>
+            </div>
+
+            <h4>Main Interface Components:</h4>
+
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Description</th>
+                    <th>Location</th>
+                </tr>
+                <tr>
+                    <td><strong>Menu Bar</strong></td>
+                    <td>Access to all features organized by category (File, Edit, View, Options, Help)</td>
+                    <td>Top of window</td>
+                </tr>
+                <tr>
+                    <td><strong>Toolbar</strong></td>
+                    <td>Quick access to frequently used features with icon buttons</td>
+                    <td>Below menu bar</td>
+                </tr>
+                <tr>
+                    <td><strong>Log View</strong></td>
+                    <td>Main list showing log entries with line numbers, timestamps, and content</td>
+                    <td>Center-left panel</td>
+                </tr>
+                <tr>
+                    <td><strong>Tree Panel</strong></td>
+                    <td>Hierarchical view showing Call Tree or API Tree</td>
+                    <td>Right panel</td>
+                </tr>
+                <tr>
+                    <td><strong>Tab Panel</strong></td>
+                    <td>Switch between Performance, Details, Call Graph, Flame Graph, Timeline views</td>
+                    <td>Bottom area</td>
+                </tr>
+                <tr>
+                    <td><strong>Status Bar</strong></td>
+                    <td>Shows current file name, total lines, selected lines, filter status</td>
+                    <td>Bottom of window</td>
+                </tr>
+            </table>
+
+            <h3 id="first-analysis">Your First Analysis</h3>
+
+            <p>Let's walk through a typical first-time analysis workflow:</p>
+
+            <ol class="step-list">
+                <li><strong>Open a log file</strong> using any of the methods described above</li>
+                <li><strong>Wait for parsing</strong> - A progress bar shows the file loading progress</li>
+                <li><strong>Review the log view</strong> - Browse through the log entries</li>
+                <li><strong>Check for errors</strong> - Press <span class="keyboard-shortcut">F8</span> to jump to the next error</li>
+                <li><strong>View performance data</strong> - Click the "Performance" tab to see statistics</li>
+                <li><strong>Explore the call tree</strong> - Use <span class="keyboard-shortcut">Ctrl+T</span> to show the call tree</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Sequence showing file loading ? log view ? performance tab ? call tree
+                <div class="screenshot-caption">Filename: first-analysis-workflow.png</div>
+            </div>
+
+            <div class="note">
+                Large files (100,000+ lines) may take a few seconds to parse. The application uses virtual list mode for efficient handling of very large files.
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="file-operations">?? File Operations</h2>
+
+            <h3>Opening Files</h3>
+
+            <div class="feature">
+                <h4>Open File <span class="keyboard-shortcut">Ctrl+O</span></h4>
+                <p>Opens a log file for analysis. Supports files with 500,000+ lines efficiently.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">File ? Open</span></p>
+                <p><strong>Toolbar:</strong> Open button (folder icon)</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Open file dialog showing .log file selection
+                <div class="screenshot-caption">Filename: open-dialog.png</div>
+            </div>
+
+            <h3>Saving & Exporting</h3>
+
+            <div class="feature">
+                <h4>Save Selected Lines <span class="keyboard-shortcut">Ctrl+S</span></h4>
+                <p>Saves currently selected or filtered lines to a new log file.</p>
+                <p><strong>Use Case:</strong> Extract specific portions of a large log for sharing or focused analysis</p>
+            </div>
+
+            <div class="feature">
+                <h4>Export to Excel <span class="keyboard-shortcut">Ctrl+Shift+E</span></h4>
+                <p>Exports filtered or selected log lines to Excel format (.xls) for further analysis in spreadsheet tools.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">File ? Save to XLS</span></p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Excel export showing log data in spreadsheet format
+                <div class="screenshot-caption">Filename: excel-export-result.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Export Performance Data</h4>
+                <p>Exports the performance statistics table to CSV format for reporting or further analysis.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">File ? Export Performance to CSV</span></p>
+            </div>
+
+            <h3>Auto-Reload</h3>
+
+            <div class="feature">
+                <h4>Reload from Disk <span class="keyboard-shortcut">F5</span></h4>
+                <p>Reloads the current file from disk. Useful when the log file is being actively updated by a running application.</p>
+            </div>
+
+            <div class="tip">
+                The application can automatically detect when the log file changes on disk and prompt you to reload. Enable this in Settings ? General ? "Monitor file changes"
+            </div>
+
+            <h3>Recent Files</h3>
+
+            <div class="feature">
+                <h4>Recent Files Menu</h4>
+                <p>Quick access to your last 10 opened files.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">File ? Recent Files</span></p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Recent Files submenu showing list of recent log files
+                <div class="screenshot-caption">Filename: recent-files-menu.png</div>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="search-filter">?? Search & Filter</h2>
+
+            <h3>Basic Search</h3>
+
+            <div class="feature">
+                <h4>Find Dialog <span class="keyboard-shortcut">Ctrl+F</span></h4>
+                <p>Opens the Find dialog for searching text in the log.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Find</span></p>
+
+                <h4>Features:</h4>
+                <ul>
+                    <li>Case-sensitive or case-insensitive search</li>
+                    <li>Regular expression support</li>
+                    <li>Search history (remembers previous searches)</li>
+                    <li>Real-time highlighting of matches</li>
+                </ul>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Find dialog with search options visible
+                <div class="screenshot-caption">Filename: find-dialog.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Find Next / Previous</h4>
+                <p><span class="keyboard-shortcut">F3</span> - Jump to next match</p>
+                <p><span class="keyboard-shortcut">Shift+F3</span> - Jump to previous match</p>
+                <p>Navigate through search results quickly without reopening the dialog.</p>
+            </div>
+
+            <div class="feature">
+                <h4>Find All <span class="keyboard-shortcut">Ctrl+Alt+F</span></h4>
+                <p>Shows all matches in a separate window. Click any result to jump to that line in the main view.</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Find All results window showing list of matches
+                <div class="screenshot-caption">Filename: find-all-results.png</div>
+            </div>
+
+            <h3>Regular Expression Search</h3>
+
+            <p>Enable powerful pattern matching by checking "Use Regular Expression" in the Find dialog.</p>
+
+            <h4>Common Regex Patterns:</h4>
+
+            <table>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Description</th>
+                    <th>Example</th>
+                </tr>
+                <tr>
+                    <td><code>ERROR.*timeout</code></td>
+                    <td>Find errors related to timeout</td>
+                    <td>Matches "ERROR: Connection timeout"</td>
+                </tr>
+                <tr>
+                    <td><code>\d{3,}</code></td>
+                    <td>Find numbers with 3+ digits</td>
+                    <td>Matches "1000", "52347"</td>
+                </tr>
+                <tr>
+                    <td><code>Thread \d+</code></td>
+                    <td>Find thread IDs</td>
+                    <td>Matches "Thread 1234"</td>
+                </tr>
+                <tr>
+                    <td><code>(ENTER|EXIT)</code></td>
+                    <td>Find method boundaries</td>
+                    <td>Matches "ENTER" or "EXIT"</td>
+                </tr>
+                <tr>
+                    <td><code>\[.*ERROR.*\]</code></td>
+                    <td>Find bracketed errors</td>
+                    <td>Matches "[ERROR: Failed]"</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                Use the regex tester at <a href="https://regex101.com" target="_blank">regex101.com</a> to test your patterns before using them in the application.
+            </div>
+
+            <h3>Advanced Filtering</h3>
+
+            <div class="feature">
+                <h4>Filter Dialog <span class="keyboard-shortcut">Ctrl+I</span></h4>
+                <p>Opens the advanced filter dialog with multiple criteria options.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Filter</span></p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Filter dialog showing all filter criteria options
+                <div class="screenshot-caption">Filename: filter-dialog.png</div>
+            </div>
+
+            <h4>Filter Criteria:</h4>
+
+            <table>
+                <tr>
+                    <th>Criterion</th>
+                    <th>Description</th>
+                    <th>Example</th>
+                </tr>
+                <tr>
+                    <td><strong>Text Filter</strong></td>
+                    <td>Show only lines containing specific text</td>
+                    <td>"Database" shows only database-related lines</td>
+                </tr>
+                <tr>
+                    <td><strong>Duration Filter</strong></td>
+                    <td>Show only calls taking longer than X milliseconds</td>
+                    <td>"1000" shows calls taking > 1 second</td>
+                </tr>
+                <tr>
+                    <td><strong>Time Range</strong></td>
+                    <td>Filter by time of day (HH:mm:ss format)</td>
+                    <td>"14:30:00 to 14:35:00" shows 5-minute window</td>
+                </tr>
+                <tr>
+                    <td><strong>Thread ID</strong></td>
+                    <td>Show only entries from specific thread</td>
+                    <td>"Thread 1234" isolates one thread</td>
+                </tr>
+                <tr>
+                    <td><strong>Log Level</strong></td>
+                    <td>Filter by ERROR, WARNING, INFO, DEBUG</td>
+                    <td>"ERROR" shows only error entries</td>
+                </tr>
+            </table>
+
+            <div class="note">
+                All filter criteria are combined with AND logic - all specified criteria must match for a line to be shown.
+            </div>
+
+            <h4>Example Filter Scenarios:</h4>
+
+            <div class="feature">
+                <h4>Scenario 1: Find Slow Database Operations</h4>
+                <ul>
+                    <li><strong>Text Contains:</strong> "Database" or "SQL"</li>
+                    <li><strong>Minimum Duration:</strong> 1000 ms</li>
+                    <li><strong>Result:</strong> Shows only database operations taking more than 1 second</li>
+                </ul>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Filtered view showing only slow database operations
+                <div class="screenshot-caption">Filename: filter-slow-database.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Scenario 2: Analyze Specific Time Window</h4>
+                <ul>
+                    <li><strong>From Time:</strong> 14:30:00</li>
+                    <li><strong>To Time:</strong> 14:35:00</li>
+                    <li><strong>Log Level:</strong> ERROR</li>
+                    <li><strong>Result:</strong> Shows only errors that occurred between 2:30 PM and 2:35 PM</li>
+                </ul>
+            </div>
+
+            <div class="feature">
+                <h4>Clear Filter <span class="keyboard-shortcut">Ctrl+Shift+F</span></h4>
+                <p>Removes the active filter and shows all log lines again.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Clear Filter</span></p>
+            </div>
+
+            <div class="tip">
+                When a filter is active, the status bar shows "Filter: Active" and displays both filtered count and total count (e.g., "5,234 of 50,000 lines match").
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="bookmarks">?? Bookmarks</h2>
+
+            <p>Bookmarks let you mark important lines in the log for quick reference and navigation.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Log view with bookmarked lines showing bookmark icons
+                <div class="screenshot-caption">Filename: bookmarks-in-logview.png</div>
+            </div>
+
+            <h3>Managing Bookmarks</h3>
+
+            <div class="feature">
+                <h4>Toggle Bookmark <span class="keyboard-shortcut">Ctrl+B</span></h4>
+                <p>Adds or removes a bookmark on the currently selected line.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Toggle Bookmark</span></p>
+                <p>Bookmarked lines are highlighted with a bookmark icon (??) in the log view.</p>
+            </div>
+
+            <div class="feature">
+                <h4>Next Bookmark <span class="keyboard-shortcut">F2</span></h4>
+                <p>Jumps to the next bookmarked line below the current position.</p>
+            </div>
+
+            <div class="feature">
+                <h4>Previous Bookmark <span class="keyboard-shortcut">Shift+F2</span></h4>
+                <p>Jumps to the previous bookmarked line above the current position.</p>
+            </div>
+
+            <div class="feature">
+                <h4>Show All Bookmarks <span class="keyboard-shortcut">Ctrl+Shift+B</span></h4>
+                <p>Opens a dialog showing all bookmarked lines. Click any bookmark to jump to that line in the main view.</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Show All Bookmarks dialog with list of bookmarked lines
+                <div class="screenshot-caption">Filename: bookmarks-dialog.png</div>
+            </div>
+
+            <div class="feature">
+                <h4>Clear All Bookmarks <span class="keyboard-shortcut">Ctrl+Shift+Del</span></h4>
+                <p>Removes all bookmarks from the current file.</p>
+            </div>
+
+            <h3>Bookmark Use Cases</h3>
+
+            <ul>
+                <li><strong>Marking Errors:</strong> Bookmark error locations while reviewing a large log</li>
+                <li><strong>Key Events:</strong> Mark important application events or state changes</li>
+                <li><strong>Custom Navigation:</strong> Create your own navigation path through the log</li>
+                <li><strong>Investigation Tracking:</strong> Mark lines you've reviewed or need to revisit</li>
+                <li><strong>Comparison Points:</strong> Mark multiple points for cross-referencing</li>
+            </ul>
+
+            <div class="note">
+                Bookmarks are automatically saved to your settings file and will be restored when you reopen the same log file.
+            </div>
+
+            <h3>Bookmark Workflow Example</h3>
+
+            <ol class="step-list">
+                <li>Open a large log file</li>
+                <li>Press <span class="keyboard-shortcut">F8</span> to jump to first error</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+B</span> to bookmark it</li>
+                <li>Continue pressing <span class="keyboard-shortcut">F8</span> to find more errors</li>
+                <li>Bookmark each important error with <span class="keyboard-shortcut">Ctrl+B</span></li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+Shift+B</span> to see all bookmarked errors</li>
+                <li>Click each bookmark to jump directly to that error</li>
+            </ol>
+        </div>
+
+        <!-- Continue with remaining sections... -->
+
+        <div class="content-box">
+            <h2 id="navigation">?? Navigation</h2>
+
+            <h3>Error Navigation</h3>
+
+            <div class="feature">
+                <h4>Next Error <span class="keyboard-shortcut">F8</span></h4>
+                <p>Jumps to the next line containing "ERROR" in the log.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Next Error</span></p>
+            </div>
+
+            <div class="feature">
+                <h4>Previous Error <span class="keyboard-shortcut">Shift+F8</span></h4>
+                <p>Jumps to the previous line containing "ERROR".</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Log view highlighting ERROR line after pressing F8
+                <div class="screenshot-caption">Filename: navigation-error.png</div>
+            </div>
+
+            <h3>Warning Navigation</h3>
+
+            <div class="feature">
+                <h4>Next Warning <span class="keyboard-shortcut">Ctrl+F8</span></h4>
+                <p>Jumps to the next line containing "WARNING" in the log.</p>
+            </div>
+
+            <div class="feature">
+                <h4>Previous Warning <span class="keyboard-shortcut">Ctrl+Shift+F8</span></h4>
+                <p>Jumps to the previous line containing "WARNING".</p>
+            </div>
+
+            <h3>Method Navigation</h3>
+
+            <div class="feature">
+                <h4>Jump to Matching ENTER/EXIT <span class="keyboard-shortcut">Ctrl+G</span></h4>
+                <p>If you're on an ENTER line, jumps to the matching EXIT line (and vice versa).</p>
+                <p><strong>Use Case:</strong> Quickly navigate between method entry and exit points to analyze execution flow and duration.</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Split view showing ENTER line and matching EXIT line
+                <div class="screenshot-caption">Filename: enter-exit-matching.png</div>
+            </div>
+
+            <h3>Line Number Navigation</h3>
+
+            <div class="feature">
+                <h4>Jump to Line <span class="keyboard-shortcut">Ctrl+L</span></h4>
+                <p>Opens a dialog to jump directly to a specific line number.</p>
+                <p><strong>Use Case:</strong> Quickly navigate to a specific line when you know the line number from an external reference or previous analysis.</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Jump to Line dialog
+                <div class="screenshot-caption">Filename: jump-to-line-dialog.png</div>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="tree-views">?? Tree Views</h2>
+
+            <p>Tree views provide hierarchical visualization of method calls, making it easy to understand call relationships and execution flow.</p>
+
+            <h3>Call Tree</h3>
+
+            <div class="feature">
+                <h4>Show Call Tree <span class="keyboard-shortcut">Ctrl+T</span></h4>
+                <p>Displays a hierarchical tree view of method calls based on the call stack structure.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">View ? Show Call Tree</span></p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Call Tree showing hierarchical method calls with durations
+                <div class="screenshot-caption">Filename: call-tree-view.png</div>
+            </div>
+
+            <h4>Call Tree Features:</h4>
+            <ul>
+                <li><strong>Method Names:</strong> Each node shows the method name</li>
+                <li><strong>Duration:</strong> Execution time displayed for each method</li>
+                <li><strong>Call Count:</strong> Shows how many times each method was called</li>
+                <li><strong>Color Coding:</strong>
+                    <ul>
+                        <li>?? Green: Fast (< 100ms)</li>
+                        <li>?? Amber: Moderate (100-500ms)</li>
+                        <li>?? Red: Slow (> 500ms) - Potential bottlenecks!</li>
+                    </ul>
+                </li>
+                <li><strong>Icons:</strong> ? for matched nodes, ? for unmatched (during search)</li>
+            </ul>
+
+            <h3>API Tree</h3>
+
+            <div class="feature">
+                <h4>Show API Tree <span class="keyboard-shortcut">Ctrl+Shift+L</span></h4>
+                <p>Organizes methods by API calls, grouping related functionality together.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">View ? Show API Tree</span></p>
+                <p><strong>Use Case:</strong> Useful when you want to see all calls to a specific API grouped together, regardless of call stack hierarchy.</p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: API Tree showing methods grouped by API
+                <div class="screenshot-caption">Filename: api-tree-view.png</div>
+            </div>
+
+            <h3>Tree Operations</h3>
+
+            <div class="feature">
+                <h4>Expand All <span class="keyboard-shortcut">Ctrl+E</span></h4>
+                <p>Expands all nodes in the tree to show the complete hierarchy.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Expand All</span></p>
+            </div>
+
+            <div class="note">
+                For large trees with thousands of nodes, a progress bar is shown and you can cancel the operation if needed.
+            </div>
+
+            <div class="feature">
+                <h4>Collapse All <span class="keyboard-shortcut">Ctrl+W</span></h4>
+                <p>Collapses all nodes in the tree to show only top-level items.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Edit ? Collapse All</span></p>
+            </div>
+
+            <h3>Tree Search</h3>
+
+            <p>Use the search box above the tree to filter nodes in real-time. As you type, the tree updates to show only matching nodes and their parents.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Tree view with search box showing filtered results
+                <div class="screenshot-caption">Filename: tree-search.png</div>
+            </div>
+
+            <h3>Tree Context Menu</h3>
+
+            <p>Right-click on any tree node to access additional operations:</p>
+
+            <table>
+                <tr>
+                    <th>Operation</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><strong>Copy Node Name</strong></td>
+                    <td>Copies the method name to clipboard</td>
+                </tr>
+                <tr>
+                    <td><strong>Copy Subtree</strong></td>
+                    <td>Copies the entire branch (node and all children) as text</td>
+                </tr>
+                <tr>
+                    <td><strong>Expand All</strong></td>
+                    <td>Expands this node and all children</td>
+                </tr>
+                <tr>
+                    <td><strong>Collapse All</strong></td>
+                    <td>Collapses this node and all children</td>
+                </tr>
+                <tr>
+                    <td><strong>Jump to Matching</strong></td>
+                    <td>Jumps between ENTER and EXIT for this method</td>
+                </tr>
+                <tr>
+                    <td><strong>Save Branch</strong></td>
+                    <td>Saves this branch to a file</td>
+                </tr>
+                <tr>
+                    <td><strong>Export Branch as CSV</strong></td>
+                    <td>Exports this branch to CSV format</td>
+                </tr>
+                <tr>
+                    <td><strong>Search in Grok</strong></td>
+                    <td>Opens Grok search for this method (if Grok is configured)</td>
+                </tr>
+                <tr>
+                    <td><strong>Show in Other Tree</strong></td>
+                    <td>Switches between Call Tree and API Tree, highlighting this node</td>
+                </tr>
+            </table>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Tree context menu showing all options
+                <div class="screenshot-caption">Filename: tree-context-menu.png</div>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="performance">?? Performance Analysis</h2>
+
+            <p>The Performance tab provides detailed statistics about method execution times, helping you identify bottlenecks and understand application behavior.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Performance tab showing statistics table with color-coded values
+                <div class="screenshot-caption">Filename: performance-tab.png</div>
+            </div>
+
+            <h3>Performance Statistics Table</h3>
+
+            <p>Click the <strong>Performance</strong> tab at the bottom of the window to view the statistics table.</p>
+
+            <h4>Columns Explained:</h4>
+
+            <table>
+                <tr>
+                    <th>Column</th>
+                    <th>Description</th>
+                    <th>What to Look For</th>
+                </tr>
+                <tr>
+                    <td><strong>Method</strong></td>
+                    <td>Name of the method</td>
+                    <td>Identify specific methods causing issues</td>
+                </tr>
+                <tr>
+                    <td><strong>Calls</strong></td>
+                    <td>Number of times the method was called</td>
+                    <td>High call counts may indicate inefficiency</td>
+                </tr>
+                <tr>
+                    <td><strong>Total (ms)</strong></td>
+                    <td>Total time spent including all child calls</td>
+                    <td>Methods with highest total time are good optimization candidates</td>
+                </tr>
+                <tr>
+                    <td><strong>Avg (ms)</strong></td>
+                    <td>Average time per call</td>
+                    <td>Inconsistent averages may indicate variable performance</td>
+                </tr>
+                <tr>
+                    <td><strong>Min (ms)</strong></td>
+                    <td>Minimum (fastest) execution time</td>
+                    <td>Best-case performance</td>
+                </tr>
+                <tr>
+                    <td><strong>Max (ms)</strong></td>
+                    <td>Maximum (slowest) execution time</td>
+                    <td>Worst-case performance - outliers may indicate issues</td>
+                </tr>
+                <tr>
+                    <td><strong>Self (ms)</strong></td>
+                    <td>Exclusive time (excluding child calls)</td>
+                    <td>High self-time indicates the method itself is slow, not its children</td>
+                </tr>
+            </table>
+
+            <h3>Sorting the Table</h3>
+
+            <p>Click any column header to sort by that column. Click again to reverse the sort order.</p>
+
+            <div class="tip">
+                Visual indicators (? ascending, ? descending) show the current sort column and direction.
+            </div>
+
+            <h4>Useful Sort Strategies:</h4>
+
+            <ul>
+                <li><strong>Sort by Total (descending):</strong> Find the most time-consuming operations overall</li>
+                <li><strong>Sort by Calls (descending):</strong> Find frequently-called methods that may benefit from caching</li>
+                <li><strong>Sort by Self (descending):</strong> Find methods that are intrinsically slow</li>
+                <li><strong>Sort by Max (descending):</strong> Find methods with worst-case performance issues</li>
+            </ul>
+
+            <h3>Color-Coded Heatmap</h3>
+
+            <p>Performance data uses color-coded visualization to quickly identify problem areas:</p>
+
+            <table>
+                <tr>
+                    <th>Color</th>
+                    <th>Duration Range</th>
+                    <th>Meaning</th>
+                </tr>
+                <tr style="background-color: #d4edda;">
+                    <td>?? <strong>Green</strong></td>
+                    <td>< 100ms</td>
+                    <td>Fast execution - no issues</td>
+                </tr>
+                <tr style="background-color: #fff3cd;">
+                    <td>?? <strong>Amber</strong></td>
+                    <td>100ms - 500ms</td>
+                    <td>Moderate execution - monitor if frequent</td>
+                </tr>
+                <tr style="background-color: #f8d7da;">
+                    <td>?? <strong>Red</strong></td>
+                    <td>> 500ms</td>
+                    <td>Slow execution - potential bottleneck! Investigate these first</td>
+                </tr>
+            </table>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Performance table with color-coded cells showing heatmap
+                <div class="screenshot-caption">Filename: performance-heatmap.png</div>
+            </div>
+
+            <div class="note">
+                You can customize the color thresholds in Settings ? Performance ? Thresholds
+            </div>
+
+            <h3>Finding Bottlenecks - Step by Step</h3>
+
+            <ol class="step-list">
+                <li>Click the <strong>Performance</strong> tab</li>
+                <li>Click the <strong>Total (ms)</strong> column header to sort by total time (descending)</li>
+                <li>Look for red-highlighted methods at the top of the list</li>
+                <li>Check the <strong>Self (ms)</strong> column - high self-time means the method itself is slow</li>
+                <li>Check the <strong>Calls</strong> column - many calls × moderate time = bottleneck</li>
+                <li>Right-click the method and select "Show in Call Tree" to see its context</li>
+                <li>Use the Flame Graph tab for visual confirmation</li>
+            </ol>
+
+            <div class="tip">
+                Focus optimization efforts on methods that appear in the top 10% of total time AND have high self-time. These are your biggest bottlenecks.
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="visualizations">?? Visualizations</h2>
+
+            <p>CAD 3P Log Browser provides three powerful visualizations to help you understand performance and call relationships.</p>
+
+            <h3>Flame Graph</h3>
+
+            <p>The Flame Graph provides an interactive visualization perfect for identifying performance bottlenecks at a glance.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Flame Graph showing method call hierarchy with color-coded bars
+                <div class="screenshot-caption">Filename: flame-graph.png</div>
+            </div>
+
+            <h4>How to Use the Flame Graph:</h4>
+
+            <ol class="step-list">
+                <li>Click the <strong>Flame Graph</strong> tab</li>
+                <li>View the hierarchical visualization where:
+                    <ul>
+                        <li><strong>Width</strong> = Time spent (wider = more time)</li>
+                        <li><strong>Height</strong> = Call stack depth</li>
+                        <li><strong>Color</strong> = Duration indicator (green/amber/red)</li>
+                    </ul>
+                </li>
+                <li>Click any method to zoom in and focus on that subtree</li>
+                <li>Hover over methods to see detailed statistics in tooltips</li>
+                <li>Look for the <strong>widest sections</strong> - these are your bottlenecks!</li>
+            </ol>
+
+            <div class="tip">
+                The widest sections at any level represent where the most time is spent. These are your primary optimization targets.
+            </div>
+
+            <h4>Flame Graph Features:</h4>
+
+            <ul>
+                <li><strong>Interactive:</strong> Click to focus on specific method subtrees</li>
+                <li><strong>Tooltips:</strong> Hover for method name, duration, call count</li>
+                <li><strong>Color-Coded:</strong> Quick visual identification of slow operations</li>
+                <li><strong>Proportional:</strong> Width accurately represents time distribution</li>
+                <li><strong>Export:</strong> Save as image via <span class="menu-path">File ? Export Flame Graph as Image</span></li>
+            </ul>
+
+            <h3>Timeline View</h3>
+
+            <p>The Timeline tab shows a Gantt-chart style visualization of method execution over time.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Timeline view showing method executions as horizontal bars over time
+                <div class="screenshot-caption">Filename: timeline-view.png</div>
+            </div>
+
+            <h4>Timeline Features:</h4>
+
+            <ul>
+                <li><strong>Horizontal Axis:</strong> Time progression from left to right</li>
+                <li><strong>Vertical Axis:</strong> Call stack depth or thread separation</li>
+                <li><strong>Bars:</strong> Each bar represents a method call, length = duration</li>
+                <li><strong>Colors:</strong> Different colors distinguish between methods</li>
+                <li><strong>Zoom:</strong> Mouse wheel to zoom in/out on time ranges</li>
+                <li><strong>Pan:</strong> Click and drag to move through timeline</li>
+                <li><strong>Export:</strong> Save as image via <span class="menu-path">File ? Export Timeline as Image</span></li>
+            </ul>
+
+            <h4>What to Look For in Timeline:</h4>
+
+            <ul>
+                <li><strong>Long bars:</strong> Methods taking significant time</li>
+                <li><strong>Gaps:</strong> Idle time or synchronization delays</li>
+                <li><strong>Overlaps:</strong> Concurrent operations (multi-threading)</li>
+                <li><strong>Patterns:</strong> Repeated sequences that might be optimized</li>
+            </ul>
+
+            <h3>Call Graph</h3>
+
+            <p>The Call Graph tab shows method calls as a directed graph, visualizing call relationships.</p>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Call Graph showing nodes (methods) connected by edges (calls)
+                <div class="screenshot-caption">Filename: call-graph.png</div>
+            </div>
+
+            <h4>Call Graph Features:</h4>
+
+            <ul>
+                <li><strong>Nodes:</strong> Represent methods, size may indicate frequency</li>
+                <li><strong>Edges:</strong> Arrows show call direction (A ? B means A calls B)</li>
+                <li><strong>Zoom:</strong> Mouse wheel to zoom in/out</li>
+                <li><strong>Pan:</strong> Click and drag to explore large graphs</li>
+                <li><strong>Layout:</strong> Automatic layout algorithms organize nodes</li>
+                <li><strong>Export:</strong> Right-click ? Export to save as image</li>
+            </ul>
+
+            <h4>Use Cases:</h4>
+
+            <ul>
+                <li><strong>Understand Dependencies:</strong> See which methods call which others</li>
+                <li><strong>Find Circular Calls:</strong> Identify potential infinite loops or recursion issues</li>
+                <li><strong>Analyze Coupling:</strong> Methods with many connections are highly coupled</li>
+                <li><strong>Visualize Architecture:</strong> Get a bird's-eye view of call patterns</li>
+            </ul>
+        </div>
+
+        <!-- I'll continue in the next message due to length... -->
+
+        <div class="content-box">
+            <h2 id="export">?? Export Features</h2>
+
+            <p>CAD 3P Log Browser supports multiple export formats for different analysis needs.</p>
+
+            <h3>Export Log Data</h3>
+
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>How to Export</th>
+                    <th>Best For</th>
+                </tr>
+                <tr>
+                    <td><strong>Excel (XLS)</strong></td>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+E</span> or <span class="menu-path">File ? Save to XLS</span></td>
+                    <td>Spreadsheet analysis, reports, sharing with non-technical users</td>
+                </tr>
+                <tr>
+                    <td><strong>CSV</strong></td>
+                    <td><span class="menu-path">File ? Export Performance to CSV</span></td>
+                    <td>Data analysis in Excel, Python, R, or other tools</td>
+                </tr>
+                <tr>
+                    <td><strong>Text (LOG)</strong></td>
+                    <td><span class="keyboard-shortcut">Ctrl+S</span> or <span class="menu-path">File ? Save Selected</span></td>
+                    <td>Sharing log excerpts, archiving filtered results</td>
+                </tr>
+            </table>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Export menu showing all export options
+                <div class="screenshot-caption">Filename: export-menu.png</div>
+            </div>
+
+            <h3>Export Trees</h3>
+
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>How to Export</th>
+                    <th>Best For</th>
+                </tr>
+                <tr>
+                    <td><strong>JSON</strong></td>
+                    <td><span class="menu-path">File ? Export Tree as JSON</span></td>
+                    <td>Programmatic analysis, custom scripts, web applications</td>
+                </tr>
+                <tr>
+                    <td><strong>XML</strong></td>
+                    <td><span class="menu-path">File ? Export Tree as XML</span></td>
+                    <td>Integration with XML-based tools, structured data exchange</td>
+                </tr>
+                <tr>
+                    <td><strong>CSV (Branch)</strong></td>
+                    <td>Right-click tree node ? Export Branch as CSV</td>
+                    <td>Analyzing specific subtrees in spreadsheet tools</td>
+                </tr>
+            </table>
+
+            <h3>Export Visualizations</h3>
+
+            <p>Save visualizations as images for documentation, presentations, or reports.</p>
+
+            <table>
+                <tr>
+                    <th>Visualization</th>
+                    <th>How to Export</th>
+                    <th>File Format</th>
+                </tr>
+                <tr>
+                    <td><strong>Flame Graph</strong></td>
+                    <td><span class="menu-path">File ? Export Flame Graph as Image</span></td>
+                    <td>PNG</td>
+                </tr>
+                <tr>
+                    <td><strong>Timeline</strong></td>
+                    <td><span class="menu-path">File ? Export Timeline as Image</span></td>
+                    <td>PNG</td>
+                </tr>
+                <tr>
+                    <td><strong>Call Graph</strong></td>
+                    <td>Right-click in Call Graph ? Export</td>
+                    <td>PNG/SVG</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                Exported images are high-resolution and suitable for inclusion in technical documentation or presentations.
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="settings">?? Settings & Configuration</h2>
+
+            <div class="feature">
+                <h4>Settings Dialog <span class="keyboard-shortcut">Ctrl+Shift+S</span></h4>
+                <p>Access comprehensive application settings.</p>
+                <p><strong>Menu:</strong> <span class="menu-path">Options ? Settings</span></p>
+            </div>
+
+            <div class="screenshot-placeholder">
+                ?? IMAGE NEEDED: Settings dialog showing all tabs (General, Performance, Display, Advanced)
+                <div class="screenshot-caption">Filename: settings-dialog.png</div>
+            </div>
+
+            <h3>General Tab</h3>
+
+            <ul>
+                <li><strong>Date Format:</strong> Customize how dates/times are displayed</li>
+                <li><strong>Keywords:</strong> Define keywords to highlight in logs</li>
+                <li><strong>Default Directory:</strong> Set default folder for opening files</li>
+                <li><strong>File Monitoring:</strong> Auto-detect log file changes on disk</li>
+            </ul>
+
+            <h3>Performance Tab</h3>
+
+            <ul>
+                <li><strong>Duration Thresholds:</strong>
+                    <ul>
+                        <li>Fast threshold (default: < 100ms) - Green color</li>
+                        <li>Moderate threshold (default: 100-500ms) - Amber color</li>
+                        <li>Slow threshold (default: > 500ms) - Red color</li>
+                    </ul>
+                </li>
+                <li><strong>Virtual List Settings:</strong> Performance tuning for large files</li>
+            </ul>
+
+            <h3>Display Tab</h3>
+
+            <ul>
+                <li><strong>Font Selection:</strong> Choose font family and size for log display</li>
+                <li><strong>Colors:</strong> Customize error, warning, info colors</li>
+                <li><strong>Theme:</strong> Light or dark theme (if implemented)</li>
+                <li><strong>Syntax Highlighting:</strong> Enable/disable log syntax highlighting</li>
+            </ul>
+
+            <h3>Advanced Tab</h3>
+
+            <ul>
+                <li><strong>Regex Patterns:</strong> Save frequently-used regex patterns</li>
+                <li><strong>Parser Settings:</strong> Configure log file parsing options</li>
+                <li><strong>Grok Integration:</strong> Configure Grok URL for search integration</li>
+            </ul>
+
+            <div class="note">
+                All settings are saved to <code>%AppData%\CAD3PLogBrowser\appsettings.json</code> and persist across sessions.
+            </div>
+
+            <h3>Environment Variables</h3>
+
+            <p>The application supports the <code>PTC_LOG_DIR</code> environment variable:</p>
+
+            <ol>
+                <li><strong>First priority:</strong> User-configured directory (Settings)</li>
+                <li><strong>Second priority:</strong> PTC_LOG_DIR environment variable</li>
+                <li><strong>Fallback:</strong> My Documents folder</li>
+            </ol>
+        </div>
+
+        <div class="content-box">
+            <h2 id="keyboard-shortcuts">?? Complete Keyboard Shortcuts Reference</h2>
+
+            <div class="tip">
+                Press <span class="keyboard-shortcut">Ctrl+K</span> in the application to see the built-in keyboard shortcuts dialog.
+            </div>
+
+            <h3>File Operations</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+O</span></td>
+                    <td>Open File</td>
+                    <td>Opens file dialog to select a log file</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+S</span></td>
+                    <td>Save Selected</td>
+                    <td>Saves selected or filtered lines to new file</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+E</span></td>
+                    <td>Export to Excel</td>
+                    <td>Exports to XLS format</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">F5</span></td>
+                    <td>Reload</td>
+                    <td>Reloads current file from disk</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Alt+F4</span></td>
+                    <td>Exit</td>
+                    <td>Closes the application</td>
+                </tr>
+            </table>
+
+            <h3>Edit Operations</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+C</span></td>
+                    <td>Copy</td>
+                    <td>Copy selected lines to clipboard</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+C</span></td>
+                    <td>Copy with Headers</td>
+                    <td>Copy with column headers included</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+F</span></td>
+                    <td>Find</td>
+                    <td>Open find dialog</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">F3</span></td>
+                    <td>Find Next</td>
+                    <td>Jump to next search match</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Shift+F3</span></td>
+                    <td>Find Previous</td>
+                    <td>Jump to previous search match</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Alt+F</span></td>
+                    <td>Find All</td>
+                    <td>Show all matches in separate window</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+I</span></td>
+                    <td>Filter</td>
+                    <td>Open filter dialog</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+F</span></td>
+                    <td>Clear Filter</td>
+                    <td>Remove active filter</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+E</span></td>
+                    <td>Expand All</td>
+                    <td>Expand all tree nodes</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+W</span></td>
+                    <td>Collapse All</td>
+                    <td>Collapse all tree nodes</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+G</span></td>
+                    <td>Jump to Matching</td>
+                    <td>Jump between ENTER and EXIT</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+L</span></td>
+                    <td>Jump to Line</td>
+                    <td>Go to specific line number</td>
+                </tr>
+            </table>
+
+            <h3>Bookmarks</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+B</span></td>
+                    <td>Toggle Bookmark</td>
+                    <td>Add/remove bookmark on current line</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">F2</span></td>
+                    <td>Next Bookmark</td>
+                    <td>Jump to next bookmark</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Shift+F2</span></td>
+                    <td>Previous Bookmark</td>
+                    <td>Jump to previous bookmark</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+B</span></td>
+                    <td>Show All Bookmarks</td>
+                    <td>Display bookmarks dialog</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+Del</span></td>
+                    <td>Clear All Bookmarks</td>
+                    <td>Remove all bookmarks</td>
+                </tr>
+            </table>
+
+            <h3>Navigation</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">F8</span></td>
+                    <td>Next Error</td>
+                    <td>Jump to next ERROR line</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Shift+F8</span></td>
+                    <td>Previous Error</td>
+                    <td>Jump to previous ERROR line</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+F8</span></td>
+                    <td>Next Warning</td>
+                    <td>Jump to next WARNING line</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+F8</span></td>
+                    <td>Previous Warning</td>
+                    <td>Jump to previous WARNING line</td>
+                </tr>
+            </table>
+
+            <h3>View</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+T</span></td>
+                    <td>Show Call Tree</td>
+                    <td>Display hierarchical call tree</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+L</span></td>
+                    <td>Show API Tree</td>
+                    <td>Display API-organized tree</td>
+                </tr>
+            </table>
+
+            <h3>Help & Settings</h3>
+            <table>
+                <tr>
+                    <th>Shortcut</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">F1</span></td>
+                    <td>Help</td>
+                    <td>Open this help file</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+K</span></td>
+                    <td>Keyboard Shortcuts</td>
+                    <td>Show shortcuts dialog</td>
+                </tr>
+                <tr>
+                    <td><span class="keyboard-shortcut">Ctrl+Shift+S</span></td>
+                    <td>Settings</td>
+                    <td>Open settings dialog</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="content-box">
+            <h2 id="workflows">?? Common Workflows</h2>
+
+            <h3>Workflow 1: Quick Error Analysis</h3>
+
+            <p><strong>Goal:</strong> Quickly find and analyze all errors in a log file</p>
+
+            <ol class="step-list">
+                <li>Open log file (<span class="keyboard-shortcut">Ctrl+O</span>)</li>
+                <li>Press <span class="keyboard-shortcut">F8</span> to jump to first error</li>
+                <li>Review the error and surrounding context</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+B</span> to bookmark important errors</li>
+                <li>Continue pressing <span class="keyboard-shortcut">F8</span> to find remaining errors</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+Shift+B</span> to view all bookmarked errors</li>
+                <li>Export bookmarked lines (<span class="keyboard-shortcut">Ctrl+S</span>) for reporting</li>
+            </ol>
+
+            <h3>Workflow 2: Performance Bottleneck Analysis</h3>
+
+            <p><strong>Goal:</strong> Identify and document performance bottlenecks</p>
+
+            <ol class="step-list">
+                <li>Open log file with performance data</li>
+                <li>Click <strong>Performance</strong> tab</li>
+                <li>Sort by <strong>Total (ms)</strong> column (descending)</li>
+                <li>Identify top 5 slowest methods (look for red highlighting)</li>
+                <li>Check <strong>Self (ms)</strong> to see if method itself is slow</li>
+                <li>Switch to <strong>Flame Graph</strong> tab for visual confirmation</li>
+                <li>Note the widest sections - these are your bottlenecks</li>
+                <li>Export Flame Graph as image for documentation</li>
+                <li>Use <strong>Call Tree</strong> to understand call hierarchy</li>
+                <li>Export performance data to CSV for detailed reporting</li>
+            </ol>
+
+            <h3>Workflow 3: Thread-Specific Analysis</h3>
+
+            <p><strong>Goal:</strong> Analyze behavior of a specific thread</p>
+
+            <ol class="step-list">
+                <li>Open log file</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+I</span> to open filter dialog</li>
+                <li>Enter thread ID in "Thread ID" field (e.g., "Thread 1234")</li>
+                <li>Click "Apply" - now viewing only that thread's activities</li>
+                <li>Analyze the filtered results</li>
+                <li>Use <strong>Timeline</strong> tab to visualize thread activity over time</li>
+                <li>Export filtered results if needed</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+Shift+F</span> to clear filter when done</li>
+            </ol>
+
+            <h3>Workflow 4: Time Window Investigation</h3>
+
+            <p><strong>Goal:</strong> Investigate what happened during a specific time period</p>
+
+            <ol class="step-list">
+                <li>Open log file</li>
+                <li>Press <span class="keyboard-shortcut">Ctrl+I</span> for filter dialog</li>
+                <li>Set "From Time" and "To Time" (e.g., 14:30:00 to 14:35:00)</li>
+                <li>Optionally add level filter (e.g., ERROR or WARNING)</li>
+                <li>Click "Apply"</li>
+                <li>Review filtered results</li>
+                <li>Use bookmarks to mark key events in this time window</li>
+                <li>Export to Excel for detailed analysis</li>
+            </ol>
+        </div>
+
+        <div class="content-box">
+            <h2 id="tips">?? Tips & Tricks</h2>
+
+            <h3>Performance Analysis Tips</h3>
+
+            <div class="tip">
+                <strong>Finding True Bottlenecks:</strong> A method with high Total time but low Self time is calling expensive child methods. Focus on optimizing the children, not the parent.
+            </div>
+
+            <div class="tip">
+                <strong>Frequent Small Calls:</strong> A method called 10,000 times taking 50ms each is a bigger problem than one called once taking 100ms. Sort by Calls × Avg to find these.
+            </div>
+
+            <div class="tip">
+                <strong>Use Multiple Views:</strong> Cross-reference findings across Performance table, Flame Graph, and Timeline for comprehensive understanding.
+            </div>
+
+            <h3>Search Tips</h3>
+
+            <div class="tip">
+                <strong>Regex Power:</strong> Use <code>(error|fail|timeout)</code> to find multiple keywords at once.
+            </div>
+
+            <div class="tip">
+                <strong>Case Sensitivity:</strong> Disable case sensitivity when searching for ERROR, Error, and error variations.
+            </div>
+
+            <h3>Tree View Tips</h3>
+
+            <div class="tip">
+                <strong>Quick Find in Tree:</strong> Type to search - the tree filters in real-time as you type.
+            </div>
+
+            <div class="tip">
+                <strong>Compare Trees:</strong> Use "Show in Other Tree" context menu to see the same method in both Call Tree and API Tree perspectives.
+            </div>
+
+            <h3>Bookmark Tips</h3>
+
+            <div class="tip">
+                <strong>Strategic Bookmarking:</strong> Bookmark the first and last occurrence of an issue to quickly measure its duration and scope.
+            </div>
+
+            <div class="tip">
+                <strong>Color-Code with Keywords:</strong> Add keywords in Settings to visually highlight bookmarked concepts.
+            </div>
+
+            <h3>Export Tips</h3>
+
+            <div class="tip">
+                <strong>Filtered Excel Export:</strong> Apply a filter first, then export to Excel to get only the relevant data in your spreadsheet.
+            </div>
+
+            <div class="tip">
+                <strong>High-Res Images:</strong> Exported visualization images are high-resolution and suitable for professional presentations.
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2 id="troubleshooting">?? Troubleshooting</h2>
+
+            <h3>File Won't Open</h3>
+
+            <p><strong>Symptom:</strong> Error message when trying to open a log file</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Check file is not locked by another application (close the log-generating application)</li>
+                <li>Verify file format is plain text (.log or .txt)</li>
+                <li>Check file permissions - ensure you have read access</li>
+                <li>Try closing and reopening CAD 3P Log Browser</li>
+                <li>If file is very large (>1GB), it may take time to load - be patient</li>
+            </ul>
+
+            <h3>Application Slow with Large Files</h3>
+
+            <p><strong>Symptom:</strong> Performance issues when analyzing large log files</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Use filters (<span class="keyboard-shortcut">Ctrl+I</span>) to reduce displayed data</li>
+                <li>Close tree views if not needed (they consume memory for large datasets)</li>
+                <li>Collapse tree nodes you're not investigating</li>
+                <li>Close other tabs (Flame Graph, Timeline) when not in use</li>
+                <li>Increase available system memory if possible</li>
+            </ul>
+
+            <div class="note">
+                The application uses virtual list mode and can handle 500,000+ lines, but tree views require building complete data structures in memory.
+            </div>
+
+            <h3>Search Not Finding Results</h3>
+
+            <p><strong>Symptom:</strong> Search doesn't find expected results</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Check case sensitivity setting in Find dialog</li>
+                <li>If using regex, verify syntax at <a href="https://regex101.com" target="_blank">regex101.com</a></li>
+                <li>Ensure no active filter is hiding results - press <span class="keyboard-shortcut">Ctrl+Shift+F</span> to clear</li>
+                <li>Try "Find All" to see all matches at once</li>
+                <li>Check you're searching in the correct direction (forward vs backward)</li>
+            </ul>
+
+            <h3>Bookmarks Not Saved</h3>
+
+            <p><strong>Symptom:</strong> Bookmarks disappear when reopening the file</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Check <code>%AppData%\CAD3PLogBrowser\</code> folder exists and is writable</li>
+                <li>Verify <code>appsettings.json</code> is not read-only</li>
+                <li>Ensure application has write permissions to AppData folder</li>
+                <li>Try running the application as administrator (one time) to create necessary folders</li>
+            </ul>
+
+            <h3>Visualizations Not Showing</h3>
+
+            <p><strong>Symptom:</strong> Flame Graph, Timeline, or Call Graph tabs are empty</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Ensure log file has proper ENTER/EXIT markers for method calls</li>
+                <li>Check that duration information is present in log entries</li>
+                <li>Some visualizations require specific log format - verify your log format is supported</li>
+                <li>Try with a known-good sample log file to rule out file format issues</li>
+            </ul>
+
+            <h3>Help File Doesn't Open</h3>
+
+            <p><strong>Symptom:</strong> Pressing F1 shows error or does nothing</p>
+
+            <p><strong>Solutions:</strong></p>
+            <ul>
+                <li>Verify <code>UserGuide.html</code> exists in <code>Help\</code> subfolder or application directory</li>
+                <li>Check default browser is configured correctly in Windows</li>
+                <li>Try opening <code>UserGuide.html</code> manually from Windows Explorer</li>
+                <li>As fallback, use <span class="keyboard-shortcut">Ctrl+K</span> for keyboard shortcuts dialog</li>
+            </ul>
+        </div>
+
+        <div class="content-box">
+            <h2 id="faq">? Frequently Asked Questions</h2>
+
+            <h3>General Questions</h3>
+
+            <h4>Q: What log file formats are supported?</h4>
+            <p><strong>A:</strong> CAD 3P Log Browser supports plain text log files (.log, .txt) with timestamped entries. It auto-detects common log formats and parses ENTER/EXIT markers for method tracing.</p>
+
+            <h4>Q: How large of a file can I analyze?</h4>
+            <p><strong>A:</strong> The application uses virtual list mode and can efficiently handle files with 500,000+ lines. Performance depends on available system memory, especially when using tree views and visualizations.</p>
+
+            <h4>Q: Can I analyze multiple files at once?</h4>
+            <p><strong>A:</strong> Currently, the application analyzes one file at a time. However, you can run multiple instances of the application to analyze different files simultaneously.</p>
+
+            <h3>Settings & Configuration</h3>
+
+            <h4>Q: Where are settings stored?</h4>
+            <p><strong>A:</strong> Settings are stored in JSON format at: <code>%AppData%\CAD3PLogBrowser\appsettings.json</code></p>
+            <p>This includes window state, recent files, bookmarks, preferences, and more.</p>
+
+            <h4>Q: How do I reset to default settings?</h4>
+            <p><strong>A:</strong> Delete the <code>appsettings.json</code> file from <code>%AppData%\CAD3PLogBrowser\</code> and restart the application. Default settings will be recreated automatically.</p>
+
+            <h3>Features & Capabilities</h3>
+
+            <h4>Q: Does it support regex in search?</h4>
+            <p><strong>A:</strong> Yes! Check "Use Regular Expression" in the Find dialog (<span class="keyboard-shortcut">Ctrl+F</span>) to enable powerful pattern matching.</p>
+
+            <h4>Q: Can I export filtered results?</h4>
+            <p><strong>A:</strong> Yes! Apply your filter first, then export using <span class="keyboard-shortcut">Ctrl+Shift+E</span> for Excel or <span class="keyboard-shortcut">Ctrl+S</span> for text format. Only filtered lines are exported.</p>
+
+            <h4>Q: Does it support multiple languages?</h4>
+            <p><strong>A:</strong> The application is fully localization-ready. Additional languages can be added by creating translated resource files.</p>
+
+            <h3>Performance & Optimization</h3>
+
+            <h4>Q: Why is tree view slow with my large log?</h4>
+            <p><strong>A:</strong> Tree views build complete hierarchical structures in memory. For very large logs (100,000+ method calls), this requires significant memory. Use filters to reduce data size or close tree views when not needed.</p>
+
+            <h4>Q: How can I speed up analysis?</h4>
+            <p><strong>A:</strong> Tips for faster analysis:</p>
+            <ul>
+                <li>Close unused tabs (Flame Graph, Timeline, Call Graph)</li>
+                <li>Use filters to reduce dataset size</li>
+                <li>Collapse tree nodes you're not investigating</li>
+                <li>Disable file monitoring if not needed</li>
+                <li>Increase available system RAM</li>
+            </ul>
+
+            <h3>Troubleshooting</h3>
+
+            <h4>Q: Why can't I open my log file?</h4>
+            <p><strong>A:</strong> Common causes:</p>
+            <ul>
+                <li>File is locked by another application</li>
+                <li>File is not plain text format</li>
+                <li>Insufficient permissions to read file</li>
+                <li>File path contains special characters</li>
+            </ul>
+
+            <h4>Q: My bookmarks disappeared - why?</h4>
+            <p><strong>A:</strong> Bookmarks are file-specific and saved by file path. If you:</p>
+            <ul>
+                <li>Moved or renamed the log file</li>
+                <li>Opened from different path/location</li>
+                <li>Settings file was deleted/corrupted</li>
+            </ul>
+            <p>The bookmarks won't be found. Always open files from the same location.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="header-content">
+            <h3>CAD 3P Log Browser - Version 2.0</h3>
+            <p>Professional Log Analysis Tool</p>
+            <p>© 2024 | All Rights Reserved</p>
+            <p style="margin-top: 20px;">
+                <strong>Need Help?</strong><br>
+                Press <span class="keyboard-shortcut">Ctrl+K</span> for keyboard shortcuts<br>
+                Visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">GitHub Repository</a> for updates
+            </p>
+        </div>
+    </div>
+</body>
+</html>
