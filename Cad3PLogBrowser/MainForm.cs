@@ -20,14 +20,12 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
-        private DependencyGraphPanel      _dependencyGraphPanel;
-        private TabPage                   _dependencyGraphTab;
-        // AI features (L1-L6)
-        private AiLogService              _aiService;
-        private Managers.AiAssistantPanel _aiPanel;
-        private TabPage                   _aiTab;
-        private AggregateStats            _lastAggregateStats;
-        private List<PerformanceStatistics> _lastPerfStats;
+        // TODO: Dependency graph and AI features (F4, L1-L6) - deferred
+        // private DependencyGraphPanel      _dependencyGraphPanel;
+        // private TabPage                   _dependencyGraphTab;
+        // private AiLogService              _aiService;
+        // private Managers.AiAssistantPanel _aiPanel;
+        // private TabPage                   _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -254,7 +252,7 @@ namespace Cad3PLogBrowser
 
             RestoreSettings();
             InitTreeViews();
-            InitAiPanel();
+            // TODO: InitAiPanel(); // Deferred - AI features not yet implemented
             BuildMruMenu();
             ApplyTheme();
 
@@ -307,9 +305,9 @@ namespace Cad3PLogBrowser
             }
 
             // Refresh the performance view with theme-aware colors
-            if (_lastPerfStats != null && _lastPerfStats.Count > 0)
+            if (_apiPerfStats != null && _apiPerfStats.Count > 0)
             {
-                RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+                RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
             }
         }
 
@@ -773,7 +771,7 @@ namespace Cad3PLogBrowser
         }
 
         private bool _perfHeaderWired = false;
-        private List<ApiPerfStats> _lastPerfStats = new List<ApiPerfStats>();
+        private List<ApiPerfStats> _apiPerfStats = new List<ApiPerfStats>();
         private int _lastTotalLines = 0;
 
         private void PerformanceView_ColumnClick(object sender, ColumnClickEventArgs e)
@@ -785,12 +783,12 @@ namespace Cad3PLogBrowser
                 _perfSortColumn    = e.Column;
                 _perfSortAscending = e.Column == 0; // API name sorts ascending by default
             }
-            RenderPerformanceRows(_lastPerfStats, _lastTotalLines);
+            RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
         }
 
         private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines)
         {
-            _lastPerfStats  = stats;
+            _apiPerfStats  = stats;
             _lastTotalLines = totalLines;
 
             // Sort a copy
@@ -1492,6 +1490,11 @@ namespace Cad3PLogBrowser
                     return;
                 }
 
+                // TODO: Feature A6 - Merge logs implementation
+                MessageBox.Show("Merge logs feature is not yet implemented.", 
+                    "Coming Soon", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                /* Will be implemented as Feature A6
                 SetStatusMessage("Merging log files...");
                 FileLoadProgress.Visible = true;
                 FileLoadProgress.Value   = 0;
@@ -1513,11 +1516,11 @@ namespace Cad3PLogBrowser
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Merge failed:
-" + ex.Message,
+                    MessageBox.Show("Merge failed:" + ex.Message,
                         "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 finally { FileLoadProgress.Visible = false; }
+                */
             }
         }
 
