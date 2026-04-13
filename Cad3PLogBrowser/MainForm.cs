@@ -969,6 +969,19 @@ namespace Cad3PLogBrowser
         {
             ScrollLogToLine(e.Node?.Tag);
             ShowApiDetails(e.Node);  // D3: show invocation details
+
+            // D5: Cross-reference - highlight matching node in Call Tree if both visible
+            if (e.Node != null && CallTree.Nodes.Count > 0)
+            {
+                string methodName = GetMethodNameFromNode(e.Node);
+                if (!string.IsNullOrEmpty(methodName))
+                {
+                    // Don't trigger recursive selection events
+                    CallTree.AfterSelect -= CallTree_AfterSelect;
+                    TryHighlightInCallTree(methodName);
+                    CallTree.AfterSelect += CallTree_AfterSelect;
+                }
+            }
         }
 
         // D3: API Invocation Details Panel
@@ -1036,8 +1049,23 @@ namespace Cad3PLogBrowser
         private void ApiTree_Click(object sender, EventArgs e) { }
         private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
 
-        private void CallTree_AfterSelect(object sender, TreeViewEventArgs e) =>
+        private void CallTree_AfterSelect(object sender, TreeViewEventArgs e)
+        {
             ScrollLogToLine(e.Node?.Tag);
+
+            // D5: Cross-reference - highlight matching node in API Tree if both have data
+            if (e.Node != null && ApiTree.Nodes.Count > 0)
+            {
+                string methodName = GetMethodNameFromNode(e.Node);
+                if (!string.IsNullOrEmpty(methodName))
+                {
+                    // Don't trigger recursive selection events
+                    ApiTree.AfterSelect -= ApiTree_AfterSelect;
+                    TryHighlightInApiTree(methodName);
+                    ApiTree.AfterSelect += ApiTree_AfterSelect;
+                }
+            }
+        }
 
         private void ScrollLogToLine(object tag)
         {
@@ -2767,6 +2795,57 @@ namespace Cad3PLogBrowser
                 ShowCallTree();
                 FindAndSelectCallTreeNode(methodName);
             }
+        }
+
+        // D5: Try to highlight matching node in API Tree (without switching views)
+        private void TryHighlightInApiTree(string methodName)
+        {
+            if (string.IsNullOrEmpty(methodName) || ApiTree.Nodes.Count == 0)
+                return;
+
+            // Search for matching API node
+            foreach (TreeNode root in ApiTree.Nodes)
+            {
+                foreach (TreeNode apiNode in root.Nodes)
+                {
+                    if (GetMethodNameFromNode(apiNode).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Highlight but don't scroll - just show it's selected
+                        ApiTree.SelectedNode = apiNode;
+                        return;
+                    }
+                }
+            }
+        }
+
+        // D5: Try to highlight matching node in Call Tree (without switching views)
+        private void TryHighlightInCallTree(string methodName)
+        {
+            if (string.IsNullOrEmpty(methodName) || CallTree.Nodes.Count == 0)
+                return;
+
+            // Search for first matching call tree node
+            foreach (TreeNode root in CallTree.Nodes)
+            {
+                if (FindAndHighlightInTree(root.Nodes, methodName))
+                    return;
+            }
+        }
+
+        private bool FindAndHighlightInTree(TreeNodeCollection nodes, string methodName)
+        {
+            foreach (TreeNode n in nodes)
+            {
+                if (GetMethodNameFromNode(n).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                {
+                    CallTree.SelectedNode = n;
+                    return true;
+                }
+                // Search children recursively (depth-first)
+                if (FindAndHighlightInTree(n.Nodes, methodName))
+                    return true;
+            }
+            return false;
         }
 
         private void FindAndSelectApiTreeNode(string methodName)
