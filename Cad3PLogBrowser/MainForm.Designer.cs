@@ -652,7 +652,7 @@ namespace Cad3PLogBrowser
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.viewHelpMenuItem.Text = "&Help CHM";
+            this.viewHelpMenuItem.Text = "&User Guide";
             this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // keyboardShortcutsMenuItem
