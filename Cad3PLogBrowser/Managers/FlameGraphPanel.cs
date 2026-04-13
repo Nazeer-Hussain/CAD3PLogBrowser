@@ -208,8 +208,10 @@ namespace Cad3PLogBrowser.Managers
             if (totalDuration == 0)
                 totalDuration = 1; // Avoid division by zero
 
+            const float headerHeight = 65; // Header + legend space
             float width = this.ClientSize.Width - 20; // Padding
             float x = 10; // Start X position
+            float startY = headerHeight + 10; // Start below header with padding
 
             // Layout root nodes or zoomed node
             var nodesToLayout = _zoomedNode != null 
@@ -218,7 +220,7 @@ namespace Cad3PLogBrowser.Managers
 
             foreach (var node in nodesToLayout)
             {
-                LayoutNodeRecursive(node, x, 10, width, totalDuration);
+                LayoutNodeRecursive(node, x, startY, width, totalDuration);
                 x += (node.DurationMs / (float)totalDuration) * width;
             }
         }
@@ -267,12 +269,15 @@ namespace Cad3PLogBrowser.Managers
                 return;
             }
 
-            // Draw title/header first (not affected by zoom/pan)
+            // Draw title/header first (fixed, no transform)
             DrawTitle(g);
 
-            // Apply zoom and pan for content area (below header)
-            var headerHeight = 65; // Header + legend
-            g.TranslateTransform(_panOffset.X, _panOffset.Y + headerHeight);
+            // Save original transform
+            var originalTransform = g.Transform.Clone();
+
+            // Apply zoom and pan for content area
+            // Content starts at Y=65 (header 35px + legend 30px)
+            g.TranslateTransform(_panOffset.X, _panOffset.Y);
             g.ScaleTransform(_zoom, _zoom);
 
             // Draw nodes
@@ -284,6 +289,9 @@ namespace Cad3PLogBrowser.Managers
             {
                 DrawNodeRecursive(g, node);
             }
+
+            // Restore transform for any post-drawing
+            g.Transform = originalTransform;
         }
 
         private void DrawNodeRecursive(Graphics g, FlameGraphNode node)
@@ -351,7 +359,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawEmptyState(Graphics g)
         {
-            g.ResetTransform();
+            // Note: Already called without transform
 
             // Modern empty state with card design
             int cardWidth = 500;
@@ -441,7 +449,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawTitle(Graphics g)
         {
-            g.ResetTransform();
+            // Note: Already called without transform
 
             // Draw modern header bar
             var headerHeight = 35;
@@ -470,25 +478,24 @@ namespace Cad3PLogBrowser.Managers
                 g.DrawString(title, font, brush, 12, 8);
             }
 
-            // Draw zoom level indicator
-            if (_zoom != 1.0f)
-            {
-                var zoomText = $"Zoom: {_zoom:F1}x";
-                using (var font = new Font("Segoe UI", 9f))
-                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
-                {
-                    var size = g.MeasureString(zoomText, font);
-                    g.DrawString(zoomText, font, brush, this.Width - size.Width - 180, 10);
-                }
-            }
-
-            // Draw interactive instructions (right side of header)
+            // Draw interactive instructions (top right of header)
             string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click: Reset";
             using (var font = new Font("Segoe UI", 8f))
             using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
             {
                 var size = g.MeasureString(instructions, font);
                 g.DrawString(instructions, font, brush, this.Width - size.Width - 12, 10);
+            }
+
+            // Draw zoom level indicator (below title on left - no overlap)
+            if (_zoom != 1.0f)
+            {
+                var zoomText = $"?? Zoom: {_zoom:F1}x";
+                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
+                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
+                {
+                    g.DrawString(zoomText, font, brush, 350, 25);
+                }
             }
 
             // Draw legend if data exists

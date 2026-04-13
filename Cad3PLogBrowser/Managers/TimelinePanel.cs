@@ -36,7 +36,7 @@ namespace Cad3PLogBrowser.Managers
         private const float MIN_ZOOM = 0.1f;
         private const float MAX_ZOOM = 10.0f;
         private const int LEFT_MARGIN = 150; // Space for labels
-        private const int TOP_MARGIN = 40;   // Space for time scale
+        private const int TOP_MARGIN = 80;   // Space for header + legend + time scale
 
         private DateTime _startTime;
         private DateTime _endTime;
@@ -149,8 +149,15 @@ namespace Cad3PLogBrowser.Managers
                 _zoom = 1.0f;
                 _panOffset = new PointF(0, 0);
 
-                // Draw
-                DrawTimeline(g);
+                // Draw all components
+                DrawTitle(g);
+                DrawTimeScale(g);
+                DrawDepthLabels(g);
+
+                foreach (var entry in _entries)
+                {
+                    DrawTimelineEntry(g, entry);
+                }
 
                 // Restore
                 _zoom = oldZoom;
@@ -250,36 +257,33 @@ namespace Cad3PLogBrowser.Managers
                 return;
             }
 
-            // Draw title/header first (not affected by zoom/pan)
+            // Draw title/header first (no transform)
             DrawTitle(g);
 
-            // Apply transform for content area (below header)
-            var headerHeight = 65; // Header + legend
-            g.TranslateTransform(_panOffset.X, _panOffset.Y + headerHeight);
-            g.ScaleTransform(_zoom, _zoom);
-
-            DrawTimeline(g);
-        }
-
-        private void DrawTimeline(Graphics g)
-        {
-            // Draw time scale
+            // Draw time scale and depth labels (no transform - they use TOP_MARGIN)
             DrawTimeScale(g);
-
-            // Draw depth labels
             DrawDepthLabels(g);
 
-            // Draw timeline entries
+            // Save state before applying transform
+            var state = g.Save();
+
+            // Apply transform ONLY for timeline entry bars
+            g.TranslateTransform(_panOffset.X, _panOffset.Y);
+            g.ScaleTransform(_zoom, _zoom);
+
+            // Draw timeline entries (with transform)
             foreach (var entry in _entries)
             {
                 DrawTimelineEntry(g, entry);
             }
+
+            // Restore state
+            g.Restore(state);
         }
 
         private void DrawTimeScale(Graphics g)
         {
-            g.ResetTransform();
-
+            // Note: Called without transform already
             using (var pen = new Pen(ThemeManager.BorderColor, 1f))
             using (var font = new Font("Segoe UI", 7f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
@@ -307,7 +311,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawDepthLabels(Graphics g)
         {
-            g.ResetTransform();
+            // Note: Called without transform already
 
             int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
 
@@ -365,7 +369,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawEmptyState(Graphics g)
         {
-            g.ResetTransform();
+            // Note: Already called without transform
 
             // Modern empty state with card design
             int cardWidth = 500;
@@ -456,7 +460,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawTitle(Graphics g)
         {
-            g.ResetTransform();
+            // Note: Already called without transform
 
             // Draw modern header bar
             var headerHeight = 35;
@@ -486,12 +490,11 @@ namespace Cad3PLogBrowser.Managers
             // Draw zoom level indicator
             if (_zoom != 1.0f)
             {
-                var zoomText = $"Zoom: {_zoom:F1}x";
-                using (var font = new Font("Segoe UI", 9f))
+                var zoomText = $"?? Zoom: {_zoom:F1}x";
+                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
                 using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
                 {
-                    var size = g.MeasureString(zoomText, font);
-                    g.DrawString(zoomText, font, brush, this.Width - size.Width - 180, 10);
+                    g.DrawString(zoomText, font, brush, 350, 25);
                 }
             }
 
