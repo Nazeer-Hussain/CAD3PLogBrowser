@@ -2779,7 +2779,7 @@ namespace Cad3PLogBrowser
         {
             var helpForm = new Form
             {
-                Text = "Keyboard Shortcuts — WWGM CAD 3P Log Browser",
+                Text = "Keyboard Shortcuts — CAD 3P Log Browser",
                 Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -2792,7 +2792,7 @@ namespace Cad3PLogBrowser
                 BackColor = SystemColors.Window,
                 Text =
                     "═══════════════════════════════════════════════════════════════════\r\n" +
-                    "       WWGM CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                    "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
                     "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
                     "FILE MENU\r\n" +
                     "─────────────────────────────────────────────────────────────────\r\n" +
