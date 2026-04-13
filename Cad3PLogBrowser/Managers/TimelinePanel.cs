@@ -69,7 +69,7 @@ namespace Cad3PLogBrowser.Managers
             DoubleBuffered = true;
             ResizeRedraw = true;
             BorderStyle = BorderStyle.Fixed3D;
-            BackColor = Color.White;
+            BackColor = ThemeManager.BackgroundColor;
 
             this.MouseWheel += TimelinePanel_MouseWheel;
             this.MouseDown += TimelinePanel_MouseDown;
@@ -275,9 +275,9 @@ namespace Cad3PLogBrowser.Managers
         {
             g.ResetTransform();
 
-            using (var pen = new Pen(Color.Gray, 1f))
+            using (var pen = new Pen(ThemeManager.BorderColor, 1f))
             using (var font = new Font("Segoe UI", 7f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 // Draw time markers every 100ms or appropriate interval
                 float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
@@ -307,7 +307,7 @@ namespace Cad3PLogBrowser.Managers
             int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
 
             using (var font = new Font("Segoe UI", 7f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
@@ -343,7 +343,7 @@ namespace Cad3PLogBrowser.Managers
             if (entry.Bounds.Width > 50)
             {
                 using (var font = new Font("Segoe UI", 7f))
-                using (var brush = new SolidBrush(Color.Black))
+                using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark ? Color.White : Color.Black))
                 {
                     var format = new StringFormat
                     {
@@ -365,7 +365,7 @@ namespace Cad3PLogBrowser.Managers
             string message = "No timeline data available.\nLoad a log file to see execution timeline.";
 
             using (var font = new Font("Segoe UI", 10f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 var format = new StringFormat
                 {
@@ -383,7 +383,7 @@ namespace Cad3PLogBrowser.Managers
             g.ResetTransform();
 
             using (var font = new Font("Segoe UI", 9f, FontStyle.Bold))
-            using (var brush = new SolidBrush(Color.Black))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 g.DrawString("Timeline View - Method Execution Over Time", font, brush, 10, 10);
             }
@@ -391,7 +391,7 @@ namespace Cad3PLogBrowser.Managers
             // Instructions
             string instructions = "Hover: Details | Click: Select | Wheel: Zoom | Drag: Pan | Right-click: Reset";
             using (var font = new Font("Segoe UI", 7f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 g.DrawString(instructions, font, brush, 10, this.Height - 20);
             }

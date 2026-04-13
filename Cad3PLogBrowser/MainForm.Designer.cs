@@ -191,9 +191,7 @@ namespace Cad3PLogBrowser
             this.optionsMenuItem,
             this.viewMenuItem,
             this.helpMenuItem});
-            this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
             this.mainMenuStrip.Name = "mainMenuStrip";
-            this.mainMenuStrip.Size = new System.Drawing.Size(987, 26);
             this.mainMenuStrip.TabIndex = 0;
             this.mainMenuStrip.Text = "mainMenuStrip";
             // 
@@ -699,9 +697,7 @@ namespace Cad3PLogBrowser
             this.StatusLineCount,
             this.StatusSelection,
             this.FileLoadProgress});
-            this.mainStatusStrip.Location = new System.Drawing.Point(3, 469);
             this.mainStatusStrip.Name = "mainStatusStrip";
-            this.mainStatusStrip.Size = new System.Drawing.Size(682, 22);
             this.mainStatusStrip.TabIndex = 1;
             this.mainStatusStrip.Text = "mainStatusStrip";
             // 
@@ -743,19 +739,18 @@ namespace Cad3PLogBrowser
             // 
             // mainSplitContainer
             // 
-            this.mainSplitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.mainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainSplitContainer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.mainSplitContainer.Location = new System.Drawing.Point(0, 54);
             this.mainSplitContainer.Name = "mainSplitContainer";
             // 
             // mainSplitContainer.Panel1
             // 
             this.mainSplitContainer.Panel1.AccessibleName = "TreePanel";
-            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
-            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
+            this.mainSplitContainer.Panel1.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
+            this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
+            this.mainSplitContainer.Panel1.Resize += new System.EventHandler(this.Panel1_Resize);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
             // mainSplitContainer.Panel2
@@ -763,7 +758,6 @@ namespace Cad3PLogBrowser
             this.mainSplitContainer.Panel2.AccessibleName = "TabPanel";
             this.mainSplitContainer.Panel2.Controls.Add(this.mainTabControl);
             this.mainSplitContainer.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
-            this.mainSplitContainer.Size = new System.Drawing.Size(987, 525);
             this.mainSplitContainer.SplitterDistance = 285;
             this.mainSplitContainer.TabIndex = 3;
             this.mainSplitContainer.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer1_SplitterMoved);
@@ -774,7 +768,7 @@ namespace Cad3PLogBrowser
             | System.Windows.Forms.AnchorStyles.Right)));
             this.treeSearchTextBox.Location = new System.Drawing.Point(3, 3);
             this.treeSearchTextBox.Name = "treeSearchTextBox";
-            this.treeSearchTextBox.Size = new System.Drawing.Size(279, 20);
+            this.treeSearchTextBox.Size = new System.Drawing.Size(279, 22);
             this.treeSearchTextBox.TabIndex = 3;
             this.treeSearchTextBox.Text = "";
             this.treeSearchTextBox.ForeColor = System.Drawing.SystemColors.GrayText;
@@ -788,9 +782,9 @@ namespace Cad3PLogBrowser
             this.ApiTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ApiTree.Location = new System.Drawing.Point(-1, 26);
+            this.ApiTree.Location = new System.Drawing.Point(3, 31);
             this.ApiTree.Name = "ApiTree";
-            this.ApiTree.Size = new System.Drawing.Size(286, 208);
+            this.ApiTree.Size = new System.Drawing.Size(279, 488);
             this.ApiTree.TabIndex = 2;
             this.ApiTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ApiTree_AfterSelect);
             this.ApiTree.Click += new System.EventHandler(this.ApiTree_Click);
@@ -804,9 +798,9 @@ namespace Cad3PLogBrowser
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.CallTree.Location = new System.Drawing.Point(-1, 26);
+            this.CallTree.Location = new System.Drawing.Point(3, 31);
             this.CallTree.Name = "CallTree";
-            this.CallTree.Size = new System.Drawing.Size(406, 186);
+            this.CallTree.Size = new System.Drawing.Size(279, 488);
             this.CallTree.TabIndex = 0;
             this.CallTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.CallTree_AfterSelect);
             this.CallTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseClick);
@@ -847,12 +841,10 @@ namespace Cad3PLogBrowser
             this.logListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logListView.FullRowSelect = true;
             this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.logListView.Location = new System.Drawing.Point(3, 3);
             this.logListView.Name = "logListView";
             this.logListView.ShowItemToolTips = true;
             this.logListView.VirtualMode = true;
             this.logListView.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.listView1_RetrieveVirtualItem);
-            this.logListView.Size = new System.Drawing.Size(682, 466);
             this.logListView.TabIndex = 3;
             this.logListView.UseCompatibleStateImageBehavior = false;
             this.logListView.View = System.Windows.Forms.View.Details;
@@ -1027,10 +1019,8 @@ namespace Cad3PLogBrowser
             this.SettingsButton,
             this.separatorAfterSettings,
             this.ShowHelpButton});
-            this.mainToolStrip.Location = new System.Drawing.Point(0, 26);
             this.mainToolStrip.Name = "mainToolStrip";
             this.mainToolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.mainToolStrip.Size = new System.Drawing.Size(987, 27);
             this.mainToolStrip.TabIndex = 4;
             this.mainToolStrip.Text = "mainToolStrip";
             // 
@@ -1491,8 +1481,8 @@ namespace Cad3PLogBrowser
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(987, 574);
-            this.Controls.Add(this.mainToolStrip);
             this.Controls.Add(this.mainSplitContainer);
+            this.Controls.Add(this.mainToolStrip);
             this.Controls.Add(this.mainMenuStrip);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.mainMenuStrip;

@@ -181,11 +181,13 @@ namespace Cad3PLogBrowser.Managers
                        "not external API calls (works offline)."
             };
 
-            // Add controls to panel
-            this.Controls.Add(_responseTextBox);
-            this.Controls.Add(queryPanel);
-            this.Controls.Add(_buttonPanel);
-            this.Controls.Add(_statusLabel);
+            // Add controls to panel in REVERSE visual order (Dock processes in reverse)
+            // Visual order: Status ? Buttons ? Query ? Response (Fill)
+            // Add order: Response ? Query ? Buttons ? Status
+            this.Controls.Add(_responseTextBox);  // Dock.Fill - added 1st, processed LAST, fills remaining
+            this.Controls.Add(queryPanel);        // Dock.Top - added 2nd, processed 3rd, goes above response
+            this.Controls.Add(_buttonPanel);      // Dock.Top - added 3rd, processed 2nd, goes above query
+            this.Controls.Add(_statusLabel);      // Dock.Top - added 4th (LAST), processed FIRST, at top
 
             this.ResumeLayout();
         }

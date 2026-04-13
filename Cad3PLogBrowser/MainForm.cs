@@ -60,7 +60,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Performance, LogDetails, CallGraph }
+        public enum TabId { Log, Raw, Performance, LogDetails, CallGraph, FlameGraph, Timeline }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -81,9 +81,12 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return logTab;
+                case TabId.Raw:         return rawTab;
                 case TabId.Performance: return performanceTab;
                 case TabId.LogDetails:  return logDetailTab;
                 case TabId.CallGraph:   return callGraphTab;
+                case TabId.FlameGraph:  return flameGraphTab;
+                case TabId.Timeline:    return timelineTab;
                 default:                return logTab;
             }
         }
@@ -93,9 +96,12 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return showTab1MenuItem;
-                case TabId.Performance: return showTab2MenuItem;
-                case TabId.LogDetails:  return showTab3MenuItem;
-                case TabId.CallGraph:   return showTab4MenuItem;
+                case TabId.Raw:         return showTab2MenuItem;
+                case TabId.Performance: return showTab3MenuItem;
+                case TabId.LogDetails:  return showTab4MenuItem;
+                case TabId.CallGraph:   return null; // No specific menu item
+                case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
+                case TabId.Timeline:    return showTimelineTabMenuItem;
                 default:                return null;
             }
         }
@@ -271,6 +277,9 @@ namespace Cad3PLogBrowser
             BuildMruMenu();
             ApplyTheme();
 
+            // Ensure search box is on top (above trees)
+            treeSearchTextBox.BringToFront();
+
             // Load saved font preferences
             LoadLogFont();
 
@@ -280,6 +289,22 @@ namespace Cad3PLogBrowser
             // Apply toolbar visibility from settings
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
             mainToolStrip.Visible = _appSettings.ShowToolbar;
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // Force layout after form is fully loaded and sized
+            LayoutTrees();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            // Force layout again when form is shown to ensure correct positioning
+            LayoutTrees();
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -303,6 +328,9 @@ namespace Cad3PLogBrowser
 
             // Apply icon size
             ApplyIconSize();
+
+            // Refresh tree layout after theme/icon change
+            LayoutTrees();
 
             // Update log-level colors based on theme
             UpdateLogColors();
@@ -342,6 +370,22 @@ namespace Cad3PLogBrowser
                     line.BackColour = ThemeManager.BackgroundColor;
 
                 _virtualLines[i] = line;
+            }
+        }
+
+        public void ApplyToolbarVisibility()
+        {
+            mainToolStrip.Visible = _appSettings.ShowToolbar;
+            showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
+        }
+
+        public void ApplyFontSettings()
+        {
+            LoadLogFont();
+            // Refresh the log view to apply new font
+            if (logListView.VirtualMode && _virtualLines.Count > 0)
+            {
+                logListView.Invalidate();
             }
         }
 
@@ -1028,6 +1072,9 @@ namespace Cad3PLogBrowser
             showCallTreeMenuItem.Checked = showCall;
             showApiTreeMenuItem.Checked = showApi;
 
+            // Ensure search box stays on top
+            treeSearchTextBox.BringToFront();
+
             LayoutTrees();
         }
 
@@ -1054,19 +1101,37 @@ namespace Cad3PLogBrowser
 
         private void LayoutTrees()
         {
-            int h = mainSplitContainer.Panel1.ClientSize.Height;
-            int w = mainSplitContainer.Panel1.ClientSize.Width;
-            bool showCall = CallTree.Visible;
-            bool showApi  = ApiTree.Visible;
+            // NOTE: Manual layout - search box at top, trees below
+            // This is simpler and more reliable than Dock which was causing issues
 
-            if (showCall && showApi)
+            if (mainSplitContainer?.Panel1 == null) return;
+
+            int panelWidth = mainSplitContainer.Panel1.ClientSize.Width;
+            int panelHeight = mainSplitContainer.Panel1.ClientSize.Height;
+
+            // Position search box at top with 3px padding
+            treeSearchTextBox.Location = new Point(3, 3);
+            treeSearchTextBox.Width = panelWidth - 6;
+
+            // Position trees below search box (at Y=31 to give 6px spacing after 22px textbox)
+            int treeY = 31;
+            int treeHeight = panelHeight - treeY - 3; // Leave 3px at bottom
+            int treeWidth = panelWidth - 6;
+
+            if (CallTree.Visible)
             {
-                int half = h / 2;
-                ApiTree.SetBounds(0, 0, w, half);
-                CallTree.SetBounds(0, half, w, h - half);
+                CallTree.SetBounds(3, treeY, treeWidth, treeHeight);
             }
-            else if (showCall) CallTree.SetBounds(0, 0, w, h);
-            else if (showApi)  ApiTree.SetBounds(0, 0, w, h);
+
+            if (ApiTree.Visible)
+            {
+                ApiTree.SetBounds(3, treeY, treeWidth, treeHeight);
+            }
+        }
+
+        private void Panel1_Resize(object sender, EventArgs e)
+        {
+            LayoutTrees();
         }
 
         // ── Tree → scroll log ─────────────────────────────────────────────────
