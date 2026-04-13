@@ -61,7 +61,7 @@ namespace Cad3PLogBrowser.Managers
         {
             DoubleBuffered = true;
             ResizeRedraw = true;
-            BorderStyle = BorderStyle.Fixed3D;
+            BorderStyle = BorderStyle.None; // Modern flat design
             BackColor = ThemeManager.BackgroundColor;
 
             // Setup mouse events
@@ -70,6 +70,10 @@ namespace Cad3PLogBrowser.Managers
             this.MouseMove += FlameGraphPanel_MouseMove;
             this.MouseUp += FlameGraphPanel_MouseUp;
             this.MouseClick += FlameGraphPanel_MouseClick;
+
+            // Add tooltip for better UX
+            var tooltip = new ToolTip();
+            tooltip.SetToolTip(this, "?? Flame Graph: Scroll to zoom, drag to pan, click to focus on a function");
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -257,15 +261,19 @@ namespace Cad3PLogBrowser.Managers
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            // Apply zoom and pan
-            g.TranslateTransform(_panOffset.X, _panOffset.Y);
-            g.ScaleTransform(_zoom, _zoom);
-
             if (_rootNodes.Count == 0)
             {
                 DrawEmptyState(g);
                 return;
             }
+
+            // Draw title/header first (not affected by zoom/pan)
+            DrawTitle(g);
+
+            // Apply zoom and pan for content area (below header)
+            var headerHeight = 65; // Header + legend
+            g.TranslateTransform(_panOffset.X, _panOffset.Y + headerHeight);
+            g.ScaleTransform(_zoom, _zoom);
 
             // Draw nodes
             var nodesToDraw = _zoomedNode != null 
@@ -276,9 +284,6 @@ namespace Cad3PLogBrowser.Managers
             {
                 DrawNodeRecursive(g, node);
             }
-
-            // Draw title
-            DrawTitle(g);
         }
 
         private void DrawNodeRecursive(Graphics g, FlameGraphNode node)
@@ -347,19 +352,90 @@ namespace Cad3PLogBrowser.Managers
         private void DrawEmptyState(Graphics g)
         {
             g.ResetTransform();
-            string message = "No performance data available.\nLoad a log file to see the flame graph.";
 
-            using (var font = new Font("Segoe UI", 10f))
+            // Modern empty state with card design
+            int cardWidth = 500;
+            int cardHeight = 350;
+            int cardX = (this.Width - cardWidth) / 2;
+            int cardY = (this.Height - cardHeight) / 2;
+
+            var cardRect = new Rectangle(cardX, cardY, cardWidth, cardHeight);
+
+            // Draw card background with subtle shadow
+            using (var shadowBrush = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
+            {
+                g.FillRoundedRectangle(shadowBrush, cardX + 4, cardY + 4, cardWidth, cardHeight, 12);
+            }
+
+            var cardColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(45, 45, 48) : Color.FromArgb(250, 250, 250);
+
+            using (var cardBrush = new SolidBrush(cardColor))
+            using (var borderPen = new Pen(ThemeManager.BorderColor, 2))
+            {
+                g.FillRoundedRectangle(cardBrush, cardX, cardY, cardWidth, cardHeight, 12);
+                g.DrawRoundedRectangle(borderPen, cardX, cardY, cardWidth, cardHeight, 12);
+            }
+
+            // Draw flame icon
+            using (var iconFont = new Font("Segoe UI", 48f))
+            using (var iconBrush = new SolidBrush(Color.FromArgb(255, 140, 0))) // Orange flame
+            {
+                var iconSize = g.MeasureString("??", iconFont);
+                g.DrawString("??", iconFont, iconBrush, 
+                    cardX + (cardWidth - iconSize.Width) / 2, cardY + 20);
+            }
+
+            // Draw title
+            using (var titleFont = new Font("Segoe UI", 16f, FontStyle.Bold))
+            using (var titleBrush = new SolidBrush(ThemeManager.ForegroundColor))
+            {
+                var titleText = "Flame Graph Visualization";
+                var titleSize = g.MeasureString(titleText, titleFont);
+                g.DrawString(titleText, titleFont, titleBrush,
+                    cardX + (cardWidth - titleSize.Width) / 2, cardY + 100);
+            }
+
+            // Draw subtitle
+            using (var subFont = new Font("Segoe UI", 10f))
+            using (var subBrush = new SolidBrush(Color.FromArgb(180, ThemeManager.ForegroundColor)))
+            {
+                var subText = "No performance data to visualize";
+                var subSize = g.MeasureString(subText, subFont);
+                g.DrawString(subText, subFont, subBrush,
+                    cardX + (cardWidth - subSize.Width) / 2, cardY + 135);
+            }
+
+            // Draw instructions
+            var instructions = new[]
+            {
+                "?? Open a log file with performance data to get started",
+                "",
+                "?? What is a Flame Graph?",
+                "• Visual profiling: See where time is spent",
+                "• Width = Time spent in function",
+                "• Height = Call stack depth",
+                "• Color = Different functions (for distinction)",
+                "",
+                "??? How to Use:",
+                "• Hover over bars to see details",
+                "• Click a bar to zoom into that function",
+                "• Mouse wheel to zoom in/out",
+                "• Drag to pan around",
+                "• Right-click to reset view"
+            };
+
+            using (var font = new Font("Segoe UI", 9f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                var format = new StringFormat
+                float y = cardY + 170;
+                foreach (var line in instructions)
                 {
-                    Alignment = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center
-                };
-
-                g.DrawString(message, font, brush, 
-                    new RectangleF(0, 0, this.Width, this.Height), format);
+                    var lineSize = g.MeasureString(line, font);
+                    g.DrawString(line, font, brush, 
+                        cardX + (cardWidth - lineSize.Width) / 2, y);
+                    y += line == "" ? 10 : 22;
+                }
             }
         }
 
@@ -367,22 +443,108 @@ namespace Cad3PLogBrowser.Managers
         {
             g.ResetTransform();
 
-            string title = _zoomedNode != null 
-                ? $"Flame Graph - Zoomed: {_zoomedNode.Name}"
-                : "Flame Graph - All Functions";
+            // Draw modern header bar
+            var headerHeight = 35;
+            var headerColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(37, 37, 38) : Color.FromArgb(240, 240, 240);
 
-            using (var font = new Font("Segoe UI", 9f, FontStyle.Bold))
-            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
+            using (var headerBrush = new SolidBrush(headerColor))
             {
-                g.DrawString(title, font, brush, 10, 10);
+                g.FillRectangle(headerBrush, 0, 0, this.Width, headerHeight);
             }
 
-            // Draw instructions
-            string instructions = "Hover: Details | Click: Zoom | Right-click: Reset | Wheel: Zoom | Drag: Pan";
-            using (var font = new Font("Segoe UI", 7f))
+            // Draw subtle border at bottom of header
+            using (var borderPen = new Pen(ThemeManager.BorderColor, 1))
+            {
+                g.DrawLine(borderPen, 0, headerHeight, this.Width, headerHeight);
+            }
+
+            // Draw icon and title
+            string title = _zoomedNode != null 
+                ? $"?? Flame Graph — Zoomed: {_zoomedNode.Name}"
+                : "?? Flame Graph — Performance Profiling";
+
+            using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                g.DrawString(instructions, font, brush, 10, this.Height - 20);
+                g.DrawString(title, font, brush, 12, 8);
+            }
+
+            // Draw zoom level indicator
+            if (_zoom != 1.0f)
+            {
+                var zoomText = $"Zoom: {_zoom:F1}x";
+                using (var font = new Font("Segoe UI", 9f))
+                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
+                {
+                    var size = g.MeasureString(zoomText, font);
+                    g.DrawString(zoomText, font, brush, this.Width - size.Width - 180, 10);
+                }
+            }
+
+            // Draw interactive instructions (right side of header)
+            string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click: Reset";
+            using (var font = new Font("Segoe UI", 8f))
+            using (var brush = new SolidBrush(Color.FromArgb(150, ThemeManager.ForegroundColor)))
+            {
+                var size = g.MeasureString(instructions, font);
+                g.DrawString(instructions, font, brush, this.Width - size.Width - 12, 10);
+            }
+
+            // Draw legend if data exists
+            if (_rootNodes.Count > 0)
+            {
+                var legendY = 40;
+                DrawLegend(g, 12, legendY);
+            }
+        }
+
+        /// <summary>
+        /// Draws a color legend for the flame graph.
+        /// </summary>
+        private void DrawLegend(Graphics g, int x, int y)
+        {
+            var legendItems = new[]
+            {
+                ("Width = Time", Color.Empty),
+                ("Height = Depth", Color.Empty),
+                ("", Color.Empty), // Spacer
+                ("Fast (<100ms)", Color.FromArgb(76, 175, 80)),
+                ("Medium (100-500ms)", Color.FromArgb(255, 152, 0)),
+                ("Slow (>500ms)", Color.FromArgb(244, 67, 54))
+            };
+
+            using (var font = new Font("Segoe UI", 8f))
+            {
+                var currentX = x;
+                foreach (var (text, color) in legendItems)
+                {
+                    if (string.IsNullOrEmpty(text))
+                    {
+                        currentX += 15; // Spacer
+                        continue;
+                    }
+
+                    // Draw color box if color specified
+                    if (color != Color.Empty)
+                    {
+                        using (var brush = new SolidBrush(color))
+                        using (var pen = new Pen(ThemeManager.BorderColor))
+                        {
+                            g.FillRectangle(brush, currentX, y + 2, 12, 12);
+                            g.DrawRectangle(pen, currentX, y + 2, 12, 12);
+                        }
+                        currentX += 18;
+                    }
+
+                    // Draw text
+                    using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
+                    {
+                        g.DrawString(text, font, brush, currentX, y);
+                        var size = g.MeasureString(text, font);
+                        currentX += (int)size.Width + 15;
+                    }
+                }
             }
         }
 
@@ -594,6 +756,53 @@ namespace Cad3PLogBrowser.Managers
             }
 
             return bitmap;
+        }
+    }
+
+    /// <summary>
+    /// Extension methods for Graphics to support rounded rectangles.
+    /// </summary>
+    public static class GraphicsExtensions
+    {
+        public static void FillRoundedRectangle(this Graphics g, Brush brush, float x, float y, float width, float height, float radius)
+        {
+            using (var path = GetRoundedRectPath(x, y, width, height, radius))
+            {
+                g.FillPath(brush, path);
+            }
+        }
+
+        public static void DrawRoundedRectangle(this Graphics g, Pen pen, float x, float y, float width, float height, float radius)
+        {
+            using (var path = GetRoundedRectPath(x, y, width, height, radius))
+            {
+                g.DrawPath(pen, path);
+            }
+        }
+
+        private static GraphicsPath GetRoundedRectPath(float x, float y, float width, float height, float radius)
+        {
+            var path = new GraphicsPath();
+            float diameter = radius * 2;
+            var arc = new RectangleF(x, y, diameter, diameter);
+
+            // Top left arc
+            path.AddArc(arc, 180, 90);
+
+            // Top right arc
+            arc.X = x + width - diameter;
+            path.AddArc(arc, 270, 90);
+
+            // Bottom right arc
+            arc.Y = y + height - diameter;
+            path.AddArc(arc, 0, 90);
+
+            // Bottom left arc
+            arc.X = x;
+            path.AddArc(arc, 90, 90);
+
+            path.CloseFigure();
+            return path;
         }
     }
 }
