@@ -297,6 +297,10 @@ namespace Cad3PLogBrowser
 
             // Force layout after form is fully loaded and sized
             LayoutTrees();
+
+            // Set up F1 help key handling for context-sensitive help
+            this.KeyPreview = true;
+            this.KeyDown += MainForm_KeyDown_Help;
         }
 
         protected override void OnShown(EventArgs e)
@@ -305,6 +309,46 @@ namespace Cad3PLogBrowser
 
             // Force layout again when form is shown to ensure correct positioning
             LayoutTrees();
+        }
+
+        /// <summary>
+        /// Handle F1 key for context-sensitive help.
+        /// </summary>
+        private void MainForm_KeyDown_Help(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F1)
+            {
+                e.Handled = true;
+                ShowContextSensitiveHelp();
+            }
+        }
+
+        /// <summary>
+        /// Shows context-sensitive help based on currently active control or tab.
+        /// </summary>
+        private void ShowContextSensitiveHelp()
+        {
+            string section = null;
+
+            // Determine context based on active tab
+            if (mainTabControl.SelectedTab == logTab)
+                section = "log-view";
+            else if (mainTabControl.SelectedTab == performanceTab)
+                section = "performance";
+            else if (mainTabControl.SelectedTab == callGraphTab)
+                section = "call-graph";
+            else if (mainTabControl.SelectedTab == flameGraphTab)
+                section = "flame-graph";
+            else if (mainTabControl.SelectedTab == timelineTab)
+                section = "timeline";
+            else if (mainTabControl.SelectedTab == logDetailTab)
+                section = "log-details";
+
+            // Check if tree panel has focus
+            if (CallTree.Focused || ApiTree.Focused)
+                section = "tree-view";
+
+            ShowUserGuide(section);
         }
 
         // ── Public API ────────────────────────────────────────────────────────
@@ -2555,6 +2599,15 @@ namespace Cad3PLogBrowser
 
         private void viewHelpMenuItem_Click(object sender, EventArgs e)
         {
+            ShowUserGuide();
+        }
+
+        /// <summary>
+        /// Opens the User Guide HTML file in default browser.
+        /// Provides context-sensitive help based on current active control/tab.
+        /// </summary>
+        private void ShowUserGuide(string section = null)
+        {
             try
             {
                 // Try to open HTML help file
@@ -2566,18 +2619,28 @@ namespace Cad3PLogBrowser
                     helpFilePath = Path.Combine(Application.StartupPath, "UserGuide.html");
                 }
 
+                // Fallback to documentation folder
+                if (!File.Exists(helpFilePath))
+                {
+                    helpFilePath = Path.Combine(Application.StartupPath, "documentation", "UserGuide.html");
+                }
+
                 if (File.Exists(helpFilePath))
                 {
+                    // Add section anchor if specified for context-sensitive help
+                    string url = helpFilePath;
+                    if (!string.IsNullOrEmpty(section))
+                    {
+                        url = helpFilePath + "#" + section;
+                    }
+
                     // Open HTML help file in default browser
-                    System.Diagnostics.Process.Start(helpFilePath);
+                    System.Diagnostics.Process.Start(url);
                 }
                 else
                 {
-                    // If help file doesn't exist, show fallback message
-                    MessageBox.Show(Resources.MSG_HELP_FILE_NOT_FOUND,
-                        Resources.TITLE, 
-                        MessageBoxButtons.OK, 
-                        MessageBoxIcon.Information);
+                    // If help file doesn't exist, show inline help dialog
+                    ShowInlineHelpDialog();
                 }
             }
             catch (Exception ex)
@@ -2585,6 +2648,119 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_OPEN_HELP_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        /// <summary>
+        /// Shows inline help dialog when UserGuide.html is not available.
+        /// </summary>
+        private void ShowInlineHelpDialog()
+        {
+            var helpForm = new Form
+            {
+                Text = "Quick Help — CAD 3P Log Browser",
+                Size = new Size(700, 600),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                MinimizeBox = false,
+                MaximizeBox = true,
+                ShowIcon = false
+            };
+
+            var rtb = new RichTextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                BackColor = Color.White,
+                Font = new Font("Segoe UI", 10f),
+                BorderStyle = BorderStyle.None,
+                Padding = new Padding(20),
+                Text = "═══════════════════════════════════════════════════════════════════\r\n" +
+                       "                 CAD 3P LOG BROWSER - QUICK HELP                      \r\n" +
+                       "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                       "OVERVIEW\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "CAD 3P Log Browser is a powerful tool for viewing and analyzing\r\n" +
+                       "CAD log files with advanced features like call trees, performance\r\n" +
+                       "analysis, flame graphs, and more.\r\n\r\n" +
+                       "GETTING STARTED\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "1. Open Log File: File → Open (Ctrl+O)\r\n" +
+                       "2. View call structure in Call Tree (left panel)\r\n" +
+                       "3. Analyze performance in Performance tab\r\n" +
+                       "4. Use Find (Ctrl+F) and Filter (Ctrl+I) to narrow down\r\n\r\n" +
+                       "KEY FEATURES\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "• Call Tree: Hierarchical view of API calls with ENTER/EXIT matching\r\n" +
+                       "• API Tree: Grouped view of all API invocations\r\n" +
+                       "• Performance Tab: Statistics on API call counts and durations\r\n" +
+                       "• Call Graph: Visual dependency graph\r\n" +
+                       "• Flame Graph: Performance visualization\r\n" +
+                       "• Timeline: Chronological event view\r\n" +
+                       "• Find & Filter: Powerful search with regex and criteria\r\n" +
+                       "• Bookmarks: Mark important lines for quick access\r\n" +
+                       "• Dark Theme: Eye-friendly professional appearance\r\n\r\n" +
+                       "KEYBOARD SHORTCUTS\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "FILE OPERATIONS\r\n" +
+                       "Ctrl+O              Open log file\r\n" +
+                       "Ctrl+S              Save filtered/processed logs\r\n" +
+                       "F5                  Reload current file\r\n" +
+                       "Ctrl+Q              Quit application\r\n\r\n" +
+                       "EDITING & SEARCH\r\n" +
+                       "Ctrl+C              Copy selected lines\r\n" +
+                       "Ctrl+F              Find text\r\n" +
+                       "F3                  Find next occurrence\r\n" +
+                       "Ctrl+I              Filter logs\r\n\r\n" +
+                       "NAVIGATION\r\n" +
+                       "Ctrl+E              Expand all tree nodes\r\n" +
+                       "Ctrl+W              Collapse all tree nodes\r\n" +
+                       "Ctrl+G              Jump to matching ENTER/EXIT\r\n" +
+                       "Ctrl+J              Jump to line number\r\n" +
+                       "F8                  Next error\r\n" +
+                       "Shift+F8            Previous error\r\n" +
+                       "F9                  Next warning\r\n" +
+                       "Shift+F9            Previous warning\r\n\r\n" +
+                       "BOOKMARKS\r\n" +
+                       "Ctrl+B              Toggle bookmark on current line\r\n" +
+                       "Ctrl+N              Next bookmark\r\n" +
+                       "Ctrl+P              Previous bookmark\r\n" +
+                       "Ctrl+Shift+B        Show all bookmarks\r\n" +
+                       "Ctrl+Shift+C        Clear all bookmarks\r\n\r\n" +
+                       "VIEW\r\n" +
+                       "Ctrl+T              Toggle Call Tree\r\n" +
+                       "Ctrl+L              Toggle API Tree\r\n" +
+                       "Ctrl+Shift+S        Settings\r\n\r\n" +
+                       "HELP\r\n" +
+                       "F1                  View this help\r\n" +
+                       "Ctrl+K              Keyboard shortcuts\r\n\r\n" +
+                       "TIPS & TRICKS\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "• Use Tree Search: Type in the search box above trees to filter\r\n" +
+                       "• Right-click menus: Context menus on trees and log view\r\n" +
+                       "• Virtual mode: Handles 500k+ line files smoothly\r\n" +
+                       "• Recent files: Last 10 files in File menu\r\n" +
+                       "• Export options: Save to CSV, JSON, XML, or images\r\n" +
+                       "• Performance guards: Warnings for large files and slow calls\r\n\r\n" +
+                       "TROUBLESHOOTING\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "• File not loading? Check PTC_LOG_DIR environment variable\r\n" +
+                       "• Slow performance? Enable lazy loading in settings\r\n" +
+                       "• Can't find API? Use API Tree and search function\r\n" +
+                       "• Unmatched ENTER/EXIT? Red X icon in tree indicates no match\r\n\r\n" +
+                       "FOR MORE INFORMATION\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "Full documentation: Help → View User Guide (F1)\r\n" +
+                       "GitHub: https://github.com/Nazeer-Hussain/CAD3PLogBrowser\r\n" +
+                       "Report issues: Help → Report Errors\r\n" +
+                       "Updates: Help → Check for Updates\r\n\r\n" +
+                       "═══════════════════════════════════════════════════════════════════\r\n"
+            };
+
+            // Apply current theme to help dialog
+            ThemeManager.ApplyTheme(helpForm);
+
+            helpForm.Controls.Add(rtb);
+            helpForm.ShowDialog(this);
         }
 
         private void helpMenuItem_Click(object sender, EventArgs e)
@@ -2603,7 +2779,7 @@ namespace Cad3PLogBrowser
         {
             var helpForm = new Form
             {
-                Text = "Keyboard Shortcuts — WWGM CAD 3P Log Browser",
+                Text = "Keyboard Shortcuts — CAD 3P Log Browser",
                 Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -2616,7 +2792,7 @@ namespace Cad3PLogBrowser
                 BackColor = SystemColors.Window,
                 Text =
                     "═══════════════════════════════════════════════════════════════════\r\n" +
-                    "       WWGM CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                    "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
                     "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
                     "FILE MENU\r\n" +
                     "─────────────────────────────────────────────────────────────────\r\n" +

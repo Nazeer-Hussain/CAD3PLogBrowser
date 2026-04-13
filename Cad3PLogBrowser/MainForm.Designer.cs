@@ -652,7 +652,7 @@ namespace Cad3PLogBrowser
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.viewHelpMenuItem.Text = "&Help CHM";
+            this.viewHelpMenuItem.Text = "&User Guide";
             this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // keyboardShortcutsMenuItem
@@ -1487,7 +1487,7 @@ namespace Cad3PLogBrowser
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.mainMenuStrip;
             this.Name = "MainForm";
-            this.Text = "WWGM 3P Log Browser";
+            this.Text = "CAD 3P Log Browser";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
