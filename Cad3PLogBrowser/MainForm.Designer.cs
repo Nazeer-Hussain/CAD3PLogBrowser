@@ -697,9 +697,7 @@ namespace Cad3PLogBrowser
             this.StatusLineCount,
             this.StatusSelection,
             this.FileLoadProgress});
-            this.mainStatusStrip.Location = new System.Drawing.Point(3, 469);
             this.mainStatusStrip.Name = "mainStatusStrip";
-            this.mainStatusStrip.Size = new System.Drawing.Size(682, 22);
             this.mainStatusStrip.TabIndex = 1;
             this.mainStatusStrip.Text = "mainStatusStrip";
             // 
@@ -843,12 +841,10 @@ namespace Cad3PLogBrowser
             this.logListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logListView.FullRowSelect = true;
             this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.logListView.Location = new System.Drawing.Point(3, 3);
             this.logListView.Name = "logListView";
             this.logListView.ShowItemToolTips = true;
             this.logListView.VirtualMode = true;
             this.logListView.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.listView1_RetrieveVirtualItem);
-            this.logListView.Size = new System.Drawing.Size(682, 466);
             this.logListView.TabIndex = 3;
             this.logListView.UseCompatibleStateImageBehavior = false;
             this.logListView.View = System.Windows.Forms.View.Details;
