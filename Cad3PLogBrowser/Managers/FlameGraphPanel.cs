@@ -62,7 +62,7 @@ namespace Cad3PLogBrowser.Managers
             DoubleBuffered = true;
             ResizeRedraw = true;
             BorderStyle = BorderStyle.Fixed3D;
-            BackColor = Color.White;
+            BackColor = ThemeManager.BackgroundColor;
 
             // Setup mouse events
             this.MouseWheel += FlameGraphPanel_MouseWheel;
@@ -350,7 +350,7 @@ namespace Cad3PLogBrowser.Managers
             string message = "No performance data available.\nLoad a log file to see the flame graph.";
 
             using (var font = new Font("Segoe UI", 10f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 var format = new StringFormat
                 {
@@ -380,7 +380,7 @@ namespace Cad3PLogBrowser.Managers
             // Draw instructions
             string instructions = "Hover: Details | Click: Zoom | Right-click: Reset | Wheel: Zoom | Drag: Pan";
             using (var font = new Font("Segoe UI", 7f))
-            using (var brush = new SolidBrush(Color.Gray))
+            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
                 g.DrawString(instructions, font, brush, 10, this.Height - 20);
             }

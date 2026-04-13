@@ -356,6 +356,31 @@ namespace Cad3PLogBrowser.Services
                 e.TextColor = Color.FromArgb(241, 241, 241);
                 base.OnRenderItemText(e);
             }
+
+            protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+            {
+                // Draw custom checkmark for dark theme visibility
+                var g = e.Graphics;
+                var rect = new Rectangle(e.ImageRectangle.X, e.ImageRectangle.Y, 
+                                        e.ImageRectangle.Width, e.ImageRectangle.Height);
+
+                // Draw checkmark background
+                using (var brush = new SolidBrush(Color.FromArgb(0, 122, 204)))
+                {
+                    g.FillRectangle(brush, rect);
+                }
+
+                // Draw checkmark symbol
+                using (var pen = new Pen(Color.White, 2))
+                {
+                    // Draw a checkmark path
+                    int x = rect.X + rect.Width / 2 - 3;
+                    int y = rect.Y + rect.Height / 2;
+
+                    g.DrawLine(pen, x, y, x + 2, y + 3);
+                    g.DrawLine(pen, x + 2, y + 3, x + 6, y - 3);
+                }
+            }
         }
 
         private class DarkToolStripRenderer : ToolStripProfessionalRenderer
