@@ -46,11 +46,31 @@ namespace Cad3PLogBrowser
         private Color GraphBackground => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
             ? Color.FromArgb(30, 30, 30) : Color.FromArgb(245, 248, 252);
 
+        private Managers.VisualizationWelcomePanel _welcomePanel;
+
         public CallGraphPanel()
         {
             DoubleBuffered       = true;
             ResizeRedraw         = true;
-            BorderStyle          = BorderStyle.None;
+            BorderStyle          = BorderStyle.FixedSingle; // Clean border
+
+            // Create welcome panel
+            _welcomePanel = new Managers.VisualizationWelcomePanel(
+                "Call Graph",
+                "Visualize API call relationships and dependencies",
+                new[]
+                {
+                    "► Circles represent API functions",
+                    "► Arrows show call relationships",
+                    "► Arrow thickness shows call frequency",
+                    "► Scroll mouse wheel to zoom",
+                    "► Drag to pan around the graph",
+                    "► Hover over nodes to highlight connections"
+                },
+                Color.FromArgb(76, 175, 80) // Green
+            );
+            _welcomePanel.Visible = false;
+            this.Controls.Add(_welcomePanel);
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -65,12 +85,15 @@ namespace Cad3PLogBrowser
 
             if (graph != null && graph.Nodes.Count > 0)
             {
+                _welcomePanel.Visible = false;
                 LayoutNodes();
                 AutoFitZoom();
                 _panOffset = new PointF(0, 0);
             }
             else
             {
+                _welcomePanel.Visible = true;
+                _welcomePanel.BringToFront();
                 _zoom = 1.0f;
                 _panOffset = new PointF(0, 0);
             }
@@ -157,17 +180,20 @@ namespace Cad3PLogBrowser
 
             if (_graph == null || _graph.Nodes.Count == 0)
             {
-                DrawEmptyMessage(g);
+                // Welcome panel handles empty state
                 return;
             }
+
+            // Draw simple instruction bar at top
+            DrawInstructionBar(g);
 
             // Save original state for legend drawing
             var state = g.Save();
 
-            // Apply pan + zoom transform for graph elements
+            // Apply pan + zoom transform for graph elements (offset for instruction bar)
             g.TranslateTransform(
                 Width  / 2f + _panOffset.X,
-                Height / 2f + _panOffset.Y);
+                Height / 2f + _panOffset.Y + 12); // Offset for instruction bar
             g.ScaleTransform(_zoom, _zoom);
 
             // Draw edges first (behind nodes)
@@ -229,6 +255,45 @@ namespace Cad3PLogBrowser
                 {
                     g.DrawString(line, font, brush, 8, y);
                     y += lineHeight;
+                }
+            }
+        }
+
+        private void DrawInstructionBar(Graphics g)
+        {
+            // Simple, non-intrusive instruction bar at top
+            const int BAR_HEIGHT = 25;
+
+            // Subtle background
+            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
+                ? Color.FromArgb(40, 40, 40) : Color.FromArgb(250, 250, 250)))
+            {
+                g.FillRectangle(brush, 0, 0, this.Width, BAR_HEIGHT);
+            }
+
+            // Bottom border
+            using (var pen = new Pen(ThemeManager.BorderColor))
+            {
+                g.DrawLine(pen, 0, BAR_HEIGHT - 1, this.Width, BAR_HEIGHT - 1);
+            }
+
+            // Instruction text
+            using (var font = new Font("Segoe UI", 8f))
+            using (var brush = new SolidBrush(Color.FromArgb(120, 120, 120)))
+            {
+                g.DrawString("Scroll: Zoom | Drag: Pan | Hover: Highlight | Double-Click Node: Filter",
+                    font, brush, 8, 6);
+            }
+
+            // Zoom indicator on right
+            if (_zoom != 1.0f)
+            {
+                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
+                using (var brush = new SolidBrush(Color.FromArgb(76, 175, 80)))
+                {
+                    string text = $"Zoom: {_zoom:F1}x";
+                    var size = g.MeasureString(text, font);
+                    g.DrawString(text, font, brush, this.Width - size.Width - 8, 6);
                 }
             }
         }

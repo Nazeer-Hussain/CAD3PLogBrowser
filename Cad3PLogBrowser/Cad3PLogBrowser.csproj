@@ -93,6 +93,9 @@
     <Compile Include="Managers\TreeViewManager.cs" />
     <Compile Include="Managers\LogViewManager.cs" />
     <Compile Include="Managers\PerformanceViewManager.cs" />
+    <Compile Include="Managers\VisualizationWelcomePanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Models\AggregateStats.cs" />
     <Compile Include="Models\ApiCallNode.cs" />
     <Compile Include="Models\CallStackNode.cs" />
