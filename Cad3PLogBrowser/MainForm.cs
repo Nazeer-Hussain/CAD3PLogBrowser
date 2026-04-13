@@ -291,6 +291,22 @@ namespace Cad3PLogBrowser
             mainToolStrip.Visible = _appSettings.ShowToolbar;
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // Force layout after form is fully loaded and sized
+            LayoutTrees();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            // Force layout again when form is shown to ensure correct positioning
+            LayoutTrees();
+        }
+
         // ── Public API ────────────────────────────────────────────────────────
         public string ActiveFilePath { get { return _currentFilePath; } }
         public AppSettings AppSettings { get { return _appSettings; } }
