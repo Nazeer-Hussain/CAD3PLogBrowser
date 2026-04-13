@@ -22,6 +22,12 @@ namespace Cad3PLogBrowser
         private readonly CallGraphService  _callGraphService;
         private DependencyGraphPanel      _dependencyGraphPanel;
         private TabPage                   _dependencyGraphTab;
+        // AI features (L1-L6)
+        private AiLogService              _aiService;
+        private Managers.AiAssistantPanel _aiPanel;
+        private TabPage                   _aiTab;
+        private AggregateStats            _lastAggregateStats;
+        private List<PerformanceStatistics> _lastPerfStats;
         private readonly BookmarkService   _bookmarkService;
 
         // ── State ─────────────────────────────────────────────────────────────
@@ -248,6 +254,7 @@ namespace Cad3PLogBrowser
 
             RestoreSettings();
             InitTreeViews();
+            InitAiPanel();
             BuildMruMenu();
             ApplyTheme();
 

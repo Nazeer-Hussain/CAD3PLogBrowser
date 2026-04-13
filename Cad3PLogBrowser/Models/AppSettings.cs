@@ -53,7 +53,8 @@ namespace Cad3PLogBrowser.Services
         public long    SlowCallThresholdMs      { get; set; } = 1000;
 
         // ── Grok integration ──────────────────────────────────────────────────
-        public string  GrokUrl { get; set; } = "";
+        public string  GrokUrl          { get; set; } = "";
+        public string  ClaudeApiKey     { get; set; } = "";  // L1-L6: AI features (never log raw content)
 
         // ── Helpers ───────────────────────────────────────────────────────────
         [System.Runtime.Serialization.IgnoreDataMember]
