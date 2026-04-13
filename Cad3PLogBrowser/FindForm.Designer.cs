@@ -22,78 +22,80 @@ namespace Cad3PLogBrowser
             this.FindNextButton = new System.Windows.Forms.Button();
             this.CloseButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            //
+            // 
             // label1
-            //
+            // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(9, 9);
+            this.label1.Location = new System.Drawing.Point(15, 15);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(76, 17);
             this.label1.TabIndex = 0;
             this.label1.Text = "Find What:";
-            //
+            // 
             // SearchTextBox
-            //
+            // 
             this.SearchTextBox.FormattingEnabled = true;
-            this.SearchTextBox.Location = new System.Drawing.Point(12, 29);
+            this.SearchTextBox.Location = new System.Drawing.Point(15, 37);
             this.SearchTextBox.Name = "SearchTextBox";
-            this.SearchTextBox.Size = new System.Drawing.Size(464, 24);
+            this.SearchTextBox.Size = new System.Drawing.Size(495, 24);
             this.SearchTextBox.TabIndex = 1;
             this.SearchTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.SearchTextBox_KeyDown);
-            //
+            // 
             // MatchCaseCheckBox
-            //
+            // 
             this.MatchCaseCheckBox.AutoSize = true;
-            this.MatchCaseCheckBox.Location = new System.Drawing.Point(12, 63);
+            this.MatchCaseCheckBox.Location = new System.Drawing.Point(15, 75);
             this.MatchCaseCheckBox.Name = "MatchCaseCheckBox";
             this.MatchCaseCheckBox.Size = new System.Drawing.Size(100, 21);
             this.MatchCaseCheckBox.TabIndex = 2;
             this.MatchCaseCheckBox.Text = "Match case";
-            //
+            // 
             // UseRegexCheckBox
-            //
+            // 
             this.UseRegexCheckBox.AutoSize = true;
-            this.UseRegexCheckBox.Location = new System.Drawing.Point(130, 63);
+            this.UseRegexCheckBox.Location = new System.Drawing.Point(140, 75);
             this.UseRegexCheckBox.Name = "UseRegexCheckBox";
-            this.UseRegexCheckBox.Size = new System.Drawing.Size(140, 21);
-            this.UseRegexCheckBox.TabIndex = 5;
+            this.UseRegexCheckBox.Size = new System.Drawing.Size(170, 21);
+            this.UseRegexCheckBox.TabIndex = 3;
             this.UseRegexCheckBox.Text = "Use regular expression";
-            //
-            // Findbutton
-            //
-            this.FindNextButton.Location = new System.Drawing.Point(290, 58);
-            this.FindNextButton.Name = "Findbutton";
-            this.FindNextButton.Size = new System.Drawing.Size(88, 31);
-            this.FindNextButton.TabIndex = 3;
+            // 
+            // FindNextButton
+            // 
+            this.FindNextButton.Location = new System.Drawing.Point(310, 110);
+            this.FindNextButton.Name = "FindNextButton";
+            this.FindNextButton.Size = new System.Drawing.Size(95, 35);
+            this.FindNextButton.TabIndex = 4;
             this.FindNextButton.Text = "&Find Next";
             this.FindNextButton.UseVisualStyleBackColor = true;
             this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
-            //
-            // Cancelbutton
-            //
+            // 
+            // CloseButton
+            // 
             this.CloseButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CloseButton.Location = new System.Drawing.Point(388, 58);
-            this.CloseButton.Name = "Cancelbutton";
-            this.CloseButton.Size = new System.Drawing.Size(88, 31);
-            this.CloseButton.TabIndex = 4;
+            this.CloseButton.Location = new System.Drawing.Point(415, 110);
+            this.CloseButton.Name = "CloseButton";
+            this.CloseButton.Size = new System.Drawing.Size(95, 35);
+            this.CloseButton.TabIndex = 5;
             this.CloseButton.Text = "&Close";
             this.CloseButton.UseVisualStyleBackColor = true;
             this.CloseButton.Click += new System.EventHandler(this.CloseButton_Click);
-            //
+            // 
             // FindForm
-            //
+            // 
             this.AcceptButton = this.FindNextButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.CloseButton;
-            this.ClientSize = new System.Drawing.Size(490, 104);
+            this.ClientSize = new System.Drawing.Size(525, 160);
             this.Controls.Add(this.CloseButton);
             this.Controls.Add(this.FindNextButton);
             this.Controls.Add(this.UseRegexCheckBox);
             this.Controls.Add(this.MatchCaseCheckBox);
             this.Controls.Add(this.SearchTextBox);
             this.Controls.Add(this.label1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "FindForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
