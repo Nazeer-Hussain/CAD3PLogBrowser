@@ -191,9 +191,7 @@ namespace Cad3PLogBrowser
             this.optionsMenuItem,
             this.viewMenuItem,
             this.helpMenuItem});
-            this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
             this.mainMenuStrip.Name = "mainMenuStrip";
-            this.mainMenuStrip.Size = new System.Drawing.Size(987, 26);
             this.mainMenuStrip.TabIndex = 0;
             this.mainMenuStrip.Text = "mainMenuStrip";
             // 
@@ -1025,10 +1023,8 @@ namespace Cad3PLogBrowser
             this.SettingsButton,
             this.separatorAfterSettings,
             this.ShowHelpButton});
-            this.mainToolStrip.Location = new System.Drawing.Point(0, 26);
             this.mainToolStrip.Name = "mainToolStrip";
             this.mainToolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.mainToolStrip.Size = new System.Drawing.Size(987, 27);
             this.mainToolStrip.TabIndex = 4;
             this.mainToolStrip.Text = "mainToolStrip";
             // 
@@ -1489,8 +1485,8 @@ namespace Cad3PLogBrowser
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(987, 574);
-            this.Controls.Add(this.mainToolStrip);
             this.Controls.Add(this.mainSplitContainer);
+            this.Controls.Add(this.mainToolStrip);
             this.Controls.Add(this.mainMenuStrip);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.mainMenuStrip;
