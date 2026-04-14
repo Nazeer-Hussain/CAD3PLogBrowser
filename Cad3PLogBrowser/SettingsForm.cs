@@ -190,8 +190,13 @@ namespace Cad3PLogBrowser
             _mainForm.ApplyFontSettings();
 
             DialogResult = DialogResult.OK;
+            Close();
         }
 
-        private void CancelButton_Click(object sender, EventArgs e) => DialogResult = DialogResult.Cancel;
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
     }
 }
