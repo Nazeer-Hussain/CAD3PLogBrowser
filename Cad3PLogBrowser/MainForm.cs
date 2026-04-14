@@ -40,7 +40,6 @@ namespace Cad3PLogBrowser
         // Feature C2: Lazy loading for large trees
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
-        private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
 
         // Feature F4: Dependency graph tab and panel
         private TabPage _dependencyGraphTab;
@@ -634,12 +633,12 @@ namespace Cad3PLogBrowser
             // Show filter status
             if (total != visible && !string.IsNullOrEmpty(_activeFilterText))
             {
-                StatusLineCount.Text = string.Format("Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines",
+                StatusLineCount.Text = string.Format(Resources.STATUS_FILTER_ACTIVE,
                     _activeFilterText, visible, total);
             }
             else if (total != visible)
             {
-                StatusLineCount.Text = string.Format("Showing {0:N0} / {1:N0} lines", visible, total);
+                StatusLineCount.Text = string.Format(Resources.STATUS_SHOWING_LINES, visible, total);
             }
             else
             {
@@ -657,7 +656,7 @@ namespace Cad3PLogBrowser
             string preview = _virtualLines[idx].Text;
             if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
 
-            StatusSelection.Text = string.Format("Line {0}: {1}", lineNum, preview);
+            StatusSelection.Text = string.Format(Resources.STATUS_SELECTION_INFO, lineNum, preview);
         }
 
         // ── Tree view init ────────────────────────────────────────────────────
@@ -1083,7 +1082,7 @@ namespace Cad3PLogBrowser
                 if (useLazyLoading)
                 {
                     // Add placeholder node
-                    var placeholder = new TreeNode(LAZY_LOAD_PLACEHOLDER)
+                    var placeholder = new TreeNode(Resources.TREE_LAZY_LOAD_PLACEHOLDER)
                     {
                         Tag = -2, // Special tag for placeholder
                         ForeColor = Color.Gray,
@@ -1393,19 +1392,19 @@ namespace Cad3PLogBrowser
 
             // Find matching API stats from performance data
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine(string.Format("=== API Details: {0} ===", apiName));
+            sb.AppendLine(string.Format(Resources.API_DETAILS_HEADER, apiName));
             sb.AppendLine();
 
             // Basic invocation info from _apiNodes
             var apiNode = _apiNodes?.Find(a => a.ApiName == apiName);
             if (apiNode != null)
             {
-                sb.AppendLine(string.Format("Total invocations : {0}", apiNode.LineNumbers.Count));
-                sb.AppendLine(string.Format("First occurrence  : Line {0}", apiNode.FirstLine));
+                sb.AppendLine(string.Format(Resources.API_DETAILS_TOTAL_INVOCATIONS, apiNode.LineNumbers.Count));
+                sb.AppendLine(string.Format(Resources.API_DETAILS_FIRST_OCCURRENCE, apiNode.FirstLine));
                 sb.AppendLine();
-                sb.AppendLine("Invocation lines:");
+                sb.AppendLine(Resources.API_DETAILS_INVOCATION_LINES);
                 foreach (int ln in apiNode.LineNumbers)
-                    sb.AppendLine(string.Format("  Line {0}", ln));
+                    sb.AppendLine(string.Format(Resources.API_DETAILS_LINE_INDENTED, ln));
             }
 
             // Match/unmatch status
@@ -1812,7 +1811,7 @@ namespace Cad3PLogBrowser
                     lines.Add(vl.Text);
             }
 
-            StartOperation($"Saving {lines.Count:N0} lines");
+            StartOperation(string.Format(Resources.OPERATION_SAVING_LINES, lines.Count));
 
             try
             {
@@ -1828,7 +1827,7 @@ namespace Cad3PLogBrowser
                         {
                             FileLoadProgress.Style = ProgressBarStyle.Blocks;
                             FileLoadProgress.Value = progress;
-                            StatusFileName.Text = $"{message} (Press ESC to cancel)";
+                            StatusFileName.Text = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
                         }));
                     });
                 });
@@ -1901,7 +1900,7 @@ namespace Cad3PLogBrowser
                 }
 
                 // Feature A6: Merge logs implementation
-                StartOperation($"Merging {dlg.FileNames.Length} log files");
+                StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, dlg.FileNames.Length));
 
                 try
                 {
@@ -1970,8 +1969,8 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Title = Resources.DIALOG_TITLE_SAVE_BRANCH;
-                dlg.Filter = "Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*";
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + "_filtered.log";
+                dlg.Filter = Resources.FILE_FILTER_LOG_FILES;
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + Resources.FILENAME_SUFFIX_FILTERED;
 
                 if (!string.IsNullOrEmpty(_currentFilePath))
                     dlg.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
@@ -2354,7 +2353,7 @@ namespace Cad3PLogBrowser
         // ── C1: Expand / Collapse all ─────────────────────────────────────────
         public async void ExpandAllTrees()
         {
-            StartOperation("Expanding all nodes");
+            StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
 
             try
             {
@@ -2400,7 +2399,7 @@ namespace Cad3PLogBrowser
 
         public async void CollapseAllTrees()
         {
-            StartOperation("Collapsing all nodes");
+            StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
 
             try
             {
@@ -2560,7 +2559,7 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            StartOperation($"Filtering ({_allLines.Count:N0} lines)");
+            StartOperation(string.Format(Resources.OPERATION_FILTERING, _allLines.Count));
 
             try
             {
@@ -2595,7 +2594,8 @@ namespace Cad3PLogBrowser
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = $"Filtering... {progress}% ({i:N0}/{logEntries.Count:N0} lines)";
+                                StatusFileName.Text = string.Format(Resources.STATUS_FILTERING_PROGRESS, 
+                                    progress, i, logEntries.Count);
                             }));
                         }
 
@@ -2618,7 +2618,8 @@ namespace Cad3PLogBrowser
                 PopulateVirtualListViewFiltered(filteredLines);
                 ClearHighlighting();
 
-                StatusFileName.Text = $"Filter applied: {filtered.Count:N0} of {_allLines.Count:N0} lines match.";
+                StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED, 
+                    filtered.Count, _allLines.Count);
             }
             catch (OperationCanceledException)
             {
@@ -3363,12 +3364,12 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Title = Resources.DIALOG_TITLE_EXPORT_BRANCH;
-                dlg.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
-                dlg.FileName = GetMethodNameFromNode(node).Replace("::", "_") + "_branch.csv";
+                dlg.Filter = Resources.FILE_FILTER_CSV_FILES;
+                dlg.FileName = GetMethodNameFromNode(node).Replace("::", "_") + Resources.FILENAME_SUFFIX_BRANCH_CSV;
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                var rows = new List<string> { "Method,Depth,Duration_ms" };
+                var rows = new List<string> { Resources.CSV_HEADER_BRANCH };
                 CollectBranchCsvRows(node, rows, 0);
                 File.WriteAllLines(dlg.FileName, rows);
 
@@ -3519,8 +3520,8 @@ namespace Cad3PLogBrowser
 
             using (var dialog = new SaveFileDialog())
             {
-                dialog.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_performance.csv";
+                dialog.Filter = Resources.FILE_FILTER_CSV_FILES;
+                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_PERFORMANCE_CSV;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath) 
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -3532,7 +3533,7 @@ namespace Cad3PLogBrowser
                     using (var writer = new StreamWriter(dialog.FileName))
                     {
                         // Write header
-                        writer.WriteLine("API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File");
+                        writer.WriteLine(Resources.CSV_HEADER_PERFORMANCE);
 
                         // Write data (skip summary row if present)
                         foreach (ListViewItem item in performanceView.Items)
@@ -3655,7 +3656,7 @@ namespace Cad3PLogBrowser
 
             using (var dialog = new SaveFileDialog())
             {
-                dialog.Filter = "Log files (*.log)|*.log|All files (*.*)|*.*";
+                dialog.Filter = Resources.FILE_FILTER_LOG_SAVE;
                 dialog.FileName = methodName.Replace("::", "_") + _appSettings.SaveSnippetSuffix + ".log";
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
@@ -3749,8 +3750,8 @@ namespace Cad3PLogBrowser
 
             using (var dialog = new SaveFileDialog())
             {
-                dialog.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp|All files (*.*)|*.*";
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_callgraph.png";
+                dialog.Filter = Resources.FILE_FILTER_IMAGE_FILES;
+                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -4181,7 +4182,7 @@ namespace Cad3PLogBrowser
         {
             if (logListView.SelectedIndices.Count == 0)
             {
-                StatusFileName.Text = "No line selected";
+                StatusFileName.Text = Resources.STATUS_NO_LINE_SELECTED;
                 return;
             }
 
@@ -4351,11 +4352,11 @@ namespace Cad3PLogBrowser
                     string text = _virtualLines[idx].Text;
                     if (text.Length > 80)
                         text = text.Substring(0, 77) + "...";
-                    sb.AppendLine(string.Format("Line {0}: {1}", lineNum, text));
+                    sb.AppendLine(string.Format(Resources.BOOKMARK_LINE_FORMAT, lineNum, text));
                 }
                 else
                 {
-                    sb.AppendLine(string.Format("Line {0}", lineNum));
+                    sb.AppendLine(string.Format(Resources.BOOKMARK_LINE_SIMPLE, lineNum));
                 }
             }
 
@@ -4396,8 +4397,8 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.json";
+                dlg.Filter = Resources.FILE_FILTER_JSON_FILES;
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_JSON;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -4435,8 +4436,8 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*";
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_calltree.xml";
+                dlg.Filter = Resources.FILE_FILTER_XML_FILES;
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_XML;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -4474,8 +4475,8 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_timeline.png";
+                dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -4523,8 +4524,8 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp";
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + "_flamegraph.png";
+                dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
+                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : Path.GetDirectoryName(_currentFilePath);
@@ -4757,7 +4758,7 @@ namespace Cad3PLogBrowser
         private void InitDependencyGraphPanel()
         {
             // Create dependency graph tab
-            _dependencyGraphTab = new TabPage("Dependency Graph")
+            _dependencyGraphTab = new TabPage(Resources.TAB_NAME_DEPENDENCY_GRAPH)
             {
                 Name = "dependencyGraphTab",
                 UseVisualStyleBackColor = true
@@ -4773,7 +4774,7 @@ namespace Cad3PLogBrowser
             // Create reset view button
             _depGraphResetButton = new Button()
             {
-                Text = "Reset View",
+                Text = Resources.BUTTON_RESET_VIEW,
                 Size = new Size(100, 30),
                 Location = new Point(10, 10),
                 Name = "depGraphResetButton",
@@ -4792,7 +4793,7 @@ namespace Cad3PLogBrowser
             }
 
             // Create View menu item for dependency graph
-            _showDependencyGraphMenuItem = new ToolStripMenuItem("Show &Dependency Graph")
+            _showDependencyGraphMenuItem = new ToolStripMenuItem(Resources.MENU_SHOW_DEPENDENCY_GRAPH)
             {
                 Name = "showDependencyGraphMenuItem",
                 CheckOnClick = true,
@@ -4838,7 +4839,7 @@ namespace Cad3PLogBrowser
         private void InitAiPanel()
         {
             // Create AI tab
-            _aiTab = new TabPage("AI Assistant")
+            _aiTab = new TabPage(Resources.TAB_NAME_AI_ASSISTANT)
             {
                 Name = "aiTab",
                 UseVisualStyleBackColor = true
@@ -4875,7 +4876,7 @@ namespace Cad3PLogBrowser
             }
 
             // Create View menu item
-            var showAiMenuItem = new ToolStripMenuItem("Show &AI Assistant")
+            var showAiMenuItem = new ToolStripMenuItem(Resources.MENU_SHOW_AI_ASSISTANT)
             {
                 Name = "showAiMenuItem",
                 CheckOnClick = true,
@@ -4920,7 +4921,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"AI query failed: {ex.Message}");
+                _aiPanel.ShowError(string.Format(Resources.ERR_AI_QUERY_FAILED, ex.Message));
             }
             finally
             {
@@ -4943,7 +4944,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"Summarize failed: {ex.Message}");
+                _aiPanel.ShowError(string.Format(Resources.ERR_AI_SUMMARIZE_FAILED, ex.Message));
             }
             finally
             {
@@ -4966,7 +4967,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"Anomaly detection failed: {ex.Message}");
+                _aiPanel.ShowError(string.Format(Resources.ERR_AI_ANOMALY_DETECTION_FAILED, ex.Message));
             }
             finally
             {
@@ -4984,7 +4985,7 @@ namespace Cad3PLogBrowser
                 var result = await _aiService.SuggestRootCauseAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), stats.ErrorCount, stats.WarningCount);
                 _aiPanel.ShowResponse(result);
             }
-            catch (Exception ex) { _aiPanel.ShowError($"Root cause analysis failed: {ex.Message}"); }
+            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_ROOT_CAUSE_FAILED, ex.Message)); }
             finally { _aiPanel.ShowThinking(false); }
         }
 
@@ -4999,7 +5000,7 @@ namespace Cad3PLogBrowser
                 var result = await _aiService.GenerateBugReportAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), version);
                 _aiPanel.ShowResponse(result);
             }
-            catch (Exception ex) { _aiPanel.ShowError($"Bug report generation failed: {ex.Message}"); }
+            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_BUG_REPORT_FAILED, ex.Message)); }
             finally { _aiPanel.ShowThinking(false); }
         }
 
@@ -5013,7 +5014,7 @@ namespace Cad3PLogBrowser
                 var result = await _aiService.ChatAsync(message, _aiPanel.ChatHistory, stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
                 _aiPanel.AppendChatTurn("assistant", result);
             }
-            catch (Exception ex) { _aiPanel.ShowError($"Chat failed: {ex.Message}"); }
+            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_CHAT_FAILED, ex.Message)); }
             finally { _aiPanel.ShowThinking(false); }
         }
 
@@ -5037,7 +5038,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"Performance analysis failed: {ex.Message}");
+                _aiPanel.ShowError(string.Format(Resources.ERR_AI_PERFORMANCE_ANALYSIS_FAILED, ex.Message));
             }
             finally
             {
@@ -5057,7 +5058,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                _aiPanel.ShowError($"Pattern finding failed: {ex.Message}");
+                _aiPanel.ShowError(string.Format(Resources.ERR_AI_PATTERN_FINDING_FAILED, ex.Message));
             }
             finally
             {

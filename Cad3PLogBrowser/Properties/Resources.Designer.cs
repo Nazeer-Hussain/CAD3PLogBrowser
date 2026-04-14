@@ -1418,5 +1418,410 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MENU_CLEAR_RECENT_FILES", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*.
+        /// </summary>
+        internal static string FILE_FILTER_LOG_FILES {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_LOG_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to CSV files (*.csv)|*.csv|All files (*.*)|*.*.
+        /// </summary>
+        internal static string FILE_FILTER_CSV_FILES {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_CSV_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to JSON files (*.json)|*.json|All files (*.*)|*.*.
+        /// </summary>
+        internal static string FILE_FILTER_JSON_FILES {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_JSON_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to XML files (*.xml)|*.xml|All files (*.*)|*.*.
+        /// </summary>
+        internal static string FILE_FILTER_XML_FILES {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_XML_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp.
+        /// </summary>
+        internal static string FILE_FILTER_IMAGE_FILES {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_IMAGE_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log files (*.log)|*.log|All files (*.*)|*.*.
+        /// </summary>
+        internal static string FILE_FILTER_LOG_SAVE {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_LOG_SAVE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _filtered.log.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_FILTERED {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_FILTERED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _branch.csv.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_BRANCH_CSV {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_BRANCH_CSV", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _performance.csv.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_PERFORMANCE_CSV {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_PERFORMANCE_CSV", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _calltree.json.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_CALLTREE_JSON {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_CALLTREE_JSON", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _calltree.xml.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_CALLTREE_XML {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_CALLTREE_XML", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _timeline.png.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_TIMELINE_PNG {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_TIMELINE_PNG", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _flamegraph.png.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_FLAMEGRAPH_PNG {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_FLAMEGRAPH_PNG", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to _callgraph.png.
+        /// </summary>
+        internal static string FILENAME_SUFFIX_CALLGRAPH_PNG {
+            get {
+                return ResourceManager.GetString("FILENAME_SUFFIX_CALLGRAPH_PNG", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dependency Graph.
+        /// </summary>
+        internal static string TAB_NAME_DEPENDENCY_GRAPH {
+            get {
+                return ResourceManager.GetString("TAB_NAME_DEPENDENCY_GRAPH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to AI Assistant.
+        /// </summary>
+        internal static string TAB_NAME_AI_ASSISTANT {
+            get {
+                return ResourceManager.GetString("TAB_NAME_AI_ASSISTANT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reset View.
+        /// </summary>
+        internal static string BUTTON_RESET_VIEW {
+            get {
+                return ResourceManager.GetString("BUTTON_RESET_VIEW", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show &amp;Dependency Graph.
+        /// </summary>
+        internal static string MENU_SHOW_DEPENDENCY_GRAPH {
+            get {
+                return ResourceManager.GetString("MENU_SHOW_DEPENDENCY_GRAPH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show &amp;AI Assistant.
+        /// </summary>
+        internal static string MENU_SHOW_AI_ASSISTANT {
+            get {
+                return ResourceManager.GetString("MENU_SHOW_AI_ASSISTANT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to AI query failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_QUERY_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_QUERY_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Summarize failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_SUMMARIZE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_SUMMARIZE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Anomaly detection failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_ANOMALY_DETECTION_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_ANOMALY_DETECTION_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Root cause analysis failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_ROOT_CAUSE_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_ROOT_CAUSE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bug report generation failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_BUG_REPORT_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_BUG_REPORT_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Chat failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_CHAT_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_CHAT_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Performance analysis failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_PERFORMANCE_ANALYSIS_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_PERFORMANCE_ANALYSIS_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pattern finding failed: {0}.
+        /// </summary>
+        internal static string ERR_AI_PATTERN_FINDING_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_AI_PATTERN_FINDING_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No line selected.
+        /// </summary>
+        internal static string STATUS_NO_LINE_SELECTED {
+            get {
+                return ResourceManager.GetString("STATUS_NO_LINE_SELECTED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File.
+        /// </summary>
+        internal static string CSV_HEADER_PERFORMANCE {
+            get {
+                return ResourceManager.GetString("CSV_HEADER_PERFORMANCE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method,Depth,Duration_ms.
+        /// </summary>
+        internal static string CSV_HEADER_BRANCH {
+            get {
+                return ResourceManager.GetString("CSV_HEADER_BRANCH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Line {0}: {1}.
+        /// </summary>
+        internal static string BOOKMARK_LINE_FORMAT {
+            get {
+                return ResourceManager.GetString("BOOKMARK_LINE_FORMAT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Line {0}.
+        /// </summary>
+        internal static string BOOKMARK_LINE_SIMPLE {
+            get {
+                return ResourceManager.GetString("BOOKMARK_LINE_SIMPLE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines.
+        /// </summary>
+        internal static string STATUS_FILTER_ACTIVE {
+            get {
+                return ResourceManager.GetString("STATUS_FILTER_ACTIVE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Showing {0:N0} / {1:N0} lines.
+        /// </summary>
+        internal static string STATUS_SHOWING_LINES {
+            get {
+                return ResourceManager.GetString("STATUS_SHOWING_LINES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Line {0}: {1}.
+        /// </summary>
+        internal static string STATUS_SELECTION_INFO {
+            get {
+                return ResourceManager.GetString("STATUS_SELECTION_INFO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filtering... {0}% ({1:N0}/{2:N0} lines).
+        /// </summary>
+        internal static string STATUS_FILTERING_PROGRESS {
+            get {
+                return ResourceManager.GetString("STATUS_FILTERING_PROGRESS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filter applied: {0:N0} of {1:N0} lines match..
+        /// </summary>
+        internal static string STATUS_FILTER_APPLIED {
+            get {
+                return ResourceManager.GetString("STATUS_FILTER_APPLIED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to    (click to load children...).
+        /// </summary>
+        internal static string TREE_LAZY_LOAD_PLACEHOLDER {
+            get {
+                return ResourceManager.GetString("TREE_LAZY_LOAD_PLACEHOLDER", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to   Line {0}.
+        /// </summary>
+        internal static string API_DETAILS_LINE_INDENTED {
+            get {
+                return ResourceManager.GetString("API_DETAILS_LINE_INDENTED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Expanding all nodes.
+        /// </summary>
+        internal static string OPERATION_EXPANDING_ALL_NODES {
+            get {
+                return ResourceManager.GetString("OPERATION_EXPANDING_ALL_NODES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collapsing all nodes.
+        /// </summary>
+        internal static string OPERATION_COLLAPSING_ALL_NODES {
+            get {
+                return ResourceManager.GetString("OPERATION_COLLAPSING_ALL_NODES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filtering ({0:N0} lines).
+        /// </summary>
+        internal static string OPERATION_FILTERING {
+            get {
+                return ResourceManager.GetString("OPERATION_FILTERING", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Saving {0:N0} lines.
+        /// </summary>
+        internal static string OPERATION_SAVING_LINES {
+            get {
+                return ResourceManager.GetString("OPERATION_SAVING_LINES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Merging {0} log files.
+        /// </summary>
+        internal static string OPERATION_MERGING_FILES {
+            get {
+                return ResourceManager.GetString("OPERATION_MERGING_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (Press ESC to cancel).
+        /// </summary>
+        internal static string PROGRESS_PRESS_ESC_TO_CANCEL {
+            get {
+                return ResourceManager.GetString("PROGRESS_PRESS_ESC_TO_CANCEL", resourceCulture);
+            }
+        }
     }
 }

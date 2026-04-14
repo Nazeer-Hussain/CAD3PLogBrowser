@@ -609,4 +609,167 @@
     <value>&amp;Clear Recent Files</value>
   </data>
 
+  <!-- File Filters -->
+  <data name="FILE_FILTER_LOG_FILES" xml:space="preserve">
+    <value>Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*</value>
+  </data>
+  <data name="FILE_FILTER_CSV_FILES" xml:space="preserve">
+    <value>CSV files (*.csv)|*.csv|All files (*.*)|*.*</value>
+  </data>
+  <data name="FILE_FILTER_JSON_FILES" xml:space="preserve">
+    <value>JSON files (*.json)|*.json|All files (*.*)|*.*</value>
+  </data>
+  <data name="FILE_FILTER_XML_FILES" xml:space="preserve">
+    <value>XML files (*.xml)|*.xml|All files (*.*)|*.*</value>
+  </data>
+  <data name="FILE_FILTER_IMAGE_FILES" xml:space="preserve">
+    <value>PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp</value>
+  </data>
+  <data name="FILE_FILTER_LOG_SAVE" xml:space="preserve">
+    <value>Log files (*.log)|*.log|All files (*.*)|*.*</value>
+  </data>
+
+  <!-- File Name Suffixes -->
+  <data name="FILENAME_SUFFIX_FILTERED" xml:space="preserve">
+    <value>_filtered.log</value>
+  </data>
+  <data name="FILENAME_SUFFIX_BRANCH_CSV" xml:space="preserve">
+    <value>_branch.csv</value>
+  </data>
+  <data name="FILENAME_SUFFIX_PERFORMANCE_CSV" xml:space="preserve">
+    <value>_performance.csv</value>
+  </data>
+  <data name="FILENAME_SUFFIX_CALLTREE_JSON" xml:space="preserve">
+    <value>_calltree.json</value>
+  </data>
+  <data name="FILENAME_SUFFIX_CALLTREE_XML" xml:space="preserve">
+    <value>_calltree.xml</value>
+  </data>
+  <data name="FILENAME_SUFFIX_TIMELINE_PNG" xml:space="preserve">
+    <value>_timeline.png</value>
+  </data>
+  <data name="FILENAME_SUFFIX_FLAMEGRAPH_PNG" xml:space="preserve">
+    <value>_flamegraph.png</value>
+  </data>
+  <data name="FILENAME_SUFFIX_CALLGRAPH_PNG" xml:space="preserve">
+    <value>_callgraph.png</value>
+  </data>
+
+  <!-- Tab Names -->
+  <data name="TAB_NAME_DEPENDENCY_GRAPH" xml:space="preserve">
+    <value>Dependency Graph</value>
+  </data>
+  <data name="TAB_NAME_AI_ASSISTANT" xml:space="preserve">
+    <value>AI Assistant</value>
+  </data>
+
+  <!-- Button Labels -->
+  <data name="BUTTON_RESET_VIEW" xml:space="preserve">
+    <value>Reset View</value>
+  </data>
+
+  <!-- Menu Items -->
+  <data name="MENU_SHOW_DEPENDENCY_GRAPH" xml:space="preserve">
+    <value>Show &amp;Dependency Graph</value>
+  </data>
+  <data name="MENU_SHOW_AI_ASSISTANT" xml:space="preserve">
+    <value>Show &amp;AI Assistant</value>
+  </data>
+
+  <!-- AI Error Messages -->
+  <data name="ERR_AI_QUERY_FAILED" xml:space="preserve">
+    <value>AI query failed: {0}</value>
+  </data>
+  <data name="ERR_AI_SUMMARIZE_FAILED" xml:space="preserve">
+    <value>Summarize failed: {0}</value>
+  </data>
+  <data name="ERR_AI_ANOMALY_DETECTION_FAILED" xml:space="preserve">
+    <value>Anomaly detection failed: {0}</value>
+  </data>
+  <data name="ERR_AI_ROOT_CAUSE_FAILED" xml:space="preserve">
+    <value>Root cause analysis failed: {0}</value>
+  </data>
+  <data name="ERR_AI_BUG_REPORT_FAILED" xml:space="preserve">
+    <value>Bug report generation failed: {0}</value>
+  </data>
+  <data name="ERR_AI_CHAT_FAILED" xml:space="preserve">
+    <value>Chat failed: {0}</value>
+  </data>
+  <data name="ERR_AI_PERFORMANCE_ANALYSIS_FAILED" xml:space="preserve">
+    <value>Performance analysis failed: {0}</value>
+  </data>
+  <data name="ERR_AI_PATTERN_FINDING_FAILED" xml:space="preserve">
+    <value>Pattern finding failed: {0}</value>
+  </data>
+
+  <!-- Status Messages - Additional -->
+  <data name="STATUS_NO_LINE_SELECTED" xml:space="preserve">
+    <value>No line selected</value>
+  </data>
+
+  <!-- CSV Export Headers -->
+  <data name="CSV_HEADER_PERFORMANCE" xml:space="preserve">
+    <value>API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File</value>
+  </data>
+  <data name="CSV_HEADER_BRANCH" xml:space="preserve">
+    <value>Method,Depth,Duration_ms</value>
+  </data>
+
+  <!-- Bookmark List Format -->
+  <data name="BOOKMARK_LINE_FORMAT" xml:space="preserve">
+    <value>Line {0}: {1}</value>
+  </data>
+  <data name="BOOKMARK_LINE_SIMPLE" xml:space="preserve">
+    <value>Line {0}</value>
+  </data>
+
+  <!-- Status Bar Messages -->
+  <data name="STATUS_FILTER_ACTIVE" xml:space="preserve">
+    <value>Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines</value>
+  </data>
+  <data name="STATUS_SHOWING_LINES" xml:space="preserve">
+    <value>Showing {0:N0} / {1:N0} lines</value>
+  </data>
+  <data name="STATUS_SELECTION_INFO" xml:space="preserve">
+    <value>Line {0}: {1}</value>
+  </data>
+  <data name="STATUS_FILTERING_PROGRESS" xml:space="preserve">
+    <value>Filtering... {0}% ({1:N0}/{2:N0} lines)</value>
+  </data>
+  <data name="STATUS_FILTER_APPLIED" xml:space="preserve">
+    <value>Filter applied: {0:N0} of {1:N0} lines match.</value>
+  </data>
+
+  <!-- Tree Lazy Loading -->
+  <data name="TREE_LAZY_LOAD_PLACEHOLDER" xml:space="preserve">
+    <value>   (click to load children...)</value>
+  </data>
+
+  <!-- API Details Line Format -->
+  <data name="API_DETAILS_LINE_INDENTED" xml:space="preserve">
+    <value>  Line {0}</value>
+  </data>
+
+  <!-- Operation Names -->
+  <data name="OPERATION_EXPANDING_ALL_NODES" xml:space="preserve">
+    <value>Expanding all nodes</value>
+  </data>
+  <data name="OPERATION_COLLAPSING_ALL_NODES" xml:space="preserve">
+    <value>Collapsing all nodes</value>
+  </data>
+  <data name="OPERATION_FILTERING" xml:space="preserve">
+    <value>Filtering ({0:N0} lines)</value>
+  </data>
+  <data name="OPERATION_SAVING_LINES" xml:space="preserve">
+    <value>Saving {0:N0} lines</value>
+  </data>
+  <data name="OPERATION_MERGING_FILES" xml:space="preserve">
+    <value>Merging {0} log files</value>
+  </data>
+
+  <!-- Progress Messages -->
+  <data name="PROGRESS_PRESS_ESC_TO_CANCEL" xml:space="preserve">
+    <value>{0} (Press ESC to cancel)</value>
+  </data>
+
 </root>
