@@ -3,1591 +3,1431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAD 3P Log Browser - User Guide v2.5</title>
+    <title>CAD 3P Log Browser &#8212; User Guide</title>
     <style>
         :root {
-            --primary-gradient-start: #667eea;
-            --primary-gradient-end: #764ba2;
-            --bg-light: #f5f5f5;
-            --bg-dark: #1e1e1e;
-            --text-light: #333;
-            --text-dark: #d4d4d4;
-            --card-light: #ffffff;
-            --card-dark: #2d2d30;
-            --border-light: #ddd;
-            --border-dark: #3f3f46;
-            --code-bg-light: #f4f4f4;
-            --code-bg-dark: #2c3e50;
-            --accent-blue: #007acc;
+            --blue:    #2980b9;
+            --darkblue:#1a5276;
+            --green:   #27ae60;
+            --orange:  #e67e22;
+            --red:     #c0392b;
+            --bg:      #f0f4f8;
+            --card:    #ffffff;
+            --border:  #d5e0ed;
+            --text:    #2c3e50;
+            --muted:   #7f8c8d;
+            --code-bg: #eaf0fb;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            background-color: var(--bg-light);
-            color: var(--text-light);
-            transition: background-color 0.3s, color 0.3s;
+            font-size: 14px;
+            line-height: 1.7;
+            background: var(--bg);
+            color: var(--text);
         }
 
-        body.dark-mode {
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-        }
+        /* Layout */
+        .page-wrap { display:flex; min-height:100vh; }
 
-        .header {
-            background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-            color: white;
-            padding: 30px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        nav#sidebar {
+            width: 270px;
+            min-width: 270px;
+            background: var(--darkblue);
+            color: #ecf0f1;
             position: sticky;
             top: 0;
-            z-index: 1000;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 0 0 30px;
+            flex-shrink: 0;
         }
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        nav#sidebar .nav-logo {
+            background: #154360;
+            padding: 22px 20px 18px;
+            border-bottom: 2px solid #1a6fa0;
         }
+        nav#sidebar .nav-logo h2 { font-size:1.05em; color:#85c1e9; margin-bottom:2px; }
+        nav#sidebar .nav-logo p  { font-size:0.78em; color:#aed6f1; }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .search-container {
-            position: relative;
-        }
-
-        #searchBox {
-            padding: 10px 40px 10px 15px;
-            border: none;
-            border-radius: 25px;
-            width: 300px;
-            font-size: 0.95em;
-            background-color: rgba(255,255,255,0.2);
-            color: white;
-            outline: none;
-        }
-
-        #searchBox::placeholder {
-            color: rgba(255,255,255,0.7);
-        }
-
-        #searchBox:focus {
-            background-color: rgba(255,255,255,0.3);
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
-            font-size: 1.2em;
-        }
-
-        .theme-toggle {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.4);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .theme-toggle:hover {
-            background: rgba(255,255,255,0.3);
-            border-color: rgba(255,255,255,0.6);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        .content-box {
-            background-color: var(--card-light);
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            transition: background-color 0.3s;
-        }
-
-        body.dark-mode .content-box {
-            background-color: var(--card-dark);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        h2 {
-            color: var(--primary-gradient-start);
-            margin-top: 40px;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid var(--primary-gradient-start);
-            font-size: 2em;
-        }
-
-        body.dark-mode h2 {
-            color: var(--accent-blue);
-            border-bottom-color: var(--accent-blue);
-        }
-
-        h3 {
-            color: var(--primary-gradient-end);
-            margin-top: 30px;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-
-        body.dark-mode h3 {
-            color: #9f86c0;
-        }
-
-        h4 {
-            color: #34495e;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
-        body.dark-mode h4 {
-            color: #b8b8b8;
-        }
-
-        .toc {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-
-        body.dark-mode .toc {
-            background: linear-gradient(135deg, #2d2d30 0%, #1e1e1e 100%);
-        }
-
-        .toc h2 {
-            margin-top: 0;
-        }
-
-        .toc ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-
-        .toc > ul > li {
-            margin: 15px 0;
-        }
-
-        .toc a {
-            color: #667eea;
+        nav#sidebar ul { list-style:none; padding:10px 0; }
+        nav#sidebar ul li a {
+            display: block;
+            padding: 7px 20px 7px 22px;
+            color: #aed6f1;
             text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s;
-            padding: 5px 10px;
+            font-size: 0.88em;
+            border-left: 3px solid transparent;
+            transition: all .15s;
+        }
+        nav#sidebar ul li a:hover,
+        nav#sidebar ul li a.active {
+            background: rgba(255,255,255,.08);
+            color: #fff;
+            border-left-color: #3498db;
+        }
+        nav#sidebar .nav-section {
+            padding: 14px 20px 4px;
+            font-size: 0.72em;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #5d8aa8;
+            font-weight: 700;
+        }
+
+        main#content {
+            flex: 1;
+            padding: 0 0 60px;
+            max-width: 900px;
+        }
+
+        /* Page header */
+        .page-header {
+            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
+            color: white;
+            padding: 40px 40px 32px;
+            margin-bottom: 32px;
+        }
+        .page-header h1 { font-size: 2em; margin-bottom: 6px; }
+        .page-header p  { opacity: .85; font-size: 1em; }
+        .badge {
             display: inline-block;
-            border-radius: 5px;
-        }
-
-        body.dark-mode .toc a {
-            color: var(--accent-blue);
-        }
-
-        .toc a:hover {
-            background-color: rgba(102, 126, 234, 0.1);
-            padding-left: 15px;
-        }
-
-        .toc ul ul {
-            margin-left: 25px;
-            margin-top: 10px;
-        }
-
-        .toc ul ul li {
-            margin: 8px 0;
-            font-size: 0.95em;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .feature-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        body.dark-mode .feature-card {
-            background: linear-gradient(135deg, #3f3f46 0%, #2d2d30 100%);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .feature-card h4 {
-            margin-top: 0;
-            color: var(--primary-gradient-start);
-        }
-
-        body.dark-mode .feature-card h4 {
-            color: var(--accent-blue);
-        }
-
-        .feature-icon {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .kbd {
-            background-color: #f4f4f4;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            box-shadow: 0 1px 0 rgba(0,0,0,0.2);
-            padding: 3px 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            font-weight: bold;
-            display: inline-block;
-            margin: 0 2px;
-        }
-
-        body.dark-mode .kbd {
-            background-color: #3e3e40;
-            border-color: #5a5a5c;
-            color: #d4d4d4;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        th, td {
-            border: 1px solid var(--border-light);
-            padding: 12px 15px;
-            text-align: left;
-        }
-
-        body.dark-mode th,
-        body.dark-mode td {
-            border-color: var(--border-dark);
-        }
-
-        th {
-            background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-            color: white;
-            font-weight: bold;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        body.dark-mode tr:nth-child(even) {
-            background-color: #2d2d30;
-        }
-
-        tr:hover {
-            background-color: #f0f0f0;
-        }
-
-        body.dark-mode tr:hover {
-            background-color: #3f3f46;
-        }
-
-        code {
-            background-color: var(--code-bg-light);
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            color: #e74c3c;
-            font-size: 0.95em;
-        }
-
-        body.dark-mode code {
-            background-color: var(--code-bg-dark);
-            color: #f97583;
-        }
-
-        pre {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 20px 0;
-            border-left: 4px solid var(--primary-gradient-start);
-        }
-
-        body.dark-mode pre {
-            background-color: #1e1e1e;
-            border-left-color: var(--accent-blue);
-        }
-
-        pre code {
-            background: none;
-            color: #ecf0f1;
-            padding: 0;
-        }
-
-        .note, .tip, .warning {
-            padding: 15px 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid;
-        }
-
-        .note {
-            background-color: #e8f4fd;
-            border-left-color: #1e88e5;
-            color: #0d47a1;
-        }
-
-        body.dark-mode .note {
-            background-color: #1a2332;
-            color: #64b5f6;
-        }
-
-        .tip {
-            background-color: #e8f5e9;
-            border-left-color: #43a047;
-            color: #1b5e20;
-        }
-
-        body.dark-mode .tip {
-            background-color: #1a2e1a;
-            color: #81c784;
-        }
-
-        .warning {
-            background-color: #fff3e0;
-            border-left-color: #fb8c00;
-            color: #e65100;
-        }
-
-        body.dark-mode .warning {
-            background-color: #332210;
-            color: #ffb74d;
-        }
-
-        .back-to-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-            color: white;
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            font-size: 1.5em;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .back-to-top:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-        }
-
-        .back-to-top.visible {
-            display: flex;
-        }
-
-        .step-list {
-            counter-reset: step-counter;
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .step-list li {
-            counter-increment: step-counter;
-            margin: 15px 0;
-            padding-left: 50px;
-            position: relative;
-        }
-
-        .step-list li::before {
-            content: counter(step-counter);
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-            color: white;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        .highlight-box {
-            background: linear-gradient(135deg, #fff9e6 0%, #ffe5b4 100%);
-            border-left: 4px solid #ffa500;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-
-        body.dark-mode .highlight-box {
-            background: linear-gradient(135deg, #332a10 0%, #2d2410 100%);
-            border-left-color: #ffb74d;
-        }
-
-        .screenshot-placeholder {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border: 3px dashed var(--primary-gradient-start);
-            border-radius: 8px;
-            padding: 60px 20px;
-            margin: 20px 0;
-            text-align: center;
-            color: var(--primary-gradient-start);
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        body.dark-mode .screenshot-placeholder {
-            background: linear-gradient(135deg, #2d2d30 0%, #1e1e1e 100%);
-            border-color: var(--accent-blue);
-            color: var(--accent-blue);
-        }
-
-        .quick-links {
-            display: flex;
-            gap: 15px;
-            margin: 30px 0;
-            flex-wrap: wrap;
-        }
-
-        .quick-link {
-            background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .quick-link:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .new-badge {
-            background-color: #4caf50;
-            color: white;
-            padding: 3px 8px;
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.35);
             border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: bold;
-            margin-left: 8px;
+            padding: 2px 10px;
+            font-size: .78em;
+            margin-top: 8px;
+            margin-right: 4px;
+        }
+
+        /* Sections */
+        .section { padding: 0 40px 10px; }
+        .section + .section { margin-top: 8px; }
+
+        h2.section-title {
+            font-size: 1.35em;
+            color: var(--darkblue);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            margin-top: 36px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h2.section-title .ico { font-size:1.2em; }
+
+        h3 { color: var(--blue); margin: 22px 0 10px; font-size:1.05em; }
+        h4 { color: var(--text); margin: 16px 0 8px; font-size:.95em; font-weight:600; }
+
+        p  { margin-bottom: 10px; }
+        ul, ol { margin: 6px 0 12px 22px; }
+        li { margin-bottom: 4px; }
+
+        /* Cards & callouts */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+
+        .tip   { background:#eaf9f0; border-left:4px solid #27ae60; padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+        .note  { background:#fef9e7; border-left:4px solid #f39c12; padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+        .warn  { background:#fdedec; border-left:4px solid #e74c3c; padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+        .info  { background:#eaf4fb; border-left:4px solid #2980b9; padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+
+        .tip strong, .note strong, .warn strong, .info strong { display:inline-block; margin-right:4px; }
+
+        /* Feature rows */
+        .feature-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .feature-row:last-child { border-bottom: none; }
+        .feature-row .label {
+            min-width: 200px;
+            font-weight: 600;
+            color: var(--darkblue);
+            font-size: .9em;
+        }
+        .feature-row .desc { color: var(--text); font-size:.9em; }
+
+        /* Keyboard shortcut badge */
+        kbd {
+            display: inline-block;
+            background: #34495e;
+            color: #ecf0f1;
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-family: 'Consolas','Courier New',monospace;
+            font-size: .82em;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 2px 0 #1a2530;
+        }
+
+        /* Menu path */
+        .menu {
+            color: var(--green);
+            font-weight: 600;
+            font-size: .88em;
+        }
+        .menu-arrow { color: var(--muted); margin: 0 2px; }
+
+        /* Code */
+        code {
+            background: var(--code-bg);
+            border: 1px solid #c8d8f0;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: 'Consolas','Courier New',monospace;
+            font-size: .88em;
+            color: #1a5276;
+        }
+
+        /* Tables */
+        table { width:100%; border-collapse:collapse; margin:14px 0; font-size:.9em; }
+        thead tr { background: var(--darkblue); color:white; }
+        th { padding:10px 14px; font-weight:600; text-align:left; }
+        td { padding:9px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+        tr:nth-child(even) td { background:#f7fafc; }
+
+        /* Shortcut table specific */
+        .shortcut-table td:first-child { width: 200px; }
+
+        /* Toolbar diagram */
+        .toolbar-diagram {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: monospace;
+            font-size: .85em;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin: 12px 0;
+            line-height: 2;
+        }
+        .toolbar-diagram .tb-btn {
+            display: inline-block;
+            background: white;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+            padding: 2px 8px;
+            margin: 0 2px;
+            font-size: .82em;
+            color: #333;
+        }
+        .toolbar-diagram .tb-sep {
+            display: inline-block;
+            border-left: 1px solid #aaa;
+            height: 18px;
+            margin: 0 6px;
             vertical-align: middle;
         }
 
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .header-controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            #searchBox {
-                width: 100%;
-            }
-
-            .content-box {
-                padding: 20px;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
+        /* Color swatches for performance */
+        .swatch {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 4px;
         }
 
-        @media print {
-            body {
-                background-color: white;
-                color: black;
-            }
+        /* Quick ref grid */
+        .qref-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 14px 0;
+        }
+        .qref-cell {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+        .qref-cell h4 { margin-top:0; color:var(--darkblue); border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:10px; }
+        .qref-cell table { margin:0; font-size:.84em; }
+        .qref-cell table td { padding:4px 8px; }
 
-            .header-controls, .back-to-top {
-                display: none !important;
-            }
+        /* Back to top */
+        #back-to-top {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 42px; height: 42px;
+            font-size: 1.3em;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,.25);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+        #back-to-top.visible { display:flex; }
 
-            .content-box {
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
+        /* Footer */
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: .82em;
+            padding: 30px 40px 10px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        /* Search box in header */
+        #doc-search {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: none;
+            margin-top: 14px;
+            font-size: .9em;
+            outline: none;
+            background: rgba(255,255,255,.15);
+            color: white;
+        }
+        #doc-search::placeholder { color: rgba(255,255,255,.6); }
+
+        @media (max-width: 760px) {
+            nav#sidebar { display:none; }
+            main#content { max-width:100%; }
+            .section { padding: 0 18px 10px; }
+            .page-header { padding: 24px 18px; }
+            .qref-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div>
-                <h1>&#10003; CAD 3P Log Browser</h1>
-                <p>Complete User Guide - Version 2.5 Enhanced</p>
-            </div>
-            <div class="header-controls">
-                <div class="search-container">
-                    <input type="text" id="searchBox" placeholder="&#10003; Search documentation...">
-                    <span class="search-icon">&#10003;</span>
-                </div>
-                <button class="theme-toggle" onclick="toggleDarkMode()">&#10003; Toggle Dark Mode</button>
-            </div>
-        </div>
+
+<div class="page-wrap">
+
+<!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
+<nav id="sidebar">
+    <div class="nav-logo">
+        <h2>&#128218; CAD 3P Log Browser</h2>
+        <p>User Guide &#8212; v2.6</p>
+        <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
-    <div class="container">
-        <!-- Quick Links -->
-        <div class="quick-links">
-            <a href="#getting-started" class="quick-link">&#10003; Quick Start</a>
-            <a href="#new-features" class="quick-link">? What's New</a>
-            <a href="#keyboard-shortcuts" class="quick-link">&#10003; Shortcuts</a>
-            <a href="#troubleshooting" class="quick-link">&#10003; Troubleshooting</a>
-        </div>
+    <div class="nav-section">Overview</div>
+    <ul>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#whats-new">What&#8217;s New</a></li>
+        <li><a href="#getting-started">Getting Started</a></li>
+        <li><a href="#interface">Interface Overview</a></li>
+    </ul>
 
-        <!-- Table of Contents -->
-        <div class="content-box toc">
-            <h2>&#10003; Table of Contents</h2>
+    <div class="nav-section">Core Features</div>
+    <ul>
+        <li><a href="#file-operations">File Operations</a></li>
+        <li><a href="#toolbar">Toolbar Reference</a></li>
+        <li><a href="#log-view">Log View Tab</a></li>
+        <li><a href="#search-filter">Search &amp; Filter</a></li>
+        <li><a href="#bookmarks">Bookmarks</a></li>
+        <li><a href="#navigation">Error / Warning Nav</a></li>
+    </ul>
+
+    <div class="nav-section">Tree Views</div>
+    <ul>
+        <li><a href="#call-tree">Call Tree</a></li>
+        <li><a href="#api-tree">API Tree</a></li>
+        <li><a href="#tree-search">Tree Search</a></li>
+        <li><a href="#tree-context">Tree Context Menu</a></li>
+    </ul>
+
+    <div class="nav-section">Analysis Tabs</div>
+    <ul>
+        <li><a href="#performance">Performance Tab</a></li>
+        <li><a href="#log-details">Log Details Tab</a></li>
+        <li><a href="#call-graph">Call Graph Tab</a></li>
+        <li><a href="#flame-graph">Flame Graph Tab</a></li>
+        <li><a href="#timeline">Timeline Tab</a></li>
+        <li><a href="#dependency-graph">Dependency Graph Tab</a></li>
+        <li><a href="#ai-assistant">AI Assistant Tab</a></li>
+    </ul>
+
+    <div class="nav-section">Export</div>
+    <ul>
+        <li><a href="#export">Export Features</a></li>
+    </ul>
+
+    <div class="nav-section">Configuration</div>
+    <ul>
+        <li><a href="#settings">Settings Dialog</a></li>
+        <li><a href="#themes">Themes &amp; Fonts</a></li>
+        <li><a href="#menus">Menu Reference</a></li>
+        <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+    </ul>
+
+    <div class="nav-section">Reference</div>
+    <ul>
+        <li><a href="#tips">Tips &amp; Best Practices</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+        <li><a href="#faq">FAQ</a></li>
+    </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════ CONTENT -->
+<main id="content">
+
+<div class="page-header">
+    <h1>&#128218; CAD 3P Log Browser</h1>
+    <p>Complete User Guide &amp; Reference Manual</p>
+    <span class="badge">v2.6</span>
+    <span class="badge">.NET Framework 4.8</span>
+    <span class="badge">Windows</span>
+</div>
+
+
+<!-- ═══ INTRODUCTION ═══ -->
+<div class="section" id="introduction">
+    <h2 class="section-title"><span class="ico">&#128218;</span> Introduction</h2>
+    <p><strong>CAD 3P Log Browser</strong> is a professional log-file analyser built specifically for CAD application trace logs. It parses structured <code>ENTER</code>/<code>EXIT</code> markers, computes precise per-method timings, and gives you multiple interactive views &#8212; all inside a fast, virtual-mode UI that handles <strong>500,000+ line</strong> files without breaking a sweat.</p>
+
+    <div class="qref-grid">
+        <div class="qref-cell">
+            <h4>&#127795; Analysis Views</h4>
             <ul>
-                <li><a href="#introduction">Introduction</a></li>
-                <li><a href="#new-features">What's New in v2.5 <span class="new-badge">NEW</span></a></li>
-                <li><a href="#getting-started">Getting Started</a>
-                    <ul>
-                        <li><a href="#opening-files">Opening Log Files</a></li>
-                        <li><a href="#interface">Understanding the Interface</a></li>
-                        <li><a href="#first-analysis">Your First Analysis</a></li>
-                    </ul>
-                </li>
-                <li><a href="#file-operations">File Operations</a>
-                    <ul>
-                        <li><a href="#opening">Opening Files</a></li>
-                        <li><a href="#saving">Saving & Exporting</a></li>
-                        <li><a href="#auto-reload">Auto-Reload</a></li>
-                        <li><a href="#recent-files">Recent Files</a></li>
-                    </ul>
-                </li>
-                <li><a href="#search-filter">Search & Filter</a>
-                    <ul>
-                        <li><a href="#basic-search">Basic Search</a></li>
-                        <li><a href="#regex-search">Regular Expression Search</a></li>
-                        <li><a href="#advanced-filter">Advanced Filtering</a></li>
-                    </ul>
-                </li>
-                <li><a href="#tree-views">Tree Views</a>
-                    <ul>
-                        <li><a href="#call-tree">Call Tree</a></li>
-                        <li><a href="#api-tree">API Tree</a></li>
-                        <li><a href="#tree-search">Tree Search <span class="new-badge">NEW</span></a></li>
-                    </ul>
-                </li>
-                <li><a href="#analysis-tabs">Analysis Tabs</a>
-                    <ul>
-                        <li><a href="#log-view">Log View</a></li>
-                        <li><a href="#performance">Performance Analysis</a></li>
-                        <li><a href="#call-graph">Call Graph</a></li>
-                        <li><a href="#flame-graph">Flame Graph</a></li>
-                        <li><a href="#timeline">Timeline View</a></li>
-                    </ul>
-                </li>
-                <li><a href="#bookmarks">Bookmarks</a></li>
-                <li><a href="#navigation">Navigation</a></li>
-                <li><a href="#settings">Settings <span class="new-badge">ENHANCED</span></a>
-                    <ul>
-                        <li><a href="#theme-settings">Theme & Appearance</a></li>
-                        <li><a href="#font-settings">Font Customization</a></li>
-                        <li><a href="#behavior-settings">Behavior Options</a></li>
-                    </ul>
-                </li>
-                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
-                <li><a href="#troubleshooting">Troubleshooting</a></li>
-                <li><a href="#tips">Tips & Best Practices</a></li>
+                <li>Call Tree (hierarchical call stack)</li>
+                <li>API Tree (grouped by method)</li>
+                <li>Performance statistics table</li>
+                <li>Call Graph (dependency graph)</li>
+                <li>Flame Graph (profiling view)</li>
+                <li>Timeline (Gantt-style view)</li>
+                <li>Dependency Graph</li>
+                <li>AI Assistant</li>
             </ul>
         </div>
-
-        <!-- Introduction -->
-        <div class="content-box">
-            <h2 id="introduction">&#128218; Introduction</h2>
-            <p>Welcome to <strong>CAD 3P Log Browser v2.5</strong> &#8212; a professional, feature-rich tool for viewing and analyzing CAD application log files.</p>
-
-            <div class="feature-grid" style="margin-top: 30px;">
-                <div class="feature-card">
-                    <div class="feature-icon">&#127795;</div>
-                    <h4>Call Tree Analysis</h4>
-                    <p>Hierarchical view of API calls with ENTER/EXIT matching and duration tracking.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#128202;</div>
-                    <h4>Performance Metrics</h4>
-                    <p>Detailed statistics on call counts, duration (min/max/avg), and performance bottlenecks.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#128293;</div>
-                    <h4>Flame Graph</h4>
-                    <p>Visual performance profiling showing call stack time distribution.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#9201;</div>
-                    <h4>Timeline View</h4>
-                    <p>Chronological visualization of events and API calls over time.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#128269;</div>
-                    <h4>Advanced Search</h4>
-                    <p>Powerful search with regex, filters by level, thread, duration, and time range.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#127912;</div>
-                    <h4>Professional Themes</h4>
-                    <p>Eye-friendly dark theme matching VS Code and Visual Studio.</p>
-                </div>
-            </div>
-
-            <h3>Key Features</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#128193; <strong>Multi-format support</strong>: .log, .log.*, and all text files</li>
-                <li>&#9889; <strong>High performance</strong>: Virtual mode handles 500k+ line files smoothly</li>
-                <li>&#129504; <strong>Smart parsing</strong>: Automatic API call detection and matching</li>
-                <li>&#128278; <strong>Bookmarks</strong>: Mark and navigate important log sections</li>
-                <li>&#128200; <strong>Multiple visualizations</strong>: Trees, graphs, flame charts, timelines</li>
-                <li>&#128190; <strong>Export capabilities</strong>: CSV, JSON, XML, and image formats</li>
-                <li>&#127912; <strong>Professional UI</strong>: Modern dark/light themes</li>
-                <li>&#9000; <strong>Keyboard shortcuts</strong>: Efficient power-user workflow</li>
-            </ul>
-
-            <h3>Who Should Use This?</h3>
-            <p>This tool is designed for:</p>
-            <ul style="margin-left: 20px;">
-                <li>&#128104;&#8205;&#128187; <strong>Software Developers</strong>: Debug CAD applications and trace API calls</li>
-                <li>&#129514; <strong>QA Engineers</strong>: Analyze test logs and identify issues</li>
-                <li>&#128736; <strong>Support Engineers</strong>: Troubleshoot customer issues from logs</li>
-                <li>&#128200; <strong>Performance Analysts</strong>: Profile and optimize API performance</li>
+        <div class="qref-cell">
+            <h4>&#128202; Key Capabilities</h4>
+            <ul>
+                <li>Virtual-mode log view (500 k+ lines)</li>
+                <li>Regex / multi-criteria filtering</li>
+                <li>Bookmarks with persistence</li>
+                <li>Error / Warning navigation</li>
+                <li>Dark &amp; Light themes</li>
+                <li>Export to CSV, JSON, XML, PNG, XLS</li>
+                <li>Merge multiple log files</li>
+                <li>Lazy loading for huge trees</li>
             </ul>
         </div>
+    </div>
+</div>
 
-        <!-- What's New in v2.5 -->
-        <div class="content-box">
-            <h2 id="new-features">&#11088; What's New in Version 2.5 <span class="new-badge">NEW</span></h2>
 
-            <h3>&#127912; Complete UI/UX Overhaul</h3>
-            <div class="highlight-box">
-                <strong>The entire user interface has been professionally redesigned!</strong>
-                <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li>? Professional dark theme matching VS Code/Visual Studio</li>
-                    <li>? All overlapping elements fixed</li>
-                    <li>? Proper spacing throughout</li>
-                    <li>? Modern flat icon design</li>
-                    <li>? Enhanced dialogs (Settings, Filter, Find)</li>
-                </ul>
-            </div>
+<!-- ═══ WHAT'S NEW ═══ -->
+<div class="section" id="whats-new">
+    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v2.6</h2>
 
-            <h3>&#9881; Complete Settings Dialog</h3>
-            <p>The Settings dialog now provides access to ALL application settings:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Visible Tabs</strong>: Control which tabs are shown (Log, Performance, Call Graph, Flame Graph, Timeline, etc.)</li>
-                <li><strong>Theme</strong>: Light or Dark mode with professional color schemes</li>
-                <li><strong>Toolbar</strong>: Show/hide toolbar, icon size (Small/Medium/Large)</li>
-                <li><strong>Font</strong>: Customize font family, size, and style with live preview</li>
-                <li><strong>Behavior</strong>: Initial view, snippet suffix, recent files count</li>
-                <li><strong>External Integration</strong>: Grok URL, Claude API key</li>
-                <li><strong>Performance</strong>: Slow call threshold, max file size warnings</li>
-            </ul>
+    <h3>&#127912; Theme Toggle Button</h3>
+    <p>A dedicated <strong>sun / moon icon button</strong> now lives in the toolbar between Settings and Help. Click it (or press <kbd>Ctrl+T</kbd>) to instantly switch between Dark and Light themes. The button icon updates to reflect the current theme.</p>
 
-            <h3>&#127795; Tree View Enhancements</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#10003; <strong>Tree Search Box</strong>: Filter tree nodes in real-time</li>
-                <li>&#10003; <strong>Visible Expand/Collapse</strong>: Custom-drawn symbols in dark theme</li>
-                <li>&#10003; <strong>Root Node Visibility</strong>: Fixed overlapping issues</li>
-                <li>&#10003; <strong>Better Performance</strong>: Lazy loading for large trees (50k+ nodes)</li>
-            </ul>
+    <h3>&#127795; AI Assistant Tab</h3>
+    <p>A fully integrated <strong>AI analysis panel</strong> powered by Claude API. Summarise logs, detect anomalies, analyse performance, find patterns, suggest root causes, and generate bug reports &#8212; all from one tab.</p>
 
-            <h3>&#128269; Enhanced Search & Filter</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#10003; <strong>Better Dialog Layout</strong>: No overlapping controls, proper spacing</li>
-                <li>&#10003; <strong>Time Range Filter</strong>: Filter logs by time range</li>
-                <li>&#10003; <strong>Duration Filter</strong>: Find slow operations</li>
-                <li>&#10003; <strong>Thread Filter</strong>: Filter by thread ID</li>
-                <li>&#10003; <strong>Level Filter</strong>: Filter by log level (Error, Warning, Info, Debug)</li>
-            </ul>
+    <h3>&#128218; Dependency Graph Tab</h3>
+    <p>A new <strong>Dependency Graph</strong> tab visualises which methods call which, giving a high-level architectural view of your log session.</p>
 
-            <h3>&#128293; Flame Graph & Timeline</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#10003; <strong>Dark Theme Support</strong>: Proper visibility in dark mode</li>
-                <li>&#10003; <strong>Better Colors</strong>: Theme-aware color schemes</li>
-                <li>&#10003; <strong>Interactive</strong>: Zoom, pan, and click to navigate</li>
-            </ul>
+    <h3>&#9881; Generated Toolbar Icons</h3>
+    <p>All toolbar icons are now <strong>programmatically generated flat icons</strong> (no embedded image files). They scale perfectly at Small (16&#215;16), Medium (24&#215;24), and Large (32&#215;32) and adapt to the active theme.</p>
 
-            <h3>&#128295; Layout & Usability Fixes</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#10003; <strong>No More Overlaps</strong>: All UI elements properly positioned</li>
-                <li>&#10003; <strong>Toolbar Icon Sizing</strong>: Works correctly at all sizes</li>
-                <li>&#10003; <strong>Window Resize</strong>: Perfect layout at any window size</li>
-                <li>&#10003; <strong>Menu Organization</strong>: Logical grouping with separators</li>
-                <li>&#10003; <strong>Visible Checkmarks</strong>: Menu toggles visible in dark theme</li>
-            </ul>
+    <h3>&#128269; Improved Tree Search</h3>
+    <p>The tree-search box above the tree panel now filters nodes in real-time, highlights matching nodes in yellow, and auto-expands parent nodes that contain a match.</p>
+
+    <h3>&#128218; HTML User Guide</h3>
+    <p>This guide &#8212; a fully navigable, dark-sidebar HTML document &#8212; replaces the old plain-text help.</p>
+</div>
+
+
+<!-- ═══ GETTING STARTED ═══ -->
+<div class="section" id="getting-started">
+    <h2 class="section-title"><span class="ico">&#128640;</span> Getting Started</h2>
+
+    <h3>Opening Your First Log File</h3>
+    <div class="card">
+        <div class="feature-row">
+            <span class="label">&#128193; File &#8594; Open</span>
+            <span class="desc">Press <kbd>Ctrl+O</kbd>, click the <strong>Open</strong> toolbar button, or drag &amp; drop a <code>.log</code> file onto the window.</span>
         </div>
-
-        <!-- Getting Started -->
-        <div class="content-box">
-            <h2 id="getting-started">&#128640; Getting Started</h2>
-
-            <h3 id="opening-files">Opening Log Files</h3>
-            <ol class="step-list">
-                <li>Click <strong>File &#8594; Open</strong> (or press <span class="kbd">Ctrl+O</span>)</li>
-                <li>Navigate to your log file (usually .log or .log.* extension)</li>
-                <li>Select the file and click <strong>Open</strong></li>
-                <li>Wait for the file to load (progress shown in status bar)</li>
-            </ol>
-
-            <div class="tip">
-                <strong>&#128161; Tip:</strong> Set the <code>PTC_LOG_DIR</code> environment variable to your log directory for quick access!
-            </div>
-
-            <h3 id="interface">Understanding the Interface</h3>
-            <p>The main window consists of several key areas:</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Area</th>
-                        <th>Location</th>
-                        <th>Purpose</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>Menu Bar</strong></td>
-                        <td>Top</td>
-                        <td>Access all features and commands</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Toolbar</strong></td>
-                        <td>Below menu</td>
-                        <td>Quick access to common actions</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Tree Panel</strong></td>
-                        <td>Left side</td>
-                        <td>Call Tree and API Tree views</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Tab Panel</strong></td>
-                        <td>Right side</td>
-                        <td>Log, Performance, Graphs, Timeline</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Status Bar</strong></td>
-                        <td>Bottom</td>
-                        <td>File info, line count, selection details</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3 id="first-analysis">Your First Analysis</h3>
-            <p>Follow these steps for a typical analysis workflow:</p>
-            <ol class="step-list">
-                <li><strong>Open a log file</strong> using File &#8594; Open or Ctrl+O</li>
-                <li><strong>Review the Call Tree</strong> (left panel) to see the API call hierarchy</li>
-                <li><strong>Check for errors</strong> by clicking the "&#10003; Error" button in toolbar</li>
-                <li><strong>Analyze performance</strong> in the Performance tab to find slow operations</li>
-                <li><strong>Use Find/Filter</strong> to narrow down to specific areas</li>
-                <li><strong>Bookmark important lines</strong> for future reference</li>
-                <li><strong>Export results</strong> if needed (CSV, JSON, images)</li>
-            </ol>
+        <div class="feature-row">
+            <span class="label">&#128336; Recent Files</span>
+            <span class="desc">The last 10 files appear under <span class="menu">File <span class="menu-arrow">&#8594;</span> Recent Files</span>. Click any entry to reopen immediately.</span>
         </div>
-
-        <!-- File Operations -->
-        <div class="content-box">
-            <h2 id="file-operations">&#128193; File Operations</h2>
-
-            <h3 id="opening">Opening Files</h3>
-            <p>Multiple ways to open log files:</p>
-            <ul style="margin-left: 20px;">
-                <li><span class="kbd">Ctrl+O</span> - Open File dialog</li>
-                <li><strong>Drag & drop</strong> - Drag log file onto window</li>
-                <li><strong>Recent Files</strong> - File &#8594; Recent Files (up to 20 files)</li>
-                <li><strong>Command line</strong> - Pass file path as argument</li>
-            </ul>
-
-            <div class="note">
-                <strong>&#128221; Note:</strong> The application supports <code>.log</code>, <code>.log.*</code>, and any text file format.
-            </div>
-
-            <h3 id="saving">Saving & Exporting</h3>
-            <p>Export your analysis in multiple formats:</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Export Type</th>
-                        <th>Menu Location</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Filtered Logs</td>
-                        <td>File &#8594; Save As</td>
-                        <td>Save currently filtered/viewed log lines</td>
-                    </tr>
-                    <tr>
-                        <td>Performance CSV</td>
-                        <td>File &#8594; Export ? Performance Data</td>
-                        <td>Export performance statistics to CSV</td>
-                    </tr>
-                    <tr>
-                        <td>Call Tree JSON</td>
-                        <td>File &#8594; Export ? Tree as JSON</td>
-                        <td>Export call tree structure</td>
-                    </tr>
-                    <tr>
-                        <td>Call Tree XML</td>
-                        <td>File &#8594; Export ? Tree as XML</td>
-                        <td>Export call tree in XML format</td>
-                    </tr>
-                    <tr>
-                        <td>Timeline Image</td>
-                        <td>File &#8594; Export ? Timeline</td>
-                        <td>Save timeline visualization as PNG</td>
-                    </tr>
-                    <tr>
-                        <td>Flame Graph Image</td>
-                        <td>File &#8594; Export ? Flame Graph</td>
-                        <td>Save flame graph as PNG</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3 id="auto-reload">Auto-Reload</h3>
-            <p>The application automatically monitors opened files for changes:</p>
-            <ul style="margin-left: 20px;">
-                <li>File watcher detects modifications</li>
-                <li>Notification appears in status bar</li>
-                <li>Press <span class="kbd">F5</span> to reload</li>
-                <li>Perfect for live log monitoring</li>
-            </ul>
-
-            <h3 id="recent-files">Recent Files</h3>
-            <p>Access recently opened files quickly:</p>
-            <ul style="margin-left: 20px;">
-                <li>File &#8594; Recent Files menu</li>
-                <li>Shows last 20 files (configurable in Settings)</li>
-                <li>Click filename to reopen</li>
-                <li>Shows full path in tooltip</li>
-            </ul>
-        </div>
-
-        <!-- Search & Filter -->
-        <div class="content-box">
-            <h2 id="search-filter">&#128269; Search & Filter</h2>
-
-            <h3 id="basic-search">Basic Search</h3>
-            <p>Find text in your log files:</p>
-            <ol class="step-list">
-                <li>Press <span class="kbd">Ctrl+F</span> or click the Find button</li>
-                <li>Enter your search text</li>
-                <li>Choose options: Match case, Whole word, Regex</li>
-                <li>Click <strong>Find Next</strong> or press <span class="kbd">Enter</span></li>
-                <li>Use <span class="kbd">F3</span> to find next occurrence</li>
-            </ol>
-
-            <h3 id="regex-search">Regular Expression Search</h3>
-            <p>Use powerful regex patterns for advanced searching:</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Pattern</th>
-                        <th>Description</th>
-                        <th>Example</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>\d+</code></td>
-                        <td>Match numbers</td>
-                        <td>Find all line numbers</td>
-                    </tr>
-                    <tr>
-                        <td><code>ERROR|EXCEPTION</code></td>
-                        <td>Match either pattern</td>
-                        <td>Find errors or exceptions</td>
-                    </tr>
-                    <tr>
-                        <td><code>^\d{4}-\d{2}-\d{2}</code></td>
-                        <td>Match date format</td>
-                        <td>Find timestamps</td>
-                    </tr>
-                    <tr>
-                        <td><code>\[(\d+)\s*ms\]</code></td>
-                        <td>Capture duration</td>
-                        <td>Find performance timings</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3 id="advanced-filter">Advanced Filtering</h3>
-            <p>The Filter dialog (<span class="kbd">Ctrl+I</span>) provides comprehensive filtering:</p>
-
-            <h4>Text Filter</h4>
-            <ul style="margin-left: 20px;">
-                <li>Filter by text content (with regex support)</li>
-                <li>Case-sensitive option</li>
-                <li>Whole word matching</li>
-            </ul>
-
-            <h4>Duration Filter</h4>
-            <ul style="margin-left: 20px;">
-                <li>Filter API calls by minimum duration</li>
-                <li>Find slow operations (e.g., >100ms)</li>
-                <li>Useful for performance analysis</li>
-            </ul>
-
-            <h4>Time Range Filter</h4>
-            <ul style="margin-left: 20px;">
-                <li>Filter logs by time range</li>
-                <li>Focus on specific time windows</li>
-                <li>Great for isolating incidents</li>
-            </ul>
-
-            <h4>Thread & Level Filter</h4>
-            <ul style="margin-left: 20px;">
-                <li>Filter by thread ID</li>
-                <li>Filter by log level (Error, Warning, Info, Debug)</li>
-                <li>Combine multiple criteria</li>
-            </ul>
-
-            <div class="tip">
-                <strong>&#10003; Pro Tip:</strong> Combine multiple filter criteria for precise log analysis. For example, filter for ERROR level + duration >50ms + specific thread ID.
-            </div>
-        </div>
-
-        <!-- Tree Views -->
-        <div class="content-box">
-            <h2 id="tree-views">&#127795; Tree Views</h2>
-
-            <h3 id="call-tree">Call Tree</h3>
-            <p>The Call Tree shows the hierarchical structure of API calls:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Green ?</strong>: ENTER/EXIT matched correctly</li>
-                <li><strong>Red ?</strong>: Missing EXIT (potential issue)</li>
-                <li><strong>Duration</strong>: Shown in milliseconds [XX ms]</li>
-                <li><strong>Color coding</strong>:
-                    <ul style="margin-left: 20px;">
-                        <li>Green: Fast (<100ms)</li>
-                        <li>Orange: Medium (100-500ms)</li>
-                        <li>Red: Slow (>500ms)</li>
-                    </ul>
-                </li>
-            </ul>
-
-            <h4>Tree Operations</h4>
-            <ul style="margin-left: 20px;">
-                <li><span class="kbd">Ctrl+E</span> - Expand all nodes</li>
-                <li><span class="kbd">Ctrl+W</span> - Collapse all nodes</li>
-                <li><span class="kbd">Ctrl+G</span> - Jump to matching ENTER/EXIT</li>
-                <li>Right-click for context menu (copy, export, search)</li>
-            </ul>
-
-            <h3 id="api-tree">API Tree</h3>
-            <p>The API Tree groups all invocations of each API:</p>
-            <ul style="margin-left: 20px;">
-                <li>Organized by API name</li>
-                <li>Shows call count per API</li>
-                <li>Lists all invocation line numbers</li>
-                <li>Sortable by name, count, or first occurrence</li>
-            </ul>
-
-            <h3 id="tree-search">Tree Search <span class="new-badge">NEW</span></h3>
-            <p>The search box above the tree views filters nodes in real-time:</p>
-            <ol class="step-list">
-                <li>Click in the search box above the tree</li>
-                <li>Type your search text (e.g., API name)</li>
-                <li>Tree automatically filters to show matching nodes</li>
-                <li>Clear the search box to show all nodes again</li>
-            </ol>
-
-            <div class="highlight-box">
-                <strong>&#10003; New in v2.5:</strong> Tree search box is now properly positioned and visible in both light and dark themes!
-            </div>
-        </div>
-
-        <!-- Analysis Tabs -->
-        <div class="content-box">
-            <h2 id="analysis-tabs">&#128202; Analysis Tabs</h2>
-
-            <h3 id="log-view">Log View</h3>
-            <p>The main log viewing tab with powerful features:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Virtual Mode</strong>: Handles massive files (500k+ lines)</li>
-                <li><strong>Color Coding</strong>: Errors in red, warnings in yellow</li>
-                <li><strong>Multi-select</strong>: Select multiple lines with Ctrl/Shift+click</li>
-                <li><strong>Copy</strong>: Copy selected lines with or without headers</li>
-                <li><strong>Context Menu</strong>: Right-click for additional options</li>
-            </ul>
-
-            <h3 id="performance">Performance Analysis</h3>
-            <p>Detailed performance statistics for each API:</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Column</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>API Name</strong></td>
-                        <td>Name of the API call</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Calls</strong></td>
-                        <td>Number of times called</td>
-                    </tr>
-                    <tr>
-                        <td><strong>First Line</strong></td>
-                        <td>First occurrence in log</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Total (ms)</strong></td>
-                        <td>Total cumulative time</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Avg (ms)</strong></td>
-                        <td>Average duration</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Min (ms)</strong></td>
-                        <td>Fastest call</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Max (ms)</strong></td>
-                        <td>Slowest call</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Self (ms)</strong></td>
-                        <td>Time excluding child calls</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="tip">
-                <strong>&#128161; Tip:</strong> Click column headers to sort by that metric. Double-click a row to jump to that API in the log.
-            </div>
-
-            <h3 id="call-graph">Call Graph</h3>
-            <p>Visual dependency graph showing API call relationships:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Interactive</strong>: Zoom with mouse wheel, pan by dragging</li>
-                <li><strong>Export</strong>: Save as PNG, JPG, or BMP</li>
-                <li><strong>Reset View</strong>: Click "Reset View" to restore default zoom</li>
-            </ul>
-
-            <h3 id="flame-graph">Flame Graph</h3>
-            <p>Performance profiling visualization:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Width</strong>: Represents time spent</li>
-                <li><strong>Height</strong>: Call stack depth</li>
-                <li><strong>Color</strong>: Different APIs in different colors</li>
-                <li><strong>Click</strong>: Jump to that call in log</li>
-                <li><strong>Hover</strong>: See call details</li>
-            </ul>
-
-            <div class="highlight-box">
-                <strong>&#10003; Enhanced in v2.5:</strong> Flame Graph now fully supports dark theme with proper visibility!
-            </div>
-
-            <h3 id="timeline">Timeline View</h3>
-            <p>Chronological event visualization:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Horizontal axis</strong>: Time progression</li>
-                <li><strong>Events</strong>: API calls shown as blocks</li>
-                <li><strong>Color coding</strong>: Different event types</li>
-                <li><strong>Interactive</strong>: Click to jump to log line</li>
-            </ul>
-
-            <div class="highlight-box">
-                <strong>&#10003; Enhanced in v2.5:</strong> Timeline now fully supports dark theme!
-            </div>
-        </div>
-
-        <!-- Bookmarks -->
-        <div class="content-box">
-            <h2 id="bookmarks">&#128278; Bookmarks</h2>
-            <p>Mark important lines for quick navigation:</p>
-
-            <h3>Bookmark Commands</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Action</th>
-                        <th>Shortcut</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Toggle Bookmark</td>
-                        <td><span class="kbd">Ctrl+B</span></td>
-                        <td>Add/remove bookmark on current line</td>
-                    </tr>
-                    <tr>
-                        <td>Next Bookmark</td>
-                        <td><span class="kbd">Ctrl+N</span></td>
-                        <td>Jump to next bookmarked line</td>
-                    </tr>
-                    <tr>
-                        <td>Previous Bookmark</td>
-                        <td><span class="kbd">Ctrl+P</span></td>
-                        <td>Jump to previous bookmarked line</td>
-                    </tr>
-                    <tr>
-                        <td>Show All</td>
-                        <td><span class="kbd">Ctrl+Shift+B</span></td>
-                        <td>List all bookmarks</td>
-                    </tr>
-                    <tr>
-                        <td>Clear All</td>
-                        <td><span class="kbd">Ctrl+Shift+C</span></td>
-                        <td>Remove all bookmarks</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="tip">
-                <strong>&#10003; Use Case:</strong> Bookmark error lines, then use Next/Previous to review them sequentially without losing context.
-            </div>
-        </div>
-
-        <!-- Settings -->
-        <div class="content-box">
-            <h2 id="settings">&#10003; Settings <span class="new-badge">ENHANCED</span></h2>
-            <p>Access comprehensive settings via <span class="kbd">Ctrl+Shift+S</span> or Tools ? Settings.</p>
-
-            <h3 id="theme-settings">Theme & Appearance</h3>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h4>&#10003; Theme Selection</h4>
-                    <ul style="margin-left: 20px;">
-                        <li><strong>Light Theme</strong>: Classic bright appearance</li>
-                        <li><strong>Dark Theme</strong>: Professional VS Code style</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <h4>&#10003;? Toolbar Options</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Show/hide toolbar</li>
-                        <li>Icon size: Small (16px), Medium (24px), Large (32px)</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <h4>&#10003; Highlight Color</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Customize search highlight color</li>
-                        <li>Preview before applying</li>
-                    </ul>
-                </div>
-            </div>
-
-            <h3 id="font-settings">Font Customization <span class="new-badge">NEW</span></h3>
-            <p>Customize log font for optimal readability:</p>
-            <ul style="margin-left: 20px;">
-                <li><strong>Font Family</strong>: Choose from system fonts (Consolas, Courier New, etc.)</li>
-                <li><strong>Font Size</strong>: 6.0 to 24.0 points</li>
-                <li><strong>Bold/Italic</strong>: Style options</li>
-                <li><strong>Live Preview</strong>: Click "Preview Font" to test before applying</li>
-            </ul>
-
-            <h3 id="behavior-settings">Behavior Options <span class="new-badge">NEW</span></h3>
-            <ul style="margin-left: 20px;">
-                <li><strong>Initial View</strong>: Choose between LogView or ApiView on startup</li>
-                <li><strong>Snippet Suffix</strong>: Custom suffix for code snippets</li>
-                <li><strong>Max Recent Files</strong>: Configure recent files list size (5-20)</li>
-            </ul>
-
-            <h3>Visible Tabs <span class="new-badge">NEW</span></h3>
-            <p>Control which tabs are visible in the main window:</p>
-            <ul style="margin-left: 20px;">
-                <li>? Log View</li>
-                <li>? Performance</li>
-                <li>? Log Details</li>
-                <li>? Call Graph</li>
-                <li>? Flame Graph</li>
-                <li>? Timeline</li>
-                <li>? Raw View</li>
-            </ul>
-
-            <div class="note">
-                <strong>&#128221; Note:</strong> All settings are automatically saved and restored on next launch.
-            </div>
-        </div>
-
-        <!-- Keyboard Shortcuts -->
-        <div class="content-box">
-            <h2 id="keyboard-shortcuts">&#9000; Keyboard Shortcuts</h2>
-
-            <h3>File Operations</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">Ctrl+O</span></td><td>Open log file</td></tr>
-                    <tr><td><span class="kbd">Ctrl+S</span></td><td>Save filtered logs</td></tr>
-                    <tr><td><span class="kbd">F5</span></td><td>Reload current file</td></tr>
-                    <tr><td><span class="kbd">Ctrl+Q</span></td><td>Quit application</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Editing & Search</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">Ctrl+C</span></td><td>Copy selected lines</td></tr>
-                    <tr><td><span class="kbd">Ctrl+F</span></td><td>Find text</td></tr>
-                    <tr><td><span class="kbd">F3</span></td><td>Find next occurrence</td></tr>
-                    <tr><td><span class="kbd">Ctrl+I</span></td><td>Filter logs</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Navigation</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">Ctrl+E</span></td><td>Expand all tree nodes</td></tr>
-                    <tr><td><span class="kbd">Ctrl+W</span></td><td>Collapse all tree nodes</td></tr>
-                    <tr><td><span class="kbd">Ctrl+G</span></td><td>Jump to matching ENTER/EXIT</td></tr>
-                    <tr><td><span class="kbd">Ctrl+J</span></td><td>Jump to line number</td></tr>
-                    <tr><td><span class="kbd">F8</span></td><td>Next error</td></tr>
-                    <tr><td><span class="kbd">Shift+F8</span></td><td>Previous error</td></tr>
-                    <tr><td><span class="kbd">F9</span></td><td>Next warning</td></tr>
-                    <tr><td><span class="kbd">Shift+F9</span></td><td>Previous warning</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Bookmarks</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">Ctrl+B</span></td><td>Toggle bookmark</td></tr>
-                    <tr><td><span class="kbd">Ctrl+N</span></td><td>Next bookmark</td></tr>
-                    <tr><td><span class="kbd">Ctrl+P</span></td><td>Previous bookmark</td></tr>
-                    <tr><td><span class="kbd">Ctrl+Shift+B</span></td><td>Show all bookmarks</td></tr>
-                    <tr><td><span class="kbd">Ctrl+Shift+C</span></td><td>Clear all bookmarks</td></tr>
-                </tbody>
-            </table>
-
-            <h3>View</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">Ctrl+T</span></td><td>Toggle Call Tree</td></tr>
-                    <tr><td><span class="kbd">Ctrl+L</span></td><td>Toggle API Tree</td></tr>
-                    <tr><td><span class="kbd">Ctrl+Shift+S</span></td><td>Open Settings</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Help</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 200px;">Shortcut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><span class="kbd">F1</span></td><td>View Help (context-sensitive)</td></tr>
-                    <tr><td><span class="kbd">Ctrl+K</span></td><td>Keyboard shortcuts dialog</td></tr>
-                </tbody>
-            </table>
-
-            <div class="highlight-box">
-                <strong>&#10003; Enhanced in v2.5:</strong> F1 now provides context-sensitive help based on your current active tab or control!
-            </div>
-        </div>
-
-        <!-- Troubleshooting -->
-        <div class="content-box">
-            <h2 id="troubleshooting">&#128736; Troubleshooting</h2>
-
-            <h3>Common Issues</h3>
-
-            <h4>File Won't Load</h4>
-            <div class="warning">
-                <strong>&#10003; Issue:</strong> File open dialog doesn't show log files
-                <p><strong>Solution:</strong> Change file filter in dialog, or set PTC_LOG_DIR environment variable</p>
-            </div>
-
-            <h4>Slow Performance</h4>
-            <div class="warning">
-                <strong>&#10003; Issue:</strong> Large files (>1M lines) load slowly
-                <p><strong>Solution:</strong> Enable lazy loading in Settings ? Performance Guards</p>
-            </div>
-
-            <h4>Can't See Tree Root Nodes</h4>
-            <div class="warning">
-                <strong>&#10003; Issue:</strong> Tree root nodes appear cut off or invisible
-                <p><strong>Solution:</strong> Fixed in v2.5! Update to latest version.</p>
-            </div>
-
-            <h4>Expand/Collapse Symbols Invisible in Dark Theme</h4>
-            <div class="warning">
-                <strong>&#10003; Issue:</strong> Can't see +/- symbols on tree nodes
-                <p><strong>Solution:</strong> Fixed in v2.5! Custom-drawn symbols now visible in dark theme.</p>
-            </div>
-
-            <h4>Toolbar Overlaps Content</h4>
-            <div class="warning">
-                <strong>&#10003; Issue:</strong> Changing icon size causes overlap
-                <p><strong>Solution:</strong> Fixed in v2.5! Layout now adjusts automatically.</p>
-            </div>
-
-            <h3>Getting Help</h3>
-            <ul style="margin-left: 20px;">
-                <li>&#10003; <strong>This Guide</strong>: Press <span class="kbd">F1</span> anytime</li>
-                <li>&#10003; <strong>Keyboard Shortcuts</strong>: Help &#8594; Keyboard Shortcuts or <span class="kbd">Ctrl+K</span></li>
-                <li>&#10003; <strong>Report Issues</strong>: Help &#8594; Report Errors</li>
-                <li>&#10003; <strong>Check Updates</strong>: Help &#8594; Check for Updates</li>
-                <li>&#10003; <strong>Contact</strong>: Visit GitHub repository</li>
-            </ul>
-        </div>
-
-        <!-- Tips & Best Practices -->
-        <div class="content-box">
-            <h2 id="tips">&#128161; Tips & Best Practices</h2>
-
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">&#10003;</div>
-                    <h4>Performance</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Use filters to reduce visible lines</li>
-                        <li>Enable lazy loading for large files</li>
-                        <li>Close unused tabs</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#10003;</div>
-                    <h4>Workflow</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Start with Performance tab</li>
-                        <li>Bookmark suspicious areas</li>
-                        <li>Use tree search to filter</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">&#10003;</div>
-                    <h4>Analysis</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Look for red X in trees (unmatched)</li>
-                        <li>Sort performance by Total time</li>
-                        <li>Use Flame Graph to find bottlenecks</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">?</div>
-                    <h4>Productivity</h4>
-                    <ul style="margin-left: 20px;">
-                        <li>Learn keyboard shortcuts</li>
-                        <li>Use Recent Files menu</li>
-                        <li>Customize toolbar icon size</li>
-                    </ul>
-                </div>
-            </div>
-
-            <h3>Pro Tips</h3>
-            <ol class="step-list">
-                <li><strong>Use Tree Search</strong>: Type in the search box above trees to quickly find specific APIs</li>
-                <li><strong>Context Menus</strong>: Right-click on trees and log view for additional options</li>
-                <li><strong>Export for Sharing</strong>: Export performance data or graphs to share with team</li>
-                <li><strong>Bookmark Workflow</strong>: Bookmark errors, warnings, and interesting calls for quick review</li>
-                <li><strong>Dual Tree View</strong>: Use Call Tree for flow analysis, API Tree for frequency analysis</li>
-            </ol>
-        </div>
-
-        <!-- Footer -->
-        <div class="content-box" style="text-align: center; background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%); color: white;">
-            <h3 style="color: white; border: none;">Thank You for Using CAD 3P Log Browser!</h3>
-            <p style="margin-top: 10px;">Version 2.5 Enhanced &#8212; &#8212; 2024</p>
-            <p style="margin-top: 5px;">
-                <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" style="color: white; text-decoration: underline;">GitHub Repository</a>
-            </p>
+        <div class="feature-row">
+            <span class="label">&#128260; Merge Logs</span>
+            <span class="desc">Press <kbd>Ctrl+M</kbd> to open multiple files and merge them into a single time-sorted view.</span>
         </div>
     </div>
 
-    <!-- Back to Top Button -->
-    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">?</button>
+    <div class="tip">
+        <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically.
+    </div>
 
-    <script>
-        // Dark mode toggle
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('darkMode', isDark);
-        }
+    <h3>Recommended First Steps</h3>
+    <ol>
+        <li>Open a log file (<kbd>Ctrl+O</kbd>).</li>
+        <li>Press <kbd>F8</kbd> a few times to scan through errors.</li>
+        <li>Switch to the <strong>Performance</strong> tab and sort by <em>Total (ms)</em> to find the slowest methods.</li>
+        <li>Click any tree node on the left to jump to that line in the log.</li>
+        <li>Use <kbd>Ctrl+I</kbd> to filter the log down to interesting lines.</li>
+    </ol>
+</div>
 
-        // Restore dark mode preference
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-        }
 
-        // Search functionality
-        const searchBox = document.getElementById('searchBox');
-        let searchResults = [];
-        let currentSearchIndex = -1;
+<!-- ═══ INTERFACE OVERVIEW ═══ -->
+<div class="section" id="interface">
+    <h2 class="section-title"><span class="ico">&#128444;</span> Interface Overview</h2>
 
-        searchBox.addEventListener('input', function(e) {
-            const searchText = e.target.value.toLowerCase();
+    <table>
+        <thead><tr><th>Area</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Menu Bar</strong></td><td>Five top-level menus: <em>File, Edit, Options, View, Help</em></td></tr>
+            <tr><td><strong>Toolbar</strong></td><td>One-click access to the most common actions (see <a href="#toolbar">Toolbar Reference</a>)</td></tr>
+            <tr><td><strong>Tree Panel (left)</strong></td><td>Call Tree or API Tree + real-time search box at the top</td></tr>
+            <tr><td><strong>Tab Panel (right)</strong></td><td>Log View, Performance, Log Details, Call Graph, Flame Graph, Timeline, Dependency Graph, AI Assistant</td></tr>
+            <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line preview</td></tr>
+            <tr><td><strong>Splitter</strong></td><td>Drag the vertical divider to resize the tree vs. tab panels. Position is saved per session.</td></tr>
+        </tbody>
+    </table>
 
-            // Clear previous highlights
-            document.querySelectorAll('.search-highlight').forEach(el => {
-                el.classList.remove('search-highlight');
-            });
+    <h3>Status Bar Indicators</h3>
+    <div class="card">
+        <div class="feature-row"><span class="label">&#128994; Green ball</span><span class="desc">File loaded successfully and up to date</span></div>
+        <div class="feature-row"><span class="label">&#128993; Yellow ball</span><span class="desc">File loading in progress</span></div>
+        <div class="feature-row"><span class="label">&#128308; Red ball</span><span class="desc">Load error, or file has changed on disk since last load</span></div>
+        <div class="feature-row"><span class="label">Progress bar</span><span class="desc">Shown during load, filter, expand-all, and save operations. Click status bar or press <kbd>Esc</kbd> to cancel.</span></div>
+    </div>
+</div>
 
-            if (searchText.length < 2) {
-                searchResults = [];
-                return;
+
+<!-- ═══ FILE OPERATIONS ═══ -->
+<div class="section" id="file-operations">
+    <h2 class="section-title"><span class="ico">&#128193;</span> File Operations</h2>
+
+    <table>
+        <thead><tr><th>Action</th><th>Shortcut / Button</th><th>Menu</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td>Open file</td><td><kbd>Ctrl+O</kbd> / &#128193; Open</td><td>File &#8594; Open&#8230;</td><td>Supports .log, .log.*, and any text file</td></tr>
+            <tr><td>Merge log files</td><td><kbd>Ctrl+M</kbd></td><td>File &#8594; Merge Log Files&#8230;</td><td>Select 2+ files; merged view is time-sorted</td></tr>
+            <tr><td>Save selected lines</td><td><kbd>Ctrl+S</kbd> / &#128190; Save</td><td>File &#8594; Save Selected&#8230;</td><td>Saves visible/selected lines to a new .log file</td></tr>
+            <tr><td>Save to XLS</td><td><kbd>Ctrl+Shift+E</kbd> / &#128202; XLS</td><td>File &#8594; Save to XLS&#8230;</td><td>Exports filtered view to Excel format</td></tr>
+            <tr><td>Export Performance CSV</td><td>&#8212;</td><td>File &#8594; Export Performance to CSV&#8230;</td><td>Exports the Performance tab table</td></tr>
+            <tr><td>Export Tree as JSON</td><td>&#8212;</td><td>File &#8594; Export Tree as JSON&#8230;</td><td>Full call tree in JSON format</td></tr>
+            <tr><td>Export Tree as XML</td><td>&#8212;</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Full call tree in XML format</td></tr>
+            <tr><td>Export Timeline image</td><td>&#8212;</td><td>File &#8594; Export Timeline as Image&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
+            <tr><td>Export Flame Graph image</td><td>&#8212;</td><td>File &#8594; Export Flame Graph as Image&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
+            <tr><td>Reload from disk</td><td><kbd>F5</kbd> / &#128260; Refresh</td><td>File &#8594; Reload from Disk</td><td>Reloads and preserves scroll position</td></tr>
+            <tr><td>Exit</td><td><kbd>Alt+F4</kbd></td><td>File &#8594; Exit</td><td>Saves settings on close</td></tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>&#128221; Auto-watch:</strong> The application monitors the opened file for disk changes. When the file changes, the status ball turns red. Press <kbd>F5</kbd> to reload.
+    </div>
+</div>
+
+
+<!-- ═══ TOOLBAR ═══ -->
+<div class="section" id="toolbar">
+    <h2 class="section-title"><span class="ico">&#128295;</span> Toolbar Reference</h2>
+    <p>The toolbar provides single-click access to the most common operations. All icons are flat-style, scale-aware bitmaps that adapt to the current icon size setting (Small / Medium / Large).</p>
+
+    <div class="toolbar-diagram">
+        <span class="tb-btn">&#128193; Open</span>
+        <span class="tb-btn">&#128190; Save</span>
+        <span class="tb-btn">&#128202; XLS</span>
+        <span class="tb-btn">&#128260; Reload</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#128203; Copy</span>
+        <span class="tb-btn">&#128269; Find</span>
+        <span class="tb-btn">&#128270; Find Next</span>
+        <span class="tb-btn">&#127863; Filter</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#8853; Expand All</span>
+        <span class="tb-btn">&#8854; Collapse All</span>
+        <span class="tb-btn">Jump &#8597;</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#8592;E Prev Err</span>
+        <span class="tb-btn">E&#8594; Next Err</span>
+        <span class="tb-btn">&#8592;W Prev Warn</span>
+        <span class="tb-btn">W&#8594; Next Warn</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#127795; Call Tree</span>
+        <span class="tb-btn">&#128268; API Tree</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#9728; / &#9790; Theme</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#9881; Settings</span>
+        <span class="tb-sep"></span>
+        <span class="tb-btn">&#10067; Help</span>
+    </div>
+
+    <table>
+        <thead><tr><th>Button</th><th>Tooltip</th><th>Shortcut</th><th>Action</th></tr></thead>
+        <tbody>
+            <tr><td>Open</td><td>Open log file</td><td><kbd>Ctrl+O</kbd></td><td>Open File dialog</td></tr>
+            <tr><td>Save</td><td>Save selected lines</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected to .log</td></tr>
+            <tr><td>XLS</td><td>Save to XLS</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export filtered view to Excel</td></tr>
+            <tr><td>Reload</td><td>Reload from disk</td><td><kbd>F5</kbd></td><td>Re-reads file from disk</td></tr>
+            <tr><td>Copy</td><td>Copy selected lines</td><td><kbd>Ctrl+C</kbd></td><td>Copies selected log text to clipboard</td></tr>
+            <tr><td>Find</td><td>Find text (Ctrl+F)</td><td><kbd>Ctrl+F</kbd></td><td>Opens Find dialog</td></tr>
+            <tr><td>Find Next</td><td>Find Next (F3)</td><td><kbd>F3</kbd></td><td>Finds next match without opening dialog</td></tr>
+            <tr><td>Filter</td><td>Filter log entries</td><td><kbd>Ctrl+I</kbd></td><td>Opens advanced Filter dialog</td></tr>
+            <tr><td>Expand All</td><td>Expand All Nodes (Ctrl+E)</td><td><kbd>Ctrl+E</kbd></td><td>Expands all tree nodes (cancellable)</td></tr>
+            <tr><td>Collapse All</td><td>Collapse All Nodes (Ctrl+W)</td><td><kbd>Ctrl+W</kbd></td><td>Collapses all, keeps root expanded</td></tr>
+            <tr><td>Jump &#8597;</td><td>Jump to Matching Enter/Exit (Ctrl+G)</td><td><kbd>Ctrl+G</kbd></td><td>Jumps between ENTER / EXIT pair</td></tr>
+            <tr><td>&#8592;E</td><td>Previous Error (Shift+F8)</td><td><kbd>Shift+F8</kbd></td><td>Moves to previous ERROR line</td></tr>
+            <tr><td>E&#8594;</td><td>Next Error (F8)</td><td><kbd>F8</kbd></td><td>Moves to next ERROR line</td></tr>
+            <tr><td>&#8592;W</td><td>Previous Warning (Ctrl+Shift+F8)</td><td><kbd>Ctrl+Shift+F8</kbd></td><td>Moves to previous WARNING line</td></tr>
+            <tr><td>W&#8594;</td><td>Next Warning (Ctrl+F8)</td><td><kbd>Ctrl+F8</kbd></td><td>Moves to next WARNING line</td></tr>
+            <tr><td>Call Tree</td><td>Show Call Tree</td><td>&#8212;</td><td>Switches tree panel to Call Tree</td></tr>
+            <tr><td>API Tree</td><td>Show API Tree</td><td>&#8212;</td><td>Switches tree panel to API Tree</td></tr>
+            <tr><td>&#9728; / &#9790; Theme</td><td>Switch to Light / Dark Theme</td><td><kbd>Ctrl+T</kbd></td><td>Toggles Dark &#8596; Light; icon updates to match</td></tr>
+            <tr><td>Settings</td><td>Settings (Ctrl+Shift+S)</td><td><kbd>Ctrl+Shift+S</kbd></td><td>Opens Settings dialog</td></tr>
+            <tr><td>Help</td><td>Help (F1)</td><td><kbd>F1</kbd></td><td>Opens this User Guide in browser</td></tr>
+        </tbody>
+    </table>
+
+    <div class="tip">
+        <strong>&#128161; Tip:</strong> Right-click the toolbar area and go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> to change icon size (Small / Medium / Large) or hide the toolbar via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Toolbar</span>.
+    </div>
+</div>
+
+
+<!-- ═══ LOG VIEW TAB ═══ -->
+<div class="section" id="log-view">
+    <h2 class="section-title"><span class="ico">&#128221;</span> Log View Tab</h2>
+    <p>The <strong>Log View</strong> tab (first tab) is the main log viewer. It uses Windows virtual-list mode, meaning only the rows visible on screen are rendered &#8212; making even 500,000-line files load in under a second.</p>
+
+    <h3>Columns</h3>
+    <table>
+        <thead><tr><th>Column</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Line #</strong></td><td>1-based line number from the original file (80 px fixed width)</td></tr>
+            <tr><td><strong>Log Text</strong></td><td>Full log line text (fills remaining width, auto-resizes with window)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Row Colours</h3>
+    <table>
+        <thead><tr><th>Colour</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td><span class="swatch" style="background:#ffcccc;"></span> Red / pink</td><td>Line contains <code>E:</code> (Error level indicator)</td></tr>
+            <tr><td><span class="swatch" style="background:#fff3cc;"></span> Amber / yellow</td><td>Line contains <code>W:</code> (Warning level indicator)</td></tr>
+            <tr><td><span class="swatch" style="background:#c8e6ff;"></span> Light blue</td><td>Line is bookmarked</td></tr>
+            <tr><td><span class="swatch" style="background:#ffe57a;"></span> Bright yellow</td><td>Line matches the active search / highlight term</td></tr>
+            <tr><td>Default background</td><td>Normal informational line (theme-aware)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Log View Context Menu</h3>
+    <p>Right-click anywhere in the log view to access:</p>
+    <ul>
+        <li><strong>Copy</strong> &#8212; copy selected lines</li>
+        <li><strong>Copy with Headers</strong> &#8212; copy with <em>Line #</em> column prefix</li>
+        <li><strong>Find&#8230;</strong> &#8212; opens Find dialog</li>
+        <li><strong>Filter&#8230;</strong> &#8212; opens Filter dialog</li>
+        <li><strong>Expand All / Collapse All</strong> &#8212; tree operations</li>
+        <li><strong>Jump to Matching</strong> &#8212; ENTER &#8596; EXIT navigation</li>
+        <li><strong>Toggle Bookmark</strong> &#8212; bookmark current line</li>
+    </ul>
+</div>
+
+
+<!-- ═══ SEARCH & FILTER ═══ -->
+<div class="section" id="search-filter">
+    <h2 class="section-title"><span class="ico">&#128269;</span> Search &amp; Filter</h2>
+
+    <h3>Find Dialog <kbd>Ctrl+F</kbd></h3>
+    <p>Opens a floating, non-blocking Find window.</p>
+    <div class="card">
+        <div class="feature-row"><span class="label">Match case</span><span class="desc">Toggle case-sensitive matching</span></div>
+        <div class="feature-row"><span class="label">Use regex</span><span class="desc">Full .NET regular expression support</span></div>
+        <div class="feature-row"><span class="label">Search history</span><span class="desc">Drop-down remembers last 20 search terms (persisted across sessions)</span></div>
+        <div class="feature-row"><span class="label">Highlight all</span><span class="desc">Matching lines are highlighted yellow in the log view</span></div>
+    </div>
+
+    <table class="shortcut-table">
+        <thead><tr><th>Action</th><th>Shortcut</th></tr></thead>
+        <tbody>
+            <tr><td>Open Find dialog</td><td><kbd>Ctrl+F</kbd></td></tr>
+            <tr><td>Find next (no dialog)</td><td><kbd>F3</kbd></td></tr>
+            <tr><td>Find All (results window)</td><td><kbd>Ctrl+Alt+F</kbd></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Find All <kbd>Ctrl+Alt+F</kbd></h3>
+    <p>Prompts for a search term and opens a <strong>Find All Results</strong> window listing every matching line. Click any row in the results window to jump directly to that line in the main log view.</p>
+
+    <h3>Filter Dialog <kbd>Ctrl+I</kbd></h3>
+    <p>The filter dialog narrows the log view to only the lines that match <em>all</em> active criteria simultaneously.</p>
+
+    <table>
+        <thead><tr><th>Criterion</th><th>Description</th><th>Example</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Text</strong></td><td>Lines containing this string (supports regex)</td><td><code>Database</code></td></tr>
+            <tr><td><strong>Case sensitive</strong></td><td>Toggles case-sensitivity for the text criterion</td><td>&#8212;</td></tr>
+            <tr><td><strong>Min duration (ms)</strong></td><td>Only calls with <code>[N ms]</code> duration &ge; this value</td><td><code>500</code></td></tr>
+            <tr><td><strong>From time</strong></td><td>Log lines at or after this time-of-day</td><td><code>14:30:00</code></td></tr>
+            <tr><td><strong>To time</strong></td><td>Log lines at or before this time-of-day</td><td><code>14:35:00</code></td></tr>
+            <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread</td><td><code>0x1A2B</code></td></tr>
+            <tr><td><strong>Log level</strong></td><td>ERROR, WARNING, INFO, or DEBUG</td><td>ERROR</td></tr>
+        </tbody>
+    </table>
+
+    <div class="tip">
+        <strong>&#128161; Tip:</strong> When a filter is active, the status bar shows <em>&#8220;Filter: [description] &#8212; N of M lines&#8221;</em>. Clear it with <kbd>Ctrl+Shift+F</kbd> or <span class="menu">Edit <span class="menu-arrow">&#8594;</span> Clear Filter</span>.
+    </div>
+
+    <h3>Regex Examples</h3>
+    <div class="card">
+        <div class="feature-row"><span class="label"><code>ERROR.*timeout</code></span><span class="desc">Errors that mention timeout</span></div>
+        <div class="feature-row"><span class="label"><code>Thread \d+</code></span><span class="desc">Any thread-ID reference</span></div>
+        <div class="feature-row"><span class="label"><code>(ENTER|EXIT)</code></span><span class="desc">Method entry and exit points only</span></div>
+        <div class="feature-row"><span class="label"><code>\[(\d{3,})\s*ms\]</code></span><span class="desc">Calls that took 100+ ms</span></div>
+        <div class="feature-row"><span class="label"><code>^\d{4}-\d{2}-\d{2}</code></span><span class="desc">Lines that start with a date stamp</span></div>
+    </div>
+</div>
+
+
+<!-- ═══ BOOKMARKS ═══ -->
+<div class="section" id="bookmarks">
+    <h2 class="section-title"><span class="ico">&#128278;</span> Bookmarks</h2>
+    <p>Bookmarks let you pin important log lines for instant revisit. Bookmarked lines are highlighted with a <span class="swatch" style="background:#c8e6ff; border:1px solid #aaa;"></span> blue background.</p>
+
+    <table class="shortcut-table">
+        <thead><tr><th>Action</th><th>Shortcut</th><th>Menu</th></tr></thead>
+        <tbody>
+            <tr><td>Toggle bookmark on current line</td><td><kbd>Ctrl+B</kbd></td><td>Edit &#8594; Toggle Bookmark</td></tr>
+            <tr><td>Jump to next bookmark</td><td><kbd>F2</kbd></td><td>Edit &#8594; Next Bookmark</td></tr>
+            <tr><td>Jump to previous bookmark</td><td><kbd>Shift+F2</kbd></td><td>Edit &#8594; Previous Bookmark</td></tr>
+            <tr><td>Show all bookmarks list</td><td><kbd>Ctrl+Shift+B</kbd></td><td>Edit &#8594; Show All Bookmarks</td></tr>
+            <tr><td>Clear all bookmarks</td><td><kbd>Ctrl+Shift+Del</kbd></td><td>Edit &#8594; Clear All Bookmarks</td></tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>&#128190; Persistence:</strong> Bookmarks are saved to the application settings file and automatically restored when you re-open the same log file.
+    </div>
+</div>
+
+
+<!-- ERROR / WARNING NAVIGATION -->
+<div class="section" id="navigation">
+    <h2 class="section-title"><span class="ico">&#128680;</span> Error &amp; Warning Navigation</h2>
+    <p>The application indexes all error and warning lines when a file loads, enabling instant navigation without searching.</p>
+
+    <table class="shortcut-table">
+        <thead><tr><th>Action</th><th>Shortcut</th><th>Toolbar</th></tr></thead>
+        <tbody>
+            <tr><td>Next Error</td><td><kbd>F8</kbd></td><td>E&#8594; button</td></tr>
+            <tr><td>Previous Error</td><td><kbd>Shift+F8</kbd></td><td>&#8592;E button</td></tr>
+            <tr><td>Next Warning</td><td><kbd>Ctrl+F8</kbd></td><td>W&#8594; button</td></tr>
+            <tr><td>Previous Warning</td><td><kbd>Ctrl+Shift+F8</kbd></td><td>&#8592;W button</td></tr>
+        </tbody>
+    </table>
+
+    <p>The status bar shows the error / warning counts (e.g. <em>&#8220;3 errors, 12 warnings&#8221;</em>) alongside the line count.</p>
+
+    <h3>Jump to Line <kbd>Ctrl+L</kbd></h3>
+    <p>Opens a prompt where you type a line number and jump directly to it.</p>
+
+    <h3>Jump to Matching ENTER/EXIT <kbd>Ctrl+G</kbd></h3>
+    <p>When a log line is an <code>ENTER</code> or <code>EXIT</code> marker, this jumps to the matching counterpart, correctly handling nested calls of the same method.</p>
+</div>
+
+
+<!-- ═══ CALL TREE ═══ -->
+<div class="section" id="call-tree">
+    <h2 class="section-title"><span class="ico">&#127795;</span> Call Tree</h2>
+    <p>The <strong>Call Tree</strong> shows method invocations as a nested hierarchy, exactly mirroring the call stack at runtime. Activate it with the <strong>Call Tree</strong> toolbar button or <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Call Tree</span>.</p>
+
+    <h3>Node Format</h3>
+    <div class="card">
+        <div class="feature-row"><span class="label">Node text</span><span class="desc"><code>MethodName  [142 ms]</code> &nbsp;or&nbsp; <code>MethodName  [&lt;1 ms]</code> &nbsp;or&nbsp; <code>MethodName  [? ms]</code> (unmatched)</span></div>
+        <div class="feature-row"><span class="label">&#9989; icon (green check)</span><span class="desc">Matched ENTER + EXIT pair found</span></div>
+        <div class="feature-row"><span class="label">&#10060; icon (red cross)</span><span class="desc">No matching EXIT found for this ENTER</span></div>
+        <div class="feature-row"><span class="label">Tooltip</span><span class="desc">Shows method name, source file, enter line, exit line, duration</span></div>
+    </div>
+
+    <h3>Duration Colour Coding</h3>
+    <table>
+        <thead><tr><th>Colour</th><th>Duration</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td><span class="swatch" style="background:#00aa00;"></span> Green</td><td>&lt; 100 ms</td><td>Fast &#8212; no concern</td></tr>
+            <tr><td><span class="swatch" style="background:#cc6600;"></span> Amber</td><td>100 &#8211; 500 ms</td><td>Moderate &#8212; worth monitoring</td></tr>
+            <tr><td><span class="swatch" style="background:#cc0000;"></span> Red</td><td>&gt; 500 ms</td><td>Slow &#8212; likely bottleneck</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Lazy Loading</h3>
+    <p>For very large call trees (&gt; 50,000 nodes), the tree uses <strong>lazy loading</strong>: child nodes are populated on demand when you expand a parent. A <em>&#8220;Loading&#8230;&#8221;</em> placeholder is shown until children are rendered.</p>
+
+    <h3>Sorting (API Tree only)</h3>
+    <p>Right-click the API Tree to choose sort order: by <strong>Name</strong>, by <strong>Call Count</strong>, or by <strong>First Line</strong>.</p>
+</div>
+
+
+<!-- ═══ API TREE ═══ -->
+<div class="section" id="api-tree">
+    <h2 class="section-title"><span class="ico">&#128268;</span> API Tree</h2>
+    <p>The <strong>API Tree</strong> groups all invocations of each method under a single root node, showing call count in brackets. This makes it easy to see how many times each API was called and navigate between individual invocations.</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Root node format</span><span class="desc"><code>MethodName  (N calls)</code> &#8212; click to scroll to first occurrence</span></div>
+        <div class="feature-row"><span class="label">Child node format</span><span class="desc"><code>MethodName &#8212; Ln 1234</code> &#8212; click to scroll to that specific line</span></div>
+        <div class="feature-row"><span class="label">&#9989; / &#10060; icon</span><span class="desc">Green if <em>all</em> invocations are matched; red if any ENTER lacks a matching EXIT</span></div>
+    </div>
+
+    <p>Selecting an API Tree node also displays its invocation details in the <strong>Log Details</strong> tab (API name, total count, first occurrence, all line numbers, match status).</p>
+</div>
+
+
+<!-- ═══ TREE SEARCH ═══ -->
+<div class="section" id="tree-search">
+    <h2 class="section-title"><span class="ico">&#128270;</span> Tree Search</h2>
+    <p>The text box at the top of the tree panel filters nodes in <strong>real time</strong> as you type.</p>
+    <ul>
+        <li>Nodes whose text matches are highlighted in <span style="background:#ffe57a; padding:1px 4px;">yellow</span>.</li>
+        <li>Parent nodes that contain a match are automatically expanded and shown with a transparent background.</li>
+        <li>Non-matching leaf nodes are collapsed.</li>
+        <li>Clear the box to restore the full tree.</li>
+    </ul>
+    <div class="tip">
+        <strong>&#128161; Tip:</strong> The search is case-insensitive and matches any substring of the node label, including the duration suffix (e.g. typing <code>142</code> finds nodes labelled <code>[142 ms]</code>).
+    </div>
+</div>
+
+
+<!-- ═══ TREE CONTEXT MENU ═══ -->
+<div class="section" id="tree-context">
+    <h2 class="section-title"><span class="ico">&#128196;</span> Tree Context Menu</h2>
+    <p>Right-click any tree node to access operations specific to that node.</p>
+
+    <h3>Call Tree Context Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Copy Method Name</td><td>Copies the bare method name (without duration) to clipboard</td></tr>
+            <tr><td>Copy Subtree</td><td>Copies the node and all its children as indented plain text</td></tr>
+            <tr><td>Jump to Matching ENTER/EXIT</td><td>Jumps the log view to the matching ENTER or EXIT line</td></tr>
+            <tr><td>Save Branch&#8230;</td><td>Extracts the ENTER&#8594;EXIT log section for this node into a new .log file</td></tr>
+            <tr><td>Export Branch as CSV&#8230;</td><td>Exports the branch to CSV (Name, Depth, Duration columns)</td></tr>
+            <tr><td>Expand All</td><td>Expands all children of this node</td></tr>
+            <tr><td>Collapse All</td><td>Collapses all children to root</td></tr>
+            <tr><td>Show in API Tree</td><td>Switches to API Tree and selects the matching node</td></tr>
+            <tr><td>Search in Grok</td><td>Opens Grok URL with the method name (only shown if Grok URL is configured in Settings)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>API Tree Context Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Sort by Name</td><td>Alphabetical sort (default)</td></tr>
+            <tr><td>Sort by Call Count</td><td>Most-called methods first</td></tr>
+            <tr><td>Sort by First Line</td><td>Order of first appearance in the log</td></tr>
+            <tr><td>Copy API Name</td><td>Copies the method name to clipboard</td></tr>
+            <tr><td>Expand All / Collapse All</td><td>Tree expand/collapse</td></tr>
+            <tr><td>Show in Call Tree</td><td>Switches to Call Tree and highlights the method</td></tr>
+            <tr><td>Search in Grok</td><td>As above</td></tr>
+        </tbody>
+    </table>
+</div>
+
+
+<!-- ═══ PERFORMANCE TAB ═══ -->
+<div class="section" id="performance">
+    <h2 class="section-title"><span class="ico">&#128202;</span> Performance Tab</h2>
+    <p>Provides a sortable statistics table for every method seen in the log. Enable via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Performance View</span>.</p>
+
+    <table>
+        <thead><tr><th>Column</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>API Name</strong></td><td>Method / API name</td></tr>
+            <tr><td><strong>Calls</strong></td><td>Total number of invocations</td></tr>
+            <tr><td><strong>Total (ms)</strong></td><td>Sum of all inclusive durations</td></tr>
+            <tr><td><strong>Avg (ms)</strong></td><td>Average inclusive duration per call</td></tr>
+            <tr><td><strong>Min (ms)</strong></td><td>Fastest single call</td></tr>
+            <tr><td><strong>Max (ms)</strong></td><td>Slowest single call</td></tr>
+            <tr><td><strong>Self (ms)</strong></td><td>Exclusive time (total minus child call time)</td></tr>
+            <tr><td><strong>Source File</strong></td><td>Source file reported in the log (if present)</td></tr>
+        </tbody>
+    </table>
+
+    <p><strong>Click any column header</strong> to sort by that column; click again to reverse. The sort direction indicator updates in the header.</p>
+
+    <h3>Row Colours</h3>
+    <table>
+        <thead><tr><th>Colour</th><th>Condition</th></tr></thead>
+        <tbody>
+            <tr><td><span class="swatch" style="background:#ffcccc;"></span> Red</td><td>Total time &ge; <em>Slow call threshold</em> (default 1000 ms, configurable in Settings)</td></tr>
+            <tr><td><span class="swatch" style="background:#fff3cc;"></span> Amber</td><td>Total time &ge; threshold / 10 (default 100 ms)</td></tr>
+            <tr><td>Default</td><td>Fast &#8212; within normal range</td></tr>
+        </tbody>
+    </table>
+
+    <p>The first row is always a <strong>summary row</strong> showing total timed calls, total time, and the count of distinct APIs.</p>
+</div>
+
+
+<!-- ═══ LOG DETAILS TAB ═══ -->
+<div class="section" id="log-details">
+    <h2 class="section-title"><span class="ico">&#128196;</span> Log Details Tab</h2>
+    <p>Shows contextual details about the currently selected log line or API tree node. Automatically switches to this tab when:</p>
+    <ul>
+        <li>A log list row is selected (shows line number + full text).</li>
+        <li>An API Tree node is clicked (shows invocation summary: total calls, line numbers, match status).</li>
+    </ul>
+</div>
+
+
+<!-- ═══ CALL GRAPH TAB ═══ -->
+<div class="section" id="call-graph">
+    <h2 class="section-title"><span class="ico">&#128200;</span> Call Graph Tab</h2>
+    <p>A directed-graph visualisation of which methods call which. Edge thickness is proportional to call frequency; hovering a node highlights its edges.</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Zoom</span><span class="desc">Mouse wheel</span></div>
+        <div class="feature-row"><span class="label">Pan</span><span class="desc">Click and drag</span></div>
+        <div class="feature-row"><span class="label">Hover</span><span class="desc">Highlights all edges connected to that node</span></div>
+        <div class="feature-row"><span class="label">Reset View button</span><span class="desc">Returns zoom and pan to default</span></div>
+        <div class="feature-row"><span class="label">Export PNG&#8230; button</span><span class="desc">Saves the graph as a PNG image at current panel size (min 800&#215;600)</span></div>
+    </div>
+</div>
+
+
+<!-- ═══ FLAME GRAPH TAB ═══ -->
+<div class="section" id="flame-graph">
+    <h2 class="section-title"><span class="ico">&#128293;</span> Flame Graph Tab</h2>
+    <p>An interactive flame graph where each rectangle represents a method call. Width is proportional to inclusive time; the call stack grows upward.</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Hover</span><span class="desc">Tooltip shows method name, duration, percentage of total time</span></div>
+        <div class="feature-row"><span class="label">Click</span><span class="desc">Zooms into that call and its children</span></div>
+        <div class="feature-row"><span class="label">Dark/Light theme</span><span class="desc">Colours update automatically with the active theme</span></div>
+        <div class="feature-row"><span class="label">Export</span><span class="desc">File &#8594; Export Flame Graph as Image&#8230; (1920&#215;1080 PNG)</span></div>
+    </div>
+
+    <div class="tip">
+        <strong>&#128161; Performance tip:</strong> The widest frames at the top of the graph are your biggest bottlenecks. Drill down to see which children consume the most time.
+    </div>
+</div>
+
+
+<!-- ═══ TIMELINE TAB ═══ -->
+<div class="section" id="timeline">
+    <h2 class="section-title"><span class="ico">&#9201;</span> Timeline Tab</h2>
+    <p>A Gantt-chart style view showing method calls plotted against real time. Each bar represents one invocation; bars are colour-coded by duration (same green / amber / red scheme as the tree).</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Click a bar</span><span class="desc">Scrolls the Log View to the corresponding ENTER line</span></div>
+        <div class="feature-row"><span class="label">Zoom / Pan</span><span class="desc">Mouse wheel to zoom, click-drag to pan</span></div>
+        <div class="feature-row"><span class="label">Export</span><span class="desc">File &#8594; Export Timeline as Image&#8230; (1920&#215;1080 PNG)</span></div>
+    </div>
+</div>
+
+
+<!-- ═══ DEPENDENCY GRAPH TAB ═══ -->
+<div class="section" id="dependency-graph">
+    <h2 class="section-title"><span class="ico">&#128257;</span> Dependency Graph Tab</h2>
+    <p>A higher-level architectural view showing <em>which methods depend on which</em> &#8212; derived from the call relationships seen in the log. Useful for understanding module coupling.</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Reset View button</span><span class="desc">Resets zoom and pan</span></div>
+        <div class="feature-row"><span class="label">Visibility</span><span class="desc">Toggle via View &#8594; Show Tabs &#8594; <em>Dependency Graph</em> (added to menu dynamically)</span></div>
+    </div>
+</div>
+
+
+<!-- ═══ AI ASSISTANT TAB ═══ -->
+<div class="section" id="ai-assistant">
+    <h2 class="section-title"><span class="ico">&#129504;</span> AI Assistant Tab</h2>
+    <p>An integrated AI analysis panel that can analyse the currently loaded log using either a built-in heuristic engine or the <strong>Claude API</strong> (Anthropic) for advanced natural-language answers.</p>
+
+    <h3>Analysis Modes</h3>
+    <table>
+        <thead><tr><th>Mode</th><th>How it works</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Built-in (offline)</strong></td><td>Heuristic analysis using aggregated log statistics &#8212; no API key required</td></tr>
+            <tr><td><strong>Claude API</strong></td><td>Sends a structured prompt to Anthropic&#8217;s Claude model &#8212; requires API key in Settings</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Action Buttons</h3>
+    <table>
+        <thead><tr><th>Button</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>&#128220; Summarize</td><td>High-level summary of what happened in the log</td></tr>
+            <tr><td>&#128683; Detect Anomalies</td><td>Identifies unusual patterns, spikes, and outliers</td></tr>
+            <tr><td>&#128200; Analyze Performance</td><td>Performance bottleneck analysis with recommendations</td></tr>
+            <tr><td>&#128270; Find Patterns</td><td>Detects recurring sequences and call patterns</td></tr>
+            <tr><td>&#128736; Root Cause</td><td>Suggests probable root causes for errors</td></tr>
+            <tr><td>&#128196; Bug Report</td><td>Generates a structured bug-report draft from the log data</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Chat Interface</h3>
+    <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant will answer in context of the loaded log data. Chat history is maintained for the session.</p>
+
+    <div class="note">
+        <strong>&#128221; Claude API setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span>, enter your Anthropic API key in the <em>AI / API</em> section, and check <em>Use Claude API</em>. Without a key the built-in heuristic mode is used automatically.
+    </div>
+</div>
+
+
+<!-- ═══ EXPORT ═══ -->
+<div class="section" id="export">
+    <h2 class="section-title"><span class="ico">&#128190;</span> Export Features</h2>
+
+    <h3>Log Data</h3>
+    <table>
+        <thead><tr><th>Format</th><th>How to access</th><th>Content</th></tr></thead>
+        <tbody>
+            <tr><td>Plain text (.log)</td><td><kbd>Ctrl+S</kbd> or File &#8594; Save Selected&#8230;</td><td>Currently visible (or selected) log lines</td></tr>
+            <tr><td>Excel (.xls)</td><td><kbd>Ctrl+Shift+E</kbd> or File &#8594; Save to XLS&#8230;</td><td>Filtered view exported to Excel format</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Analysis Data</h3>
+    <table>
+        <thead><tr><th>Format</th><th>How to access</th><th>Content</th></tr></thead>
+        <tbody>
+            <tr><td>Performance CSV</td><td>File &#8594; Export Performance to CSV&#8230;</td><td>All Performance tab rows</td></tr>
+            <tr><td>Call Tree JSON</td><td>File &#8594; Export Tree as JSON&#8230;</td><td>Complete call tree structure</td></tr>
+            <tr><td>Call Tree XML</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Complete call tree structure</td></tr>
+            <tr><td>Branch CSV</td><td>Right-click node &#8594; Export Branch as CSV&#8230;</td><td>Name, Depth, Duration columns for a subtree</td></tr>
+            <tr><td>Branch log</td><td>Right-click node &#8594; Save Branch&#8230;</td><td>The raw ENTER&#8594;EXIT log section for one method</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Images</h3>
+    <table>
+        <thead><tr><th>Visualisation</th><th>How to access</th><th>Resolution</th></tr></thead>
+        <tbody>
+            <tr><td>Call Graph</td><td>Export PNG&#8230; button on the Call Graph tab</td><td>Current panel size (min 800&#215;600)</td></tr>
+            <tr><td>Flame Graph</td><td>File &#8594; Export Flame Graph as Image&#8230;</td><td>1920&#215;1080</td></tr>
+            <tr><td>Timeline</td><td>File &#8594; Export Timeline as Image&#8230;</td><td>1920&#215;1080</td></tr>
+        </tbody>
+    </table>
+</div>
+
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="section" id="settings">
+    <h2 class="section-title"><span class="ico">&#9881;</span> Settings Dialog <kbd>Ctrl+Shift+S</kbd></h2>
+    <p>Open via <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> or the toolbar Settings button.</p>
+
+    <table>
+        <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Theme</td><td>Light or Dark &#8212; applied immediately; also toggled by the toolbar &#9728;/&#9790; button or <kbd>Ctrl+T</kbd></td></tr>
+            <tr><td>Toolbar icon size</td><td>Small (16 px), Medium (24 px), Large (32 px)</td></tr>
+            <tr><td>Show toolbar</td><td>Hides / shows the entire toolbar</td></tr>
+            <tr><td>Log font family / size / style</td><td>Font used in the Log View and Log Details. Apply via View &#8594; Select Font&#8230;</td></tr>
+            <tr><td>Slow call threshold (ms)</td><td>Duration above which performance rows are coloured red (default 1000 ms)</td></tr>
+            <tr><td>Highlight colour</td><td>Background colour used for search highlights</td></tr>
+            <tr><td>Save snippet suffix</td><td>Appended to the filename when using Save Branch</td></tr>
+            <tr><td>Recent file count</td><td>How many recent files to remember (max 10)</td></tr>
+            <tr><td>Initial directory</td><td>Overrides PTC_LOG_DIR for the Open dialog</td></tr>
+            <tr><td>Grok URL</td><td>Base URL for the &#8220;Search in Grok&#8221; tree context menu item</td></tr>
+            <tr><td>Claude API key</td><td>Anthropic API key for the AI Assistant Claude mode</td></tr>
+            <tr><td>Use Claude API</td><td>Enables/disables Claude API; falls back to built-in heuristics when off</td></tr>
+            <tr><td>Window position / size</td><td>Saved and restored automatically</td></tr>
+            <tr><td>Splitter distance</td><td>Saved and restored automatically</td></tr>
+            <tr><td>Search history</td><td>Last 20 search terms; persisted between sessions</td></tr>
+        </tbody>
+    </table>
+
+    <div class="info">
+        <strong>&#128193; Storage location:</strong> All settings are saved to <code>%AppData%\CAD3PLogBrowser\appsettings.json</code>. Delete this file to reset everything to defaults.
+    </div>
+</div>
+
+
+<!-- ═══ THEMES & FONTS ═══ -->
+<div class="section" id="themes">
+    <h2 class="section-title"><span class="ico">&#127912;</span> Themes &amp; Fonts</h2>
+
+    <h3>Switching Themes</h3>
+    <table class="shortcut-table">
+        <thead><tr><th>Method</th><th>How</th></tr></thead>
+        <tbody>
+            <tr><td>Keyboard shortcut</td><td><kbd>Ctrl+T</kbd></td></tr>
+            <tr><td>Toolbar button</td><td>&#9728; (in Dark mode, shows sun to switch to Light) / &#9790; (in Light mode, shows moon to switch to Dark)</td></tr>
+            <tr><td>Settings dialog</td><td>Options &#8594; Settings &#8594; Theme dropdown</td></tr>
+        </tbody>
+    </table>
+
+    <p>The theme is applied instantly to every control including the tree views, tab panels, status bar, and all dialogs.</p>
+
+    <h3>Selecting a Log Font</h3>
+    <p>Go to <span class="menu">View <span class="menu-arrow">&#8594;</span> Select Font&#8230;</span> to open the standard font picker. The chosen font is applied to the Log View list and persisted in settings.</p>
+</div>
+
+
+<!-- ═══ MENU REFERENCE ═══ -->
+<div class="section" id="menus">
+    <h2 class="section-title"><span class="ico">&#9776;</span> Menu Reference</h2>
+
+    <h3>File Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Open&#8230;</td><td><kbd>Ctrl+O</kbd></td><td>Open a log file</td></tr>
+            <tr><td>Merge Log Files&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
+            <tr><td>Save Selected&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected lines to .log</td></tr>
+            <tr><td>Save to XLS&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export filtered view to Excel</td></tr>
+            <tr><td>Export Performance to CSV&#8230;</td><td></td><td>Export performance statistics</td></tr>
+            <tr><td>Export Tree as JSON&#8230;</td><td></td><td>Export call tree as JSON</td></tr>
+            <tr><td>Export Tree as XML&#8230;</td><td></td><td>Export call tree as XML</td></tr>
+            <tr><td>Export Timeline as Image&#8230;</td><td></td><td>Save timeline PNG (1920&#215;1080)</td></tr>
+            <tr><td>Export Flame Graph as Image&#8230;</td><td></td><td>Save flame graph PNG (1920&#215;1080)</td></tr>
+            <tr><td>Reload from Disk</td><td><kbd>F5</kbd></td><td>Re-read current file</td></tr>
+            <tr><td>Recent Files</td><td></td><td>Submenu of last 10 opened files</td></tr>
+            <tr><td>Exit</td><td><kbd>Alt+F4</kbd></td><td>Close application</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Edit Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Copy</td><td><kbd>Ctrl+C</kbd></td><td>Copy selected log lines as plain text</td></tr>
+            <tr><td>Copy with Headers</td><td><kbd>Ctrl+Shift+C</kbd></td><td>Copy with &#8220;Line #&#9;Log Text&#8221; header row</td></tr>
+            <tr><td>Find&#8230;</td><td><kbd>Ctrl+F</kbd></td><td>Open floating Find dialog</td></tr>
+            <tr><td>Find Next</td><td><kbd>F3</kbd></td><td>Find next occurrence</td></tr>
+            <tr><td>Find All&#8230;</td><td><kbd>Ctrl+Alt+F</kbd></td><td>Show all matches in results window</td></tr>
+            <tr><td>Filter&#8230;</td><td><kbd>Ctrl+I</kbd></td><td>Open multi-criteria Filter dialog</td></tr>
+            <tr><td>Clear Filter</td><td><kbd>Ctrl+Shift+F</kbd></td><td>Remove active filter</td></tr>
+            <tr><td>Expand All</td><td><kbd>Ctrl+E</kbd></td><td>Expand all tree nodes (cancellable with <kbd>Esc</kbd>)</td></tr>
+            <tr><td>Collapse All</td><td><kbd>Ctrl+W</kbd></td><td>Collapse all tree nodes (keeps root)</td></tr>
+            <tr><td>Jump to Matching Enter/Exit</td><td><kbd>Ctrl+G</kbd></td><td>Jump between ENTER/EXIT pairs</td></tr>
+            <tr><td>Jump to Line&#8230;</td><td><kbd>Ctrl+L</kbd></td><td>Go to a specific line number</td></tr>
+            <tr><td>Toggle Bookmark</td><td><kbd>Ctrl+B</kbd></td><td>Add/remove bookmark on selected line</td></tr>
+            <tr><td>Next Bookmark</td><td><kbd>F2</kbd></td><td>Jump to next bookmark</td></tr>
+            <tr><td>Previous Bookmark</td><td><kbd>Shift+F2</kbd></td><td>Jump to previous bookmark</td></tr>
+            <tr><td>Show All Bookmarks</td><td><kbd>Ctrl+Shift+B</kbd></td><td>List all bookmarks in a dialog</td></tr>
+            <tr><td>Clear All Bookmarks</td><td><kbd>Ctrl+Shift+Del</kbd></td><td>Remove all bookmarks (with confirmation)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Options Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Settings&#8230;</td><td><kbd>Ctrl+Shift+S</kbd></td><td>Open the full Settings dialog</td></tr>
+        </tbody>
+    </table>
+
+    <h3>View Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Show Call Tree (&#10003;)</td><td>Toggle Call Tree in the left panel</td></tr>
+            <tr><td>Show API Tree (&#10003;)</td><td>Toggle API Tree in the left panel (mutually exclusive with Call Tree)</td></tr>
+            <tr><td>Show Tabs &#8594; LogView</td><td>Show/hide the Log View tab</td></tr>
+            <tr><td>Show Tabs &#8594; Performance View</td><td>Show/hide the Performance tab</td></tr>
+            <tr><td>Show Tabs &#8594; Details</td><td>Show/hide the Log Details tab</td></tr>
+            <tr><td>Show Tabs &#8594; CallGraph</td><td>Show/hide the Call Graph tab</td></tr>
+            <tr><td>Show Tabs &#8594; Flame Graph</td><td>Show/hide the Flame Graph tab</td></tr>
+            <tr><td>Show Tabs &#8594; Timeline</td><td>Show/hide the Timeline tab</td></tr>
+            <tr><td>Show Tabs &#8594; Dependency Graph</td><td>Show/hide the Dependency Graph tab (added dynamically)</td></tr>
+            <tr><td>Show Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab (added dynamically)</td></tr>
+            <tr><td>Select Font&#8230;</td><td>Open font picker for the log view</td></tr>
+            <tr><td>Show Toolbar (&#10003;)</td><td>Hide/show the main toolbar</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Help Menu</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>User Guide</td><td><kbd>F1</kbd></td><td>Opens this guide in the default browser</td></tr>
+            <tr><td>Keyboard Shortcuts</td><td><kbd>Ctrl+K</kbd></td><td>Quick-reference shortcuts dialog</td></tr>
+            <tr><td>About</td><td></td><td>Version and credits</td></tr>
+            <tr><td>Check for Updates</td><td></td><td>Opens GitHub releases page</td></tr>
+            <tr><td>Report Errors</td><td></td><td>Opens GitHub Issues page</td></tr>
+        </tbody>
+    </table>
+</div>
+
+
+<!-- ═══ KEYBOARD SHORTCUTS ═══ -->
+<div class="section" id="keyboard-shortcuts">
+    <h2 class="section-title"><span class="ico">&#9000;</span> Keyboard Shortcuts</h2>
+
+    <div class="qref-grid">
+
+        <div class="qref-cell">
+            <h4>&#128193; File</h4>
+            <table>
+                <tr><td><kbd>Ctrl+O</kbd></td><td>Open file</td></tr>
+                <tr><td><kbd>Ctrl+M</kbd></td><td>Merge log files</td></tr>
+                <tr><td><kbd>Ctrl+S</kbd></td><td>Save selected lines</td></tr>
+                <tr><td><kbd>Ctrl+Shift+E</kbd></td><td>Save to XLS</td></tr>
+                <tr><td><kbd>F5</kbd></td><td>Reload from disk</td></tr>
+                <tr><td><kbd>Alt+F4</kbd></td><td>Exit</td></tr>
+            </table>
+        </div>
+
+        <div class="qref-cell">
+            <h4>&#128203; Edit</h4>
+            <table>
+                <tr><td><kbd>Ctrl+C</kbd></td><td>Copy selected lines</td></tr>
+                <tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Copy with headers</td></tr>
+                <tr><td><kbd>Ctrl+F</kbd></td><td>Find</td></tr>
+                <tr><td><kbd>F3</kbd></td><td>Find next</td></tr>
+                <tr><td><kbd>Ctrl+Alt+F</kbd></td><td>Find all</td></tr>
+                <tr><td><kbd>Ctrl+I</kbd></td><td>Filter dialog</td></tr>
+                <tr><td><kbd>Ctrl+Shift+F</kbd></td><td>Clear filter</td></tr>
+            </table>
+        </div>
+
+        <div class="qref-cell">
+            <h4>&#127795; Tree</h4>
+            <table>
+                <tr><td><kbd>Ctrl+E</kbd></td><td>Expand all</td></tr>
+                <tr><td><kbd>Ctrl+W</kbd></td><td>Collapse all</td></tr>
+                <tr><td><kbd>Ctrl+G</kbd></td><td>Jump to matching ENTER/EXIT</td></tr>
+                <tr><td><kbd>Ctrl+L</kbd></td><td>Jump to line number</td></tr>
+            </table>
+        </div>
+
+        <div class="qref-cell">
+            <h4>&#128680; Navigation</h4>
+            <table>
+                <tr><td><kbd>F8</kbd></td><td>Next error</td></tr>
+                <tr><td><kbd>Shift+F8</kbd></td><td>Previous error</td></tr>
+                <tr><td><kbd>Ctrl+F8</kbd></td><td>Next warning</td></tr>
+                <tr><td><kbd>Ctrl+Shift+F8</kbd></td><td>Previous warning</td></tr>
+            </table>
+        </div>
+
+        <div class="qref-cell">
+            <h4>&#128278; Bookmarks</h4>
+            <table>
+                <tr><td><kbd>Ctrl+B</kbd></td><td>Toggle bookmark</td></tr>
+                <tr><td><kbd>F2</kbd></td><td>Next bookmark</td></tr>
+                <tr><td><kbd>Shift+F2</kbd></td><td>Previous bookmark</td></tr>
+                <tr><td><kbd>Ctrl+Shift+B</kbd></td><td>Show all bookmarks</td></tr>
+                <tr><td><kbd>Ctrl+Shift+Del</kbd></td><td>Clear all bookmarks</td></tr>
+            </table>
+        </div>
+
+        <div class="qref-cell">
+            <h4>&#9881; App</h4>
+            <table>
+                <tr><td><kbd>Ctrl+T</kbd></td><td>Toggle theme (Dark/Light)</td></tr>
+                <tr><td><kbd>Ctrl+Shift+S</kbd></td><td>Open settings</td></tr>
+                <tr><td><kbd>F1</kbd></td><td>User guide (this page)</td></tr>
+                <tr><td><kbd>Ctrl+K</kbd></td><td>Keyboard shortcuts dialog</td></tr>
+                <tr><td><kbd>Esc</kbd></td><td>Cancel current operation</td></tr>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="tip">
+        <strong>&#128161; In-app reference:</strong> Press <kbd>Ctrl+K</kbd> at any time to open the built-in Keyboard Shortcuts dialog without leaving the application.
+    </div>
+</div>
+
+
+<!-- ═══ TIPS ═══ -->
+<div class="section" id="tips">
+    <h2 class="section-title"><span class="ico">&#128161;</span> Tips &amp; Best Practices</h2>
+
+    <h3>Finding Performance Bottlenecks</h3>
+    <ol>
+        <li>Open the <strong>Performance</strong> tab.</li>
+        <li>Click <strong>Total (ms)</strong> to sort descending.</li>
+        <li>The top rows are your most expensive methods &#8212; focus there first.</li>
+        <li>Check <strong>Self (ms)</strong>: a high Self value means <em>the method itself</em> is slow, not its children.</li>
+        <li>Switch to the <strong>Flame Graph</strong> to see the call-stack context of the bottleneck visually.</li>
+    </ol>
+
+    <h3>Investigating an Error</h3>
+    <ol>
+        <li>Press <kbd>F8</kbd> to jump to the first error.</li>
+        <li>Press <kbd>Ctrl+B</kbd> to bookmark it.</li>
+        <li>Press <kbd>Ctrl+G</kbd> if the error is inside a method call to jump to the surrounding ENTER/EXIT context.</li>
+        <li>Right-click the enclosing tree node and choose <strong>Save Branch</strong> to extract just that call&#8217;s log lines for a bug report.</li>
+    </ol>
+
+    <h3>Narrowing Down a Large Log</h3>
+    <ol>
+        <li>Press <kbd>Ctrl+I</kbd> to open the Filter dialog.</li>
+        <li>Add a <strong>Time Range</strong> to focus on the incident window.</li>
+        <li>Add a <strong>Text</strong> filter for a relevant module or method name.</li>
+        <li>Combine with a <strong>Log Level</strong> filter of ERROR or WARNING.</li>
+        <li>The status bar shows how many lines match; iterate until the count is manageable.</li>
+    </ol>
+
+    <h3>Cross-Referencing Trees</h3>
+    <ul>
+        <li>Select a node in the Call Tree &#8594; right-click &#8594; <strong>Show in API Tree</strong> to see all occurrences of that method.</li>
+        <li>Select a node in the API Tree &#8594; right-click &#8594; <strong>Show in Call Tree</strong> to see one occurrence in full call-stack context.</li>
+    </ul>
+
+    <h3>Using Bookmarks Effectively</h3>
+    <ul>
+        <li>Mark the start and end of a slow period with <kbd>Ctrl+B</kbd>.</li>
+        <li>Use <kbd>F2</kbd> / <kbd>Shift+F2</kbd> to cycle through just those anchors.</li>
+        <li>Bookmarks survive file reloads &#8212; you can bookmark, reload, and continue where you left off.</li>
+    </ul>
+</div>
+
+
+<!-- ═══ TROUBLESHOOTING ═══ -->
+<div class="section" id="troubleshooting">
+    <h2 class="section-title"><span class="ico">&#128736;</span> Troubleshooting</h2>
+
+    <h3>File won&#8217;t open</h3>
+    <div class="warn">
+        <strong>Symptoms:</strong> Error dialog on open, or file shows 0 lines.<br>
+        <strong>Fixes:</strong> Check file is not locked by another process. Verify it is a plain-text file (not binary). Check read permissions. Try copy-pasting the file first.
+    </div>
+
+    <h3>Application is slow with a very large file</h3>
+    <div class="note">
+        <strong>Note:</strong> Virtual-mode rendering means the log view itself should always be fast. Slowness usually comes from building the call tree for logs with millions of API calls. Use <kbd>Ctrl+I</kbd> to filter the log before loading trees, or enable lazy loading (automatic for &gt; 50,000 nodes).
+    </div>
+
+    <h3>Tree is empty after loading</h3>
+    <ul>
+        <li>The parser looks for lines containing <code>[ENTER]</code> and <code>[EXIT]</code> markers. If your log format uses different markers, the tree will be empty.</li>
+        <li>Check that the log is the raw trace output and not a filtered/truncated copy.</li>
+    </ul>
+
+    <h3>Bookmarks not restored on reopen</h3>
+    <ul>
+        <li>Bookmarks are keyed to the full file path. If you moved or renamed the file, bookmarks are not found.</li>
+        <li>Check that <code>%AppData%\CAD3PLogBrowser\</code> exists and is writable.</li>
+    </ul>
+
+    <h3>Theme toggle not working</h3>
+    <ul>
+        <li>Press <kbd>Ctrl+T</kbd> &#8212; if it works via keyboard but not the button, the toolbar icon may not have been created yet (check Settings for icon size).</li>
+        <li>Try opening Settings and re-selecting the theme there.</li>
+    </ul>
+
+    <h3>AI Assistant returns no results</h3>
+    <ul>
+        <li>In <strong>built-in mode</strong>: a file must be loaded first.</li>
+        <li>In <strong>Claude mode</strong>: verify your API key in Settings, check internet connectivity, and confirm the key has sufficient quota.</li>
+    </ul>
+
+    <h3>Expand All hangs</h3>
+    <ul>
+        <li>For very large trees, Expand All may take time. A progress message appears in the status bar.</li>
+        <li>Press <kbd>Esc</kbd> or click the status bar to cancel the operation.</li>
+    </ul>
+
+    <h3>Resetting to defaults</h3>
+    <p>Delete <code>%AppData%\CAD3PLogBrowser\appsettings.json</code> and restart. All settings (window state, recent files, bookmarks, theme, font) will be recreated with defaults.</p>
+</div>
+
+
+<!-- ═══ FAQ ═══ -->
+<div class="section" id="faq">
+    <h2 class="section-title"><span class="ico">&#10067;</span> FAQ</h2>
+
+    <h3>What log file formats are supported?</h3>
+    <p>Any plain-text file. The parser auto-detects timestamp format and looks for <code>[ENTER]</code> / <code>[EXIT]</code> markers. Supported extensions: <code>.log</code>, <code>.log.*</code>, <code>.*</code> (any text file).</p>
+
+    <h3>How large a file can I open?</h3>
+    <p>The virtual-mode list view handles files with <strong>500,000+ lines</strong> smoothly. Call-tree building becomes slower above ~200,000 API calls; use filtering first to reduce scope.</p>
+
+    <h3>Can I open multiple files simultaneously?</h3>
+    <p>One file at a time per window. Use <span class="menu">File <span class="menu-arrow">&#8594;</span> Merge Log Files&#8230;</span> to combine multiple files into a single time-sorted view within one window.</p>
+
+    <h3>Where are my settings saved?</h3>
+    <p><code>%AppData%\CAD3PLogBrowser\appsettings.json</code></p>
+
+    <h3>How do I configure the default open directory?</h3>
+    <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Initial Directory</span>. The env variable takes precedence unless a custom path is also set.</p>
+
+    <h3>Can I use the Flame Graph without an internet connection?</h3>
+    <p>Yes. The Flame Graph, Timeline, Call Graph, and all other visualisations are rendered locally with no network access required. Only the AI Claude mode and the &#8220;Check for Updates&#8221; / &#8220;Report Errors&#8221; links require internet.</p>
+
+    <h3>Where do I report bugs or request features?</h3>
+    <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors</span> to open the GitHub Issues page, or visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
+</div>
+
+
+<footer>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v2.6 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
+</footer>
+
+</main>
+</div><!-- .page-wrap -->
+
+<a href="#" id="back-to-top" title="Back to top">&#8679;</a>
+
+<script>
+// Back to top button
+window.addEventListener('scroll', function () {
+    var btn = document.getElementById('back-to-top');
+    btn.classList.toggle('visible', window.scrollY > 400);
+});
+
+// Active nav link highlight
+var sections = document.querySelectorAll('div.section[id]');
+var navLinks = document.querySelectorAll('nav#sidebar a');
+window.addEventListener('scroll', function () {
+    var scrollY = window.scrollY + 80;
+    var current = '';
+    sections.forEach(function (s) {
+        if (s.offsetTop <= scrollY) current = s.id;
+    });
+    navLinks.forEach(function (a) {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+});
+
+// Simple in-page search highlight
+function searchGuide(term) {
+    var main = document.getElementById('content');
+    // Clear previous highlights
+    main.querySelectorAll('.search-hl').forEach(function (el) {
+        el.outerHTML = el.innerHTML;
+    });
+    if (!term || term.length < 2) return;
+    var re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    function walk(node) {
+        if (node.nodeType === 3) {
+            var m = node.textContent.match(re);
+            if (m) {
+                var span = document.createElement('span');
+                span.innerHTML = node.textContent.replace(re, '<mark class="search-hl" style="background:#ffe57a;">$1</mark>');
+                node.parentNode.replaceChild(span, node);
             }
-
-            // Find all matching elements
-            searchResults = [];
-            const allText = document.querySelectorAll('h2, h3, h4, p, li, td');
-
-            allText.forEach(el => {
-                if (el.textContent.toLowerCase().includes(searchText)) {
-                    searchResults.push(el);
-                }
-            });
-
-            // Scroll to first result
-            if (searchResults.length > 0) {
-                searchResults[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                highlightSearchResults();
-            }
-        });
-
-        function highlightSearchResults() {
-            // Add temporary highlight class
-            searchResults.forEach(el => {
-                el.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
-                setTimeout(() => {
-                    el.style.backgroundColor = '';
-                }, 2000);
-            });
+        } else if (node.nodeType === 1 && !['SCRIPT','STYLE','INPUT'].includes(node.tagName)) {
+            Array.from(node.childNodes).forEach(walk);
         }
-
-        // Back to top button
-        window.addEventListener('scroll', function() {
-            const backToTop = document.getElementById('backToTop');
-            if (window.pageYOffset > 300) {
-                backToTop.classList.add('visible');
-            } else {
-                backToTop.classList.remove('visible');
-            }
-        });
-
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-
-        // Highlight current section in TOC
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const id = entry.target.getAttribute('id');
-                    document.querySelectorAll('.toc a').forEach(a => {
-                        a.style.fontWeight = a.getAttribute('href') === '#' + id ? 'bold' : '500';
-                    });
-                }
-            });
-        }, { threshold: 0.5 });
-
-        document.querySelectorAll('h2[id], h3[id]').forEach(heading => {
-            observer.observe(heading);
-        });
-    </script>
+    }
+    walk(main);
+}
+</script>
 </body>
 </html>
