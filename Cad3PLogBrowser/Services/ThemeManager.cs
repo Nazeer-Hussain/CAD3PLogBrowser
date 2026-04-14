@@ -145,18 +145,8 @@ namespace Cad3PLogBrowser.Services
                     treeView.LineColor = BorderColor;
                     treeView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
 
-                    // IMPORTANT: Enable custom draw for dark theme to make expand/collapse symbols visible
-                    if (_currentTheme == Theme.Dark)
-                    {
-                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawAll;
-                        treeView.DrawNode -= TreeView_DrawNode; // Remove existing handler
-                        treeView.DrawNode += TreeView_DrawNode; // Add handler
-                    }
-                    else
-                    {
-                        treeView.DrawMode = TreeViewDrawMode.Normal;
-                        treeView.DrawNode -= TreeView_DrawNode;
-                    }
+                    // Use default drawing - Windows handles +/- glyphs correctly
+                    treeView.DrawMode = TreeViewDrawMode.Normal;
                 }
                 else if (control is TabControl tabControl)
                 {
@@ -234,7 +224,12 @@ namespace Cad3PLogBrowser.Services
                 }
 
                 // Recursively apply to child controls
-                if (control.Controls.Count > 0 && control.GetType().Name != "CallGraphPanel")
+                // Skip custom visualization panels that handle their own theming
+                string typeName = control.GetType().Name;
+                if (control.Controls.Count > 0 && 
+                    typeName != "CallGraphPanel" && 
+                    typeName != "FlameGraphPanel" && 
+                    typeName != "TimelinePanel")
                 {
                     ApplyThemeToControls(control.Controls);
                 }
@@ -460,112 +455,6 @@ namespace Cad3PLogBrowser.Services
             using (SolidBrush textBrush = new SolidBrush(tabForeColor))
             {
                 g.DrawString(tabPage.Text, tabControl.Font, textBrush, tabBounds, stringFormat);
-            }
-        }
-
-        // ?? Custom TreeView Drawing for Dark Theme - Visible Expand/Collapse ????
-        private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
-        {
-            TreeView treeView = sender as TreeView;
-            if (treeView == null) return;
-
-            // Don't use default drawing
-            e.DrawDefault = false;
-
-            // Extend bounds to fill the full row width for better selection visual
-            Rectangle fullRowBounds = new Rectangle(0, e.Bounds.Top, treeView.Width, e.Bounds.Height);
-
-            // Draw background
-            Color backColor;
-            if ((e.State & TreeNodeStates.Selected) != 0)
-            {
-                backColor = DarkHighlight; // Blue for selected
-            }
-            else if ((e.State & TreeNodeStates.Hot) != 0)
-            {
-                backColor = Color.FromArgb(51, 51, 52); // Subtle hover
-            }
-            else
-            {
-                backColor = DarkBackground;
-            }
-
-            using (SolidBrush brush = new SolidBrush(backColor))
-            {
-                e.Graphics.FillRectangle(brush, fullRowBounds);
-            }
-
-            // Calculate proper positions accounting for indent
-            int indent = e.Bounds.Left;
-
-            // Draw expand/collapse glyph if node has children
-            if (e.Node.Nodes.Count > 0)
-            {
-                // Position glyph 15 pixels to the left of the node bounds
-                int glyphX = Math.Max(indent - 15, 2); // Ensure glyph is always visible (min X=2)
-                int glyphY = e.Bounds.Top + (e.Bounds.Height - 9) / 2;
-                Rectangle glyphRect = new Rectangle(glyphX, glyphY, 9, 9);
-
-                // Draw glyph background
-                using (SolidBrush glyphBrush = new SolidBrush(Color.FromArgb(62, 62, 64)))
-                {
-                    e.Graphics.FillRectangle(glyphBrush, glyphRect);
-                }
-
-                // Draw glyph border
-                using (Pen glyphPen = new Pen(Color.FromArgb(160, 160, 160)))
-                {
-                    e.Graphics.DrawRectangle(glyphPen, glyphRect);
-                }
-
-                // Draw + or - symbol
-                using (Pen symbolPen = new Pen(Color.FromArgb(220, 220, 220), 1.5f))
-                {
-                    // Horizontal line (minus)
-                    e.Graphics.DrawLine(symbolPen, 
-                        glyphRect.Left + 2, glyphRect.Top + 4, 
-                        glyphRect.Right - 2, glyphRect.Top + 4);
-
-                    // Vertical line (only if collapsed - makes it a plus)
-                    if (!e.Node.IsExpanded)
-                    {
-                        e.Graphics.DrawLine(symbolPen, 
-                            glyphRect.Left + 4, glyphRect.Top + 2, 
-                            glyphRect.Left + 4, glyphRect.Bottom - 2);
-                    }
-                }
-            }
-
-            // Draw node icon if tree has ImageList
-            int iconWidth = 0;
-            if (treeView.ImageList != null && e.Node.ImageIndex >= 0 && e.Node.ImageIndex < treeView.ImageList.Images.Count)
-            {
-                iconWidth = treeView.ImageList.ImageSize.Width;
-                int imageX = indent + 2;
-                int imageY = e.Bounds.Top + (e.Bounds.Height - treeView.ImageList.ImageSize.Height) / 2;
-                e.Graphics.DrawImage(treeView.ImageList.Images[e.Node.ImageIndex], imageX, imageY);
-            }
-
-            // Draw node text
-            Color textColor = (e.State & TreeNodeStates.Selected) != 0 
-                ? DarkHighlightText 
-                : DarkForeground;
-
-            using (SolidBrush textBrush = new SolidBrush(textColor))
-            {
-                // Position text after icon (if present) with proper padding
-                int textX = indent + iconWidth + (iconWidth > 0 ? 4 : 2);
-                int availableWidth = treeView.Width - textX - 2; // 2px right margin
-
-                Rectangle textRect = new Rectangle(textX, e.Bounds.Top, Math.Max(availableWidth, 50), e.Bounds.Height);
-
-                StringFormat format = new StringFormat();
-                format.Alignment = StringAlignment.Near;
-                format.LineAlignment = StringAlignment.Center;
-                format.Trimming = StringTrimming.EllipsisCharacter;
-                format.FormatFlags = StringFormatFlags.NoWrap;
-
-                e.Graphics.DrawString(e.Node.Text, treeView.Font, textBrush, textRect, format);
             }
         }
 

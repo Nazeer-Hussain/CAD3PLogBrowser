@@ -55,6 +55,7 @@ namespace Cad3PLogBrowser.Services
         // ── Grok integration ──────────────────────────────────────────────────
         public string  GrokUrl          { get; set; } = "";
         public string  ClaudeApiKey     { get; set; } = "";  // L1-L6: AI features (never log raw content)
+        public bool    UseClaudeApi     { get; set; } = false; // Option B: offline by default, real API when enabled
 
         // ── Helpers ───────────────────────────────────────────────────────────
         [System.Runtime.Serialization.IgnoreDataMember]

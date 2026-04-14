@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cad3PLogBrowser.Models;
@@ -8,498 +9,509 @@ using Cad3PLogBrowser.Models;
 namespace Cad3PLogBrowser.Services.Analysis
 {
     /// <summary>
-    /// L1-L6 - AI Features for intelligent log analysis.
-    /// Provides offline analysis based on log statistics and patterns.
-    /// No external API calls required - works entirely offline.
+    /// L1-L6 — AI Features (Option B hybrid approach).
+    ///
+    /// DEFAULT (offline): All methods work without any configuration using
+    /// rule-based analysis on log statistics. No data leaves the machine.
+    ///
+    /// ENHANCED (Claude API): When UseClaudeApi=true and a ClaudeApiKey is
+    /// provided in Settings, every method upgrades to a real Claude API call.
+    /// Only structured summaries (method names, counts, durations) are sent —
+    /// NEVER raw log lines.
     /// </summary>
     public class AiLogService
     {
-        private readonly string _apiKey;
-        private bool _isConfigured;
+        // ── Configuration ─────────────────────────────────────────────────────
+        private string _apiKey;
+        private bool   _useApi;
 
-        public AiLogService(string apiKey = "")
+        private const string ApiUrl = "https://api.anthropic.com/v1/messages";
+        private const string Model  = "claude-sonnet-4-20250514";
+
+        public bool IsApiEnabled => _useApi && !string.IsNullOrWhiteSpace(_apiKey);
+        public bool IsConfigured => true; // offline always works
+
+        public AiLogService(string apiKey = "", bool useClaudeApi = false)
         {
             _apiKey = apiKey ?? string.Empty;
-            _isConfigured = !string.IsNullOrWhiteSpace(_apiKey);
+            _useApi = useClaudeApi;
         }
 
-        public bool IsConfigured => _isConfigured;
-
-        // ?? L1: AI Log Summarizer ????????????????????????????????????????????
-        public Task<string> SummarizeAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
+        /// <summary>Call after user changes settings so the running instance picks up new values.</summary>
+        public void UpdateConfig(string apiKey, bool useClaudeApi)
         {
-            var summary = new StringBuilder();
-            summary.AppendLine("=== LOG SESSION SUMMARY ===\n");
+            _apiKey = apiKey ?? string.Empty;
+            _useApi = useClaudeApi;
+        }
 
-            // Overall health assessment
-            string health = "HEALTHY ?";
-            if (stats.ErrorCount > 10) health = "CRITICAL ?";
-            else if (stats.ErrorCount > 0 || stats.WarningCount > 10) health = "WARNING ??";
+        // ── L1: Summarize ─────────────────────────────────────────────────────
+        public async Task<string> SummarizeAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
+        {
+            if (IsApiEnabled)
+            {
+                string prompt =
+                    "You are a software performance analyst. Provide a concise plain-English " +
+                    "summary (4-6 sentences) covering: overall health, notable slow calls, " +
+                    "error/warning count, and top concerns.\n\n" +
+                    BuildStructuredSummary(stats, perfStats);
+                return await CallClaudeAsync(prompt) ?? OfflineSummarize(stats, perfStats);
+            }
+            return OfflineSummarize(stats, perfStats);
+        }
 
-            summary.AppendLine($"Status: {health}");
-            summary.AppendLine($"Total Lines: {stats.TotalLines:N0}");
-            summary.AppendLine($"Errors: {stats.ErrorCount} | Warnings: {stats.WarningCount}");
-            summary.AppendLine($"API Calls: {stats.TotalApiCalls:N0} ({stats.UniqueApiCount} unique)");
-            summary.AppendLine($"Max Call Depth: {stats.MaxCallDepth}");
-            summary.AppendLine($"Session Duration: {stats.SessionDurationMs:N0} ms");
-            summary.AppendLine();
-
-            // Notable slow calls
+        private string OfflineSummarize(AggregateStats stats, List<ApiPerfStats> perfStats)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("=== LOG SESSION SUMMARY ===\n");
+            string health = stats.ErrorCount > 10 ? "CRITICAL" :
+                            (stats.ErrorCount > 0 || stats.WarningCount > 10) ? "WARNING" : "HEALTHY";
+            sb.AppendLine($"Status: {health}");
+            sb.AppendLine($"Total Lines: {stats.TotalLines:N0}");
+            sb.AppendLine($"Errors: {stats.ErrorCount} | Warnings: {stats.WarningCount}");
+            sb.AppendLine($"API Calls: {stats.TotalApiCalls:N0} ({stats.UniqueApiCount} unique)");
+            sb.AppendLine($"Max Call Depth: {stats.MaxCallDepth}");
+            sb.AppendLine($"Session Duration: {stats.SessionDurationMs:N0} ms\n");
             if (perfStats != null && perfStats.Any())
             {
                 var slowest = perfStats.OrderByDescending(p => p.TotalDurationMs).Take(5).ToList();
                 if (slowest.Any(p => p.TotalDurationMs > 1000))
                 {
-                    summary.AppendLine("?? PERFORMANCE CONCERNS:");
+                    sb.AppendLine("PERFORMANCE CONCERNS:");
                     foreach (var p in slowest.Where(x => x.TotalDurationMs > 1000))
-                    {
-                        summary.AppendLine($"  � {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls, avg {p.AvgDurationMs:N0} ms)");
-                    }
-                    summary.AppendLine();
+                        sb.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls)");
+                    sb.AppendLine();
                 }
-
-                summary.AppendLine("Top 5 Slowest APIs:");
+                sb.AppendLine("Top 5 Slowest APIs:");
                 foreach (var p in slowest)
-                {
-                    summary.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms (avg {p.AvgDurationMs:N0} ms, {p.CallCount} calls)");
-                }
-                summary.AppendLine();
+                    sb.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms (avg {p.AvgDurationMs:N0} ms, {p.CallCount} calls)");
             }
-
-            // Recommendations
-            summary.AppendLine("?? RECOMMENDATIONS:");
-            if (stats.ErrorCount > 0)
-                summary.AppendLine($"  � Investigate {stats.ErrorCount} error(s) - use F8 to navigate");
-            if (stats.WarningCount > 5)
-                summary.AppendLine($"  � Review {stats.WarningCount} warning(s) - use Ctrl+F8 to navigate");
-            if (stats.MaxCallDepth > 20)
-                summary.AppendLine($"  � Call depth of {stats.MaxCallDepth} may indicate recursive issues");
+            sb.AppendLine("\nRECOMMENDATIONS:");
+            if (stats.ErrorCount > 0)    sb.AppendLine($"  Investigate {stats.ErrorCount} error(s) — use F8 to navigate");
+            if (stats.WarningCount > 5)  sb.AppendLine($"  Review {stats.WarningCount} warning(s) — use Shift+F8");
+            if (stats.MaxCallDepth > 20) sb.AppendLine($"  Call depth of {stats.MaxCallDepth} may indicate recursion");
             if (perfStats != null && perfStats.Any(p => p.TotalDurationMs > 5000))
-                summary.AppendLine("  � Multiple slow operations detected - consider optimization");
-
-            return Task.FromResult(summary.ToString());
+                sb.AppendLine("  Multiple slow operations detected — check Performance tab");
+            return sb.ToString();
         }
 
-        // ?? L2: Natural Language Search ??????????????????????????????????????
-        public Task<string> NlSearchAsync(string userQuestion, AggregateStats stats, List<ApiPerfStats> perfStats)
+        // ── L2: Natural Language Search ───────────────────────────────────────
+        public async Task<string> NlSearchAsync(string question, AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            var response = new StringBuilder();
-            response.AppendLine($"?? Question: \"{userQuestion}\"\n");
-
-            string questionLower = userQuestion.ToLowerInvariant();
-
-            // Handle common questions
-            if (questionLower.Contains("error") || questionLower.Contains("fail"))
+            if (IsApiEnabled)
             {
-                response.AppendLine($"?? Error Analysis:");
-                response.AppendLine($"  � Total errors found: {stats.ErrorCount}");
-                if (stats.ErrorCount > 0)
-                {
-                    response.AppendLine($"  � Use F8 to navigate through errors");
-                    response.AppendLine($"  � Export with filters to isolate error lines");
-                }
-                else
-                {
-                    response.AppendLine($"  � No errors detected in this log session ?");
-                }
+                string prompt =
+                    "Answer this developer question about their application log session. " +
+                    "Use ONLY the structured data provided — do not invent details. " +
+                    "If the data is insufficient, say so.\n\n" +
+                    $"Question: {question}\n\n" + BuildStructuredSummary(stats, perfStats);
+                return await CallClaudeAsync(prompt) ?? OfflineNlSearch(question, stats, perfStats);
             }
-            else if (questionLower.Contains("slow") || questionLower.Contains("performance") || questionLower.Contains("bottleneck"))
+            return OfflineNlSearch(question, stats, perfStats);
+        }
+
+        private string OfflineNlSearch(string question, AggregateStats stats, List<ApiPerfStats> perfStats)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Question: \"{question}\"\n");
+            string q = question.ToLowerInvariant();
+            if (q.Contains("error") || q.Contains("fail"))
             {
-                response.AppendLine($"? Performance Analysis:");
+                sb.AppendLine($"Error Analysis:");
+                sb.AppendLine($"  Total errors: {stats.ErrorCount}");
+                if (stats.ErrorCount > 0) sb.AppendLine("  Use F8 to navigate through errors");
+                else sb.AppendLine("  No errors detected in this log session");
+            }
+            else if (q.Contains("slow") || q.Contains("performance") || q.Contains("bottleneck"))
+            {
+                sb.AppendLine("Performance Analysis:");
                 if (perfStats != null && perfStats.Any())
                 {
-                    var slowest = perfStats.OrderByDescending(p => p.TotalDurationMs).Take(3).ToList();
-                    response.AppendLine($"  � Slowest operations:");
-                    foreach (var p in slowest)
-                    {
-                        response.AppendLine($"    - {p.ApiName}: {p.TotalDurationMs:N0} ms ({p.CallCount} calls)");
-                    }
-                    response.AppendLine($"  � Check Performance tab for detailed metrics");
+                    sb.AppendLine("  Slowest operations:");
+                    foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(3))
+                        sb.AppendLine($"    {p.ApiName}: {p.TotalDurationMs:N0} ms ({p.CallCount} calls)");
                 }
             }
-            else if (questionLower.Contains("warning"))
+            else if (q.Contains("warning"))
             {
-                response.AppendLine($"?? Warning Analysis:");
-                response.AppendLine($"  � Total warnings: {stats.WarningCount}");
-                if (stats.WarningCount > 0)
-                {
-                    response.AppendLine($"  � Use Ctrl+F8 to navigate through warnings");
-                }
+                sb.AppendLine($"Warning Analysis:");
+                sb.AppendLine($"  Total warnings: {stats.WarningCount}");
+                if (stats.WarningCount > 0) sb.AppendLine("  Use Shift+F8 to navigate");
             }
-            else if (questionLower.Contains("api") || questionLower.Contains("call"))
+            else if (q.Contains("api") || q.Contains("call"))
             {
-                response.AppendLine($"?? API Call Analysis:");
-                response.AppendLine($"  � Total API calls: {stats.TotalApiCalls:N0}");
-                response.AppendLine($"  � Unique APIs: {stats.UniqueApiCount}");
-                response.AppendLine($"  � Max call depth: {stats.MaxCallDepth}");
-                response.AppendLine($"  � View API Tree for detailed breakdown");
+                sb.AppendLine("API Call Analysis:");
+                sb.AppendLine($"  Total API calls: {stats.TotalApiCalls:N0}");
+                sb.AppendLine($"  Unique APIs: {stats.UniqueApiCount}");
+                sb.AppendLine($"  Max call depth: {stats.MaxCallDepth}");
             }
             else
             {
-                // General statistics
-                response.AppendLine($"?? Session Overview:");
-                response.AppendLine($"  � Total lines: {stats.TotalLines:N0}");
-                response.AppendLine($"  � Errors: {stats.ErrorCount} | Warnings: {stats.WarningCount}");
-                response.AppendLine($"  � API calls: {stats.TotalApiCalls:N0}");
-                response.AppendLine($"  � Duration: {stats.SessionDurationMs:N0} ms");
+                sb.AppendLine("Session Overview:");
+                sb.AppendLine($"  Total lines: {stats.TotalLines:N0}");
+                sb.AppendLine($"  Errors: {stats.ErrorCount} | Warnings: {stats.WarningCount}");
+                sb.AppendLine($"  API calls: {stats.TotalApiCalls:N0} | Duration: {stats.SessionDurationMs:N0} ms");
             }
-
-            return Task.FromResult(response.ToString());
+            return sb.ToString();
         }
 
-        // ?? L3: Anomaly Detection ????????????????????????????????????????????
-        public Task<string> DetectAnomaliesAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
+        // ── L3: Anomaly Detection ─────────────────────────────────────────────
+        public async Task<string> DetectAnomaliesAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            var anomalies = new StringBuilder();
-            anomalies.AppendLine("?? ANOMALY DETECTION RESULTS\n");
+            if (IsApiEnabled)
+            {
+                string prompt =
+                    "You are a performance anomaly detector. Identify statistical anomalies " +
+                    "(e.g. calls 10x the average, unexpectedly high errors, deep call stacks). " +
+                    "List each with a brief explanation and priority.\n\n" +
+                    BuildStructuredSummary(stats, perfStats);
+                return await CallClaudeAsync(prompt) ?? OfflineDetectAnomalies(stats, perfStats);
+            }
+            return OfflineDetectAnomalies(stats, perfStats);
+        }
 
-            bool foundAnomalies = false;
-
-            // Check for high error rates
+        private string OfflineDetectAnomalies(AggregateStats stats, List<ApiPerfStats> perfStats)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("ANOMALY DETECTION RESULTS\n");
+            bool found = false;
             if (stats.ErrorCount > 0)
             {
-                double errorRate = (stats.ErrorCount / (double)stats.TotalLines) * 100;
-                if (errorRate > 5)
-                {
-                    anomalies.AppendLine($"?? HIGH ERROR RATE: {errorRate:F2}% ({stats.ErrorCount}/{stats.TotalLines:N0} lines)");
-                    anomalies.AppendLine($"   Recommendation: Investigate root cause immediately\n");
-                    foundAnomalies = true;
-                }
+                double rate = (stats.ErrorCount / (double)stats.TotalLines) * 100;
+                if (rate > 5) { sb.AppendLine($"HIGH ERROR RATE: {rate:F2}% ({stats.ErrorCount}/{stats.TotalLines:N0} lines)\n   Investigate immediately\n"); found = true; }
             }
-
-            // Check for excessive warnings
-            if (stats.WarningCount > 20)
-            {
-                double warnRate = (stats.WarningCount / (double)stats.TotalLines) * 100;
-                anomalies.AppendLine($"?? HIGH WARNING COUNT: {stats.WarningCount} warnings ({warnRate:F2}%)");
-                anomalies.AppendLine($"   Recommendation: Review warning messages\n");
-                foundAnomalies = true;
-            }
-
-            // Check for deep call stacks
-            if (stats.MaxCallDepth > 25)
-            {
-                anomalies.AppendLine($"?? DEEP CALL STACK: Maximum depth of {stats.MaxCallDepth}");
-                anomalies.AppendLine($"   Recommendation: Check for recursion or excessive nesting\n");
-                foundAnomalies = true;
-            }
-
-            // Check for performance outliers
+            if (stats.WarningCount > 20) { sb.AppendLine($"HIGH WARNING COUNT: {stats.WarningCount} warnings\n   Review warning messages\n"); found = true; }
+            if (stats.MaxCallDepth > 25) { sb.AppendLine($"DEEP CALL STACK: depth {stats.MaxCallDepth}\n   Check for recursion or excessive nesting\n"); found = true; }
             if (perfStats != null && perfStats.Any())
             {
-                double avgDuration = perfStats.Average(p => (double)p.AvgDurationMs);
-                var outliers = perfStats.Where(p => p.AvgDurationMs > avgDuration * 10).ToList();
-
+                double avg = perfStats.Average(p => (double)p.AvgDurationMs);
+                var outliers = perfStats.Where(p => p.AvgDurationMs > avg * 10).ToList();
                 if (outliers.Any())
                 {
-                    anomalies.AppendLine($"? PERFORMANCE OUTLIERS: {outliers.Count} API(s) with 10x+ average duration");
+                    sb.AppendLine($"PERFORMANCE OUTLIERS: {outliers.Count} API(s) with 10x+ average duration");
                     foreach (var p in outliers.Take(5))
-                    {
-                        anomalies.AppendLine($"   � {p.ApiName}: {p.AvgDurationMs:N0} ms avg (vs session avg {avgDuration:N0} ms)");
-                    }
-                    anomalies.AppendLine($"   Recommendation: Profile these methods for optimization\n");
-                    foundAnomalies = true;
+                        sb.AppendLine($"   {p.ApiName}: {p.AvgDurationMs:N0} ms avg (session avg {avg:N0} ms)");
+                    sb.AppendLine("   Profile these methods for optimization\n");
+                    found = true;
                 }
-
-                // Check for unbalanced call counts
                 double avgCalls = perfStats.Average(p => (double)p.CallCount);
                 var hotspots = perfStats.Where(p => p.CallCount > avgCalls * 5).ToList();
-
                 if (hotspots.Any())
                 {
-                    anomalies.AppendLine($"?? HOTSPOT METHODS: {hotspots.Count} API(s) called 5x+ more than average");
+                    sb.AppendLine($"HOTSPOT METHODS: {hotspots.Count} API(s) called 5x+ more than average");
                     foreach (var p in hotspots.Take(5))
-                    {
-                        anomalies.AppendLine($"   � {p.ApiName}: {p.CallCount} calls (vs avg {avgCalls:N0})");
-                    }
-                    anomalies.AppendLine($"   Recommendation: Review call patterns\n");
-                    foundAnomalies = true;
+                        sb.AppendLine($"   {p.ApiName}: {p.CallCount} calls (avg {avgCalls:N0})");
+                    found = true;
                 }
             }
-
-            if (!foundAnomalies)
-            {
-                anomalies.AppendLine("? No significant anomalies detected.");
-                anomalies.AppendLine("\nSession appears healthy with normal patterns.");
-            }
-
-            return Task.FromResult(anomalies.ToString());
+            if (!found) sb.AppendLine("No significant anomalies detected.\nSession appears healthy with normal patterns.");
+            return sb.ToString();
         }
 
-        // ?? L4: Root Cause Analysis ??????????????????????????????????????????
-        public Task<string> SuggestRootCauseAsync(AggregateStats stats, List<ApiPerfStats> perfStats, 
+        // ── L4: Root Cause Suggester ──────────────────────────────────────────
+        public async Task<string> SuggestRootCauseAsync(AggregateStats stats, List<ApiPerfStats> perfStats,
             int errorCount, int warningCount)
         {
-            var analysis = new StringBuilder();
-            analysis.AppendLine("?? ROOT CAUSE ANALYSIS\n");
-
-            if (errorCount == 0 && warningCount == 0)
+            if (IsApiEnabled)
             {
-                analysis.AppendLine("? No errors or warnings to analyze.");
-                return Task.FromResult(analysis.ToString());
+                string prompt =
+                    "You are a root cause analysis expert. The log shows " +
+                    $"{errorCount} errors and {warningCount} warnings. " +
+                    "Suggest the 2-3 most likely root causes and what to investigate first.\n\n" +
+                    BuildStructuredSummary(stats, perfStats,
+                        $"{errorCount} errors, {warningCount} warnings");
+                return await CallClaudeAsync(prompt) ?? OfflineRootCause(stats, perfStats, errorCount, warningCount);
             }
+            return OfflineRootCause(stats, perfStats, errorCount, warningCount);
+        }
 
-            // Error root cause suggestions
-            if (errorCount > 0)
+        private string OfflineRootCause(AggregateStats stats, List<ApiPerfStats> perfStats,
+            int errors, int warnings)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("ROOT CAUSE ANALYSIS\n");
+            if (errors == 0 && warnings == 0) { sb.AppendLine("No errors or warnings to analyze."); return sb.ToString(); }
+            if (errors > 0)
             {
-                analysis.AppendLine($"ERROR ANALYSIS ({errorCount} errors):");
-                analysis.AppendLine($"  Possible causes:");
-                analysis.AppendLine($"  � Missing or invalid input data");
-                analysis.AppendLine($"  � Network connectivity issues");
-                analysis.AppendLine($"  � Resource constraints (memory/disk)");
-                analysis.AppendLine($"  � Unhandled exceptions in API calls");
-                analysis.AppendLine();
-                analysis.AppendLine($"  Next steps:");
-                analysis.AppendLine($"  1. Use F8 to navigate to first error");
-                analysis.AppendLine($"  2. Check error message and stack trace");
-                analysis.AppendLine($"  3. Use Call Tree to see context");
-                analysis.AppendLine($"  4. Export filtered errors for detailed review");
-                analysis.AppendLine();
+                sb.AppendLine($"ERROR ANALYSIS ({errors} errors):");
+                sb.AppendLine("  Possible causes: missing input data, network issues, resource constraints, unhandled exceptions");
+                sb.AppendLine("  Next steps:");
+                sb.AppendLine("  1. Use F8 to navigate to first error");
+                sb.AppendLine("  2. Check error message in Log Details tab");
+                sb.AppendLine("  3. Use Call Tree to see call context\n");
             }
-
-            // Warning analysis
-            if (warningCount > 0)
+            if (warnings > 0)
             {
-                analysis.AppendLine($"WARNING ANALYSIS ({warningCount} warnings):");
-                analysis.AppendLine($"  Common causes:");
-                analysis.AppendLine($"  � Deprecated API usage");
-                analysis.AppendLine($"  � Configuration issues");
-                analysis.AppendLine($"  � Performance degradation");
-                analysis.AppendLine($"  � Resource usage approaching limits");
-                analysis.AppendLine();
+                sb.AppendLine($"WARNING ANALYSIS ({warnings} warnings):");
+                sb.AppendLine("  Common causes: deprecated API usage, configuration issues, performance degradation\n");
             }
-
-            // Performance-related root causes
             if (perfStats != null && perfStats.Any(p => p.AvgDurationMs > 1000))
             {
-                analysis.AppendLine($"PERFORMANCE ISSUES:");
-                var slow = perfStats.Where(p => p.AvgDurationMs > 1000).OrderByDescending(p => p.TotalDurationMs).Take(3);
-                foreach (var p in slow)
+                sb.AppendLine("PERFORMANCE ISSUES:");
+                foreach (var p in perfStats.Where(p => p.AvgDurationMs > 1000).OrderByDescending(p => p.TotalDurationMs).Take(3))
                 {
-                    analysis.AppendLine($"  � {p.ApiName}: {p.AvgDurationMs:N0} ms avg");
-                    analysis.AppendLine($"    Likely causes:");
-                    analysis.AppendLine($"    - I/O operations (disk/network)");
-                    analysis.AppendLine($"    - Database queries");
-                    analysis.AppendLine($"    - External API calls");
-                    analysis.AppendLine($"    - Complex computations");
+                    sb.AppendLine($"  {p.ApiName}: {p.AvgDurationMs:N0} ms avg");
+                    sb.AppendLine("    Likely causes: I/O operations, database queries, external API calls");
                 }
-                analysis.AppendLine();
             }
-
-            analysis.AppendLine("?? TIP: Use Dependency Graph to visualize call relationships");
-
-            return Task.FromResult(analysis.ToString());
+            return sb.ToString();
         }
 
-        // ?? L5: Performance Insights ?????????????????????????????????????????
+        // ── L5: Bug Report Generator ──────────────────────────────────────────
+        public async Task<string> GenerateBugReportAsync(AggregateStats stats,
+            List<ApiPerfStats> perfStats, string appVersion)
+        {
+            if (IsApiEnabled)
+            {
+                string prompt =
+                    "Generate a concise bug report in Markdown format. Include: " +
+                    "Summary, Observed Behaviour (from API patterns), Performance Impact, " +
+                    "and Recommended Priority.\n\n" +
+                    BuildStructuredSummary(stats, perfStats, $"App version: {appVersion}");
+                return await CallClaudeAsync(prompt) ?? OfflineBugReport(stats, perfStats, appVersion);
+            }
+            return OfflineBugReport(stats, perfStats, appVersion);
+        }
+
+        private string OfflineBugReport(AggregateStats stats, List<ApiPerfStats> perfStats, string version)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("## Bug Report\n");
+            sb.AppendLine($"**Version:** {version}");
+            sb.AppendLine($"**Session:** {stats.TotalLines:N0} lines, {stats.SessionDurationMs:N0} ms\n");
+            sb.AppendLine($"**Summary:** {stats.ErrorCount} error(s), {stats.WarningCount} warning(s) detected.\n");
+            sb.AppendLine("**Performance Impact:**");
+            if (perfStats != null && perfStats.Any())
+                foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(5))
+                    sb.AppendLine($"- {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls)");
+            sb.AppendLine($"\n**Priority:** {(stats.ErrorCount > 10 ? "HIGH" : stats.ErrorCount > 0 ? "MEDIUM" : "LOW")}");
+            sb.AppendLine("\n_Tip: Enable Claude API in Settings for an enhanced AI-generated bug report._");
+            return sb.ToString();
+        }
+
+        // ── L6: Conversational Chat ───────────────────────────────────────────
+        public async Task<string> ChatAsync(string userMessage,
+            List<(string role, string content)> history,
+            AggregateStats stats, List<ApiPerfStats> perfStats)
+        {
+            if (IsApiEnabled)
+            {
+                // Build messages array for multi-turn conversation
+                var messages = new StringBuilder("[");
+                foreach (var (role, msg) in history)
+                {
+                    if (messages.Length > 1) messages.Append(",");
+                    messages.Append($"{{\"role\":\"{EscJson(role)}\",\"content\":\"{EscJson(msg)}\"}}");
+                }
+                if (messages.Length > 1) messages.Append(",");
+                messages.Append($"{{\"role\":\"user\",\"content\":\"{EscJson(userMessage)}\"}}");
+                messages.Append("]");
+
+                string system =
+                    "You are a helpful log analysis assistant. Answer concisely. " +
+                    "You have access to structured log session data only — no raw log text.\n\n" +
+                    BuildStructuredSummary(stats, perfStats);
+
+                return await CallClaudeAsync(null, system, messages.ToString())
+                    ?? OfflineNlSearch(userMessage, stats, perfStats);
+            }
+            return OfflineNlSearch(userMessage, stats, perfStats);
+        }
+
+        // ── L5 (offline): Performance Insights ───────────────────────────────
         public Task<string> AnalyzePerformanceAsync(List<ApiPerfStats> perfStats)
         {
-            var insights = new StringBuilder();
-            insights.AppendLine("? PERFORMANCE INSIGHTS\n");
-
-            if (perfStats == null || !perfStats.Any())
+            var sb = new StringBuilder();
+            sb.AppendLine("PERFORMANCE INSIGHTS\n");
+            if (perfStats == null || !perfStats.Any()) { sb.AppendLine("No performance data available."); return Task.FromResult(sb.ToString()); }
+            long total = perfStats.Sum(p => p.TotalDurationMs);
+            sb.AppendLine($"Total tracked time: {total:N0} ms");
+            sb.AppendLine($"Total calls: {perfStats.Sum(p => p.CallCount):N0}\n");
+            sb.AppendLine("Top 10 Time Consumers:");
+            foreach (var p in perfStats.OrderByDescending(p => p.TotalDurationMs).Take(10))
             {
-                insights.AppendLine("No performance data available.");
-                return Task.FromResult(insights.ToString());
+                double pct = total > 0 ? (p.TotalDurationMs / (double)total) * 100 : 0;
+                sb.AppendLine($"  {p.ApiName}");
+                sb.AppendLine($"    Total: {p.TotalDurationMs:N0} ms ({pct:F1}%) | Calls: {p.CallCount} | Avg: {p.AvgDurationMs:N0} ms | Max: {p.MaxDurationMs:N0} ms");
             }
-
-            // Calculate session metrics
-            long totalDuration = perfStats.Sum(p => p.TotalDurationMs);
-            double avgCallDuration = perfStats.Average(p => (double)p.AvgDurationMs);
-            int totalCalls = perfStats.Sum(p => p.CallCount);
-
-            insights.AppendLine($"?? Session Metrics:");
-            insights.AppendLine($"  � Total time: {totalDuration:N0} ms");
-            insights.AppendLine($"  � Average call duration: {avgCallDuration:N0} ms");
-            insights.AppendLine($"  � Total calls: {totalCalls:N0}");
-            insights.AppendLine();
-
-            // Top 10 by total duration
-            insights.AppendLine($"?? Top 10 Time Consumers:");
-            var topByTotal = perfStats.OrderByDescending(p => p.TotalDurationMs).Take(10);
-            foreach (var p in topByTotal)
-            {
-                double percentage = (p.TotalDurationMs / (double)totalDuration) * 100;
-                insights.AppendLine($"  � {p.ApiName}");
-                insights.AppendLine($"    Total: {p.TotalDurationMs:N0} ms ({percentage:F1}% of session)");
-                insights.AppendLine($"    Calls: {p.CallCount} | Avg: {p.AvgDurationMs:N0} ms | Max: {p.MaxDurationMs:N0} ms");
-            }
-            insights.AppendLine();
-
-            // Slowest individual calls
-            var slowestAvg = perfStats.OrderByDescending(p => p.AvgDurationMs).Take(5);
-            insights.AppendLine($"?? Slowest Average Duration:");
-            foreach (var p in slowestAvg)
-            {
-                insights.AppendLine($"  � {p.ApiName}: {p.AvgDurationMs:N0} ms avg");
-            }
-            insights.AppendLine();
-
-            // Most frequently called
-            var mostFrequent = perfStats.OrderByDescending(p => p.CallCount).Take(5);
-            insights.AppendLine($"?? Most Frequently Called:");
-            foreach (var p in mostFrequent)
-            {
-                insights.AppendLine($"  � {p.ApiName}: {p.CallCount} calls");
-            }
-
-            return Task.FromResult(insights.ToString());
+            return Task.FromResult(sb.ToString());
         }
 
-        // ?? L6: Pattern Recognition ??????????????????????????????????????????
+        // ── L6 (offline): Pattern Recognition ────────────────────────────────
         public Task<string> FindPatternsAsync(List<LogEntry> entries)
         {
-            var patterns = new StringBuilder();
-            patterns.AppendLine("?? PATTERN RECOGNITION\n");
-
-            if (entries == null || !entries.Any())
+            var sb = new StringBuilder();
+            sb.AppendLine("PATTERN RECOGNITION\n");
+            if (entries == null || !entries.Any()) { sb.AppendLine("No log entries to analyze."); return Task.FromResult(sb.ToString()); }
+            bool found = false;
+            var errors = entries.Where(e => e.Level == "E").ToList();
+            if (errors.Any())
             {
-                patterns.AppendLine("No log entries to analyze.");
-                return Task.FromResult(patterns.ToString());
-            }
-
-            bool foundPatterns = false;
-
-            // Pattern 1: Repeated errors
-            var errorEntries = entries.Where(e => e.Level == "E").ToList();
-            var errorGroups = new List<IGrouping<string, LogEntry>>();
-
-            if (errorEntries.Any())
-            {
-                errorGroups = errorEntries
-                    .GroupBy(e => e.RawText != null && e.RawText.Length > 100 ? e.RawText.Substring(0, 100) : e.RawText ?? "")
-                    .Where(g => g.Count() > 1)
-                    .OrderByDescending(g => g.Count())
-                    .Take(3)
-                    .ToList();
-
-                if (errorGroups.Any())
+                var repeated = errors
+                    .GroupBy(e => (e.RawText ?? "").Length > 80 ? e.RawText.Substring(0, 80) : e.RawText ?? "")
+                    .Where(g => g.Count() > 1).OrderByDescending(g => g.Count()).Take(3).ToList();
+                if (repeated.Any())
                 {
-                    patterns.AppendLine($"?? REPEATED ERRORS:");
-                    foreach (var group in errorGroups)
-                    {
-                        patterns.AppendLine($"  � Occurs {group.Count()} times: {group.Key}...");
-                    }
-                    patterns.AppendLine();
-                    foundPatterns = true;
+                    sb.AppendLine("REPEATED ERRORS:");
+                    foreach (var g in repeated) sb.AppendLine($"  Occurs {g.Count()}x: {g.Key}...");
+                    found = true;
                 }
             }
-
-            // Pattern 2: Time-based patterns
-            int firstHalfErrors = 0;
-            int secondHalfErrors = 0;
-
             if (entries.Count > 100)
             {
-                firstHalfErrors = entries.Take(entries.Count / 2).Count(e => e.Level == "E");
-                secondHalfErrors = entries.Skip(entries.Count / 2).Count(e => e.Level == "E");
-
-                if (secondHalfErrors > firstHalfErrors * 2)
+                int firstHalf  = entries.Take(entries.Count / 2).Count(e => e.Level == "E");
+                int secondHalf = entries.Skip(entries.Count / 2).Count(e => e.Level == "E");
+                if (secondHalf > firstHalf * 2)
                 {
-                    patterns.AppendLine($"?? ESCALATING PATTERN:");
-                    patterns.AppendLine($"  � Errors increase over time: {firstHalfErrors} ? {secondHalfErrors}");
-                    patterns.AppendLine($"  � May indicate degrading system state");
-                    patterns.AppendLine();
-                    foundPatterns = true;
+                    sb.AppendLine($"ESCALATING PATTERN: Errors increase over time: {firstHalf} -> {secondHalf}");
+                    sb.AppendLine("  May indicate degrading system state");
+                    found = true;
                 }
             }
-
-            // Pattern 3: Call frequency patterns
-            var apiCalls = entries.Where(e => e.IsApiCall).GroupBy(e => e.ApiName).ToList();
-            var burst = apiCalls.Where(g => g.Count() > 100).OrderByDescending(g => g.Count()).Take(3).ToList();
-
+            var burst = entries.Where(e => e.IsApiCall).GroupBy(e => e.ApiName)
+                .Where(g => g.Count() > 100).OrderByDescending(g => g.Count()).Take(3).ToList();
             if (burst.Any())
             {
-                patterns.AppendLine($"?? HIGH-FREQUENCY CALLS:");
-                foreach (var group in burst)
-                {
-                    patterns.AppendLine($"  � {group.Key}: called {group.Count()} times");
-                }
-                patterns.AppendLine($"  � May indicate polling, retries, or loops");
-                patterns.AppendLine();
-                foundPatterns = true;
+                sb.AppendLine("HIGH-FREQUENCY CALLS:");
+                foreach (var g in burst) sb.AppendLine($"  {g.Key}: called {g.Count()} times");
+                sb.AppendLine("  May indicate polling, retries, or loops");
+                found = true;
             }
-
-            if (!foundPatterns)
-            {
-                patterns.AppendLine("? No concerning patterns detected.");
-                patterns.AppendLine("   Log activity appears normal.");
-            }
-
-            return Task.FromResult(patterns.ToString());
+            if (!found) sb.AppendLine("No concerning patterns detected. Log activity appears normal.");
+            return Task.FromResult(sb.ToString());
         }
 
-        // ?? General Analysis ??????????????????????????????????????????????????
-        public Task<string> AnalyzeAsync(string query, AggregateStats stats, List<ApiPerfStats> perfStats, List<LogEntry> entries)
+        // ── Router for generic query ──────────────────────────────────────────
+        public Task<string> AnalyzeAsync(string query, AggregateStats stats,
+            List<ApiPerfStats> perfStats, List<LogEntry> entries)
         {
-            // Route to appropriate analysis based on query
-            string queryLower = query.ToLowerInvariant();
-
-            if (queryLower.Contains("pattern") || queryLower.Contains("repeat"))
-                return FindPatternsAsync(entries);
-            else if (queryLower.Contains("performance") || queryLower.Contains("slow"))
-                return AnalyzePerformanceAsync(perfStats);
-            else if (queryLower.Contains("anomaly") || queryLower.Contains("unusual"))
-                return DetectAnomaliesAsync(stats, perfStats);
-            else if (queryLower.Contains("error") || queryLower.Contains("warning"))
-                return SuggestRootCauseAsync(stats, perfStats, stats.ErrorCount, stats.WarningCount);
-            else if (queryLower.Contains("summary") || queryLower.Contains("overview"))
-                return SummarizeAsync(stats, perfStats);
-            else
-                return NlSearchAsync(query, stats, perfStats);
+            string q = query.ToLowerInvariant();
+            if (q.Contains("pattern") || q.Contains("repeat"))  return FindPatternsAsync(entries);
+            if (q.Contains("performance") || q.Contains("slow")) return AnalyzePerformanceAsync(perfStats);
+            if (q.Contains("anomaly") || q.Contains("unusual"))  return DetectAnomaliesAsync(stats, perfStats);
+            if (q.Contains("root cause") || q.Contains("why"))   return SuggestRootCauseAsync(stats, perfStats, stats.ErrorCount, stats.WarningCount);
+            if (q.Contains("bug") || q.Contains("report"))       return GenerateBugReportAsync(stats, perfStats, "");
+            if (q.Contains("summary") || q.Contains("overview")) return SummarizeAsync(stats, perfStats);
+            return NlSearchAsync(query, stats, perfStats);
         }
 
-        // ?? Helper: Build statistics from log entries ????????????????????????
-        public static AggregateStats BuildAggregateStats(List<LogEntry> entries, List<ApiPerfStats> perfStats)
+        // ── Helpers ───────────────────────────────────────────────────────────
+        /// <summary>
+        /// Builds the structured data payload sent to Claude.
+        /// NEVER includes raw log lines — only aggregated statistics.
+        /// </summary>
+        private static string BuildStructuredSummary(AggregateStats stats,
+            List<ApiPerfStats> perfStats, string extra = "")
         {
-            var stats = new AggregateStats
-            {
-                TotalLines = entries.Count,
-                ErrorCount = entries.Count(e => e.Level == "E"),
-                WarningCount = entries.Count(e => e.Level == "W"),
-                TotalApiCalls = entries.Count(e => e.IsApiCall),
-                UniqueApiCount = entries.Where(e => e.IsApiCall).Select(e => e.ApiName).Distinct().Count(),
-                MaxCallDepth = CalculateMaxCallDepth(entries)
-            };
-
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Structured Log Session Data (no raw log content) ===");
+            sb.AppendLine($"Total lines: {stats.TotalLines}");
+            sb.AppendLine($"Errors: {stats.ErrorCount}  Warnings: {stats.WarningCount}");
+            sb.AppendLine($"API calls: {stats.TotalApiCalls}  Unique: {stats.UniqueApiCount}");
+            sb.AppendLine($"Max depth: {stats.MaxCallDepth}  Max single call: {stats.MaxCallDurationMs} ms");
+            sb.AppendLine($"Session duration: {stats.SessionDurationMs} ms");
             if (perfStats != null && perfStats.Any())
             {
-                stats.SessionDurationMs = perfStats.Sum(p => p.TotalDurationMs);
-                stats.MaxCallDurationMs = perfStats.Max(p => p.MaxDurationMs);
+                sb.AppendLine("\nTop 10 APIs by total time:");
+                foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(10))
+                    sb.AppendLine($"  {p.ApiName}: total={p.TotalDurationMs}ms avg={p.AvgDurationMs}ms min={p.MinDurationMs}ms max={p.MaxDurationMs}ms calls={p.CallCount}");
             }
+            if (!string.IsNullOrEmpty(extra)) sb.AppendLine($"\nContext: {extra}");
+            return sb.ToString();
+        }
 
+        private async Task<string> CallClaudeAsync(string userPrompt,
+            string system = "You are a log analysis assistant.",
+            string messagesJson = null)
+        {
+            try
+            {
+                if (messagesJson == null)
+                    messagesJson = $"[{{\"role\":\"user\",\"content\":\"{EscJson(userPrompt)}\"}}]";
+
+                string body = $"{{\"model\":\"{Model}\",\"max_tokens\":1000,\"system\":\"{EscJson(system)}\",\"messages\":{messagesJson}}}";
+
+                // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
+                using (var client = new WebClient())
+                {
+                    client.Headers.Add("x-api-key", _apiKey);
+                    client.Headers.Add("anthropic-version", "2023-06-01");
+                    client.Headers.Add("Content-Type", "application/json");
+
+                    string raw = await Task.Run(() => client.UploadString(ApiUrl, body));
+
+                    // Parse "text" from response
+                    int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);
+                    if (start < 0) return null;
+                    start += 8;
+                    int end = FindJsonStringEnd(raw, start);
+                    if (end < 0) return null;
+                    return raw.Substring(start, end - start)
+                        .Replace("\\n", "\n").Replace("\\\"", "\"").Replace("\\\\", "\\");
+                }
+            }
+            catch (WebException wex)
+            {
+                try
+                {
+                    using (var reader = new System.IO.StreamReader(wex.Response.GetResponseStream()))
+                    {
+                        string error = reader.ReadToEnd();
+                        return $"[Claude API error: {error}]";
+                    }
+                }
+                catch
+                {
+                    return $"[Claude API unavailable: {wex.Message}]";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"[Claude API unavailable: {ex.Message}]";
+            }
+        }
+
+        private static string EscJson(string s) =>
+            (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
+                     .Replace("\n", "\\n").Replace("\r", "").Replace("\t", "\\t");
+
+        private static int FindJsonStringEnd(string json, int start)
+        {
+            for (int i = start; i < json.Length; i++)
+            {
+                if (json[i] == '\\') { i++; continue; }
+                if (json[i] == '"') return i;
+            }
+            return -1;
+        }
+
+        // ── Static helpers used by MainForm ───────────────────────────────────
+        public static AggregateStats BuildAggregateStats(List<LogEntry> entries, List<ApiPerfStats> perfStats)
+        {
+            int depth = 0, maxDepth = 0;
+            foreach (var e in entries)
+            {
+                if (!e.IsApiCall) continue;
+                if (e.IsCallEnter) { if (++depth > maxDepth) maxDepth = depth; }
+                else if (e.IsCallExit && depth > 0) depth--;
+            }
+            var stats = new AggregateStats
+            {
+                TotalLines    = entries.Count,
+                ErrorCount    = entries.Count(e => e.Level == "E"),
+                WarningCount  = entries.Count(e => e.Level == "W"),
+                TotalApiCalls = entries.Count(e => e.IsApiCall),
+                UniqueApiCount = entries.Where(e => e.IsApiCall).Select(e => e.ApiName).Distinct().Count(),
+                MaxCallDepth  = maxDepth
+            };
+            if (perfStats != null && perfStats.Any())
+            {
+                stats.SessionDurationMs  = perfStats.Sum(p => p.TotalDurationMs);
+                stats.MaxCallDurationMs  = perfStats.Max(p => p.MaxDurationMs);
+            }
             return stats;
         }
 
-        private static int CalculateMaxCallDepth(List<LogEntry> entries)
-        {
-            int maxDepth = 0;
-            int currentDepth = 0;
-
-            foreach (var entry in entries)
-            {
-                if (entry.IsApiCall)
-                {
-                    if (entry.IsCallEnter)
-                    {
-                        currentDepth++;
-                        if (currentDepth > maxDepth)
-                            maxDepth = currentDepth;
-                    }
-                    else if (entry.IsCallExit)
-                    {
-                        currentDepth--;
-                    }
-                }
-            }
-
-            return maxDepth;
-        }
-
-        // ?? Helper: No conversion needed - ApiPerfStats is used directly ?????
-        public static List<ApiPerfStats> ConvertPerfStats(List<ApiPerfStats> apiStats)
-        {
-            return apiStats ?? new List<ApiPerfStats>();
-        }
+        public static List<ApiPerfStats> ConvertPerfStats(List<ApiPerfStats> stats) =>
+            stats ?? new List<ApiPerfStats>();
     }
 }
