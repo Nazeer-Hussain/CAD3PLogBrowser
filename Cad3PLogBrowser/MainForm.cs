@@ -697,19 +697,25 @@ namespace Cad3PLogBrowser
                 var contextMenu = new ContextMenuStrip();
 
                 // ═══ SORTING OPTIONS (API Tree only - PRIMARY FEATURE) ═══
-                var sortByName = (ToolStripMenuItem)contextMenu.Items.Add("🔤 Sort by Name (A-Z)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByName));
+                var sortByName = new ToolStripMenuItem("Sort by Name (A-Z)");
+                sortByName.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByName);
                 sortByName.Checked = (_apiSortMode == ApiSortMode.ByName);
+                contextMenu.Items.Add(sortByName);
 
-                var sortByCount = (ToolStripMenuItem)contextMenu.Items.Add("🔢 Sort by Call Count (Most First)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByCount));
+                var sortByCount = new ToolStripMenuItem("Sort by Call Count (Most First)");
+                sortByCount.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByCount);
                 sortByCount.Checked = (_apiSortMode == ApiSortMode.ByCount);
+                contextMenu.Items.Add(sortByCount);
 
-                var sortByLine = (ToolStripMenuItem)contextMenu.Items.Add("📄 Sort by Line Order", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine));
+                var sortByLine = new ToolStripMenuItem("Sort by Line Order");
+                sortByLine.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine);
                 sortByLine.Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
+                contextMenu.Items.Add(sortByLine);
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ COPY ACTIONS ═══
-                contextMenu.Items.Add("📋 Copy API Name", null, (s, ev) => 
+                contextMenu.Items.Add("Copy API Name", null, (s, ev) => 
                 {
                     var n = ApiTree.SelectedNode;
                     if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
@@ -718,8 +724,8 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ COMMON TREE ACTIONS ═══
-                contextMenu.Items.Add("➕ Expand All (Ctrl+E)", null, (s, ev) => ApiTree.ExpandAll());
-                contextMenu.Items.Add("➖ Collapse All (Ctrl+W)", null, (s, ev) => 
+                contextMenu.Items.Add("Expand All (Ctrl+E)", null, (s, ev) => ApiTree.ExpandAll());
+                contextMenu.Items.Add("Collapse All (Ctrl+W)", null, (s, ev) => 
                 {
                     ApiTree.CollapseAll();
                     if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
@@ -728,7 +734,7 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ CROSS-REFERENCE ═══
-                contextMenu.Items.Add("🔍 Show in Call Tree", null, (s, ev) => 
+                contextMenu.Items.Add("Show in Call Tree", null, (s, ev) => 
                 {
                     var n = ApiTree.SelectedNode;
                     if (n != null)
@@ -742,7 +748,7 @@ namespace Cad3PLogBrowser
                 if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
                 {
                     contextMenu.Items.Add(new ToolStripSeparator());
-                    contextMenu.Items.Add("🔎 Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
+                    contextMenu.Items.Add("Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
                 }
 
                 // Apply dark theme if needed
