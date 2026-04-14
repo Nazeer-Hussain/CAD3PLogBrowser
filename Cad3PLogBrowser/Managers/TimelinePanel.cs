@@ -49,6 +49,13 @@ namespace Cad3PLogBrowser.Managers
         private ToolTip _tooltip;
 
         // ======================================================================
+        // Events
+        // ======================================================================
+
+        /// <summary>Raised when the user chooses "Export as Image..." from the context menu.</summary>
+        public event EventHandler ExportImageRequested;
+
+        // ======================================================================
         // Data Model
         // ======================================================================
 
@@ -138,6 +145,8 @@ namespace Cad3PLogBrowser.Managers
             contextMenu.Items.Add("Zoom In", null, (s, e) => ZoomBy(1.2f));
             contextMenu.Items.Add("Zoom Out", null, (s, e) => ZoomBy(0.8f));
             contextMenu.Items.Add("Fit to Window", null, (s, e) => FitToWindow());
+            contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add("Export as Image...", null, (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty));
             _contentPanel.ContextMenuStrip = contextMenu;
 
             // Add controls in correct order
