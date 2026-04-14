@@ -113,10 +113,29 @@ namespace Cad3PLogBrowser.Managers
                 Dock        = DockStyle.Fill,
                 Font        = new Font("Segoe UI", 9.5f),
                 BackColor   = Color.FromArgb(48, 52, 64),
-                ForeColor   = Color.FromArgb(210, 220, 235),
+                ForeColor   = Color.Gray,
                 BorderStyle = BorderStyle.FixedSingle,
-                PlaceholderText = "Ask a question or type a chat message..."
+                Text        = "Ask a question or type a chat message..."
             };
+
+            // Implement placeholder behavior manually (PlaceholderText not available in .NET Framework 4.8)
+            _queryBox.GotFocus += (s, e) =>
+            {
+                if (_queryBox.ForeColor == Color.Gray && _queryBox.Text == "Ask a question or type a chat message...")
+                {
+                    _queryBox.Text = "";
+                    _queryBox.ForeColor = Color.FromArgb(210, 220, 235);
+                }
+            };
+            _queryBox.LostFocus += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(_queryBox.Text))
+                {
+                    _queryBox.Text = "Ask a question or type a chat message...";
+                    _queryBox.ForeColor = Color.Gray;
+                }
+            };
+
             _queryBox.KeyDown += (s, e) =>
             {
                 if (e.KeyCode == Keys.Enter && !e.Shift) { e.SuppressKeyPress = true; Submit(); }
