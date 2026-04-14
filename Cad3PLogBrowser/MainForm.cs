@@ -354,6 +354,12 @@ namespace Cad3PLogBrowser
             // Set up F1 help key handling for context-sensitive help
             this.KeyPreview = true;
             this.KeyDown += MainForm_KeyDown_Help;
+
+            // Wire context-menu export events on the visualisation panels (once)
+            if (timelinePanel != null)
+                timelinePanel.ExportImageRequested += (s, ev) => exportTimelineMenuItem_Click(s, ev);
+            if (flameGraphPanel != null)
+                flameGraphPanel.ExportImageRequested += (s, ev) => exportFlameGraphMenuItem_Click(s, ev);
         }
 
         protected override void OnShown(EventArgs e)
