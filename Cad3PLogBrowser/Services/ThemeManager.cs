@@ -234,7 +234,12 @@ namespace Cad3PLogBrowser.Services
                 }
 
                 // Recursively apply to child controls
-                if (control.Controls.Count > 0 && control.GetType().Name != "CallGraphPanel")
+                // Skip custom visualization panels that handle their own theming
+                string typeName = control.GetType().Name;
+                if (control.Controls.Count > 0 && 
+                    typeName != "CallGraphPanel" && 
+                    typeName != "FlameGraphPanel" && 
+                    typeName != "TimelinePanel")
                 {
                     ApplyThemeToControls(control.Controls);
                 }

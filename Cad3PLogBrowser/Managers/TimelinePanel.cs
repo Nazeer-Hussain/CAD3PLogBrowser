@@ -147,6 +147,20 @@ namespace Cad3PLogBrowser.Managers
             this.Controls.Add(_statusBar);
         }
 
+        /// <summary>
+        /// Updates theme colors for toolbar, status bar, and content.
+        /// Called by ThemeManager when theme changes.
+        /// </summary>
+        public void UpdateTheme()
+        {
+            this.BackColor = ThemeManager.BackgroundColor;
+            _contentPanel.BackColor = ThemeManager.BackgroundColor;
+            _welcomePanel.BackColor = ThemeManager.BackgroundColor;
+            _toolbar?.ApplyTheme();
+            _statusBar?.ApplyTheme();
+            _contentPanel.Invalidate();
+        }
+
         private void ContentPanel_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;

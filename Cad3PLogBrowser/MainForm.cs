@@ -370,6 +370,10 @@ namespace Cad3PLogBrowser
             // Apply to main form
             ThemeManager.ApplyTheme(this);
 
+            // Manually update visualization panels (they handle their own child controls)
+            flameGraphPanel?.UpdateTheme();
+            timelinePanel?.UpdateTheme();
+
             // Apply icon size
             ApplyIconSize();
 
