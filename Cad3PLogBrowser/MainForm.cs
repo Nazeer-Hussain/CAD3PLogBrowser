@@ -2557,7 +2557,11 @@ namespace Cad3PLogBrowser
         private void settingsMenuItem_Click(object sender, EventArgs e)
         {
             using (var settingsDialog = new SettingsForm(this))
+            {
                 settingsDialog.ShowDialog(this);
+                // Refresh AI service after settings may have changed
+                RefreshAiService();
+            }
         }
 
         private void SettingsButton_Click(object sender, EventArgs e) =>
@@ -4603,14 +4607,18 @@ namespace Cad3PLogBrowser
             };
 
             // Initialize AI service
-            _aiService = new Services.Analysis.AiLogService();
+            _aiService = new Services.Analysis.AiLogService(_appSettings?.ClaudeApiKey ?? "", _appSettings?.UseClaudeApi ?? false);
 
             // Wire up events
-            _aiPanel.QuerySubmitted += AiPanel_QuerySubmitted;
-            _aiPanel.SummarizeRequested += AiPanel_SummarizeRequested;
-            _aiPanel.DetectAnomaliesRequested += AiPanel_DetectAnomaliesRequested;
+            _aiPanel.QuerySubmitted              += AiPanel_QuerySubmitted;
+            _aiPanel.SummarizeRequested          += AiPanel_SummarizeRequested;
+            _aiPanel.DetectAnomaliesRequested    += AiPanel_DetectAnomaliesRequested;
             _aiPanel.AnalyzePerformanceRequested += AiPanel_AnalyzePerformanceRequested;
-            _aiPanel.FindPatternsRequested += AiPanel_FindPatternsRequested;
+            _aiPanel.FindPatternsRequested       += AiPanel_FindPatternsRequested;
+            _aiPanel.RootCauseRequested          += AiPanel_RootCauseRequested;
+            _aiPanel.BugReportRequested          += AiPanel_BugReportRequested;
+            _aiPanel.ChatMessageSubmitted        += AiPanel_ChatMessageSubmitted;
+            _aiPanel.SetApiMode(_appSettings?.UseClaudeApi ?? false);
 
             // Add panel to tab
             _aiTab.Controls.Add(_aiPanel);
@@ -4719,6 +4727,56 @@ namespace Cad3PLogBrowser
             {
                 _aiPanel.ShowThinking(false);
             }
+        }
+
+        private async void AiPanel_RootCauseRequested(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var result = await _aiService.SuggestRootCauseAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), stats.ErrorCount, stats.WarningCount);
+                _aiPanel.ShowResponse(result);
+            }
+            catch (Exception ex) { _aiPanel.ShowError($"Root cause analysis failed: {ex.Message}"); }
+            finally { _aiPanel.ShowThinking(false); }
+        }
+
+        private async void AiPanel_BugReportRequested(object sender, EventArgs e)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+                var result = await _aiService.GenerateBugReportAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), version);
+                _aiPanel.ShowResponse(result);
+            }
+            catch (Exception ex) { _aiPanel.ShowError($"Bug report generation failed: {ex.Message}"); }
+            finally { _aiPanel.ShowThinking(false); }
+        }
+
+        private async void AiPanel_ChatMessageSubmitted(object sender, string message)
+        {
+            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
+            try
+            {
+                _aiPanel.ShowThinking(true);
+                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var result = await _aiService.ChatAsync(message, _aiPanel.ChatHistory, stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                _aiPanel.AppendChatTurn("assistant", result);
+            }
+            catch (Exception ex) { _aiPanel.ShowError($"Chat failed: {ex.Message}"); }
+            finally { _aiPanel.ShowThinking(false); }
+        }
+
+        /// <summary>Call after settings are saved so AI service picks up new key/mode.</summary>
+        public void RefreshAiService()
+        {
+            _aiService?.UpdateConfig(_appSettings?.ClaudeApiKey ?? "", _appSettings?.UseClaudeApi ?? false);
+            _aiPanel?.SetApiMode(_appSettings?.UseClaudeApi ?? false);
         }
 
         private async void AiPanel_AnalyzePerformanceRequested(object sender, EventArgs e)

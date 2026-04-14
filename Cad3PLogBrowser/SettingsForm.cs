@@ -36,7 +36,9 @@ namespace Cad3PLogBrowser
 
             // Grok & AI Integration
             txtGrokUrl.Text = _settings.GrokUrl;
-            txtClaudeApiKey.Text = _settings.ClaudeApiKey;
+            txtClaudeApiKey.Text      = _settings.ClaudeApiKey;
+            if (chkUseClaudeApi != null)
+                chkUseClaudeApi.Checked = _settings.UseClaudeApi;
 
             // Theme
             cmbTheme.Items.Clear();
@@ -149,7 +151,9 @@ namespace Cad3PLogBrowser
 
             // Save Grok & AI settings
             _settings.GrokUrl                = txtGrokUrl.Text.Trim();
-            _settings.ClaudeApiKey           = txtClaudeApiKey.Text.Trim();
+            _settings.ClaudeApiKey  = txtClaudeApiKey.Text.Trim();
+            if (chkUseClaudeApi != null)
+                _settings.UseClaudeApi = chkUseClaudeApi.Checked;
 
             // Save appearance settings
             _settings.Theme                  = cmbTheme.SelectedItem?.ToString() ?? "Light";

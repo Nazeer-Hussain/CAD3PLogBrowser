@@ -6,276 +6,266 @@ using System.Windows.Forms;
 namespace Cad3PLogBrowser.Managers
 {
     /// <summary>
-    /// AI Assistant Panel - provides intelligent log analysis capabilities.
-    /// Features: Natural language queries, anomaly detection, performance insights, pattern recognition.
+    /// AI Assistant Panel — Option B hybrid approach.
+    ///
+    /// Shows offline analysis by default. When Claude API is enabled in Settings,
+    /// all buttons silently upgrade to real API calls with no UI change needed.
+    ///
+    /// Buttons: Summarize | Detect Anomalies | Root Cause | Bug Report | Performance | Patterns
+    /// Chat:    Multi-turn text input that routes to L6 (offline keyword or Claude API).
     /// </summary>
     public class AiAssistantPanel : Panel
     {
-        private TextBox _queryTextBox;
-        private Button _askButton;
-        private Button _summarizeButton;
-        private Button _detectAnomaliesButton;
-        private Button _analyzePerformanceButton;
-        private Button _findPatternsButton;
-        private RichTextBox _responseTextBox;
-        private Label _statusLabel;
-        private Panel _buttonPanel;
-        private bool _isThinking;
+        // ── Events ────────────────────────────────────────────────────────────
+        public event EventHandler<string>  QuerySubmitted;
+        public event EventHandler          SummarizeRequested;
+        public event EventHandler          DetectAnomaliesRequested;
+        public event EventHandler          AnalyzePerformanceRequested;
+        public event EventHandler          FindPatternsRequested;
+        public event EventHandler          RootCauseRequested;       // L4
+        public event EventHandler          BugReportRequested;       // L5
+        public event EventHandler<string>  ChatMessageSubmitted;     // L6
 
-        public event EventHandler<string> QuerySubmitted;
-        public event EventHandler SummarizeRequested;
-        public event EventHandler DetectAnomaliesRequested;
-        public event EventHandler AnalyzePerformanceRequested;
-        public event EventHandler FindPatternsRequested;
+        // ── Controls ─────────────────────────────────────────────────────────
+        private Label      _statusLabel;
+        private Label      _apiModeLabel;
+        private Panel      _buttonPanel;
+        private Button     _summarizeBtn, _anomalyBtn, _perfBtn,
+                           _patternsBtn, _rootCauseBtn, _bugReportBtn;
+        private TextBox    _queryBox;
+        private Button     _askBtn, _chatBtn, _clearBtn;
+        private RichTextBox _responseBox;
+
+        // Chat history for L6
+        private readonly List<(string role, string content)> _chatHistory
+            = new List<(string, string)>();
+        public List<(string role, string content)> ChatHistory => _chatHistory;
 
         public AiAssistantPanel()
         {
-            InitializeComponent();
+            BuildUI();
         }
 
-        private void InitializeComponent()
+        private void BuildUI()
         {
-            this.SuspendLayout();
+            SuspendLayout();
 
-            // Status label
+            // ── API mode indicator ─────────────────────────────────────────
+            _apiModeLabel = new Label
+            {
+                Text      = "Mode: Offline (enable Claude API in Settings > AI)",
+                Dock      = DockStyle.Top,
+                Height    = 22,
+                Font      = new Font("Segoe UI", 8f),
+                ForeColor = Color.FromArgb(130, 140, 160),
+                Padding   = new Padding(8, 3, 0, 0),
+                BackColor = Color.FromArgb(40, 44, 54)
+            };
+
+            // ── Title ──────────────────────────────────────────────────────
             _statusLabel = new Label
             {
-                Text = "?? AI Assistant - Ask questions about your log file",
-                AutoSize = false,
-                Height = 30,
-                Dock = DockStyle.Top,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                Padding = new Padding(10, 5, 10, 5)
+                Text      = "AI Assistant — Log Analysis",
+                Dock      = DockStyle.Top,
+                Height    = 28,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(200, 215, 240),
+                Padding   = new Padding(8, 5, 0, 0),
+                BackColor = Color.FromArgb(35, 38, 48)
             };
 
-            // Button panel
+            // ── Button rows ────────────────────────────────────────────────
             _buttonPanel = new Panel
             {
-                Height = 80,
-                Dock = DockStyle.Top,
-                Padding = new Padding(10)
+                Height    = 70,
+                Dock      = DockStyle.Top,
+                BackColor = Color.FromArgb(35, 38, 48),
+                Padding   = new Padding(6, 4, 6, 4)
             };
 
-            // Quick action buttons
-            _summarizeButton = new Button
-            {
-                Text = "?? Summarize",
-                Width = 120,
-                Height = 30,
-                Location = new Point(10, 10),
-                Font = new Font("Segoe UI", 9f)
-            };
-            _summarizeButton.Click += (s, e) => SummarizeRequested?.Invoke(this, EventArgs.Empty);
+            _summarizeBtn  = MakeBtn("Summarize",       0);
+            _anomalyBtn    = MakeBtn("Anomalies",       1);
+            _rootCauseBtn  = MakeBtn("Root Cause",      2);
+            _bugReportBtn  = MakeBtn("Bug Report",      3);
+            _perfBtn       = MakeBtn("Performance",     4);
+            _patternsBtn   = MakeBtn("Patterns",        5);
 
-            _detectAnomaliesButton = new Button
-            {
-                Text = "?? Detect Anomalies",
-                Width = 140,
-                Height = 30,
-                Location = new Point(140, 10),
-                Font = new Font("Segoe UI", 9f)
-            };
-            _detectAnomaliesButton.Click += (s, e) => DetectAnomaliesRequested?.Invoke(this, EventArgs.Empty);
+            _summarizeBtn.Click  += (s, e) => SummarizeRequested?.Invoke(this, EventArgs.Empty);
+            _anomalyBtn.Click    += (s, e) => DetectAnomaliesRequested?.Invoke(this, EventArgs.Empty);
+            _rootCauseBtn.Click  += (s, e) => RootCauseRequested?.Invoke(this, EventArgs.Empty);
+            _bugReportBtn.Click  += (s, e) => BugReportRequested?.Invoke(this, EventArgs.Empty);
+            _perfBtn.Click       += (s, e) => AnalyzePerformanceRequested?.Invoke(this, EventArgs.Empty);
+            _patternsBtn.Click   += (s, e) => FindPatternsRequested?.Invoke(this, EventArgs.Empty);
 
-            _analyzePerformanceButton = new Button
-            {
-                Text = "? Performance",
-                Width = 120,
-                Height = 30,
-                Location = new Point(290, 10),
-                Font = new Font("Segoe UI", 9f)
-            };
-            _analyzePerformanceButton.Click += (s, e) => AnalyzePerformanceRequested?.Invoke(this, EventArgs.Empty);
+            _buttonPanel.Controls.AddRange(new Control[]
+                { _summarizeBtn, _anomalyBtn, _rootCauseBtn, _bugReportBtn, _perfBtn, _patternsBtn });
 
-            _findPatternsButton = new Button
+            // ── Chat / query input ─────────────────────────────────────────
+            var inputPanel = new Panel
             {
-                Text = "?? Find Patterns",
-                Width = 120,
-                Height = 30,
-                Location = new Point(420, 10),
-                Font = new Font("Segoe UI", 9f)
-            };
-            _findPatternsButton.Click += (s, e) => FindPatternsRequested?.Invoke(this, EventArgs.Empty);
-
-            _buttonPanel.Controls.AddRange(new Control[] { 
-                _summarizeButton, _detectAnomaliesButton, _analyzePerformanceButton, _findPatternsButton 
-            });
-
-            // Query input panel
-            var queryPanel = new Panel
-            {
-                Height = 60,
-                Dock = DockStyle.Top,
-                Padding = new Padding(10)
+                Height    = 36,
+                Dock      = DockStyle.Bottom,
+                BackColor = Color.FromArgb(35, 38, 48)
             };
 
-            var queryLabel = new Label
+            _queryBox = new TextBox
             {
-                Text = "Ask a question:",
-                AutoSize = true,
-                Location = new Point(10, 5),
-                Font = new Font("Segoe UI", 9f)
-            };
-
-            _queryTextBox = new TextBox
-            {
-                Width = 550,
-                Height = 25,
-                Location = new Point(10, 25),
-                Font = new Font("Segoe UI", 9f),
-                Text = "e.g., What caused the errors? Which APIs are slowest?",
-                ForeColor = SystemColors.GrayText
-            };
-            _queryTextBox.GotFocus += (s, e) =>
-            {
-                if (_queryTextBox.ForeColor == SystemColors.GrayText)
-                {
-                    _queryTextBox.Text = "";
-                    _queryTextBox.ForeColor = SystemColors.WindowText;
-                }
-            };
-            _queryTextBox.LostFocus += (s, e) =>
-            {
-                if (string.IsNullOrWhiteSpace(_queryTextBox.Text))
-                {
-                    _queryTextBox.Text = "e.g., What caused the errors? Which APIs are slowest?";
-                    _queryTextBox.ForeColor = SystemColors.GrayText;
-                }
-            };
-            _queryTextBox.KeyDown += QueryTextBox_KeyDown;
-
-            _askButton = new Button
-            {
-                Text = "Ask",
-                Width = 80,
-                Height = 25,
-                Location = new Point(570, 25),
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
-            };
-            _askButton.Click += AskButton_Click;
-
-            queryPanel.Controls.AddRange(new Control[] { queryLabel, _queryTextBox, _askButton });
-
-            // Response text box
-            _responseTextBox = new RichTextBox
-            {
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                Font = new Font("Consolas", 9f),
-                BackColor = Color.White,
+                Dock        = DockStyle.Fill,
+                Font        = new Font("Segoe UI", 9.5f),
+                BackColor   = Color.FromArgb(48, 52, 64),
+                ForeColor   = Color.FromArgb(210, 220, 235),
                 BorderStyle = BorderStyle.FixedSingle,
-                Margin = new Padding(10),
-                Text = "Welcome to AI Assistant!\n\n" +
-                       "Quick Actions:\n" +
-                       "  � Summarize - Get an overview of the log session\n" +
-                       "  � Detect Anomalies - Find unusual patterns or issues\n" +
-                       "  � Performance - Analyze slow operations\n" +
-                       "  � Find Patterns - Identify recurring issues\n\n" +
-                       "Or ask a question in natural language:\n" +
-                       "  � \"What caused the errors?\"\n" +
-                       "  � \"Which APIs are the slowest?\"\n" +
-                       "  � \"Are there any performance issues?\"\n" +
-                       "  � \"Show me anomalies\"\n\n" +
-                       "Note: AI analysis is based on log statistics and patterns, " +
-                       "not external API calls (works offline)."
+                PlaceholderText = "Ask a question or type a chat message..."
+            };
+            _queryBox.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter && !e.Shift) { e.SuppressKeyPress = true; Submit(); }
             };
 
-            // Add controls to panel in REVERSE visual order (Dock processes in reverse)
-            // Visual order: Status ? Buttons ? Query ? Response (Fill)
-            // Add order: Response ? Query ? Buttons ? Status
-            this.Controls.Add(_responseTextBox);  // Dock.Fill - added 1st, processed LAST, fills remaining
-            this.Controls.Add(queryPanel);        // Dock.Top - added 2nd, processed 3rd, goes above response
-            this.Controls.Add(_buttonPanel);      // Dock.Top - added 3rd, processed 2nd, goes above query
-            this.Controls.Add(_statusLabel);      // Dock.Top - added 4th (LAST), processed FIRST, at top
+            _askBtn = MakeSmallBtn("Ask", DockStyle.Right, 55);
+            _askBtn.Click += (s, e) => Submit();
 
-            this.ResumeLayout();
-        }
+            _chatBtn = MakeSmallBtn("Chat", DockStyle.Right, 55);
+            _chatBtn.Click += (s, e) => SubmitChat();
 
-        private void QueryTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter && !e.Shift)
+            _clearBtn = MakeSmallBtn("Clear", DockStyle.Right, 50);
+            _clearBtn.BackColor = Color.FromArgb(60, 40, 40);
+            _clearBtn.Click += (s, e) => { _responseBox.Clear(); _chatHistory.Clear(); };
+
+            inputPanel.Controls.Add(_queryBox);
+            inputPanel.Controls.Add(_askBtn);
+            inputPanel.Controls.Add(_chatBtn);
+            inputPanel.Controls.Add(_clearBtn);
+
+            // ── Response area ──────────────────────────────────────────────
+            _responseBox = new RichTextBox
             {
-                e.Handled = true;
-                e.SuppressKeyPress = true;
-                AskButton_Click(sender, e);
-            }
+                Dock        = DockStyle.Fill,
+                ReadOnly    = true,
+                Font        = new Font("Consolas", 9f),
+                BackColor   = Color.FromArgb(22, 24, 30),
+                ForeColor   = Color.FromArgb(200, 215, 235),
+                BorderStyle = BorderStyle.None,
+                ScrollBars  = RichTextBoxScrollBars.Vertical,
+                Text        = "Welcome to AI Assistant\n\n" +
+                              "Quick Actions (top buttons):\n" +
+                              "  Summarize    — overall health and session overview\n" +
+                              "  Anomalies    — statistical outliers and unusual patterns\n" +
+                              "  Root Cause   — likely causes of errors and warnings\n" +
+                              "  Bug Report   — structured bug report from log data\n" +
+                              "  Performance  — top time consumers and call metrics\n" +
+                              "  Patterns     — repeated errors, escalation, hotspots\n\n" +
+                              "Chat / Ask:\n" +
+                              "  Type a question and press Ask or Chat (multi-turn)\n" +
+                              "  e.g. \"What caused the errors?\"\n" +
+                              "       \"Which APIs are the slowest?\"\n\n" +
+                              "Tip: Enable Claude API in Settings > AI for enhanced answers.\n"
+            };
+
+            // Add in reverse Dock order (Fill goes first)
+            Controls.Add(_responseBox);
+            Controls.Add(inputPanel);
+            Controls.Add(_buttonPanel);
+            Controls.Add(_apiModeLabel);
+            Controls.Add(_statusLabel);
+
+            ResumeLayout();
         }
 
-        private void AskButton_Click(object sender, EventArgs e)
+        // ── Submit helpers ────────────────────────────────────────────────────
+        private void Submit()
         {
-            string query = _queryTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(query))
-                return;
+            string q = _queryBox.Text.Trim();
+            if (string.IsNullOrEmpty(q)) return;
+            _queryBox.Clear();
+            QuerySubmitted?.Invoke(this, q);
+        }
 
-            QuerySubmitted?.Invoke(this, query);
+        private void SubmitChat()
+        {
+            string q = _queryBox.Text.Trim();
+            if (string.IsNullOrEmpty(q)) return;
+            _queryBox.Clear();
+            AppendChatTurn("user", q);
+            ChatMessageSubmitted?.Invoke(this, q);
+        }
+
+        // ── Public API called by MainForm ─────────────────────────────────────
+        public void SetApiMode(bool apiEnabled)
+        {
+            if (_apiModeLabel == null) return;
+            _apiModeLabel.Text      = apiEnabled
+                ? "Mode: Claude API (enhanced AI responses)"
+                : "Mode: Offline (enable Claude API in Settings > AI)";
+            _apiModeLabel.ForeColor = apiEnabled
+                ? Color.FromArgb(100, 200, 120)
+                : Color.FromArgb(130, 140, 160);
         }
 
         public void ShowThinking(bool thinking)
         {
-            _isThinking = thinking;
+            _statusLabel.Text = thinking ? "AI Assistant — Thinking..." : "AI Assistant — Log Analysis";
+            bool e = !thinking;
+            foreach (var btn in new[] { _summarizeBtn, _anomalyBtn, _rootCauseBtn,
+                                        _bugReportBtn, _perfBtn, _patternsBtn, _askBtn, _chatBtn })
+                btn.Enabled = e;
+            _queryBox.Enabled = e;
+            if (thinking) AppendText("\n[Analysing...]\n", Color.FromArgb(140, 160, 200));
+        }
 
-            if (thinking)
+        public void ShowResponse(string response) => AppendText("\n" + response + "\n", Color.FromArgb(200, 215, 235));
+        public void ShowError(string error)        => AppendText("\nERROR: " + error + "\n", Color.FromArgb(255, 100, 100));
+        public void ShowAnalysis(string text)      => ShowResponse(text);
+
+        public void AppendChatTurn(string role, string text)
+        {
+            _chatHistory.Add((role, text));
+            Color color = role == "user" ? Color.FromArgb(130, 180, 255) : Color.FromArgb(120, 220, 150);
+            string label = role == "user" ? "You" : "Claude";
+            AppendText($"\n[{label}] ", color);
+            AppendText(text + "\n", Color.FromArgb(200, 215, 235));
+        }
+
+        public void ClearResponse() { _responseBox.Clear(); _chatHistory.Clear(); }
+
+        // ── Rendering helpers ─────────────────────────────────────────────────
+        private void AppendText(string text, Color color)
+        {
+            if (InvokeRequired) { Invoke((Action<string, Color>)AppendText, text, color); return; }
+            _responseBox.SelectionStart  = _responseBox.TextLength;
+            _responseBox.SelectionLength = 0;
+            _responseBox.SelectionColor  = color;
+            _responseBox.AppendText(text);
+            _responseBox.SelectionColor  = _responseBox.ForeColor;
+            _responseBox.ScrollToCaret();
+        }
+
+        private static Button MakeBtn(string text, int index)
+        {
+            int col = index % 3, row = index / 3;
+            return new Button
             {
-                _statusLabel.Text = "?? Analyzing...";
-                _askButton.Enabled = false;
-                _summarizeButton.Enabled = false;
-                _detectAnomaliesButton.Enabled = false;
-                _analyzePerformanceButton.Enabled = false;
-                _findPatternsButton.Enabled = false;
-                _responseTextBox.AppendText("\n\n?? Analyzing...\n");
-            }
-            else
-            {
-                _statusLabel.Text = "?? AI Assistant - Ask questions about your log file";
-                _askButton.Enabled = true;
-                _summarizeButton.Enabled = true;
-                _detectAnomaliesButton.Enabled = true;
-                _analyzePerformanceButton.Enabled = true;
-                _findPatternsButton.Enabled = true;
-            }
+                Text      = text,
+                Location  = new Point(6 + col * 110, 4 + row * 30),
+                Size      = new Size(106, 26),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(50, 60, 85),
+                ForeColor = Color.FromArgb(200, 215, 240),
+                Font      = new Font("Segoe UI", 8.5f),
+                FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 130) }
+            };
         }
 
-        public void ShowResponse(string response)
+        private static Button MakeSmallBtn(string text, DockStyle dock, int width) => new Button
         {
-            _responseTextBox.SelectionStart = _responseTextBox.TextLength;
-            _responseTextBox.SelectionLength = 0;
-            _responseTextBox.SelectionFont = new Font("Consolas", 9f);
-            _responseTextBox.SelectionColor = Color.Black;
-            _responseTextBox.AppendText("\n");
-            _responseTextBox.AppendText(response);
-            _responseTextBox.AppendText("\n");
-            _responseTextBox.ScrollToCaret();
-        }
-
-        public void ShowError(string error)
-        {
-            _responseTextBox.SelectionStart = _responseTextBox.TextLength;
-            _responseTextBox.SelectionLength = 0;
-            _responseTextBox.SelectionFont = new Font("Consolas", 9f, FontStyle.Bold);
-            _responseTextBox.SelectionColor = Color.Red;
-            _responseTextBox.AppendText("\n? ERROR: ");
-            _responseTextBox.SelectionFont = new Font("Consolas", 9f);
-            _responseTextBox.AppendText(error);
-            _responseTextBox.AppendText("\n");
-            _responseTextBox.ScrollToCaret();
-        }
-
-        public void ShowAnalysis(string analysis)
-        {
-            ShowResponse(analysis);
-        }
-
-        public void ClearResponse()
-        {
-            _responseTextBox.Clear();
-            _responseTextBox.Text = "Ready for your questions...\n";
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            e.Graphics.Clear(this.BackColor);
-        }
+            Text      = text,
+            Width     = width,
+            Dock      = dock,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(50, 60, 85),
+            ForeColor = Color.FromArgb(200, 215, 240),
+            Font      = new Font("Segoe UI", 8.5f),
+            FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 130) }
+        };
     }
 }

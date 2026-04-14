@@ -21,6 +21,7 @@ namespace Cad3PLogBrowser
             this.txtGrokUrl         = new System.Windows.Forms.TextBox();
             this.lblClaudeApiKey    = new System.Windows.Forms.Label();
             this.txtClaudeApiKey    = new System.Windows.Forms.TextBox();
+            this.chkUseClaudeApi    = new System.Windows.Forms.CheckBox();
             this.grpAppearance      = new System.Windows.Forms.GroupBox();
             this.lblHighlight       = new System.Windows.Forms.Label();
             this.cmbHighlightColor  = new System.Windows.Forms.ComboBox();
@@ -154,6 +155,7 @@ namespace Cad3PLogBrowser
             this.grpGrok.Controls.Add(this.txtGrokUrl);
             this.grpGrok.Controls.Add(this.lblClaudeApiKey);
             this.grpGrok.Controls.Add(this.txtClaudeApiKey);
+            this.grpGrok.Controls.Add(this.chkUseClaudeApi);
             this.grpGrok.Location = new System.Drawing.Point(12, 142);
             this.grpGrok.Size = new System.Drawing.Size(500, 100);
             this.grpGrok.TabStop = false;
@@ -187,6 +189,14 @@ namespace Cad3PLogBrowser
             this.txtClaudeApiKey.Name = "txtClaudeApiKey";
             this.txtClaudeApiKey.Size = new System.Drawing.Size(350, 22);
             this.txtClaudeApiKey.UseSystemPasswordChar = true;
+            // 
+            // chkUseClaudeApi
+            // 
+            this.chkUseClaudeApi.AutoSize = true;
+            this.chkUseClaudeApi.Location = new System.Drawing.Point(130, 83);
+            this.chkUseClaudeApi.Name = "chkUseClaudeApi";
+            this.chkUseClaudeApi.Text = "Enable Claude API (requires key above — enhances all AI features)";
+            this.chkUseClaudeApi.Font = new System.Drawing.Font("Segoe UI", 8.5f);
             // 
             // grpAppearance
             // 
@@ -517,6 +527,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.Label lblGrokUrl, lblClaudeApiKey, lblTheme, lblHighlight, lblSlowCall, lblMaxFile, lblIconSize;
         private System.Windows.Forms.Label lblFontFamily, lblFontSize, lblInitialView, lblSnippetSuffix, lblMaxRecentFiles;
         private System.Windows.Forms.TextBox txtGrokUrl, txtClaudeApiKey, txtSnippetSuffix;
+        private System.Windows.Forms.CheckBox chkUseClaudeApi;
         private System.Windows.Forms.ComboBox cmbTheme, cmbHighlightColor, cmbIconSize, cmbFontFamily, cmbInitialView;
         private System.Windows.Forms.Panel panelColorPreview;
         private System.Windows.Forms.NumericUpDown nudSlowCallMs, nudMaxFileMb, nudFontSize, nudMaxRecentFiles;
