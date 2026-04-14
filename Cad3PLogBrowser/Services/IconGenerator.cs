@@ -505,7 +505,85 @@ namespace Cad3PLogBrowser.Services
             return bmp;
         }
 
-        // ?? Helper method to create all icons at once ????????????????????????
+        public static Bitmap CreateSunIcon(IconSize size)
+        {
+            int s = (int)size;
+            var bmp = new Bitmap(s, s);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+
+                var sunColor = Color.FromArgb(255, 200, 0); // Bright yellow
+                int padding = s / 4;
+                int centerX = s / 2;
+                int centerY = s / 2;
+                int sunRadius = s / 5;
+
+                using (var brush = new SolidBrush(sunColor))
+                using (var pen = new Pen(sunColor, Math.Max(1, s / 16f)))
+                {
+                    pen.StartCap = LineCap.Round;
+                    pen.EndCap = LineCap.Round;
+
+                    // Center circle
+                    g.FillEllipse(brush, centerX - sunRadius, centerY - sunRadius, sunRadius * 2, sunRadius * 2);
+
+                    // Sun rays (8 rays)
+                    int rayLength = s / 6;
+                    int outerRadius = sunRadius + rayLength;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double angle = i * Math.PI / 4;
+                        int innerX = centerX + (int)(sunRadius * Math.Cos(angle));
+                        int innerY = centerY + (int)(sunRadius * Math.Sin(angle));
+                        int outerX = centerX + (int)(outerRadius * Math.Cos(angle));
+                        int outerY = centerY + (int)(outerRadius * Math.Sin(angle));
+                        g.DrawLine(pen, innerX, innerY, outerX, outerY);
+                    }
+                }
+            }
+            return bmp;
+        }
+
+        public static Bitmap CreateMoonIcon(IconSize size)
+        {
+            int s = (int)size;
+            var bmp = new Bitmap(s, s);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+
+                var moonColor = Color.FromArgb(100, 100, 150); // Bluish moon
+                int padding = s / 6;
+
+                using (var brush = new SolidBrush(moonColor))
+                {
+                    // Moon crescent - outer circle
+                    var outerRect = new Rectangle(padding, padding, s - padding * 2, s - padding * 2);
+
+                    // Use GraphicsPath for proper crescent shape
+                    using (var path = new GraphicsPath())
+                    {
+                        // Add outer circle
+                        path.AddEllipse(outerRect);
+
+                        // Cut inner circle (offset to create crescent)
+                        int cutSize = (int)((s - padding * 2) * 0.8);
+                        int cutOffset = s / 6;
+                        var cutRect = new Rectangle(padding + cutOffset, padding, cutSize, cutSize);
+                        path.AddEllipse(cutRect);
+
+                        // Fill with winding mode to create crescent
+                        g.FillPath(brush, path);
+                    }
+                }
+            }
+            return bmp;
+        }
+
+        // ?? Helper method to create all icons at once ????????????????????
         public static void GenerateAllIcons(IconSize size, out Bitmap open, out Bitmap save, 
             out Bitmap refresh, out Bitmap copy, out Bitmap find, out Bitmap filter,
             out Bitmap settings, out Bitmap help, out Bitmap expand, out Bitmap collapse,
@@ -527,6 +605,12 @@ namespace Cad3PLogBrowser.Services
             jump = CreateJumpIcon(size);
             error = CreateErrorIcon(size);
             warning = CreateWarningIcon(size);
+        }
+
+        public static void GenerateThemeIcons(IconSize size, out Bitmap sun, out Bitmap moon)
+        {
+            sun = CreateSunIcon(size);
+            moon = CreateMoonIcon(size);
         }
     }
 }

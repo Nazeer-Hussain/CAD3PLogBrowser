@@ -170,13 +170,11 @@ namespace Cad3PLogBrowser
 
         private void AddThemeToggleButton()
         {
-            // Create theme toggle button
+            // Create theme toggle button with proper icons
             _themeToggleButton = new ToolStripButton
             {
-                Text = "☀", // Sun icon for light theme (moon ☾ for dark)
                 ToolTipText = Resources.TOOLTIP_THEME_TOGGLE_DEFAULT,
-                DisplayStyle = ToolStripItemDisplayStyle.Text,
-                Font = new Font("Segoe UI", 12f),
+                DisplayStyle = ToolStripItemDisplayStyle.Image,
                 AutoSize = true
             };
             _themeToggleButton.Click += ThemeToggleButton_Click;
@@ -209,15 +207,16 @@ namespace Cad3PLogBrowser
         {
             if (_themeToggleButton != null)
             {
-                // Sun ☀ for light theme (click to go to light), Moon ☾ for dark theme (click to go to dark)
+                // Generate theme toggle icons
                 bool isDark = _appSettings.Theme == "Dark";
-                _themeToggleButton.Text = isDark ? "☀" : "☾";
+
+                IconGenerator.GenerateThemeIcons(IconGenerator.IconSize.Medium, out var sunIcon, out var moonIcon);
+
+                // Sun icon in dark mode (click to switch to light), Moon icon in light mode (click to switch to dark)
+                _themeToggleButton.Image = isDark ? sunIcon : moonIcon;
                 _themeToggleButton.ToolTipText = isDark 
                     ? Resources.TOOLTIP_THEME_TOGGLE_TO_LIGHT 
                     : Resources.TOOLTIP_THEME_TOGGLE_TO_DARK;
-                _themeToggleButton.ForeColor = isDark 
-                    ? Color.FromArgb(255, 200, 0)  // Yellow sun in dark mode
-                    : Color.FromArgb(100, 100, 150); // Blue moon in light mode
             }
         }
 
