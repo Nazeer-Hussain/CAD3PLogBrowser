@@ -2784,20 +2784,7 @@ namespace Cad3PLogBrowser
         {
             try
             {
-                // Try to open HTML help file
                 string helpFilePath = Path.Combine(Application.StartupPath, "Help", "UserGuide.html");
-
-                // Fallback to root directory if Help subfolder doesn't exist
-                if (!File.Exists(helpFilePath))
-                {
-                    helpFilePath = Path.Combine(Application.StartupPath, "UserGuide.html");
-                }
-
-                // Fallback to documentation folder
-                if (!File.Exists(helpFilePath))
-                {
-                    helpFilePath = Path.Combine(Application.StartupPath, "documentation", "UserGuide.html");
-                }
 
                 if (File.Exists(helpFilePath))
                 {
