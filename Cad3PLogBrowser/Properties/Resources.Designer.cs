@@ -635,5 +635,788 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MSG_HELP_FILE_NOT_FOUND", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Switch to Light Theme (Ctrl+T).
+        /// </summary>
+        internal static string TOOLTIP_THEME_TOGGLE_TO_LIGHT {
+            get {
+                return ResourceManager.GetString("TOOLTIP_THEME_TOGGLE_TO_LIGHT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Switch to Dark Theme (Ctrl+T).
+        /// </summary>
+        internal static string TOOLTIP_THEME_TOGGLE_TO_DARK {
+            get {
+                return ResourceManager.GetString("TOOLTIP_THEME_TOGGLE_TO_DARK", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sort by Name (A-Z).
+        /// </summary>
+        internal static string MENU_SORT_BY_NAME {
+            get {
+                return ResourceManager.GetString("MENU_SORT_BY_NAME", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sort by Call Count (Most First).
+        /// </summary>
+        internal static string MENU_SORT_BY_COUNT {
+            get {
+                return ResourceManager.GetString("MENU_SORT_BY_COUNT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sort by Line Order.
+        /// </summary>
+        internal static string MENU_SORT_BY_LINE {
+            get {
+                return ResourceManager.GetString("MENU_SORT_BY_LINE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy API Name.
+        /// </summary>
+        internal static string MENU_COPY_API_NAME {
+            get {
+                return ResourceManager.GetString("MENU_COPY_API_NAME", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Expand All (Ctrl+E).
+        /// </summary>
+        internal static string MENU_EXPAND_ALL_SHORTCUT {
+            get {
+                return ResourceManager.GetString("MENU_EXPAND_ALL_SHORTCUT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collapse All (Ctrl+W).
+        /// </summary>
+        internal static string MENU_COLLAPSE_ALL_SHORTCUT {
+            get {
+                return ResourceManager.GetString("MENU_COLLAPSE_ALL_SHORTCUT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show in Call Tree.
+        /// </summary>
+        internal static string MENU_SHOW_IN_CALL_TREE {
+            get {
+                return ResourceManager.GetString("MENU_SHOW_IN_CALL_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search in Grok.
+        /// </summary>
+        internal static string MENU_SEARCH_IN_GROK {
+            get {
+                return ResourceManager.GetString("MENU_SEARCH_IN_GROK", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy Method Name.
+        /// </summary>
+        internal static string MENU_COPY_METHOD_NAME {
+            get {
+                return ResourceManager.GetString("MENU_COPY_METHOD_NAME", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy Entire Subtree.
+        /// </summary>
+        internal static string MENU_COPY_SUBTREE {
+            get {
+                return ResourceManager.GetString("MENU_COPY_SUBTREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jump to Matching ENTER/EXIT (Ctrl+G).
+        /// </summary>
+        internal static string MENU_JUMP_TO_MATCHING {
+            get {
+                return ResourceManager.GetString("MENU_JUMP_TO_MATCHING", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Save Branch as Log File....
+        /// </summary>
+        internal static string MENU_SAVE_BRANCH {
+            get {
+                return ResourceManager.GetString("MENU_SAVE_BRANCH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Export Branch to CSV....
+        /// </summary>
+        internal static string MENU_EXPORT_BRANCH_CSV {
+            get {
+                return ResourceManager.GetString("MENU_EXPORT_BRANCH_CSV", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show in API Tree.
+        /// </summary>
+        internal static string MENU_SHOW_IN_API_TREE {
+            get {
+                return ResourceManager.GetString("MENU_SHOW_IN_API_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Loading....
+        /// </summary>
+        internal static string STATUS_LOADING {
+            get {
+                return ResourceManager.GetString("STATUS_LOADING", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Processing log data....
+        /// </summary>
+        internal static string STATUS_PROCESSING_LOG_DATA {
+            get {
+                return ResourceManager.GetString("STATUS_PROCESSING_LOG_DATA", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Building call tree....
+        /// </summary>
+        internal static string STATUS_BUILDING_CALL_TREE {
+            get {
+                return ResourceManager.GetString("STATUS_BUILDING_CALL_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Exporting filtered logs....
+        /// </summary>
+        internal static string STATUS_EXPORTING_LOGS {
+            get {
+                return ResourceManager.GetString("STATUS_EXPORTING_LOGS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Save operation cancelled..
+        /// </summary>
+        internal static string STATUS_SAVE_CANCELLED {
+            get {
+                return ResourceManager.GetString("STATUS_SAVE_CANCELLED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Expand operation cancelled..
+        /// </summary>
+        internal static string STATUS_EXPAND_CANCELLED {
+            get {
+                return ResourceManager.GetString("STATUS_EXPAND_CANCELLED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collapse operation cancelled..
+        /// </summary>
+        internal static string STATUS_COLLAPSE_CANCELLED {
+            get {
+                return ResourceManager.GetString("STATUS_COLLAPSE_CANCELLED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Filter operation cancelled..
+        /// </summary>
+        internal static string STATUS_FILTER_CANCELLED {
+            get {
+                return ResourceManager.GetString("STATUS_FILTER_CANCELLED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No lines selected.
+        /// </summary>
+        internal static string STATUS_NO_LINES_SELECTED {
+            get {
+                return ResourceManager.GetString("STATUS_NO_LINES_SELECTED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Processing merged log data....
+        /// </summary>
+        internal static string STATUS_PROCESSING_MERGED_DATA {
+            get {
+                return ResourceManager.GetString("STATUS_PROCESSING_MERGED_DATA", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Building call tree from merged logs....
+        /// </summary>
+        internal static string STATUS_BUILDING_MERGED_TREE {
+            get {
+                return ResourceManager.GetString("STATUS_BUILDING_MERGED_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Large tree detected ({0:N0} nodes) - using lazy loading for performance.
+        /// </summary>
+        internal static string STATUS_LARGE_TREE_LAZY_LOADING {
+            get {
+                return ResourceManager.GetString("STATUS_LARGE_TREE_LAZY_LOADING", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Loaded {0} children for {1}.
+        /// </summary>
+        internal static string STATUS_LOADED_CHILDREN {
+            get {
+                return ResourceManager.GetString("STATUS_LOADED_CHILDREN", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Call Tree.
+        /// </summary>
+        internal static string TREE_LABEL_CALL_TREE {
+            get {
+                return ResourceManager.GetString("TREE_LABEL_CALL_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to API Tree.
+        /// </summary>
+        internal static string TREE_LABEL_API_TREE {
+            get {
+                return ResourceManager.GetString("TREE_LABEL_API_TREE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to  [sorted: count ↓].
+        /// </summary>
+        internal static string TREE_SORT_LABEL_COUNT {
+            get {
+                return ResourceManager.GetString("TREE_SORT_LABEL_COUNT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to  [sorted: line].
+        /// </summary>
+        internal static string TREE_SORT_LABEL_LINE {
+            get {
+                return ResourceManager.GetString("TREE_SORT_LABEL_LINE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to  [sorted: name].
+        /// </summary>
+        internal static string TREE_SORT_LABEL_NAME {
+            get {
+                return ResourceManager.GetString("TREE_SORT_LABEL_NAME", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Merge Logs.
+        /// </summary>
+        internal static string DIALOG_TITLE_MERGE_LOGS {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_MERGE_LOGS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Merge Complete.
+        /// </summary>
+        internal static string DIALOG_TITLE_MERGE_COMPLETE {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_MERGE_COMPLETE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Export Branch to CSV.
+        /// </summary>
+        internal static string DIALOG_TITLE_EXPORT_BRANCH {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_EXPORT_BRANCH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Export Filtered Logs.
+        /// </summary>
+        internal static string DIALOG_TITLE_SAVE_BRANCH {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_SAVE_BRANCH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jump to Line.
+        /// </summary>
+        internal static string DIALOG_TITLE_JUMP_TO_LINE {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_JUMP_TO_LINE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Find All.
+        /// </summary>
+        internal static string DIALOG_TITLE_FIND_ALL {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_FIND_ALL", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear Bookmarks.
+        /// </summary>
+        internal static string DIALOG_TITLE_CLEAR_BOOKMARKS {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_CLEAR_BOOKMARKS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Quick Help — CAD 3P Log Browser.
+        /// </summary>
+        internal static string DIALOG_TITLE_QUICK_HELP {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_QUICK_HELP", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Keyboard Shortcuts — CAD 3P Log Browser.
+        /// </summary>
+        internal static string DIALOG_TITLE_KEYBOARD_SHORTCUTS {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_KEYBOARD_SHORTCUTS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log.
+        /// </summary>
+        internal static string TAB_LOG {
+            get {
+                return ResourceManager.GetString("TAB_LOG", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Performance.
+        /// </summary>
+        internal static string TAB_PERFORMANCE {
+            get {
+                return ResourceManager.GetString("TAB_PERFORMANCE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log Details.
+        /// </summary>
+        internal static string TAB_LOG_DETAILS {
+            get {
+                return ResourceManager.GetString("TAB_LOG_DETAILS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Call Graph.
+        /// </summary>
+        internal static string TAB_CALL_GRAPH {
+            get {
+                return ResourceManager.GetString("TAB_CALL_GRAPH", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Please select at least 2 files to merge..
+        /// </summary>
+        internal static string MSG_SELECT_TWO_FILES_TO_MERGE {
+            get {
+                return ResourceManager.GetString("MSG_SELECT_TWO_FILES_TO_MERGE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Successfully merged {0} files.\n\nTotal lines: {1:N0}\n\nEach line is prefixed with [filename] for traceability..
+        /// </summary>
+        internal static string MSG_MERGE_SUCCESSFUL {
+            get {
+                return ResourceManager.GetString("MSG_MERGE_SUCCESSFUL", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Merge failed:\n\n{0}.
+        /// </summary>
+        internal static string MSG_MERGE_FAILED {
+            get {
+                return ResourceManager.GetString("MSG_MERGE_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Select Log Files to Merge.
+        /// </summary>
+        internal static string FILE_DIALOG_SELECT_LOGS_TO_MERGE {
+            get {
+                return ResourceManager.GetString("FILE_DIALOG_SELECT_LOGS_TO_MERGE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*.*.
+        /// </summary>
+        internal static string FILE_DIALOG_FILTER_LOGS {
+            get {
+                return ResourceManager.GetString("FILE_DIALOG_FILTER_LOGS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Access denied.
+        /// </summary>
+        internal static string LOAD_ERROR_ACCESS_DENIED {
+            get {
+                return ResourceManager.GetString("LOAD_ERROR_ACCESS_DENIED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to File read error.
+        /// </summary>
+        internal static string LOAD_ERROR_FILE_READ {
+            get {
+                return ResourceManager.GetString("LOAD_ERROR_FILE_READ", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unexpected error.
+        /// </summary>
+        internal static string LOAD_ERROR_UNEXPECTED {
+            get {
+                return ResourceManager.GetString("LOAD_ERROR_UNEXPECTED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ── Summary ──.
+        /// </summary>
+        internal static string PERF_SUMMARY_ROW_LABEL {
+            get {
+                return ResourceManager.GetString("PERF_SUMMARY_ROW_LABEL", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} unique APIs  |  {1} lines.
+        /// </summary>
+        internal static string PERF_SUMMARY_STATS {
+            get {
+                return ResourceManager.GetString("PERF_SUMMARY_STATS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to === API Details: {0} ===.
+        /// </summary>
+        internal static string API_DETAILS_HEADER {
+            get {
+                return ResourceManager.GetString("API_DETAILS_HEADER", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Total invocations : {0}.
+        /// </summary>
+        internal static string API_DETAILS_TOTAL_INVOCATIONS {
+            get {
+                return ResourceManager.GetString("API_DETAILS_TOTAL_INVOCATIONS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to First occurrence  : Line {0}.
+        /// </summary>
+        internal static string API_DETAILS_FIRST_OCCURRENCE {
+            get {
+                return ResourceManager.GetString("API_DETAILS_FIRST_OCCURRENCE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Invocation lines:.
+        /// </summary>
+        internal static string API_DETAILS_INVOCATION_LINES {
+            get {
+                return ResourceManager.GetString("API_DETAILS_INVOCATION_LINES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ENTER/EXIT matched: {0}.
+        /// </summary>
+        internal static string API_DETAILS_ENTER_EXIT_MATCHED {
+            get {
+                return ResourceManager.GetString("API_DETAILS_ENTER_EXIT_MATCHED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Yes ✓.
+        /// </summary>
+        internal static string API_DETAILS_MATCHED_YES {
+            get {
+                return ResourceManager.GetString("API_DETAILS_MATCHED_YES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No ✗ (missing EXIT).
+        /// </summary>
+        internal static string API_DETAILS_MATCHED_NO {
+            get {
+                return ResourceManager.GetString("API_DETAILS_MATCHED_NO", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search tree nodes....
+        /// </summary>
+        internal static string TREE_SEARCH_PLACEHOLDER {
+            get {
+                return ResourceManager.GetString("TREE_SEARCH_PLACEHOLDER", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Line {0}:\r\n\r\n{1}.
+        /// </summary>
+        internal static string LOG_DETAIL_FORMAT {
+            get {
+                return ResourceManager.GetString("LOG_DETAIL_FORMAT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms.
+        /// </summary>
+        internal static string TREE_NODE_TOOLTIP_FORMAT {
+            get {
+                return ResourceManager.GetString("TREE_NODE_TOOLTIP_FORMAT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ? (no EXIT found).
+        /// </summary>
+        internal static string TREE_NODE_EXIT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TREE_NODE_EXIT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enter line number (1 to {0}):.
+        /// </summary>
+        internal static string PROMPT_ENTER_LINE_NUMBER {
+            get {
+                return ResourceManager.GetString("PROMPT_ENTER_LINE_NUMBER", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enter search term:.
+        /// </summary>
+        internal static string PROMPT_ENTER_SEARCH_TERM {
+            get {
+                return ResourceManager.GetString("PROMPT_ENTER_SEARCH_TERM", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all {0} bookmarks?.
+        /// </summary>
+        internal static string PROMPT_CLEAR_BOOKMARKS {
+            get {
+                return ResourceManager.GetString("PROMPT_CLEAR_BOOKMARKS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to File not found:\n{0}\n\nRemoving from recent files list..
+        /// </summary>
+        internal static string MSG_FILE_NOT_FOUND_REMOVED {
+            get {
+                return ResourceManager.GetString("MSG_FILE_NOT_FOUND_REMOVED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copied {0} line(s) with headers to clipboard.
+        /// </summary>
+        internal static string MSG_COPIED_WITH_HEADERS {
+            get {
+                return ResourceManager.GetString("MSG_COPIED_WITH_HEADERS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copied {0} line(s) to clipboard.
+        /// </summary>
+        internal static string MSG_COPIED_WITHOUT_HEADERS {
+            get {
+                return ResourceManager.GetString("MSG_COPIED_WITHOUT_HEADERS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Font changed to {0} {1}pt.
+        /// </summary>
+        internal static string MSG_FONT_CHANGED {
+            get {
+                return ResourceManager.GetString("MSG_FONT_CHANGED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bookmark added at line {0}.
+        /// </summary>
+        internal static string MSG_BOOKMARK_ADDED {
+            get {
+                return ResourceManager.GetString("MSG_BOOKMARK_ADDED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bookmark removed from line {0}.
+        /// </summary>
+        internal static string MSG_BOOKMARK_REMOVED {
+            get {
+                return ResourceManager.GetString("MSG_BOOKMARK_REMOVED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bookmark {0} of {1}.
+        /// </summary>
+        internal static string MSG_BOOKMARK_COUNT {
+            get {
+                return ResourceManager.GetString("MSG_BOOKMARK_COUNT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No bookmarks set. Press Ctrl+B to bookmark current line..
+        /// </summary>
+        internal static string MSG_NO_BOOKMARKS_PRESS_CTRL_B {
+            get {
+                return ResourceManager.GetString("MSG_NO_BOOKMARKS_PRESS_CTRL_B", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to All bookmarks cleared.
+        /// </summary>
+        internal static string MSG_ALL_BOOKMARKS_CLEARED {
+            get {
+                return ResourceManager.GetString("MSG_ALL_BOOKMARKS_CLEARED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bookmarks ({0}):.
+        /// </summary>
+        internal static string BOOKMARKS_LIST_HEADER {
+            get {
+                return ResourceManager.GetString("BOOKMARKS_LIST_HEADER", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0:N0} {1} exported successfully.\n\nFile: {2}.
+        /// </summary>
+        internal static string MSG_EXPORT_FILTERED_SUCCESSFUL {
+            get {
+                return ResourceManager.GetString("MSG_EXPORT_FILTERED_SUCCESSFUL", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to all lines.
+        /// </summary>
+        internal static string EXPORT_FILTER_INFO_ALL_LINES {
+            get {
+                return ResourceManager.GetString("EXPORT_FILTER_INFO_ALL_LINES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to filtered lines (filter: '{0}').
+        /// </summary>
+        internal static string EXPORT_FILTER_INFO_FILTERED {
+            get {
+                return ResourceManager.GetString("EXPORT_FILTER_INFO_FILTERED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Toggle Dark/Light Theme (Ctrl+T).
+        /// </summary>
+        internal static string TOOLTIP_THEME_TOGGLE_DEFAULT {
+            get {
+                return ResourceManager.GetString("TOOLTIP_THEME_TOGGLE_DEFAULT", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recent &amp;Files.
+        /// </summary>
+        internal static string MENU_RECENT_FILES {
+            get {
+                return ResourceManager.GetString("MENU_RECENT_FILES", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to &amp;Clear Recent Files.
+        /// </summary>
+        internal static string MENU_CLEAR_RECENT_FILES {
+            get {
+                return ResourceManager.GetString("MENU_CLEAR_RECENT_FILES", resourceCulture);
+            }
+        }
     }
 }

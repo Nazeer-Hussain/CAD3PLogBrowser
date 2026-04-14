@@ -175,7 +175,7 @@ namespace Cad3PLogBrowser
             _themeToggleButton = new ToolStripButton
             {
                 Text = "☀", // Sun icon for light theme (moon ☾ for dark)
-                ToolTipText = "Toggle Dark/Light Theme (Ctrl+T)",
+                ToolTipText = Resources.TOOLTIP_THEME_TOGGLE_DEFAULT,
                 DisplayStyle = ToolStripItemDisplayStyle.Text,
                 Font = new Font("Segoe UI", 12f),
                 AutoSize = true
@@ -214,8 +214,8 @@ namespace Cad3PLogBrowser
                 bool isDark = _appSettings.Theme == "Dark";
                 _themeToggleButton.Text = isDark ? "☀" : "☾";
                 _themeToggleButton.ToolTipText = isDark 
-                    ? "Switch to Light Theme (Ctrl+T)" 
-                    : "Switch to Dark Theme (Ctrl+T)";
+                    ? Resources.TOOLTIP_THEME_TOGGLE_TO_LIGHT 
+                    : Resources.TOOLTIP_THEME_TOGGLE_TO_DARK;
                 _themeToggleButton.ForeColor = isDark 
                     ? Color.FromArgb(255, 200, 0)  // Yellow sun in dark mode
                     : Color.FromArgb(100, 100, 150); // Blue moon in light mode
@@ -236,7 +236,7 @@ namespace Cad3PLogBrowser
 
             // Create separator and Recent Files submenu
             _recentFilesSeparator = new ToolStripSeparator();
-            _recentFilesMenuItem = new ToolStripMenuItem("Recent &Files");
+            _recentFilesMenuItem = new ToolStripMenuItem(Resources.MENU_RECENT_FILES);
 
             // Add each recent file
             for (int i = 0; i < _appSettings.RecentFiles.Count && i < 10; i++)
@@ -258,7 +258,7 @@ namespace Cad3PLogBrowser
             if (_recentFilesMenuItem.DropDownItems.Count > 0)
             {
                 _recentFilesMenuItem.DropDownItems.Add(new ToolStripSeparator());
-                var clearItem = new ToolStripMenuItem("&Clear Recent Files");
+                var clearItem = new ToolStripMenuItem(Resources.MENU_CLEAR_RECENT_FILES);
                 clearItem.Click += (s, e) =>
                 {
                     _appSettings.RecentFiles.Clear();
@@ -288,7 +288,7 @@ namespace Cad3PLogBrowser
                 else
                 {
                     MessageBox.Show(
-                        string.Format("File not found:\n{0}\n\nRemoving from recent files list.", filePath),
+                        string.Format(Resources.MSG_FILE_NOT_FOUND_REMOVED, filePath),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     _appSettings.RecentFiles.Remove(filePath);
                     _appSettings.Save();
@@ -697,17 +697,17 @@ namespace Cad3PLogBrowser
                 var contextMenu = new ContextMenuStrip();
 
                 // ═══ SORTING OPTIONS (API Tree only - PRIMARY FEATURE) ═══
-                var sortByName = new ToolStripMenuItem("Sort by Name (A-Z)");
+                var sortByName = new ToolStripMenuItem(Resources.MENU_SORT_BY_NAME);
                 sortByName.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByName);
                 sortByName.Checked = (_apiSortMode == ApiSortMode.ByName);
                 contextMenu.Items.Add(sortByName);
 
-                var sortByCount = new ToolStripMenuItem("Sort by Call Count (Most First)");
+                var sortByCount = new ToolStripMenuItem(Resources.MENU_SORT_BY_COUNT);
                 sortByCount.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByCount);
                 sortByCount.Checked = (_apiSortMode == ApiSortMode.ByCount);
                 contextMenu.Items.Add(sortByCount);
 
-                var sortByLine = new ToolStripMenuItem("Sort by Line Order");
+                var sortByLine = new ToolStripMenuItem(Resources.MENU_SORT_BY_LINE);
                 sortByLine.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine);
                 sortByLine.Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
                 contextMenu.Items.Add(sortByLine);
@@ -715,7 +715,7 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ COPY ACTIONS ═══
-                contextMenu.Items.Add("Copy API Name", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_COPY_API_NAME, null, (s, ev) => 
                 {
                     var n = ApiTree.SelectedNode;
                     if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
@@ -724,8 +724,8 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ COMMON TREE ACTIONS ═══
-                contextMenu.Items.Add("Expand All (Ctrl+E)", null, (s, ev) => ApiTree.ExpandAll());
-                contextMenu.Items.Add("Collapse All (Ctrl+W)", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null, (s, ev) => ApiTree.ExpandAll());
+                contextMenu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) => 
                 {
                     ApiTree.CollapseAll();
                     if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
@@ -734,7 +734,7 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ CROSS-REFERENCE ═══
-                contextMenu.Items.Add("Show in Call Tree", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_SHOW_IN_CALL_TREE, null, (s, ev) => 
                 {
                     var n = ApiTree.SelectedNode;
                     if (n != null)
@@ -748,7 +748,7 @@ namespace Cad3PLogBrowser
                 if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
                 {
                     contextMenu.Items.Add(new ToolStripSeparator());
-                    contextMenu.Items.Add("Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
+                    contextMenu.Items.Add(Resources.MENU_SEARCH_IN_GROK, null, treeContextSearchInGrokMenuItem_Click);
                 }
 
                 // Apply dark theme if needed
@@ -897,10 +897,10 @@ namespace Cad3PLogBrowser
             ApiTree.Nodes.Clear();
 
             // Root node: "API Tree"
-            string sortLabel = _apiSortMode == ApiSortMode.ByCount ? " [sorted: count ↓]"
-                             : _apiSortMode == ApiSortMode.ByFirstLine ? " [sorted: line]"
-                             : " [sorted: name]";
-            var root = new TreeNode("API Tree" + sortLabel) { Tag = -1 };
+            string sortLabel = _apiSortMode == ApiSortMode.ByCount ? Resources.TREE_SORT_LABEL_COUNT
+                             : _apiSortMode == ApiSortMode.ByFirstLine ? Resources.TREE_SORT_LABEL_LINE
+                             : Resources.TREE_SORT_LABEL_NAME;
+            var root = new TreeNode(Resources.TREE_LABEL_API_TREE + sortLabel) { Tag = -1 };
             root.NodeFont = new System.Drawing.Font(ApiTree.Font, System.Drawing.FontStyle.Bold);
 
             foreach (var node in apiNodes)
@@ -958,7 +958,7 @@ namespace Cad3PLogBrowser
             _lazyChildrenMap.Clear(); // Clear lazy load cache
 
             // Root node: "Call Tree"
-            var rootNode = new TreeNode("Call Tree") { Tag = -1 };
+            var rootNode = new TreeNode(Resources.TREE_LABEL_CALL_TREE) { Tag = -1 };
             rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
 
             // Feature C2: Check total node count for lazy loading
@@ -967,7 +967,7 @@ namespace Cad3PLogBrowser
 
             if (useLazyLoading)
             {
-                StatusFileName.Text = string.Format("Large tree detected ({0:N0} nodes) - using lazy loading for performance", totalNodes);
+                StatusFileName.Text = string.Format(Resources.STATUS_LARGE_TREE_LAZY_LOADING, totalNodes);
             }
 
             foreach (var root in roots)
@@ -1021,7 +1021,7 @@ namespace Cad3PLogBrowser
                 // Remove from map - children are now loaded
                 _lazyChildrenMap.Remove(e.Node);
 
-                StatusFileName.Text = string.Format("Loaded {0} children for {1}", children.Count, GetMethodNameFromNode(e.Node));
+                StatusFileName.Text = string.Format(Resources.STATUS_LOADED_CHILDREN, children.Count, GetMethodNameFromNode(e.Node));
             }
         }
 
@@ -1046,11 +1046,11 @@ namespace Cad3PLogBrowser
                 label = string.Format("{0}  [? ms]", label);
 
             string tooltip = string.Format(
-                "API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms",
+                Resources.TREE_NODE_TOOLTIP_FORMAT,
                 csNode.Label,
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
-                matched ? csNode.ExitLineNumber.ToString() : "? (no EXIT found)",
+                matched ? csNode.ExitLineNumber.ToString() : Resources.TREE_NODE_EXIT_NOT_FOUND,
                 csNode.DurationMs);
 
             // ImageIndex: 0 = checkmark (matched), 1 = cross (unmatched)
@@ -1174,12 +1174,12 @@ namespace Cad3PLogBrowser
             long sumTotal = 0; int sumCalls = 0;
             foreach (var s in stats) { sumTotal += s.TotalDurationMs; sumCalls += s.TimedCallCount; }
 
-            var summary = new ListViewItem("── Summary ──");
+            var summary = new ListViewItem(Resources.PERF_SUMMARY_ROW_LABEL);
             summary.SubItems.Add(sumCalls.ToString());
             summary.SubItems.Add(sumTotal.ToString());
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
-            summary.SubItems.Add(string.Format("{0} unique APIs  |  {1} lines", stats.Count, totalLines));
+            summary.SubItems.Add(string.Format(Resources.PERF_SUMMARY_STATS, stats.Count, totalLines));
 
             // Theme-aware summary row color
             if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
@@ -1411,7 +1411,8 @@ namespace Cad3PLogBrowser
             // Match/unmatch status
             bool matched = AreAllApiCallsMatched(apiName);
             sb.AppendLine();
-            sb.AppendLine(string.Format("ENTER/EXIT matched: {0}", matched ? "Yes ✓" : "No ✗ (missing EXIT)"));
+            sb.AppendLine(string.Format(Resources.API_DETAILS_ENTER_EXIT_MATCHED, 
+                matched ? Resources.API_DETAILS_MATCHED_YES : Resources.API_DETAILS_MATCHED_NO));
 
             if (logDetailBox.InvokeRequired)
                 logDetailBox.Invoke((Action)(() => logDetailBox.Text = sb.ToString()));
@@ -1478,7 +1479,7 @@ namespace Cad3PLogBrowser
         private void ShowLogDetail(int idx)
         {
             if (idx < 0 || idx >= _virtualLines.Count) return;
-            logDetailBox.Text = string.Format("Line {0}:\r\n\r\n{1}",
+            logDetailBox.Text = string.Format(Resources.LOG_DETAIL_FORMAT,
                 _virtualLines[idx].LineNumber, _virtualLines[idx].Text);
         }
 
@@ -1523,7 +1524,7 @@ namespace Cad3PLogBrowser
             FileStatus.Image = Resources.yellow;
             FileLoadProgress.Visible = true;
             FileLoadProgress.Value = 0;
-            StatusFileName.Text = "Loading...";
+            StatusFileName.Text = Resources.STATUS_LOADING;
 
             try
             {
@@ -1547,7 +1548,7 @@ namespace Cad3PLogBrowser
                 _bookmarkService.LoadBookmarks(filePath);
 
                 // Show processing message
-                StatusFileName.Text = "Processing log data...";
+                StatusFileName.Text = Resources.STATUS_PROCESSING_LOG_DATA;
                 FileLoadProgress.Value = 0;
 
                 // Give UI a chance to update
@@ -1556,7 +1557,7 @@ namespace Cad3PLogBrowser
                 // Populate views with progress
                 PopulateVirtualListView(_allLines);
                 FileLoadProgress.Value = 33;
-                StatusFileName.Text = "Building call tree...";
+                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
                 await Task.Delay(10);
 
                 PopulateTrees(_allLines);
@@ -1569,9 +1570,9 @@ namespace Cad3PLogBrowser
                 _appSettings.AddRecentFile(filePath);
                 BuildMruMenu();
             }
-            catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, "Access denied", ex.Message); }
-            catch (IOException ex)                 { ShowLoadError(filePath, "File read error", ex.Message); }
-            catch (Exception ex)                   { ShowLoadError(filePath, "Unexpected error", ex.Message); }
+            catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, Resources.LOAD_ERROR_ACCESS_DENIED, ex.Message); }
+            catch (IOException ex)                 { ShowLoadError(filePath, Resources.LOAD_ERROR_FILE_READ, ex.Message); }
+            catch (Exception ex)                   { ShowLoadError(filePath, Resources.LOAD_ERROR_UNEXPECTED, ex.Message); }
             finally
             {
                 FileLoadProgress.Visible = false;
@@ -1837,8 +1838,8 @@ namespace Cad3PLogBrowser
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = "Save operation cancelled.";
-                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE, 
+                StatusFileName.Text = Resources.STATUS_SAVE_CANCELLED;
+                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
@@ -1884,8 +1885,8 @@ namespace Cad3PLogBrowser
         {
             using (var dlg = new OpenFileDialog())
             {
-                dlg.Title       = "Select Log Files to Merge";
-                dlg.Filter      = "Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*";
+                dlg.Title       = Resources.FILE_DIALOG_SELECT_LOGS_TO_MERGE;
+                dlg.Filter      = Resources.FILE_DIALOG_FILTER_LOGS;
                 dlg.Multiselect = true;
                 dlg.InitialDirectory = openLogFileDialog.InitialDirectory;
 
@@ -1893,8 +1894,8 @@ namespace Cad3PLogBrowser
                 {
                     if (dlg.FileNames.Length == 1)
                     {
-                        MessageBox.Show("Please select at least 2 files to merge.",
-                            "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show(Resources.MSG_SELECT_TWO_FILES_TO_MERGE,
+                            Resources.DIALOG_TITLE_MERGE_LOGS, MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     return;
                 }
@@ -1917,13 +1918,13 @@ namespace Cad3PLogBrowser
                     ClearHighlighting();
 
                     // Load merged data into UI
-                    StatusFileName.Text = "Processing merged log data...";
+                    StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
                     FileLoadProgress.Value = 33;
                     await Task.Delay(10);
 
                     PopulateVirtualListView(_allLines);
                     FileLoadProgress.Value = 66;
-                    StatusFileName.Text = "Building call tree from merged logs...";
+                    StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
                     await Task.Delay(10);
 
                     PopulateTrees(_allLines);
@@ -1934,15 +1935,15 @@ namespace Cad3PLogBrowser
                     UpdateStatusBar();
 
                     MessageBox.Show(
-                        string.Format("Successfully merged {0} files.\n\nTotal lines: {1:N0}\n\nEach line is prefixed with [filename] for traceability.",
+                        string.Format(Resources.MSG_MERGE_SUCCESSFUL,
                             dlg.FileNames.Length, merged.Count),
-                        "Merge Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Resources.DIALOG_TITLE_MERGE_COMPLETE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(
-                        string.Format("Merge failed:\n\n{0}", ex.Message),
-                        "Merge Logs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        string.Format(Resources.MSG_MERGE_FAILED, ex.Message),
+                        Resources.DIALOG_TITLE_MERGE_LOGS, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 finally
                 {
@@ -1968,7 +1969,7 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Title = "Export Filtered Logs";
+                dlg.Title = Resources.DIALOG_TITLE_SAVE_BRANCH;
                 dlg.Filter = "Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*";
                 dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + "_filtered.log";
 
@@ -1979,7 +1980,7 @@ namespace Cad3PLogBrowser
 
                 FileLoadProgress.Visible = true;
                 FileLoadProgress.Value = 0;
-                StatusFileName.Text = "Exporting filtered logs...";
+                StatusFileName.Text = Resources.STATUS_EXPORTING_LOGS;
 
                 try
                 {
@@ -2001,11 +2002,11 @@ namespace Cad3PLogBrowser
                     UpdateStatusBar();
 
                     string filterInfo = string.IsNullOrEmpty(_activeFilterText) 
-                        ? "all lines" 
-                        : string.Format("filtered lines (filter: '{0}')", _activeFilterText);
+                        ? Resources.EXPORT_FILTER_INFO_ALL_LINES 
+                        : string.Format(Resources.EXPORT_FILTER_INFO_FILTERED, _activeFilterText);
 
                     MessageBox.Show(
-                        string.Format("{0:N0} {1} exported successfully.\n\nFile: {2}",
+                        string.Format(Resources.MSG_EXPORT_FILTERED_SUCCESSFUL,
                             lines.Count, filterInfo, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -2374,7 +2375,7 @@ namespace Cad3PLogBrowser
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = "Expand operation cancelled.";
+                StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
             }
             finally
             {
@@ -2430,7 +2431,7 @@ namespace Cad3PLogBrowser
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = "Collapse operation cancelled.";
+                StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
             }
             finally
             {
@@ -2621,7 +2622,7 @@ namespace Cad3PLogBrowser
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = "Filter operation cancelled.";
+                StatusFileName.Text = Resources.STATUS_FILTER_CANCELLED;
                 ClearFilter();
             }
             finally
@@ -2829,7 +2830,7 @@ namespace Cad3PLogBrowser
         {
             var helpForm = new Form
             {
-                Text = "Quick Help — CAD 3P Log Browser",
+                Text = Resources.DIALOG_TITLE_QUICK_HELP,
                 Size = new Size(700, 600),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.Sizable,
@@ -2951,7 +2952,7 @@ namespace Cad3PLogBrowser
         {
             var helpForm = new Form
             {
-                Text = "Keyboard Shortcuts — CAD 3P Log Browser",
+                Text = Resources.DIALOG_TITLE_KEYBOARD_SHORTCUTS,
                 Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -3055,10 +3056,10 @@ namespace Cad3PLogBrowser
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
-            logTab.Text = "Log";
-            performanceTab.Text = "Performance";
-            logDetailTab.Text = "Log Details";
-            callGraphTab.Text = "Call Graph";
+            logTab.Text = Resources.TAB_LOG;
+            performanceTab.Text = Resources.TAB_PERFORMANCE;
+            logDetailTab.Text = Resources.TAB_LOG_DETAILS;
+            callGraphTab.Text = Resources.TAB_CALL_GRAPH;
 
             // CRITICAL FIX: Restore splitter distance AFTER all window layout is complete
             // Use BeginInvoke to run after the message queue is processed
@@ -3193,13 +3194,13 @@ namespace Cad3PLogBrowser
                 var contextMenu = new ContextMenuStrip();
 
                 // ═══ COPY ACTIONS ═══
-                contextMenu.Items.Add("📋 Copy Method Name", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_COPY_METHOD_NAME, null, (s, ev) => 
                 {
                     var n = CallTree.SelectedNode;
                     if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
                 });
 
-                contextMenu.Items.Add("📄 Copy Entire Subtree", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_COPY_SUBTREE, null, (s, ev) => 
                 {
                     var n = CallTree.SelectedNode;
                     if (n != null)
@@ -3213,19 +3214,19 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ NAVIGATION (Call Tree only - ENTER/EXIT matching) ═══
-                contextMenu.Items.Add("🔄 Jump to Matching ENTER/EXIT (Ctrl+G)", null, (s, ev) => JumpToMatchingPair());
+                contextMenu.Items.Add(Resources.MENU_JUMP_TO_MATCHING, null, (s, ev) => JumpToMatchingPair());
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ EXPORT (Call Tree only - branch operations) ═══
-                contextMenu.Items.Add("💾 Save Branch as Log File...", null, treeContextSaveBranchMenuItem_Click);
-                contextMenu.Items.Add("📊 Export Branch to CSV...", null, treeContextExportBranchCsvMenuItem_Click);
+                contextMenu.Items.Add(Resources.MENU_SAVE_BRANCH, null, treeContextSaveBranchMenuItem_Click);
+                contextMenu.Items.Add(Resources.MENU_EXPORT_BRANCH_CSV, null, treeContextExportBranchCsvMenuItem_Click);
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ COMMON TREE ACTIONS ═══
-                contextMenu.Items.Add("➕ Expand All (Ctrl+E)", null, (s, ev) => CallTree.ExpandAll());
-                contextMenu.Items.Add("➖ Collapse All (Ctrl+W)", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null, (s, ev) => CallTree.ExpandAll());
+                contextMenu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) => 
                 {
                     CallTree.CollapseAll();
                     if (CallTree.Nodes.Count > 0) CallTree.Nodes[0].Expand();
@@ -3234,7 +3235,7 @@ namespace Cad3PLogBrowser
                 contextMenu.Items.Add(new ToolStripSeparator());
 
                 // ═══ CROSS-REFERENCE ═══
-                contextMenu.Items.Add("🔍 Show in API Tree", null, (s, ev) => 
+                contextMenu.Items.Add(Resources.MENU_SHOW_IN_API_TREE, null, (s, ev) => 
                 {
                     var n = CallTree.SelectedNode;
                     if (n != null)
@@ -3248,7 +3249,7 @@ namespace Cad3PLogBrowser
                 if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
                 {
                     contextMenu.Items.Add(new ToolStripSeparator());
-                    contextMenu.Items.Add("🔎 Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
+                    contextMenu.Items.Add(Resources.MENU_SEARCH_IN_GROK, null, treeContextSearchInGrokMenuItem_Click);
                 }
 
                 // Apply dark theme if needed
@@ -3361,7 +3362,7 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Title = "Export Branch to CSV";
+                dlg.Title = Resources.DIALOG_TITLE_EXPORT_BRANCH;
                 dlg.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
                 dlg.FileName = GetMethodNameFromNode(node).Replace("::", "_") + "_branch.csv";
 
@@ -3577,8 +3578,8 @@ namespace Cad3PLogBrowser
             }
 
             string input = Microsoft.VisualBasic.Interaction.InputBox(
-                $"Enter line number (1 to {_virtualLines.Count}):",
-                "Jump to Line",
+                string.Format(Resources.PROMPT_ENTER_LINE_NUMBER, _virtualLines.Count),
+                Resources.DIALOG_TITLE_JUMP_TO_LINE,
                 "",
                 -1, -1);
 
@@ -3696,8 +3697,8 @@ namespace Cad3PLogBrowser
 
             // Prompt for search term
             string searchTerm = Microsoft.VisualBasic.Interaction.InputBox(
-                "Enter search term:",
-                "Find All",
+                Resources.PROMPT_ENTER_SEARCH_TERM,
+                Resources.DIALOG_TITLE_FIND_ALL,
                 "",
                 -1, -1);
 
@@ -3872,7 +3873,7 @@ namespace Cad3PLogBrowser
             {
                 if (logListView.SelectedIndices.Count == 0)
                 {
-                    StatusFileName.Text = "No lines selected";
+                    StatusFileName.Text = Resources.STATUS_NO_LINES_SELECTED;
                     return;
                 }
 
@@ -3916,8 +3917,8 @@ namespace Cad3PLogBrowser
 
                     // Update status bar
                     string message = includeHeaders 
-                        ? string.Format("Copied {0} line(s) with headers to clipboard", indices.Length)
-                        : string.Format("Copied {0} line(s) to clipboard", indices.Length);
+                        ? string.Format(Resources.MSG_COPIED_WITH_HEADERS, indices.Length)
+                        : string.Format(Resources.MSG_COPIED_WITHOUT_HEADERS, indices.Length);
 
                     StatusFileName.Text = message;
 
@@ -4163,7 +4164,7 @@ namespace Cad3PLogBrowser
         {
             if (treeSearchTextBox != null)
             {
-                treeSearchTextBox.Text = TREE_SEARCH_PLACEHOLDER;
+                treeSearchTextBox.Text = Resources.TREE_SEARCH_PLACEHOLDER;
                 treeSearchTextBox.ForeColor = SystemColors.GrayText;
             }
         }
@@ -4195,8 +4196,8 @@ namespace Cad3PLogBrowser
             RefreshBookmarkVisuals();
 
             string message = added 
-                ? string.Format("Bookmark added at line {0}", lineNumber)
-                : string.Format("Bookmark removed from line {0}", lineNumber);
+                ? string.Format(Resources.MSG_BOOKMARK_ADDED, lineNumber)
+                : string.Format(Resources.MSG_BOOKMARK_REMOVED, lineNumber);
 
             StatusFileName.Text = message;
 
@@ -4212,7 +4213,7 @@ namespace Cad3PLogBrowser
         {
             if (_bookmarkService.Count == 0)
             {
-                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                StatusFileName.Text = Resources.MSG_NO_BOOKMARKS_PRESS_CTRL_B;
                 return;
             }
 
@@ -4227,7 +4228,7 @@ namespace Cad3PLogBrowser
             if (nextBookmark > 0)
             {
                 JumpToLine(nextBookmark);
-                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT, 
                     _bookmarkService.GetAllBookmarksSorted().IndexOf(nextBookmark) + 1,
                     _bookmarkService.Count);
             }
@@ -4241,7 +4242,7 @@ namespace Cad3PLogBrowser
         {
             if (_bookmarkService.Count == 0)
             {
-                StatusFileName.Text = "No bookmarks set. Press Ctrl+B to bookmark current line.";
+                StatusFileName.Text = Resources.MSG_NO_BOOKMARKS_PRESS_CTRL_B;
                 return;
             }
 
@@ -4256,7 +4257,7 @@ namespace Cad3PLogBrowser
             if (prevBookmark > 0)
             {
                 JumpToLine(prevBookmark);
-                StatusFileName.Text = string.Format("Bookmark {0} of {1}", 
+                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT, 
                     _bookmarkService.GetAllBookmarksSorted().IndexOf(prevBookmark) + 1,
                     _bookmarkService.Count);
             }
@@ -4271,8 +4272,8 @@ namespace Cad3PLogBrowser
                 return;
 
             var result = MessageBox.Show(
-                string.Format("Clear all {0} bookmarks?", _bookmarkService.Count),
-                "Clear Bookmarks",
+                string.Format(Resources.PROMPT_CLEAR_BOOKMARKS, _bookmarkService.Count),
+                Resources.DIALOG_TITLE_CLEAR_BOOKMARKS,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
 
@@ -4281,7 +4282,7 @@ namespace Cad3PLogBrowser
                 _bookmarkService.ClearAllBookmarks();
                 _bookmarkService.SaveBookmarks();
                 RefreshBookmarkVisuals();
-                StatusFileName.Text = "All bookmarks cleared";
+                StatusFileName.Text = Resources.MSG_ALL_BOOKMARKS_CLEARED;
             }
         }
 
@@ -4338,7 +4339,7 @@ namespace Cad3PLogBrowser
 
             var bookmarks = _bookmarkService.GetAllBookmarksSorted();
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine(string.Format("Bookmarks ({0}):", bookmarks.Count));
+            sb.AppendLine(string.Format(Resources.BOOKMARKS_LIST_HEADER, bookmarks.Count));
             sb.AppendLine();
 
             foreach (var lineNum in bookmarks)
@@ -4680,7 +4681,7 @@ namespace Cad3PLogBrowser
                         _appSettings.Save();
                     }
 
-                    StatusFileName.Text = string.Format("Font changed to {0} {1}pt", 
+                    StatusFileName.Text = string.Format(Resources.MSG_FONT_CHANGED, 
                         logFontDialog.Font.Name, logFontDialog.Font.Size);
 
                     // Clear status after 3 seconds
