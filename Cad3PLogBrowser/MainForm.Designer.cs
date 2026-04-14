@@ -40,7 +40,9 @@ namespace Cad3PLogBrowser
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTimelineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFlameGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fileSeparatorAfterOpen = new System.Windows.Forms.ToolStripSeparator();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
+            this.fileSeparatorAfterExports = new System.Windows.Forms.ToolStripSeparator();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mergeLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
@@ -51,6 +53,8 @@ namespace Cad3PLogBrowser
             this.findNextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.findAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.editSeparatorAfterCopy = new System.Windows.Forms.ToolStripSeparator();
+            this.editSeparatorAfterFind = new System.Windows.Forms.ToolStripSeparator();
             this.editSeparatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
             this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -62,10 +66,8 @@ namespace Cad3PLogBrowser
             this.previousBookmarkMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.editSeparatorAfterBookmarks = new System.Windows.Forms.ToolStripSeparator();
             this.copyWithHeadersMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.editSeparatorBeforeJumpToLine = new System.Windows.Forms.ToolStripSeparator();
             this.jumpToLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -200,14 +202,16 @@ namespace Cad3PLogBrowser
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
             this.mergeLogsMenuItem,
+            this.fileSeparatorAfterOpen,
             this.saveAsMenuItem,
             this.exportFilteredLogsMenuItem,
+            this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
             this.exportTimelineMenuItem,
             this.exportFlameGraphMenuItem,
-            this.fileSeparatorAfterSave,
+            this.fileSeparatorAfterExports,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
             this.exitMenuItem});
@@ -279,11 +283,21 @@ namespace Cad3PLogBrowser
             this.exportFlameGraphMenuItem.Text = "Export &Flame Graph as Image...";
             this.exportFlameGraphMenuItem.Click += new System.EventHandler(this.exportFlameGraphMenuItem_Click);
             // 
+            // fileSeparatorAfterOpen
+            // 
+            this.fileSeparatorAfterOpen.Name = "fileSeparatorAfterOpen";
+            this.fileSeparatorAfterOpen.Size = new System.Drawing.Size(257, 6);
+            // 
             // fileSeparatorAfterSave
             // 
             this.fileSeparatorAfterSave.Name = "fileSeparatorAfterSave";
             this.fileSeparatorAfterSave.Size = new System.Drawing.Size(257, 6);
             // 
+            // fileSeparatorAfterExports
+            // 
+            this.fileSeparatorAfterExports.Name = "fileSeparatorAfterExports";
+            this.fileSeparatorAfterExports.Size = new System.Drawing.Size(257, 6);
+            //
             // mergeLogsMenuItem
             // 
             this.mergeLogsMenuItem.Name = "mergeLogsMenuItem";
@@ -319,9 +333,11 @@ namespace Cad3PLogBrowser
             this.editMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyMenuItem,
             this.copyWithHeadersMenuItem,
+            this.editSeparatorAfterCopy,
             this.findMenuItem,
             this.findNextMenuItem,
             this.findAllMenuItem,
+            this.editSeparatorAfterFind,
             this.filterMenuItem,
             this.clearFilterMenuItem,
             this.editSeparatorAfterFilter,
@@ -329,15 +345,13 @@ namespace Cad3PLogBrowser
             this.collapseAllMenuItem,
             this.editSeparatorAfterCollapse,
             this.jumpToMatchingMenuItem,
+            this.jumpToLineMenuItem,
             this.editSeparatorBeforeBookmarks,
             this.toggleBookmarkMenuItem,
             this.nextBookmarkMenuItem,
             this.previousBookmarkMenuItem,
             this.showBookmarksMenuItem,
-            this.clearBookmarksMenuItem,
-            this.editSeparatorAfterBookmarks,
-            this.editSeparatorBeforeJumpToLine,
-            this.jumpToLineMenuItem});
+            this.clearBookmarksMenuItem});
             this.editMenuItem.Name = "editMenuItem";
             this.editMenuItem.Size = new System.Drawing.Size(43, 22);
             this.editMenuItem.Text = "&Edit";
@@ -463,10 +477,10 @@ namespace Cad3PLogBrowser
             this.clearBookmarksMenuItem.Text = "&Clear All Bookmarks";
             this.clearBookmarksMenuItem.Click += new System.EventHandler(this.clearBookmarksMenuItem_Click);
             // 
-            // editSeparatorAfterBookmarks
+            // editSeparatorAfterCopy
             // 
-            this.editSeparatorAfterBookmarks.Name = "editSeparatorAfterBookmarks";
-            this.editSeparatorAfterBookmarks.Size = new System.Drawing.Size(255, 6);
+            this.editSeparatorAfterCopy.Name = "editSeparatorAfterCopy";
+            this.editSeparatorAfterCopy.Size = new System.Drawing.Size(255, 6);
             // 
             // copyWithHeadersMenuItem
             // 
@@ -484,10 +498,10 @@ namespace Cad3PLogBrowser
             this.clearFilterMenuItem.Text = "C&lear Filter";
             this.clearFilterMenuItem.Click += new System.EventHandler(this.clearFilterMenuItem_Click);
             // 
-            // editSeparatorBeforeJumpToLine
+            // editSeparatorAfterFind
             // 
-            this.editSeparatorBeforeJumpToLine.Name = "editSeparatorBeforeJumpToLine";
-            this.editSeparatorBeforeJumpToLine.Size = new System.Drawing.Size(255, 6);
+            this.editSeparatorAfterFind.Name = "editSeparatorAfterFind";
+            this.editSeparatorAfterFind.Size = new System.Drawing.Size(255, 6);
             // 
             // jumpToLineMenuItem
             // 
@@ -1619,22 +1633,24 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem showTab4MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTimelineTabMenuItem;
+        private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterOpen;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
+        private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterExports;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorBeforeExit;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCopy;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFind;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterFilter;
         private System.Windows.Forms.ToolStripSeparator editSeparatorAfterCollapse;
+        private System.Windows.Forms.ToolStripSeparator editSeparatorBeforeBookmarks;
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
-        private System.Windows.Forms.ToolStripSeparator editSeparatorBeforeJumpToLine;
         private System.Windows.Forms.ToolStripMenuItem jumpToLineMenuItem;
-        private System.Windows.Forms.ToolStripSeparator editSeparatorBeforeBookmarks;
         private System.Windows.Forms.ToolStripMenuItem toggleBookmarkMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nextBookmarkMenuItem;
         private System.Windows.Forms.ToolStripMenuItem previousBookmarkMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showBookmarksMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearBookmarksMenuItem;
-        private System.Windows.Forms.ToolStripSeparator editSeparatorAfterBookmarks;
         private System.Windows.Forms.ToolStripMenuItem copyWithHeadersMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearFilterMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
