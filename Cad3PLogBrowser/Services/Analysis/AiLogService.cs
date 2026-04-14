@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cad3PLogBrowser.Models;
@@ -25,7 +25,6 @@ namespace Cad3PLogBrowser.Services.Analysis
         private string _apiKey;
         private bool   _useApi;
 
-        private static readonly HttpClient Http = new HttpClient();
         private const string ApiUrl = "https://api.anthropic.com/v1/messages";
         private const string Model  = "claude-sonnet-4-20250514";
 
@@ -426,27 +425,44 @@ namespace Cad3PLogBrowser.Services.Analysis
         {
             try
             {
-                Http.DefaultRequestHeaders.Remove("x-api-key");
-                Http.DefaultRequestHeaders.Remove("anthropic-version");
-                Http.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-                Http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-
                 if (messagesJson == null)
                     messagesJson = $"[{{\"role\":\"user\",\"content\":\"{EscJson(userPrompt)}\"}}]";
 
                 string body = $"{{\"model\":\"{Model}\",\"max_tokens\":1000,\"system\":\"{EscJson(system)}\",\"messages\":{messagesJson}}}";
-                var resp = await Http.PostAsync(ApiUrl, new StringContent(body, Encoding.UTF8, "application/json"));
-                string raw = await resp.Content.ReadAsStringAsync();
-                if (!resp.IsSuccessStatusCode) return $"[API error {(int)resp.StatusCode}] {raw}";
 
-                // Parse "text" from response
-                int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);
-                if (start < 0) return null;
-                start += 8;
-                int end = FindJsonStringEnd(raw, start);
-                if (end < 0) return null;
-                return raw.Substring(start, end - start)
-                    .Replace("\\n", "\n").Replace("\\\"", "\"").Replace("\\\\", "\\");
+                // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
+                using (var client = new WebClient())
+                {
+                    client.Headers.Add("x-api-key", _apiKey);
+                    client.Headers.Add("anthropic-version", "2023-06-01");
+                    client.Headers.Add("Content-Type", "application/json");
+
+                    string raw = await Task.Run(() => client.UploadString(ApiUrl, body));
+
+                    // Parse "text" from response
+                    int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);
+                    if (start < 0) return null;
+                    start += 8;
+                    int end = FindJsonStringEnd(raw, start);
+                    if (end < 0) return null;
+                    return raw.Substring(start, end - start)
+                        .Replace("\\n", "\n").Replace("\\\"", "\"").Replace("\\\\", "\\");
+                }
+            }
+            catch (WebException wex)
+            {
+                try
+                {
+                    using (var reader = new System.IO.StreamReader(wex.Response.GetResponseStream()))
+                    {
+                        string error = reader.ReadToEnd();
+                        return $"[Claude API error: {error}]";
+                    }
+                }
+                catch
+                {
+                    return $"[Claude API unavailable: {wex.Message}]";
+                }
             }
             catch (Exception ex)
             {
