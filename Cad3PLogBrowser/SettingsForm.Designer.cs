@@ -359,6 +359,7 @@ namespace Cad3PLogBrowser
             this.OkButton.Size                 = new System.Drawing.Size(90, 32);
             this.OkButton.TabIndex             = 100;
             this.OkButton.Text                 = "&OK";
+            this.OkButton.DialogResult         = System.Windows.Forms.DialogResult.OK;
             this.OkButton.UseVisualStyleBackColor = true;
             this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
 
