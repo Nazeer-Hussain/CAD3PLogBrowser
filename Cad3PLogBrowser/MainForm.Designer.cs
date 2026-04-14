@@ -789,7 +789,7 @@ namespace Cad3PLogBrowser
             this.ApiTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ApiTree_AfterSelect);
             this.ApiTree.Click += new System.EventHandler(this.ApiTree_Click);
             this.ApiTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.ApiTree_MouseClick);
-            this.ApiTree.MouseUp += new System.Windows.Forms.MouseEventHandler(this.ApiTree_MouseUp);
+            // ApiTree.MouseUp handler added in code for sorting context menu
             // 
             // CallTree
             // 

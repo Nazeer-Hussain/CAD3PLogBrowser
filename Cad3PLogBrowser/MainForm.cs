@@ -167,6 +167,60 @@ namespace Cad3PLogBrowser
 
         private ToolStripMenuItem _recentFilesMenuItem;
         private ToolStripSeparator _recentFilesSeparator;
+        private ToolStripButton _themeToggleButton;
+
+        private void AddThemeToggleButton()
+        {
+            // Create theme toggle button
+            _themeToggleButton = new ToolStripButton
+            {
+                Text = "☀", // Sun icon for light theme (moon ☾ for dark)
+                ToolTipText = "Toggle Dark/Light Theme (Ctrl+T)",
+                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                Font = new Font("Segoe UI", 12f),
+                AutoSize = true
+            };
+            _themeToggleButton.Click += ThemeToggleButton_Click;
+
+            // Add to toolbar before settings button
+            int settingsIndex = mainToolStrip.Items.IndexOf(SettingsButton);
+            if (settingsIndex >= 0)
+            {
+                mainToolStrip.Items.Insert(settingsIndex, _themeToggleButton);
+                mainToolStrip.Items.Insert(settingsIndex + 1, new ToolStripSeparator());
+            }
+            else
+            {
+                mainToolStrip.Items.Add(new ToolStripSeparator());
+                mainToolStrip.Items.Add(_themeToggleButton);
+            }
+
+            UpdateThemeButtonIcon();
+        }
+
+        private void ThemeToggleButton_Click(object sender, EventArgs e)
+        {
+            // Toggle theme
+            _appSettings.Theme = _appSettings.Theme == "Dark" ? "Light" : "Dark";
+            ApplyTheme();
+            UpdateThemeButtonIcon();
+        }
+
+        private void UpdateThemeButtonIcon()
+        {
+            if (_themeToggleButton != null)
+            {
+                // Sun ☀ for light theme (click to go to light), Moon ☾ for dark theme (click to go to dark)
+                bool isDark = _appSettings.Theme == "Dark";
+                _themeToggleButton.Text = isDark ? "☀" : "☾";
+                _themeToggleButton.ToolTipText = isDark 
+                    ? "Switch to Light Theme (Ctrl+T)" 
+                    : "Switch to Dark Theme (Ctrl+T)";
+                _themeToggleButton.ForeColor = isDark 
+                    ? Color.FromArgb(255, 200, 0)  // Yellow sun in dark mode
+                    : Color.FromArgb(100, 100, 150); // Blue moon in light mode
+            }
+        }
 
         private void BuildMruMenu()
         {
@@ -275,6 +329,7 @@ namespace Cad3PLogBrowser
             InitDependencyGraphPanel();
             InitAiPanel();
             BuildMruMenu();
+            AddThemeToggleButton();
             ApplyTheme();
 
             // Ensure search box is on top (above trees)
@@ -615,6 +670,7 @@ namespace Cad3PLogBrowser
 
             ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
+            ApiTree.ShowNodeToolTips = true; // Same as CallTree
             CallTree.ShowLines = CallTree.ShowPlusMinus = true;
             CallTree.ShowNodeToolTips = true;
             CallTree.HideSelection = false;
@@ -622,7 +678,56 @@ namespace Cad3PLogBrowser
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
 
+            // Add context menu for API Tree sorting
+            ApiTree.MouseUp += ApiTree_MouseUpForSorting;
+
             SyncTreeVisibility();
+        }
+
+        private void ApiTree_MouseUpForSorting(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                // Select node under cursor
+                var node = ApiTree.GetNodeAt(e.Location);
+                if (node != null) ApiTree.SelectedNode = node;
+
+                // Show sorting options when right-clicking on API Tree
+                var contextMenu = new ContextMenuStrip();
+
+                contextMenu.Items.Add("Sort by Name (A-Z)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByName));
+                contextMenu.Items.Add("Sort by Call Count (Most First)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByCount));
+                contextMenu.Items.Add("Sort by Line Order", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine));
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // Show current sort mode with checkmark
+                foreach (ToolStripMenuItem item in contextMenu.Items)
+                {
+                    if (item.Text.Contains("Name") && _apiSortMode == ApiSortMode.ByName)
+                        item.Checked = true;
+                    else if (item.Text.Contains("Count") && _apiSortMode == ApiSortMode.ByCount)
+                        item.Checked = true;
+                    else if (item.Text.Contains("Line") && _apiSortMode == ApiSortMode.ByFirstLine)
+                        item.Checked = true;
+                }
+
+                // Add standard tree menu items
+                contextMenu.Items.Add("Expand All", null, (s, ev) => ApiTree.ExpandAll());
+                contextMenu.Items.Add("Collapse All", null, (s, ev) => ApiTree.CollapseAll());
+
+                contextMenu.Show(ApiTree, e.Location);
+            }
+        }
+
+        private void ChangeApiSorting(ApiSortMode newMode)
+        {
+            _apiSortMode = newMode;
+
+            // Refresh API Tree
+            if (_apiNodes != null && _apiNodes.Count > 0)
+            {
+                PopulateApiTree(_apiNodes);
+            }
         }
 
         private void BuildTreeIconList()
@@ -2163,6 +2268,10 @@ namespace Cad3PLogBrowser
             // Handle error/warning navigation shortcuts
             switch (keyData)
             {
+                case Keys.Control | Keys.T:                      // Toggle Theme
+                    ThemeToggleButton_Click(this, EventArgs.Empty);
+                    return true;
+
                 case Keys.F8:                                    // Next Error
                     NavigateToNextError();
                     return true;
@@ -3024,16 +3133,6 @@ namespace Cad3PLogBrowser
         {
             if (e.Button == MouseButtons.Right)
                 logContextMenu.Show(logListView, e.Location);
-        }
-
-        private void ApiTree_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                var node = ApiTree.GetNodeAt(e.Location);
-                if (node != null) ApiTree.SelectedNode = node;
-                treeContextMenu.Show(ApiTree, e.Location);
-            }
         }
 
         private void CallTree_MouseClick(object sender, MouseEventArgs e) { }
