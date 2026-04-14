@@ -2238,7 +2238,7 @@ namespace Cad3PLogBrowser
             // Show progress bar and update status
             FileLoadProgress.Style = ProgressBarStyle.Marquee;
             FileLoadProgress.Visible = true;
-            StatusFileName.Text = $"{operationName}... (ESC or click here to cancel)";
+            StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
             // Disable menu items during operation
             SetOperationInProgress(true);
@@ -2262,7 +2262,7 @@ namespace Cad3PLogBrowser
             if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
             {
                 _cancellationTokenSource.Cancel();
-                StatusFileName.Text = $"{_currentOperation} cancelled.";
+                StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_CANCELLED, _currentOperation);
             }
         }
 

@@ -1823,5 +1823,23 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("PROGRESS_PRESS_ESC_TO_CANCEL", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}... (ESC or click here to cancel).
+        /// </summary>
+        internal static string STATUS_OPERATION_IN_PROGRESS {
+            get {
+                return ResourceManager.GetString("STATUS_OPERATION_IN_PROGRESS", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} cancelled..
+        /// </summary>
+        internal static string STATUS_OPERATION_CANCELLED {
+            get {
+                return ResourceManager.GetString("STATUS_OPERATION_CANCELLED", resourceCulture);
+            }
+        }
     }
 }

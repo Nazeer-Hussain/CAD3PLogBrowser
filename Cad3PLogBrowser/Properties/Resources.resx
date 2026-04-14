@@ -772,4 +772,12 @@
     <value>{0} (Press ESC to cancel)</value>
   </data>
 
+  <!-- Operation Status Messages -->
+  <data name="STATUS_OPERATION_IN_PROGRESS" xml:space="preserve">
+    <value>{0}... (ESC or click here to cancel)</value>
+  </data>
+  <data name="STATUS_OPERATION_CANCELLED" xml:space="preserve">
+    <value>{0} cancelled.</value>
+  </data>
+
 </root>
