@@ -432,6 +432,7 @@ namespace Cad3PLogBrowser
                 // Manually update visualization panels (they handle their own child controls)
                 flameGraphPanel?.UpdateTheme();
                 timelinePanel?.UpdateTheme();
+                _aiPanel?.UpdateTheme();
 
                 // Apply icon size
                 ApplyIconSize();
@@ -2848,86 +2849,7 @@ namespace Cad3PLogBrowser
                 Font = new Font("Segoe UI", 10f),
                 BorderStyle = BorderStyle.None,
                 Padding = new Padding(20),
-                Text = "═══════════════════════════════════════════════════════════════════\r\n" +
-                       "                 CAD 3P LOG BROWSER - QUICK HELP                      \r\n" +
-                       "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
-                       "OVERVIEW\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "CAD 3P Log Browser is a powerful tool for viewing and analyzing\r\n" +
-                       "CAD log files with advanced features like call trees, performance\r\n" +
-                       "analysis, flame graphs, and more.\r\n\r\n" +
-                       "GETTING STARTED\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "1. Open Log File: File → Open (Ctrl+O)\r\n" +
-                       "2. View call structure in Call Tree (left panel)\r\n" +
-                       "3. Analyze performance in Performance tab\r\n" +
-                       "4. Use Find (Ctrl+F) and Filter (Ctrl+I) to narrow down\r\n\r\n" +
-                       "KEY FEATURES\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "• Call Tree: Hierarchical view of API calls with ENTER/EXIT matching\r\n" +
-                       "• API Tree: Grouped view of all API invocations\r\n" +
-                       "• Performance Tab: Statistics on API call counts and durations\r\n" +
-                       "• Call Graph: Visual dependency graph\r\n" +
-                       "• Flame Graph: Performance visualization\r\n" +
-                       "• Timeline: Chronological event view\r\n" +
-                       "• Find & Filter: Powerful search with regex and criteria\r\n" +
-                       "• Bookmarks: Mark important lines for quick access\r\n" +
-                       "• Dark Theme: Eye-friendly professional appearance\r\n\r\n" +
-                       "KEYBOARD SHORTCUTS\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "FILE OPERATIONS\r\n" +
-                       "Ctrl+O              Open log file\r\n" +
-                       "Ctrl+S              Save filtered/processed logs\r\n" +
-                       "F5                  Reload current file\r\n" +
-                       "Ctrl+Q              Quit application\r\n\r\n" +
-                       "EDITING & SEARCH\r\n" +
-                       "Ctrl+C              Copy selected lines\r\n" +
-                       "Ctrl+F              Find text\r\n" +
-                       "F3                  Find next occurrence\r\n" +
-                       "Ctrl+I              Filter logs\r\n\r\n" +
-                       "NAVIGATION\r\n" +
-                       "Ctrl+E              Expand all tree nodes\r\n" +
-                       "Ctrl+W              Collapse all tree nodes\r\n" +
-                       "Ctrl+G              Jump to matching ENTER/EXIT\r\n" +
-                       "Ctrl+J              Jump to line number\r\n" +
-                       "F8                  Next error\r\n" +
-                       "Shift+F8            Previous error\r\n" +
-                       "F9                  Next warning\r\n" +
-                       "Shift+F9            Previous warning\r\n\r\n" +
-                       "BOOKMARKS\r\n" +
-                       "Ctrl+B              Toggle bookmark on current line\r\n" +
-                       "Ctrl+N              Next bookmark\r\n" +
-                       "Ctrl+P              Previous bookmark\r\n" +
-                       "Ctrl+Shift+B        Show all bookmarks\r\n" +
-                       "Ctrl+Shift+C        Clear all bookmarks\r\n\r\n" +
-                       "VIEW\r\n" +
-                       "Ctrl+T              Toggle Call Tree\r\n" +
-                       "Ctrl+L              Toggle API Tree\r\n" +
-                       "Ctrl+Shift+S        Settings\r\n\r\n" +
-                       "HELP\r\n" +
-                       "F1                  View this help\r\n" +
-                       "Ctrl+K              Keyboard shortcuts\r\n\r\n" +
-                       "TIPS & TRICKS\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "• Use Tree Search: Type in the search box above trees to filter\r\n" +
-                       "• Right-click menus: Context menus on trees and log view\r\n" +
-                       "• Virtual mode: Handles 500k+ line files smoothly\r\n" +
-                       "• Recent files: Last 10 files in File menu\r\n" +
-                       "• Export options: Save to CSV, JSON, XML, or images\r\n" +
-                       "• Performance guards: Warnings for large files and slow calls\r\n\r\n" +
-                       "TROUBLESHOOTING\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "• File not loading? Check PTC_LOG_DIR environment variable\r\n" +
-                       "• Slow performance? Enable lazy loading in settings\r\n" +
-                       "• Can't find API? Use API Tree and search function\r\n" +
-                       "• Unmatched ENTER/EXIT? Red X icon in tree indicates no match\r\n\r\n" +
-                       "FOR MORE INFORMATION\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "Full documentation: Help → View User Guide (F1)\r\n" +
-                       "GitHub: https://github.com/Nazeer-Hussain/CAD3PLogBrowser\r\n" +
-                       "Report issues: Help → Report Errors\r\n" +
-                       "Updates: Help → Check for Updates\r\n\r\n" +
-                       "═══════════════════════════════════════════════════════════════════\r\n"
+                Text = GetQuickHelpContent()
             };
 
             // Apply current theme to help dialog
@@ -2935,6 +2857,62 @@ namespace Cad3PLogBrowser
 
             helpForm.Controls.Add(rtb);
             helpForm.ShowDialog(this);
+        }
+
+        /// <summary>
+        /// Generates quick help content with overview and keyboard shortcuts.
+        /// Used by both inline help and F1 context help.
+        /// </summary>
+        private string GetQuickHelpContent()
+        {
+            return "═══════════════════════════════════════════════════════════════════\r\n" +
+                   "                 CAD 3P LOG BROWSER - QUICK HELP                      \r\n" +
+                   "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                   "OVERVIEW\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "CAD 3P Log Browser is a powerful tool for viewing and analyzing\r\n" +
+                   "CAD log files with advanced features like call trees, performance\r\n" +
+                   "analysis, flame graphs, and more.\r\n\r\n" +
+                   "GETTING STARTED\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "1. Open Log File: File → Open (Ctrl+O)\r\n" +
+                   "2. View call structure in Call Tree (left panel)\r\n" +
+                   "3. Analyze performance in Performance tab\r\n" +
+                   "4. Use Find (Ctrl+F) and Filter (Ctrl+I) to narrow down\r\n\r\n" +
+                   "KEY FEATURES\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "• Call Tree: Hierarchical view of API calls with ENTER/EXIT matching\r\n" +
+                   "• API Tree: Grouped view of all API invocations\r\n" +
+                   "• Performance Tab: Statistics on API call counts and durations\r\n" +
+                   "• Call Graph: Visual dependency graph\r\n" +
+                   "• Flame Graph: Performance visualization\r\n" +
+                   "• Timeline: Chronological event view\r\n" +
+                   "• Find & Filter: Powerful search with regex and criteria\r\n" +
+                   "• Bookmarks: Mark important lines for quick access\r\n" +
+                   "• Dark Theme: Eye-friendly professional appearance\r\n" +
+                   "• AI Assistant: Log analysis and anomaly detection\r\n\r\n" +
+                   GetKeyboardShortcutsContent() + "\r\n" +
+                   "TIPS & TRICKS\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "• Use Tree Search: Type in the search box above trees to filter\r\n" +
+                   "• Right-click menus: Context menus on trees and log view\r\n" +
+                   "• Virtual mode: Handles 500k+ line files smoothly\r\n" +
+                   "• Recent files: Last 10 files in File menu\r\n" +
+                   "• Export options: Save to CSV, JSON, XML, or images\r\n" +
+                   "• Performance guards: Warnings for large files and slow calls\r\n\r\n" +
+                   "TROUBLESHOOTING\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "• File not loading? Check PTC_LOG_DIR environment variable\r\n" +
+                   "• Slow performance? Enable lazy loading in settings\r\n" +
+                   "• Can't find API? Use API Tree and search function\r\n" +
+                   "• Unmatched ENTER/EXIT? Red X icon in tree indicates no match\r\n\r\n" +
+                   "FOR MORE INFORMATION\r\n" +
+                   "─────────────────────────────────────────────────────────────────\r\n" +
+                   "Full documentation: Help → View User Guide (F1)\r\n" +
+                   "GitHub: https://github.com/Nazeer-Hussain/CAD3PLogBrowser\r\n" +
+                   "Report issues: Help → Report Errors\r\n" +
+                   "Updates: Help → Check for Updates\r\n\r\n" +
+                   "═══════════════════════════════════════════════════════════════════\r\n";
         }
 
         private void helpMenuItem_Click(object sender, EventArgs e)
@@ -2957,82 +2935,90 @@ namespace Cad3PLogBrowser
                 Size = new System.Drawing.Size(650, 550),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
-                MaximizeBox = false, MinimizeBox = false
+                MaximizeBox = false, MinimizeBox = false,
+                ShowIcon = false
             };
+
             var rtb = new RichTextBox
             {
-                Dock = DockStyle.Fill, ReadOnly = true,
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
                 Font = new System.Drawing.Font("Consolas", 9f),
-                BackColor = SystemColors.Window,
-                Text =
-                    "═══════════════════════════════════════════════════════════════════\r\n" +
-                    "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
-                    "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
-                    "FILE MENU\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "Ctrl+O              Open log file\r\n" +
-                    "Ctrl+S              Save As (selection or all visible lines)\r\n" +
-                    "Ctrl+Shift+E        Export Filtered Logs (save visible lines)\r\n" +
-                    "F5                  Refresh (reload, keep scroll position)\r\n" +
-                    "Ctrl+R              Reload File from Disk (reset to top)\r\n" +
-                    "Alt+F4              Exit\r\n\r\n" +
-                    "EDIT MENU\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "Ctrl+C              Copy selected lines\r\n" +
-                    "Ctrl+F              Find / Search\r\n" +
-                    "F3                  Find Next\r\n" +
-                    "Ctrl+I              Filter log entries\r\n" +
-                    "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
-                    "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
-                    "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n\r\n" +
-                    "NAVIGATION (Errors & Warnings)\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "F8                  Next Error\r\n" +
-                    "Shift+F8            Previous Error\r\n" +
-                    "Ctrl+F8             Next Warning\r\n" +
-                    "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
-                    "BOOKMARKS\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "Ctrl+B              Toggle Bookmark on current line\r\n" +
-                    "F2                  Next Bookmark\r\n" +
-                    "Shift+F2            Previous Bookmark\r\n" +
-                    "Ctrl+Shift+B        Show all Bookmarks\r\n" +
-                    "Ctrl+Shift+Del      Clear all Bookmarks\r\n\r\n" +
-                    "VIEW MENU\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "Ctrl+T              Toggle Call Tree view\r\n" +
-                    "Ctrl+L              Toggle API List view\r\n" +
-                    "Ctrl+H              Hide/Show Tab panels\r\n\r\n" +
-                    "OPTIONS MENU\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "Ctrl+Shift+S        Settings\r\n\r\n" +
-                    "HELP MENU\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "F1                  View Help\r\n" +
-                    "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
-                    "CALL GRAPH TAB\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "  •  Scroll wheel to zoom in/out\r\n" +
-                    "  •  Click and drag to pan\r\n" +
-                    "  •  Hover a node to highlight its edges\r\n" +
-                    "  •  Edge thickness = call frequency\r\n" +
-                    "  •  Reset View button restores default zoom/pan\r\n\r\n" +
-                    "TIPS & TRICKS\r\n" +
-                    "─────────────────────────────────────────────────────────────────\r\n" +
-                    "  •  Drag and drop a log file onto the window to open it\r\n" +
-                    "  •  Click any tree node to jump to that line in the log\r\n" +
-                    "  •  Select lines then Save As to save a trimmed log\r\n" +
-                    "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
-                    "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
-                    "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
-                    "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
-                    "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
-                    "  •  Recent Files: Last 10 opened files in File menu\r\n" +
-                    "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
-                    "═══════════════════════════════════════════════════════════════════\r\n"
+                BorderStyle = BorderStyle.None,
+                Padding = new Padding(15),
+                Text = "═══════════════════════════════════════════════════════════════════\r\n" +
+                       "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                       "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                       GetKeyboardShortcutsContent() + 
+                       "TIPS\r\n" +
+                       "─────────────────────────────────────────────────────────────────\r\n" +
+                       "  •  Drag and drop a log file onto the window to open it\r\n" +
+                       "  •  Click any tree node to jump to that line in the log\r\n" +
+                       "  •  Select lines then Save As to save a trimmed log\r\n" +
+                       "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
+                       "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
+                       "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
+                       "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
+                       "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
+                       "  •  Recent Files: Last 10 opened files in File menu\r\n" +
+                       "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
+                       "═══════════════════════════════════════════════════════════════════\r\n"
             };
+
+            // Apply current theme
+            ThemeManager.ApplyTheme(helpForm);
+
             helpForm.Controls.Add(rtb);
             helpForm.ShowDialog(this);
+        }
+
+        /// <summary>
+        /// Generates keyboard shortcuts content.
+        /// Shared between Quick Help and Keyboard Shortcuts dialogs to avoid duplication.
+        /// </summary>
+        private string GetKeyboardShortcutsContent()
+        {
+            return "FILE OPERATIONS\r\n" +
+                   "Ctrl+O              Open log file\r\n" +
+                   "Ctrl+S              Save As (selection or all visible lines)\r\n" +
+                   "Ctrl+Shift+E        Export Filtered Logs\r\n" +
+                   "F5                  Refresh (reload, keep scroll position)\r\n" +
+                   "Ctrl+R              Reload File from Disk\r\n" +
+                   "Alt+F4              Exit\r\n\r\n" +
+                   "EDITING & SEARCH\r\n" +
+                   "Ctrl+C              Copy selected lines\r\n" +
+                   "Ctrl+F              Find / Search\r\n" +
+                   "F3                  Find Next\r\n" +
+                   "Ctrl+I              Filter log entries\r\n\r\n" +
+                   "TREE NAVIGATION\r\n" +
+                   "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
+                   "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
+                   "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n" +
+                   "Ctrl+J              Jump to line number\r\n\r\n" +
+                   "ERROR & WARNING NAVIGATION\r\n" +
+                   "F8                  Next Error\r\n" +
+                   "Shift+F8            Previous Error\r\n" +
+                   "Ctrl+F8             Next Warning\r\n" +
+                   "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
+                   "BOOKMARKS\r\n" +
+                   "Ctrl+B              Toggle bookmark on current line\r\n" +
+                   "F2                  Next bookmark\r\n" +
+                   "Shift+F2            Previous bookmark\r\n" +
+                   "Ctrl+Shift+B        Show all bookmarks\r\n" +
+                   "Ctrl+Shift+Del      Clear all bookmarks\r\n\r\n" +
+                   "VIEW OPTIONS\r\n" +
+                   "Ctrl+T              Toggle theme (Dark/Light)\r\n" +
+                   "Ctrl+1              Show Call Tree\r\n" +
+                   "Ctrl+2              Show API Tree\r\n\r\n" +
+                   "HELP\r\n" +
+                   "F1                  View Help / User Guide\r\n" +
+                   "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
+                   "CALL GRAPH TAB\r\n" +
+                   "Scroll Wheel        Zoom in/out\r\n" +
+                   "Click & Drag        Pan view\r\n" +
+                   "Hover Node          Highlight edges\r\n" +
+                   "Edge Thickness      = Call frequency\r\n" +
+                   "Reset View Button   Restore default zoom/pan\r\n\r\n";
         }
 
         // ── Form lifecycle ────────────────────────────────────────────────────
@@ -4904,6 +4890,9 @@ namespace Cad3PLogBrowser
             {
                 tabsMenuItem.DropDownItems.Add(showAiMenuItem);
             }
+
+            // Apply initial theme
+            _aiPanel?.UpdateTheme();
         }
 
         private async void AiPanel_QuerySubmitted(object sender, string query)

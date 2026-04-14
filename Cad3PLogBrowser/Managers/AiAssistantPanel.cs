@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser.Managers
 {
@@ -286,5 +287,95 @@ namespace Cad3PLogBrowser.Managers
             Font      = new Font("Segoe UI", 8.5f),
             FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 130) }
         };
+
+        /// <summary>
+        /// Updates the panel colors based on current theme.
+        /// Call this after theme changes.
+        /// </summary>
+        public void UpdateTheme()
+        {
+            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+
+            if (isDark)
+            {
+                // Dark theme colors
+                _apiModeLabel.BackColor = Color.FromArgb(40, 44, 54);
+                _apiModeLabel.ForeColor = _apiModeLabel.Text.Contains("Claude API") 
+                    ? Color.FromArgb(100, 200, 120) 
+                    : Color.FromArgb(130, 140, 160);
+
+                _statusLabel.BackColor = Color.FromArgb(35, 38, 48);
+                _statusLabel.ForeColor = Color.FromArgb(200, 215, 240);
+
+                _buttonPanel.BackColor = Color.FromArgb(35, 38, 48);
+
+                foreach (Control ctrl in _buttonPanel.Controls)
+                {
+                    if (ctrl is Button btn)
+                    {
+                        btn.BackColor = Color.FromArgb(50, 60, 85);
+                        btn.ForeColor = Color.FromArgb(200, 215, 240);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(70, 90, 130);
+                    }
+                }
+
+                _queryBox.BackColor = Color.FromArgb(48, 52, 64);
+                _queryBox.ForeColor = _queryBox.Text == "Ask a question or type a chat message..." 
+                    ? Color.Gray 
+                    : Color.FromArgb(210, 220, 235);
+
+                _responseBox.BackColor = Color.FromArgb(22, 24, 30);
+                _responseBox.ForeColor = Color.FromArgb(200, 215, 235);
+
+                foreach (Control ctrl in Controls)
+                {
+                    if (ctrl is Panel panel && panel != _buttonPanel)
+                        panel.BackColor = Color.FromArgb(35, 38, 48);
+                }
+
+                _clearBtn.BackColor = Color.FromArgb(60, 40, 40);
+            }
+            else
+            {
+                // Light theme colors
+                _apiModeLabel.BackColor = Color.FromArgb(240, 240, 245);
+                _apiModeLabel.ForeColor = _apiModeLabel.Text.Contains("Claude API") 
+                    ? Color.FromArgb(0, 120, 40) 
+                    : Color.FromArgb(100, 100, 120);
+
+                _statusLabel.BackColor = Color.FromArgb(230, 235, 245);
+                _statusLabel.ForeColor = Color.FromArgb(40, 50, 80);
+
+                _buttonPanel.BackColor = Color.FromArgb(235, 240, 250);
+
+                foreach (Control ctrl in _buttonPanel.Controls)
+                {
+                    if (ctrl is Button btn)
+                    {
+                        btn.BackColor = Color.FromArgb(200, 210, 230);
+                        btn.ForeColor = Color.FromArgb(40, 50, 70);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
+                    }
+                }
+
+                _queryBox.BackColor = Color.White;
+                _queryBox.ForeColor = _queryBox.Text == "Ask a question or type a chat message..." 
+                    ? Color.Gray 
+                    : Color.Black;
+
+                _responseBox.BackColor = Color.White;
+                _responseBox.ForeColor = Color.Black;
+
+                foreach (Control ctrl in Controls)
+                {
+                    if (ctrl is Panel panel && panel != _buttonPanel)
+                        panel.BackColor = Color.FromArgb(235, 240, 250);
+                }
+
+                _clearBtn.BackColor = Color.FromArgb(220, 200, 200);
+            }
+
+            Invalidate(true);
+        }
     }
 }
