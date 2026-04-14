@@ -778,7 +778,7 @@ namespace Cad3PLogBrowser
             // 
             // ApiTree
             // 
-            this.ApiTree.ContextMenuStrip = this.treeContextMenu;
+            // ApiTree context menu handled in code (ApiTree_MouseUpForSorting)
             this.ApiTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -793,7 +793,7 @@ namespace Cad3PLogBrowser
             // 
             // CallTree
             // 
-            this.CallTree.ContextMenuStrip = this.treeContextMenu;
+            // CallTree context menu handled in code (CallTree_MouseUp)
             this.CallTree.ImageList = this.treeIconList;
             this.CallTree.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 

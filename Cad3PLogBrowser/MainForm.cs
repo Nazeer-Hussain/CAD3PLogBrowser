@@ -678,8 +678,9 @@ namespace Cad3PLogBrowser
             CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
 
-            // Add context menu for API Tree sorting
+            // Add context menu handlers for both trees
             ApiTree.MouseUp += ApiTree_MouseUpForSorting;
+            CallTree.MouseUp += CallTree_MouseUp;
 
             SyncTreeVisibility();
         }
@@ -692,28 +693,65 @@ namespace Cad3PLogBrowser
                 var node = ApiTree.GetNodeAt(e.Location);
                 if (node != null) ApiTree.SelectedNode = node;
 
-                // Show sorting options when right-clicking on API Tree
+                // API Tree specific context menu
                 var contextMenu = new ContextMenuStrip();
 
-                contextMenu.Items.Add("Sort by Name (A-Z)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByName));
-                contextMenu.Items.Add("Sort by Call Count (Most First)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByCount));
-                contextMenu.Items.Add("Sort by Line Order", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine));
+                // ═══ SORTING OPTIONS (API Tree only - PRIMARY FEATURE) ═══
+                var sortByName = (ToolStripMenuItem)contextMenu.Items.Add("🔤 Sort by Name (A-Z)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByName));
+                sortByName.Checked = (_apiSortMode == ApiSortMode.ByName);
+
+                var sortByCount = (ToolStripMenuItem)contextMenu.Items.Add("🔢 Sort by Call Count (Most First)", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByCount));
+                sortByCount.Checked = (_apiSortMode == ApiSortMode.ByCount);
+
+                var sortByLine = (ToolStripMenuItem)contextMenu.Items.Add("📄 Sort by Line Order", null, (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine));
+                sortByLine.Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
+
                 contextMenu.Items.Add(new ToolStripSeparator());
 
-                // Show current sort mode with checkmark
-                foreach (ToolStripMenuItem item in contextMenu.Items)
+                // ═══ COPY ACTIONS ═══
+                contextMenu.Items.Add("📋 Copy API Name", null, (s, ev) => 
                 {
-                    if (item.Text.Contains("Name") && _apiSortMode == ApiSortMode.ByName)
-                        item.Checked = true;
-                    else if (item.Text.Contains("Count") && _apiSortMode == ApiSortMode.ByCount)
-                        item.Checked = true;
-                    else if (item.Text.Contains("Line") && _apiSortMode == ApiSortMode.ByFirstLine)
-                        item.Checked = true;
+                    var n = ApiTree.SelectedNode;
+                    if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
+                });
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ COMMON TREE ACTIONS ═══
+                contextMenu.Items.Add("➕ Expand All (Ctrl+E)", null, (s, ev) => ApiTree.ExpandAll());
+                contextMenu.Items.Add("➖ Collapse All (Ctrl+W)", null, (s, ev) => 
+                {
+                    ApiTree.CollapseAll();
+                    if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
+                });
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ CROSS-REFERENCE ═══
+                contextMenu.Items.Add("🔍 Show in Call Tree", null, (s, ev) => 
+                {
+                    var n = ApiTree.SelectedNode;
+                    if (n != null)
+                    {
+                        ShowCallTree();
+                        FindAndSelectCallTreeNode(GetMethodNameFromNode(n));
+                    }
+                });
+
+                // ═══ SEARCH IN GROK (if configured) ═══
+                if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
+                {
+                    contextMenu.Items.Add(new ToolStripSeparator());
+                    contextMenu.Items.Add("🔎 Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
                 }
 
-                // Add standard tree menu items
-                contextMenu.Items.Add("Expand All", null, (s, ev) => ApiTree.ExpandAll());
-                contextMenu.Items.Add("Collapse All", null, (s, ev) => ApiTree.CollapseAll());
+                // Apply dark theme if needed
+                if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
+                {
+                    contextMenu.Renderer = new ToolStripProfessionalRenderer(new DarkContextMenuColorTable());
+                    contextMenu.BackColor = Color.FromArgb(45, 45, 48);
+                    contextMenu.ForeColor = Color.FromArgb(241, 241, 241);
+                }
 
                 contextMenu.Show(ApiTree, e.Location);
             }
@@ -3141,10 +3179,96 @@ namespace Cad3PLogBrowser
         {
             if (e.Button == MouseButtons.Right)
             {
+                // Select node under cursor
                 var node = CallTree.GetNodeAt(e.Location);
                 if (node != null) CallTree.SelectedNode = node;
-                treeContextMenu.Show(CallTree, e.Location);
+
+                // Call Tree specific context menu
+                var contextMenu = new ContextMenuStrip();
+
+                // ═══ COPY ACTIONS ═══
+                contextMenu.Items.Add("📋 Copy Method Name", null, (s, ev) => 
+                {
+                    var n = CallTree.SelectedNode;
+                    if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
+                });
+
+                contextMenu.Items.Add("📄 Copy Entire Subtree", null, (s, ev) => 
+                {
+                    var n = CallTree.SelectedNode;
+                    if (n != null)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        AppendSubtreeText(n, sb, 0);
+                        Clipboard.SetText(sb.ToString());
+                    }
+                });
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ NAVIGATION (Call Tree only - ENTER/EXIT matching) ═══
+                contextMenu.Items.Add("🔄 Jump to Matching ENTER/EXIT (Ctrl+G)", null, (s, ev) => JumpToMatchingPair());
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ EXPORT (Call Tree only - branch operations) ═══
+                contextMenu.Items.Add("💾 Save Branch as Log File...", null, treeContextSaveBranchMenuItem_Click);
+                contextMenu.Items.Add("📊 Export Branch to CSV...", null, treeContextExportBranchCsvMenuItem_Click);
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ COMMON TREE ACTIONS ═══
+                contextMenu.Items.Add("➕ Expand All (Ctrl+E)", null, (s, ev) => CallTree.ExpandAll());
+                contextMenu.Items.Add("➖ Collapse All (Ctrl+W)", null, (s, ev) => 
+                {
+                    CallTree.CollapseAll();
+                    if (CallTree.Nodes.Count > 0) CallTree.Nodes[0].Expand();
+                });
+
+                contextMenu.Items.Add(new ToolStripSeparator());
+
+                // ═══ CROSS-REFERENCE ═══
+                contextMenu.Items.Add("🔍 Show in API Tree", null, (s, ev) => 
+                {
+                    var n = CallTree.SelectedNode;
+                    if (n != null)
+                    {
+                        ShowApiTree();
+                        FindAndSelectApiTreeNode(GetMethodNameFromNode(n));
+                    }
+                });
+
+                // ═══ SEARCH IN GROK (if configured) ═══
+                if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
+                {
+                    contextMenu.Items.Add(new ToolStripSeparator());
+                    contextMenu.Items.Add("🔎 Search in Grok", null, treeContextSearchInGrokMenuItem_Click);
+                }
+
+                // Apply dark theme if needed
+                if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
+                {
+                    contextMenu.Renderer = new ToolStripProfessionalRenderer(new DarkContextMenuColorTable());
+                    contextMenu.BackColor = Color.FromArgb(45, 45, 48);
+                    contextMenu.ForeColor = Color.FromArgb(241, 241, 241);
+                }
+
+                contextMenu.Show(CallTree, e.Location);
             }
+        }
+
+        // Dark theme context menu color table
+        private class DarkContextMenuColorTable : ProfessionalColorTable
+        {
+            public override Color MenuItemSelected => Color.FromArgb(62, 62, 64);
+            public override Color MenuItemSelectedGradientBegin => Color.FromArgb(62, 62, 64);
+            public override Color MenuItemSelectedGradientEnd => Color.FromArgb(62, 62, 64);
+            public override Color MenuItemBorder => Color.FromArgb(0, 122, 204);
+            public override Color MenuBorder => Color.FromArgb(63, 63, 70);
+            public override Color ToolStripDropDownBackground => Color.FromArgb(45, 45, 48);
+            public override Color ImageMarginGradientBegin => Color.FromArgb(45, 45, 48);
+            public override Color ImageMarginGradientMiddle => Color.FromArgb(45, 45, 48);
+            public override Color ImageMarginGradientEnd => Color.FromArgb(45, 45, 48);
         }
 
         // C6/J3: Tree context menu handlers
