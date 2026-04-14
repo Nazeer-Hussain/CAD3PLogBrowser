@@ -363,42 +363,53 @@ namespace Cad3PLogBrowser
 
         public void ApplyTheme()
         {
-            // Set the theme based on settings
-            var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
-            ThemeManager.SetTheme(theme);
+            // EMERGENCY FIX: Suspend layout during theme change to prevent freeze
+            this.SuspendLayout();
 
-            // Apply to main form
-            ThemeManager.ApplyTheme(this);
-
-            // Manually update visualization panels (they handle their own child controls)
-            flameGraphPanel?.UpdateTheme();
-            timelinePanel?.UpdateTheme();
-
-            // Apply icon size
-            ApplyIconSize();
-
-            // Refresh tree layout after theme/icon change
-            LayoutTrees();
-
-            // Update log-level colors based on theme
-            UpdateLogColors();
-
-            // Refresh the log view to apply new colors
-            if (logListView.VirtualMode && _virtualLines.Count > 0)
+            try
             {
-                logListView.Invalidate();
+                // Set the theme based on settings
+                var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
+                ThemeManager.SetTheme(theme);
+
+                // Apply to main form
+                ThemeManager.ApplyTheme(this);
+
+                // Manually update visualization panels (they handle their own child controls)
+                flameGraphPanel?.UpdateTheme();
+                timelinePanel?.UpdateTheme();
+
+                // Apply icon size
+                ApplyIconSize();
+
+                // Refresh tree layout after theme/icon change
+                LayoutTrees();
+
+                // Update log-level colors based on theme
+                UpdateLogColors();
+
+                // Refresh the log view to apply new colors
+                if (logListView.VirtualMode && _virtualLines.Count > 0)
+                {
+                    logListView.Invalidate();
+                }
+
+                // Refresh the call graph panel
+                if (callGraphPanel != null)
+                {
+                    callGraphPanel.Invalidate();
+                }
+
+                // Refresh the performance view with theme-aware colors
+                if (_apiPerfStats != null && _apiPerfStats.Count > 0)
+                {
+                    RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+                }
             }
-
-            // Refresh the call graph panel
-            if (callGraphPanel != null)
+            finally
             {
-                callGraphPanel.Invalidate();
-            }
-
-            // Refresh the performance view with theme-aware colors
-            if (_apiPerfStats != null && _apiPerfStats.Count > 0)
-            {
-                RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+                // Always resume layout even if error occurs
+                this.ResumeLayout(true);
             }
         }
 

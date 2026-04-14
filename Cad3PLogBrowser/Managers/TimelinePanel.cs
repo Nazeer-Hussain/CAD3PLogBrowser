@@ -153,12 +153,30 @@ namespace Cad3PLogBrowser.Managers
         /// </summary>
         public void UpdateTheme()
         {
-            this.BackColor = ThemeManager.BackgroundColor;
-            _contentPanel.BackColor = ThemeManager.BackgroundColor;
-            _welcomePanel.BackColor = ThemeManager.BackgroundColor;
-            _toolbar?.ApplyTheme();
-            _statusBar?.ApplyTheme();
-            _contentPanel.Invalidate();
+            // EMERGENCY FIX: Add guards to prevent loops
+            try
+            {
+                this.BackColor = ThemeManager.BackgroundColor;
+
+                if (_contentPanel != null)
+                    _contentPanel.BackColor = ThemeManager.BackgroundColor;
+
+                if (_welcomePanel != null)
+                    _welcomePanel.BackColor = ThemeManager.BackgroundColor;
+
+                if (_toolbar != null && this.Controls.Contains(_toolbar))
+                    _toolbar.ApplyTheme();
+
+                if (_statusBar != null && this.Controls.Contains(_statusBar))
+                    _statusBar.ApplyTheme();
+
+                if (_contentPanel != null && _entries.Count > 0)
+                    _contentPanel.Invalidate();
+            }
+            catch
+            {
+                // Silently ignore theme update errors to prevent freeze
+            }
         }
 
         private void ContentPanel_Paint(object sender, PaintEventArgs e)
