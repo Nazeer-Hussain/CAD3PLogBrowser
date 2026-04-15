@@ -196,11 +196,19 @@ namespace Cad3PLogBrowser.Managers
             if (_entries.Count == 0)
                 return;
 
-            // Apply transform
+            // Zoom is already baked into Bounds by CalculateLayout.
+            // Only pan (X offset) needs to be applied as a transform so the user
+            // can scroll left/right through a wide timeline.
             g.TranslateTransform(_panOffset.X, _panOffset.Y);
-            g.ScaleTransform(_zoom, _zoom);
 
-            DrawTimeline(g);
+            // Draw bars (positions already zoom-aware from CalculateLayout)
+            foreach (var entry in _entries)
+                DrawTimelineEntry(g, entry);
+
+            // Reset to screen space for fixed overlays (axis, labels)
+            g.ResetTransform();
+            DrawTimeScale(g);
+            DrawDepthLabels(g);
         }
 
         private void ZoomBy(float factor)
@@ -296,27 +304,56 @@ namespace Cad3PLogBrowser.Managers
         public Bitmap ExportAsImage(int width = 1920, int height = 1080)
         {
             var bitmap = new Bitmap(width, height);
-
             using (var g = Graphics.FromImage(bitmap))
             {
-                g.Clear(Color.White);
+                g.Clear(ThemeManager.BackgroundColor);
                 g.SmoothingMode = SmoothingMode.AntiAlias;
 
-                // Recalculate for export size
+                // Save state, set export dimensions
                 float oldZoom = _zoom;
-                var oldPan = _panOffset;
-
+                PointF oldPan = _panOffset;
                 _zoom = 1.0f;
-                _panOffset = new PointF(0, 0);
+                _panOffset = PointF.Empty;
 
-                // Draw
-                DrawTimeline(g);
+                // Temporarily override ClientSize for layout calculation
+                float baseWidth = width - LEFT_MARGIN - 20;
+                float availableWidth = baseWidth;
+                foreach (var entry in _entries)
+                {
+                    float offsetMs = (float)(entry.StartTime - _startTime).TotalMilliseconds;
+                    float x = LEFT_MARGIN + (offsetMs / _totalDurationMs) * availableWidth;
+                    float bw = Math.Max(2f, (entry.DurationMs / (float)_totalDurationMs) * availableWidth);
+                    float y = TOP_MARGIN + (entry.Depth * ROW_HEIGHT);
+                    entry.Bounds = new RectangleF(x, y, bw, ROW_HEIGHT - 2);
+                }
 
-                // Restore
+                foreach (var entry in _entries)
+                    DrawTimelineEntry(g, entry);
+
+                // Draw axis in screen space
+                using (var pen = new Pen(ThemeManager.BorderColor, 1f))
+                using (var font = new Font("Segoe UI", 7f))
+                using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
+                {
+                    int intervals = 10;
+                    float iw = availableWidth / intervals;
+                    long ims = _totalDurationMs / intervals;
+                    for (int i = 0; i <= intervals; i++)
+                    {
+                        float x = LEFT_MARGIN + i * iw;
+                        g.DrawLine(pen, x, TOP_MARGIN - 5, x, TOP_MARGIN);
+                        string lbl = $"{i * ims}ms";
+                        var sz = g.MeasureString(lbl, font);
+                        g.DrawString(lbl, font, brush, x - sz.Width / 2, TOP_MARGIN - 20);
+                    }
+                    g.DrawLine(pen, LEFT_MARGIN, TOP_MARGIN, LEFT_MARGIN + availableWidth, TOP_MARGIN);
+                }
+
+                // Restore live layout
                 _zoom = oldZoom;
                 _panOffset = oldPan;
+                CalculateLayout();
             }
-
             return bitmap;
         }
 
@@ -374,21 +411,19 @@ namespace Cad3PLogBrowser.Managers
 
         private void CalculateLayout()
         {
-            float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
+            // Scale the total available width by _zoom so bars expand when zooming in
+            // and compress when zooming out, giving a true horizontal zoom effect.
+            float baseWidth = _contentPanel.ClientSize.Width > 0
+                ? _contentPanel.ClientSize.Width - LEFT_MARGIN - 20
+                : this.ClientSize.Width - LEFT_MARGIN - 20;
+            float availableWidth = baseWidth * _zoom;
 
             foreach (var entry in _entries)
             {
-                // Calculate X position based on start time
                 float offsetMs = (float)(entry.StartTime - _startTime).TotalMilliseconds;
                 float x = LEFT_MARGIN + (offsetMs / _totalDurationMs) * availableWidth;
-
-                // Calculate width based on duration
-                float width = (entry.DurationMs / (float)_totalDurationMs) * availableWidth;
-                width = Math.Max(2, width); // Minimum 2px width
-
-                // Calculate Y position based on depth
+                float width = Math.Max(2f, (entry.DurationMs / (float)_totalDurationMs) * availableWidth);
                 float y = TOP_MARGIN + (entry.Depth * ROW_HEIGHT);
-
                 entry.Bounds = new RectangleF(x, y, width, ROW_HEIGHT - 2);
             }
         }
@@ -397,56 +432,43 @@ namespace Cad3PLogBrowser.Managers
         // Rendering
         // ======================================================================
 
-        // ContentPanel_Paint handles all rendering (defined in constructor)
-
-        private void DrawTimeline(Graphics g)
-        {
-            // Draw time scale
-            DrawTimeScale(g);
-
-            // Draw depth labels
-            DrawDepthLabels(g);
-
-            // Draw timeline entries
-            foreach (var entry in _entries)
-            {
-                DrawTimelineEntry(g, entry);
-            }
-        }
+        // ContentPanel_Paint handles all rendering
 
         private void DrawTimeScale(Graphics g)
         {
-            g.ResetTransform();
-
             using (var pen = new Pen(ThemeManager.BorderColor, 1f))
             using (var font = new Font("Segoe UI", 7f))
             using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
             {
-                // Draw time markers every 100ms or appropriate interval
-                float availableWidth = this.ClientSize.Width - LEFT_MARGIN - 20;
+                // Time markers scale with zoom so labels reflect actual pixel positions
+                float baseWidth = _contentPanel.ClientSize.Width - LEFT_MARGIN - 20;
+                float availableWidth = baseWidth * _zoom;
                 int intervals = 10;
                 float intervalWidth = availableWidth / intervals;
                 long intervalMs = _totalDurationMs / intervals;
 
                 for (int i = 0; i <= intervals; i++)
                 {
-                    float x = LEFT_MARGIN + (i * intervalWidth);
-                    g.DrawLine(pen, x, TOP_MARGIN - 5, x, TOP_MARGIN);
+                    float x = LEFT_MARGIN + _panOffset.X + (i * intervalWidth);
+                    // Only draw markers that are visible
+                    if (x < LEFT_MARGIN - 40 || x > _contentPanel.ClientSize.Width + 40) continue;
 
+                    g.DrawLine(pen, x, TOP_MARGIN - 5, x, TOP_MARGIN);
                     string label = $"{i * intervalMs}ms";
                     var size = g.MeasureString(label, font);
                     g.DrawString(label, font, brush, x - size.Width / 2, TOP_MARGIN - 20);
                 }
 
-                // Draw baseline
-                g.DrawLine(pen, LEFT_MARGIN, TOP_MARGIN, LEFT_MARGIN + availableWidth, TOP_MARGIN);
+                // Baseline
+                float x0 = LEFT_MARGIN + _panOffset.X;
+                float x1 = LEFT_MARGIN + _panOffset.X + availableWidth;
+                g.DrawLine(pen, Math.Max(LEFT_MARGIN, x0), TOP_MARGIN,
+                                Math.Min(_contentPanel.ClientSize.Width, x1), TOP_MARGIN);
             }
         }
 
         private void DrawDepthLabels(Graphics g)
         {
-            g.ResetTransform();
-
             int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
 
             using (var font = new Font("Segoe UI", 7f))
@@ -454,7 +476,9 @@ namespace Cad3PLogBrowser.Managers
             {
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
-                    float y = TOP_MARGIN + (depth * ROW_HEIGHT) + ROW_HEIGHT / 2;
+                    // Y is fixed (no horizontal zoom affects vertical depth rows)
+                    float y = TOP_MARGIN + _panOffset.Y + (depth * ROW_HEIGHT) + ROW_HEIGHT / 2;
+                    if (y < TOP_MARGIN || y > _contentPanel.ClientSize.Height) continue;
                     g.DrawString($"D{depth}", font, brush, 5, y - 6);
                 }
             }
@@ -599,16 +623,17 @@ namespace Cad3PLogBrowser.Managers
 
         private TimelineEntry FindEntryAtPoint(Point screenPoint)
         {
-            float graphX = (screenPoint.X - _panOffset.X) / _zoom;
-            float graphY = (screenPoint.Y - _panOffset.Y) / _zoom;
-            PointF graphPoint = new PointF(graphX, graphY);
+            // Bounds are in layout space (zoom already baked in).
+            // Only subtract pan offset to convert from screen to layout space.
+            float lx = screenPoint.X - _panOffset.X;
+            float ly = screenPoint.Y - _panOffset.Y;
+            var layoutPoint = new PointF(lx, ly);
 
             foreach (var entry in _entries)
             {
-                if (entry.Bounds.Contains(graphPoint))
+                if (entry.Bounds.Contains(layoutPoint))
                     return entry;
             }
-
             return null;
         }
     }

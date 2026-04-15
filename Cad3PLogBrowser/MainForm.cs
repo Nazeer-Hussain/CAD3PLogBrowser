@@ -20,7 +20,6 @@ namespace Cad3PLogBrowser
         private readonly SettingsService   _settingsService;
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
-        private readonly Services.Analysis.DependencyGraphService _dependencyGraphService;
         private readonly Services.Core.MergeLogService _mergeLogService;
         private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
@@ -40,13 +39,6 @@ namespace Cad3PLogBrowser
         // Feature C2: Lazy loading for large trees
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
-
-        // Feature F4: Dependency graph tab and panel
-        private TabPage _dependencyGraphTab;
-        private Managers.DependencyGraphPanel _dependencyGraphPanel;
-        private Button _depGraphResetButton;
-        private ToolStripMenuItem _showDependencyGraphMenuItem;
-
 
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
@@ -297,8 +289,9 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // ── #7 Virtual mode backing store ─────────────────────────────────────
-        // Each VirtualLogLine holds exactly what the ListView needs for one row.
+        // Measured pixel width of the widest log line — used to hold the horizontal scrollbar
+        // across resizes without re-measuring on every resize event.
+        private int _logTextColumnContentWidth = 0;
         private struct VirtualLogLine
         {
             public int    LineNumber;
@@ -319,7 +312,6 @@ namespace Cad3PLogBrowser
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
-            _dependencyGraphService = new Services.Analysis.DependencyGraphService();
             _mergeLogService  = new Services.Core.MergeLogService();
             _aiService        = new Services.Analysis.AiLogService();
             _logFileService   = new LogFileService(this);
@@ -328,7 +320,6 @@ namespace Cad3PLogBrowser
 
             RestoreSettings();
             InitTreeViews();
-            InitDependencyGraphPanel();
             InitAiPanel();
             BuildMruMenu();
             AddThemeToggleButton();
@@ -853,13 +844,6 @@ namespace Cad3PLogBrowser
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, _allLines.Count);
             callGraphPanel.LoadGraph(graph);
-
-            // F4: Load dependency graph
-            if (_dependencyGraphPanel != null)
-            {
-                var depGraph = _dependencyGraphService.Build(entries);
-                _dependencyGraphPanel.Load(depGraph);
-            }
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
@@ -1546,6 +1530,14 @@ namespace Cad3PLogBrowser
         private void callGraphResetButton_Click(object sender, EventArgs e) =>
             callGraphPanel.ResetView();
 
+        private void callGraphToggleButton_Click(object sender, EventArgs e)
+        {
+            callGraphPanel.ToggleViewMode();
+            callGraphToggleButton.Text = callGraphPanel.IsStructuralView
+                ? "⇄ Weighted View"
+                : "⇄ Structural View";
+        }
+
         // ── Drag-and-drop ─────────────────────────────────────────────────────
         private void MainForm_DragEnter(object sender, DragEventArgs e)
         {
@@ -1692,6 +1684,7 @@ namespace Cad3PLogBrowser
             {
                 logListView.VirtualListSize = _virtualLines.Count;
                 logListView.Invalidate();
+                MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
             UpdateStatusBar();
@@ -1720,6 +1713,7 @@ namespace Cad3PLogBrowser
                 logListView.Invalidate();
 
                 // Issue Fix: Auto-resize columns to fit content
+                MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
 
@@ -1807,38 +1801,38 @@ namespace Cad3PLogBrowser
 
             logListView.Columns[0].Width = 80; // Fixed width for line numbers
 
-            // Measure the widest visible line to size the text column.
-            // Fall back to the client width when there is no data.
-            int contentWidth = MeasureMaxLineWidth();
-            int viewWidth    = logListView.ClientSize.Width - logListView.Columns[0].Width - 4;
+            int viewWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - SystemInformation.VerticalScrollBarWidth;
 
-            // Use whichever is larger: content drives the column when it overflows,
-            // otherwise the column fills the available space as before.
-            logListView.Columns[1].Width = Math.Max(viewWidth, contentWidth);
+            // colLogText must be at least as wide as the widest content line so that
+            // the ListView shows a horizontal scrollbar when lines overflow the view.
+            // It may also grow to fill the view when content is narrower.
+            logListView.Columns[1].Width = Math.Max(viewWidth, _logTextColumnContentWidth);
         }
 
         /// <summary>
-        /// Returns the pixel width of the longest text in _virtualLines using the
-        /// ListView's current font, or 0 when there are no lines.
-        /// Only samples up to 2000 lines for performance.
+        /// Measures the widest log line in pixels using GDI (TextRenderer), which matches
+        /// how ListView renders text exactly. Samples up to 10 000 lines for accuracy.
+        /// Stores the result in <see cref="_logTextColumnContentWidth"/>.
         /// </summary>
-        private int MeasureMaxLineWidth()
+        private void MeasureAndStoreMaxLineWidth()
         {
-            if (_virtualLines == null || _virtualLines.Count == 0) return 0;
+            _logTextColumnContentWidth = 0;
+            if (_virtualLines == null || _virtualLines.Count == 0) return;
 
+            int sampleCount = Math.Min(_virtualLines.Count, 10000);
+            Font font = logListView.Font;
             int maxWidth = 0;
-            int sampleCount = Math.Min(_virtualLines.Count, 2000);
-            using (var g = logListView.CreateGraphics())
+
+            for (int i = 0; i < sampleCount; i++)
             {
-                for (int i = 0; i < sampleCount; i++)
-                {
-                    string text = _virtualLines[i].Text;
-                    if (string.IsNullOrEmpty(text)) continue;
-                    int w = (int)g.MeasureString(text, logListView.Font).Width + 8; // 8px padding
-                    if (w > maxWidth) maxWidth = w;
-                }
+                string text = _virtualLines[i].Text;
+                if (string.IsNullOrEmpty(text)) continue;
+                // TextRenderer.MeasureText matches ListView's GDI rendering
+                int w = TextRenderer.MeasureText(text, font).Width + 12; // 12px cell padding
+                if (w > maxWidth) maxWidth = w;
             }
-            return maxWidth;
+
+            _logTextColumnContentWidth = maxWidth;
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -3224,6 +3218,8 @@ namespace Cad3PLogBrowser
         // Issue Fix: Auto-resize ListView columns when form resizes
         private void logListView_Resize(object sender, EventArgs e)
         {
+            // Re-use the already-measured content width; only adjust the column
+            // to fill the view when it has grown larger than the content.
             AutoResizeLogListColumns();
         }
 
@@ -4820,89 +4816,6 @@ namespace Cad3PLogBrowser
         /// 2. Edit Cad3PLogBrowser.csproj
         /// 3. Add these lines after FlameGraphPanel:
         ///    <Compile Include="Managers\DependencyGraphPanel.cs">
-        ///      <SubType>Component</SubType>
-        ///    </Compile>
-        ///    <Compile Include="Managers\AiAssistantPanel.cs">
-        ///      <SubType>Component</SubType>
-        ///    </Compile>
-        /// 4. Uncomment field declarations in MainForm.cs (lines ~48-51)
-        /// 5. Uncomment this method body
-        /// 6. Uncomment call in constructor
-        /// 7. Uncomment code in PopulateTrees
-        /// </summary>
-        private void InitDependencyGraphPanel()
-        {
-            // Create dependency graph tab
-            _dependencyGraphTab = new TabPage(Resources.TAB_NAME_DEPENDENCY_GRAPH)
-            {
-                Name = "dependencyGraphTab",
-                UseVisualStyleBackColor = true
-            };
-
-            // Create dependency graph panel
-            _dependencyGraphPanel = new Managers.DependencyGraphPanel()
-            {
-                Dock = DockStyle.Fill,
-                Name = "dependencyGraphPanel"
-            };
-
-            // Create reset view button
-            _depGraphResetButton = new Button()
-            {
-                Text = Resources.BUTTON_RESET_VIEW,
-                Size = new Size(100, 30),
-                Location = new Point(10, 10),
-                Name = "depGraphResetButton",
-                Anchor = AnchorStyles.Top | AnchorStyles.Left
-            };
-            _depGraphResetButton.Click += (s, e) => _dependencyGraphPanel?.ResetView();
-
-            // Add controls to tab
-            _dependencyGraphTab.Controls.Add(_dependencyGraphPanel);
-            _dependencyGraphTab.Controls.Add(_depGraphResetButton);
-
-            // Add tab to main tab control
-            if (mainTabControl != null)
-            {
-                mainTabControl.TabPages.Add(_dependencyGraphTab);
-            }
-
-            // Create View menu item for dependency graph
-            _showDependencyGraphMenuItem = new ToolStripMenuItem(Resources.MENU_SHOW_DEPENDENCY_GRAPH)
-            {
-                Name = "showDependencyGraphMenuItem",
-                CheckOnClick = true,
-                Checked = true
-            };
-            _showDependencyGraphMenuItem.CheckedChanged += ShowDependencyGraphMenuItem_CheckedChanged;
-
-            // Add to View → Tabs menu (after existing tab menu items)
-            if (tabsMenuItem != null)
-            {
-                tabsMenuItem.DropDownItems.Add(_showDependencyGraphMenuItem);
-            }
-        }
-
-        /// <summary>
-        /// Handler for Show Dependency Graph menu item.
-        /// </summary>
-        private void ShowDependencyGraphMenuItem_CheckedChanged(object sender, EventArgs e)
-        {
-            if (_dependencyGraphTab != null && mainTabControl != null)
-            {
-                if (_showDependencyGraphMenuItem.Checked)
-                {
-                    if (!mainTabControl.TabPages.Contains(_dependencyGraphTab))
-                        mainTabControl.TabPages.Add(_dependencyGraphTab);
-                }
-                else
-                {
-                    if (mainTabControl.TabPages.Contains(_dependencyGraphTab))
-                        mainTabControl.TabPages.Remove(_dependencyGraphTab);
-                }
-            }
-        }
-
         // ═══════════════════════════════════════════════════════════════════════
         // FEATURES L2-L6: AI Assistant Initialization
         // ═══════════════════════════════════════════════════════════════════════

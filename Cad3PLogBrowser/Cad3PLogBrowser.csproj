@@ -82,9 +82,6 @@
     <Compile Include="Managers\AiAssistantPanel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Managers\DependencyGraphPanel.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Managers\FlameGraphPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -112,7 +109,6 @@
     <Compile Include="Models\SearchResult.cs" />
     <Compile Include="Models\VirtualLogLine.cs" />
     <Compile Include="Services\Analysis\AiLogService.cs" />
-    <Compile Include="Services\Analysis\DependencyGraphService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
     <Compile Include="Services\Export\TreeExportService.cs" />

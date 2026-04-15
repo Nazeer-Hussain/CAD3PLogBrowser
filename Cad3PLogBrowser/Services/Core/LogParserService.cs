@@ -99,8 +99,11 @@ namespace Cad3PLogBrowser.Services
             if (payloadStart < 0 || payloadStart >= raw.Length)
                 return entry;
 
-            // Parse tab-delimited payload fields without Split
-            // Fields: [State]\t[Module]\t[SourceFile]\t[ApiName]\t[ENTER|EXIT]\t[EpochMs]
+            // Parse tab-delimited payload fields without Split.
+            // Fields by index: 0=State  1=Module  2=SourceFile  3=ApiName  4=EntryType  5=EpochMs
+            // tabPos[N] = start offset of field N inside payload.
+            // tabPos[0] = 0 (always); tabPos[N>0] = position right after the (N)th tab.
+            // tabCount  = number of tabs found = highest field index that has a start recorded.
             string payload = raw.Substring(payloadStart);
             int[] tabPos = new int[7];
             int tabCount = 0;
@@ -111,16 +114,17 @@ namespace Cad3PLogBrowser.Services
                     tabPos[++tabCount] = i + 1;
             }
 
-            if (tabCount <= TabFieldEntryType)
+            // Need at least 5 tabs to reach field 4 (EntryType)
+            if (tabCount < TabFieldEntryType)
                 return entry;
 
-            // Extract entryType field (index 4): ends at the next tab or end of string
-            int etStart = tabPos[TabFieldEntryType];
-            int etEnd   = tabCount > TabFieldEntryType
-                ? tabPos[TabFieldEntryType + 1] - 1
-                : payload.Length;
+            // Helper: end offset of field N (exclusive) = start of next field minus the tab, or end of string
+            // End of field N = tabPos[N+1] - 1  when N+1 <= tabCount, else payload.Length
+            int FieldEnd(int n) => (n + 1 <= tabCount) ? tabPos[n + 1] - 1 : payload.Length;
 
-            string entryType = payload.Substring(etStart, etEnd - etStart).Trim();
+            // Field 4: EntryType ("ENTER" or "EXIT")
+            string entryType = payload.Substring(tabPos[TabFieldEntryType],
+                FieldEnd(TabFieldEntryType) - tabPos[TabFieldEntryType]).Trim();
 
             if (entryType != "ENTER" && entryType != "EXIT")
                 return entry;
@@ -129,25 +133,23 @@ namespace Cad3PLogBrowser.Services
             entry.IsCallEnter = entryType == "ENTER";
             entry.IsCallExit  = !entry.IsCallEnter;
 
-            // ApiName (field 3)
-            int anEnd = tabPos[TabFieldApiName + 1] - 1;
-            entry.ApiName = payload.Substring(tabPos[TabFieldApiName], anEnd - tabPos[TabFieldApiName]).Trim();
+            // Field 3: ApiName
+            entry.ApiName = payload.Substring(tabPos[TabFieldApiName],
+                FieldEnd(TabFieldApiName) - tabPos[TabFieldApiName]).Trim();
 
-            // SourceFile (field 2)
-            int sfEnd = tabPos[TabFieldSourceFile + 1] - 1;
-            entry.SourceFile = payload.Substring(tabPos[TabFieldSourceFile], sfEnd - tabPos[TabFieldSourceFile]).Trim();
+            // Field 2: SourceFile
+            entry.SourceFile = payload.Substring(tabPos[TabFieldSourceFile],
+                FieldEnd(TabFieldSourceFile) - tabPos[TabFieldSourceFile]).Trim();
 
-            // Module (field 1)
-            int modEnd = tabPos[TabFieldModule + 1] - 1;
-            entry.Module = payload.Substring(tabPos[TabFieldModule], modEnd - tabPos[TabFieldModule]).Trim();
+            // Field 1: Module
+            entry.Module = payload.Substring(tabPos[TabFieldModule],
+                FieldEnd(TabFieldModule) - tabPos[TabFieldModule]).Trim();
 
-            // EpochMs (field 5) — only if present
-            if (tabCount >= TabFieldEpochMs + 1)
+            // Field 5: EpochMs — present when tabCount >= 5
+            if (tabCount >= TabFieldEpochMs)
             {
-                int emStart = tabPos[TabFieldEpochMs];
-                int emEnd   = tabCount > TabFieldEpochMs ? tabPos[TabFieldEpochMs + 1] - 1 : payload.Length;
-                if (tabCount < TabFieldEpochMs + 1) emEnd = payload.Length;
-                string epochStr = payload.Substring(emStart, Math.Max(0, emEnd - emStart)).Trim();
+                string epochStr = payload.Substring(tabPos[TabFieldEpochMs],
+                    FieldEnd(TabFieldEpochMs) - tabPos[TabFieldEpochMs]).Trim();
                 long.TryParse(epochStr, out long epochMs);
                 entry.EpochMs = epochMs;
             }

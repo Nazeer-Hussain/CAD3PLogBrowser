@@ -2,636 +2,468 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Linq;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
     /// <summary>
-    /// Custom panel that renders the API call graph.
-    /// Supports mouse-wheel zoom and drag-to-pan.
-    /// Nodes are laid out in a circular arrangement; edges are drawn as arrows
-    /// with weight-scaled thickness.
+    /// Professional call-graph panel with two view modes:
+    ///   Weighted   � edge thickness and node heat colour scale with call frequency
+    ///   Structural � flat colours, uniform edges (who-calls-whom, no weights)
+    /// Features: dot-grid background, gradient nodes, heat-map colouring,
+    ///           arrowhead edges with weight badges, zoom/pan, hover highlight,
+    ///           status bar, legend.
     /// </summary>
     public class CallGraphPanel : Panel
     {
-        // ── State ─────────────────────────────────────────────────────────────
+        // ?? State ?????????????????????????????????????????????????????????????
         private CallGraph _graph;
-        private float     _zoom         = 1.0f;
-        private PointF    _panOffset    = new PointF(0, 0);
-        private Point     _lastMousePos;
-        private bool      _isDragging   = false;
-        private string    _hoveredNode  = null;
+        private float     _zoom      = 1.0f;
+        private PointF    _pan       = new PointF(0, 0);
+        private Point     _lastMouse;
+        private bool      _dragging;
+        private string    _hoveredNode;
+        private bool      _structuralView = false;
 
-        // ── Layout constants ──────────────────────────────────────────────────
-        private const float NodeWidth    = 120f;
-        private const float NodeHeight   = 32f;
-        private const float NodeRadius   = NodeHeight / 2f;
-        private const float MinZoom      = 0.2f;
-        private const float MaxZoom      = 4.0f;
+        // ?? Layout constants ??????????????????????????????????????????????????
+        private const float NW      = 140f;
+        private const float NH      = 34f;
+        private const float NR      = NH / 2f;
+        private const float MinZoom = 0.15f;
+        private const float MaxZoom = 5.0f;
 
-        // ── Colours (Theme-aware) ─────────────────────────────────────────────
-        private Color NodeFill      => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(60, 60, 65) : Color.FromArgb(220, 235, 255);
-        private Color NodeBorder    => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(120, 120, 130) : Color.FromArgb(80, 130, 200);
-        private Color NodeHover     => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(80, 80, 90) : Color.FromArgb(180, 210, 255);
-        private Color NodeText      => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(220, 220, 220) : Color.FromArgb(20, 40, 80);
-        private Color EdgeColour    => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(100, 100, 110) : Color.FromArgb(120, 140, 170);
-        private Color EdgeHighlight => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(200, 100, 80) : Color.FromArgb(200, 80, 60);
-        private Color GraphBackground => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-            ? Color.FromArgb(30, 30, 30) : Color.FromArgb(245, 248, 252);
+        // ?? Theme helpers ?????????????????????????????????????????????????????
+        private bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+        private Color BgColor   => Dark ? Color.FromArgb(22, 24, 30)    : Color.FromArgb(243, 246, 251);
+        private Color GridColor => Dark ? Color.FromArgb(38, 42, 52)    : Color.FromArgb(218, 224, 238);
+        private Color TextColor => Dark ? Color.FromArgb(228, 232, 240) : Color.FromArgb(25, 35, 65);
+        private Color EdgeBase  => Dark ? Color.FromArgb(85, 95, 120)   : Color.FromArgb(145, 162, 200);
+        private Color EdgeHot   => Color.FromArgb(255, 145, 40);
+        private Color BorderSel => Color.FromArgb(0, 150, 230);
 
+        // Heat palette: cool (few calls) ? hot (many calls)
+        private static readonly Color[] Heat =
+        {
+            Color.FromArgb(50,  95, 170),   // cool  � blue
+            Color.FromArgb(30, 165, 125),   // warm  � teal
+            Color.FromArgb(205,175,  28),   // hot   � amber
+            Color.FromArgb(215,  55,  50),  // very hot � red
+        };
+
+        // ?? Welcome panel ?????????????????????????????????????????????????????
         private Managers.VisualizationWelcomePanel _welcomePanel;
 
+        public bool IsStructuralView => _structuralView;
+
+        // ?? Constructor ???????????????????????????????????????????????????????
         public CallGraphPanel()
         {
-            DoubleBuffered       = true;
-            ResizeRedraw         = true;
-            BorderStyle          = BorderStyle.FixedSingle; // Clean border
+            DoubleBuffered = true;
+            ResizeRedraw   = true;
+            BorderStyle    = BorderStyle.None;
 
-            // Create welcome panel
             _welcomePanel = new Managers.VisualizationWelcomePanel(
                 "Call Graph",
-                "Visualize API call relationships and dependencies",
+                "Visualize API call relationships and frequencies",
                 new[]
                 {
-                    "► Circles represent API functions",
-                    "► Arrows show call relationships",
-                    "► Arrow thickness shows call frequency",
-                    "► Scroll mouse wheel to zoom",
-                    "► Drag to pan around the graph",
-                    "► Hover over nodes to highlight connections"
+                    "? Nodes represent API functions",
+                    "? Arrows show caller ? callee direction",
+                    "? Node colour = call heat  (blue ? red)",
+                    "? Edge thickness = call frequency",
+                    "? Scroll to zoom  |  Drag to pan",
+                    "? Hover to highlight connections",
+                    "? Click a node for details",
+                    "? Toggle Weighted / Structural view"
                 },
-                Color.FromArgb(76, 175, 80) // Green
-            );
+                Color.FromArgb(0, 140, 220));
             _welcomePanel.Visible = false;
-            this.Controls.Add(_welcomePanel);
+            Controls.Add(_welcomePanel);
         }
 
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            e.Graphics.Clear(GraphBackground);
-        }
-
-        // ── Public API ────────────────────────────────────────────────────────
+        // ?? Public API ????????????????????????????????????????????????????????
         public void LoadGraph(CallGraph graph)
         {
-            _graph     = graph;
-
-            if (graph != null && graph.Nodes.Count > 0)
-            {
-                _welcomePanel.Visible = false;
-                LayoutNodes();
-                AutoFitZoom();
-                _panOffset = new PointF(0, 0);
-            }
-            else
-            {
-                _welcomePanel.Visible = true;
-                _welcomePanel.BringToFront();
-                _zoom = 1.0f;
-                _panOffset = new PointF(0, 0);
-            }
-
+            _graph = graph;
+            bool hasData = graph != null && graph.Nodes.Count > 0;
+            _welcomePanel.Visible = !hasData;
+            if (hasData) { LayoutNodes(); FitToWindow(); }
             Invalidate();
         }
 
-        // Issue Fix: Calculate optimal zoom to fit all nodes on screen
-        private void AutoFitZoom()
-        {
-            if (_graph == null || _graph.Nodes.Count == 0)
-            {
-                _zoom = 1.0f;
-                return;
-            }
+        public void ResetView() { FitToWindow(); Invalidate(); }
 
-            // Find bounding box of all nodes
-            float minX = float.MaxValue, minY = float.MaxValue;
-            float maxX = float.MinValue, maxY = float.MinValue;
+        public void ToggleViewMode() { _structuralView = !_structuralView; Invalidate(); }
 
-            foreach (var node in _graph.Nodes.Values)
-            {
-                minX = Math.Min(minX, node.X - NodeWidth / 2f);
-                maxX = Math.Max(maxX, node.X + NodeWidth / 2f);
-                minY = Math.Min(minY, node.Y - NodeHeight / 2f);
-                maxY = Math.Max(maxY, node.Y + NodeHeight / 2f);
-            }
-
-            float graphWidth = maxX - minX;
-            float graphHeight = maxY - minY;
-
-            if (graphWidth < 1f || graphHeight < 1f)
-            {
-                _zoom = 1.0f;
-                return;
-            }
-
-            // Calculate zoom to fit with some padding
-            float panelWidth = this.Width - 40;  // 20px padding on each side
-            float panelHeight = this.Height - 60; // Extra padding for legend
-
-            float zoomX = panelWidth / graphWidth;
-            float zoomY = panelHeight / graphHeight;
-
-            _zoom = Math.Min(zoomX, zoomY);
-            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, _zoom * 0.9f)); // 90% to add margin
-        }
-
-        public void ResetView()
-        {
-            _panOffset = new PointF(0, 0);
-            AutoFitZoom();
-            Invalidate();
-        }
-
-        // ── Layout ────────────────────────────────────────────────────────────
+        // ?? Layout ????????????????????????????????????????????????????????????
         private void LayoutNodes()
         {
             if (_graph == null || _graph.Nodes.Count == 0) return;
-
             var nodes = new List<CallGraphNode>(_graph.Nodes.Values);
-            int count = nodes.Count;
-
-            // Circular layout — radius scales with node count
-            float radius = Math.Max(150f, count * 45f);
-            float cx = 0f;
-            float cy = 0f;
-
-            for (int i = 0; i < count; i++)
+            int n = nodes.Count;
+            float radius = Math.Max(180f, n * 52f);
+            for (int i = 0; i < n; i++)
             {
-                double angle = 2 * Math.PI * i / count - Math.PI / 2;
-                nodes[i].X = cx + radius * (float)Math.Cos(angle);
-                nodes[i].Y = cy + radius * (float)Math.Sin(angle);
+                double a = 2 * Math.PI * i / n - Math.PI / 2;
+                nodes[i].X = radius * (float)Math.Cos(a);
+                nodes[i].Y = radius * (float)Math.Sin(a);
             }
         }
 
-        // ── Painting ──────────────────────────────────────────────────────────
+        private void FitToWindow()
+        {
+            if (_graph == null || _graph.Nodes.Count == 0) { _zoom = 1f; _pan = PointF.Empty; return; }
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var nd in _graph.Nodes.Values)
+            {
+                minX = Math.Min(minX, nd.X - NW / 2); maxX = Math.Max(maxX, nd.X + NW / 2);
+                minY = Math.Min(minY, nd.Y - NH / 2); maxY = Math.Max(maxY, nd.Y + NH / 2);
+            }
+            float gw = maxX - minX, gh = maxY - minY;
+            if (gw < 1 || gh < 1) { _zoom = 1f; _pan = PointF.Empty; return; }
+            float zx = (Width  - 60) / gw;
+            float zy = (Height - 80) / gh;
+            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, Math.Min(zx, zy) * 0.88f));
+            _pan  = PointF.Empty;
+        }
+
+        // ?? Painting ??????????????????????????????????????????????????????????
+        protected override void OnPaintBackground(PaintEventArgs e) => e.Graphics.Clear(BgColor);
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            if (_graph == null || _graph.Nodes.Count == 0) return;
+
             var g = e.Graphics;
             g.SmoothingMode     = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            if (_graph == null || _graph.Nodes.Count == 0)
-            {
-                // Welcome panel handles empty state
-                return;
-            }
+            DrawGrid(g);
 
-            // Draw simple instruction bar at top
-            DrawInstructionBar(g);
-
-            // Save original state for legend drawing
             var state = g.Save();
-
-            // Apply pan + zoom transform for graph elements (offset for instruction bar)
-            g.TranslateTransform(
-                Width  / 2f + _panOffset.X,
-                Height / 2f + _panOffset.Y + 12); // Offset for instruction bar
+            g.TranslateTransform(Width / 2f + _pan.X, Height / 2f + _pan.Y);
             g.ScaleTransform(_zoom, _zoom);
-
-            // Draw edges first (behind nodes)
             DrawEdges(g);
-
-            // Draw center crosshair for reference (helps with debugging positioning)
-            using (var pen = new Pen(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(60, 60, 65) 
-                : Color.FromArgb(200, 200, 210), 1f))
-            {
-                pen.DashStyle = DashStyle.Dash;
-                g.DrawLine(pen, -20, 0, 20, 0);  // Horizontal
-                g.DrawLine(pen, 0, -20, 0, 20);  // Vertical
-            }
-
-            // Draw nodes on top
             DrawNodes(g);
-
-            // Restore transform for legend (draw in screen space)
             g.Restore(state);
 
-            // Draw legend and status info
+            DrawStatusBar(g);
             DrawLegend(g);
-            DrawDebugInfo(g);
         }
 
-        private void DrawDebugInfo(Graphics g)
+        // ?? Grid ??????????????????????????????????????????????????????????????
+        private void DrawGrid(Graphics g)
         {
-            if (_graph == null) return;
-
-            // Show graph statistics in top-left corner
-            using (var font = new Font("Consolas", 8f))
-            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(180, 180, 190) 
-                : Color.FromArgb(80, 80, 90)))
-            using (var bgBrush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
-                ? Color.FromArgb(200, 40, 40, 45)
-                : Color.FromArgb(200, 255, 255, 255)))
+            float step = Math.Max(18f, 60f * _zoom);
+            float ox = (Width  / 2f + _pan.X) % step;
+            float oy = (Height / 2f + _pan.Y) % step;
+            using (var pen = new Pen(GridColor, 1f))
             {
-                var lines = new List<string>
-                {
-                    $"Call Graph Debug Info:",
-                    $"├─ Nodes: {_graph.Nodes.Count}",
-                    $"├─ Edges: {_graph.Edges.Count}",
-                    $"├─ Zoom: {_zoom:F2}x ({_zoom * 100:F0}%)",
-                    $"├─ Pan: X={_panOffset.X:F0}, Y={_panOffset.Y:F0}",
-                    $"├─ Panel: {Width}x{Height}",
-                    $"└─ Status: " + (_graph.Nodes.Count > 0 ? "✓ Graph loaded" : "⚠ No data")
-                };
-
-                // Draw background
-                float lineHeight = font.Height;
-                var bgRect = new RectangleF(5, 5, 280, lines.Count * lineHeight + 10);
-                g.FillRectangle(bgBrush, bgRect);
-
-                // Draw text
-                float y = 8;
-                foreach (var line in lines)
-                {
-                    g.DrawString(line, font, brush, 8, y);
-                    y += lineHeight;
-                }
+                for (float x = ox; x < Width;  x += step) g.DrawLine(pen, x, 0, x, Height);
+                for (float y = oy; y < Height; y += step) g.DrawLine(pen, 0, y, Width, y);
             }
         }
 
-        private void DrawInstructionBar(Graphics g)
-        {
-            // Simple, non-intrusive instruction bar at top
-            const int BAR_HEIGHT = 25;
-
-            // Subtle background
-            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(40, 40, 40) : Color.FromArgb(250, 250, 250)))
-            {
-                g.FillRectangle(brush, 0, 0, this.Width, BAR_HEIGHT);
-            }
-
-            // Bottom border
-            using (var pen = new Pen(ThemeManager.BorderColor))
-            {
-                g.DrawLine(pen, 0, BAR_HEIGHT - 1, this.Width, BAR_HEIGHT - 1);
-            }
-
-            // Instruction text
-            using (var font = new Font("Segoe UI", 8f))
-            using (var brush = new SolidBrush(Color.FromArgb(120, 120, 120)))
-            {
-                g.DrawString("Scroll: Zoom | Drag: Pan | Hover: Highlight | Double-Click Node: Filter",
-                    font, brush, 8, 6);
-            }
-
-            // Zoom indicator on right
-            if (_zoom != 1.0f)
-            {
-                using (var font = new Font("Segoe UI", 8f, FontStyle.Bold))
-                using (var brush = new SolidBrush(Color.FromArgb(76, 175, 80)))
-                {
-                    string text = $"Zoom: {_zoom:F1}x";
-                    var size = g.MeasureString(text, font);
-                    g.DrawString(text, font, brush, this.Width - size.Width - 8, 6);
-                }
-            }
-        }
-
-        private void DrawEmptyMessage(Graphics g)
-        {
-            using (var titleFont = new Font("Segoe UI", 12f, FontStyle.Bold))
-            using (var textFont = new Font("Segoe UI", 9.5f))
-            using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
-            {
-                var format = new StringFormat
-                {
-                    Alignment = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center
-                };
-
-                // Title
-                string title = "📊 Call Graph Visualization";
-                g.DrawString(title, titleFont, brush, Width / 2f, Height / 2f - 80, format);
-
-                // Main message
-                string msg = "No call graph data available.\n\n" +
-                             "To generate a call graph, your log file must contain:\n" +
-                             "• API calls marked with [ENTER] and [EXIT]\n" +
-                             "• Format: [ENTER] FunctionName() or [EXIT] FunctionName()\n\n" +
-                             "The graph will show:\n" +
-                             "• Nodes = API functions\n" +
-                             "• Arrows = Calls between APIs\n" +
-                             "• Thickness = Call frequency\n\n" +
-                             "Once loaded, you can:\n" +
-                             "• Scroll to zoom in/out\n" +
-                             "• Drag to pan the graph\n" +
-                             "• Click nodes for details\n" +
-                             "• Hover to highlight connections";
-
-                var rect = new RectangleF(50, Height / 2f - 40, Width - 100, Height / 2f);
-                g.DrawString(msg, textFont, brush, rect, format);
-            }
-        }
+        // ?? Edges ?????????????????????????????????????????????????????????????
+        private static readonly AdjustableArrowCap Arrow = new AdjustableArrowCap(5f, 5f);
 
         private void DrawEdges(Graphics g)
         {
             if (_graph.Edges.Count == 0) return;
+            int maxW = _graph.Edges.Values.Max(ed => ed.Weight);
 
-            // Find max weight for scaling
-            int maxWeight = 1;
-            foreach (var edge in _graph.Edges.Values)
-                if (edge.Weight > maxWeight) maxWeight = edge.Weight;
-
-            foreach (var edge in _graph.Edges.Values)
+            foreach (var ed in _graph.Edges.Values)
             {
-                if (!_graph.Nodes.TryGetValue(edge.Caller, out var callerNode)) continue;
-                if (!_graph.Nodes.TryGetValue(edge.Callee, out var calleeNode)) continue;
+                if (!_graph.Nodes.TryGetValue(ed.Caller, out var src)) continue;
+                if (!_graph.Nodes.TryGetValue(ed.Callee, out var dst)) continue;
+                if (src.Name == dst.Name) { DrawSelfLoop(g, src, ed.Weight, maxW); continue; }
 
-                bool isHighlighted = edge.Caller == _hoveredNode || edge.Callee == _hoveredNode;
-                float thickness    = 1f + 3f * edge.Weight / maxWeight;
-                Color colour       = isHighlighted ? EdgeHighlight : EdgeColour;
+                bool hot  = ed.Caller == _hoveredNode || ed.Callee == _hoveredNode;
+                float t   = _structuralView ? 1.5f : Math.Max(1f, 4f * ed.Weight / maxW);
+                Color col = hot ? EdgeHot : BlendColor(EdgeBase, Color.FromArgb(175, 198, 228), (float)ed.Weight / maxW);
 
-                DrawArrow(g, callerNode, calleeNode, thickness, colour, edge.Weight);
+                float dx = dst.X - src.X, dy = dst.Y - src.Y;
+                float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+                if (dist < 1f) continue;
+                float nx = dx / dist, ny = dy / dist;
+
+                float x1 = src.X + nx * (NW / 2f + 2);
+                float y1 = src.Y + ny * (NH / 2f + 2);
+                float x2 = dst.X - nx * (NW / 2f + 11);
+                float y2 = dst.Y - ny * (NH / 2f + 11);
+
+                using (var pen = new Pen(col, t) { CustomEndCap = Arrow })
+                    g.DrawLine(pen, x1, y1, x2, y2);
+
+                if (!_structuralView && ed.Weight > 1)
+                    DrawEdgeBadge(g, (x1 + x2) / 2f, (y1 + y2) / 2f, ed.Weight, col);
             }
         }
 
-        private void DrawArrow(Graphics g, CallGraphNode from, CallGraphNode to,
-            float thickness, Color colour, int weight)
+        private void DrawEdgeBadge(Graphics g, float mx, float my, int weight, Color col)
         {
-            // Calculate edge start/end at node boundaries
-            float dx   = to.X - from.X;
-            float dy   = to.Y - from.Y;
-            float dist = (float)Math.Sqrt(dx * dx + dy * dy);
-            if (dist < 1f) return;
-
-            float nx = dx / dist;
-            float ny = dy / dist;
-
-            // Start at edge of source node, end at edge of target node
-            float startX = from.X + nx * (NodeWidth / 2f);
-            float startY = from.Y + ny * (NodeHeight / 2f);
-            float endX   = to.X   - nx * (NodeWidth / 2f + 6f);
-            float endY   = to.Y   - ny * (NodeHeight / 2f + 6f);
-
-            // Self-loop
-            if (from.Name == to.Name)
+            string lbl = weight.ToString();
+            using (var f = new Font("Segoe UI", 7f, FontStyle.Bold))
             {
-                DrawSelfLoop(g, from, colour, thickness);
-                return;
-            }
-
-            using (var pen = new Pen(colour, thickness))
-            {
-                pen.CustomEndCap = new AdjustableArrowCap(5, 5);
-                g.DrawLine(pen, startX, startY, endX, endY);
-            }
-
-            // Weight label on edge midpoint
-            if (weight > 1)
-            {
-                float midX = (startX + endX) / 2f;
-                float midY = (startY + endY) / 2f;
-                using (var font  = new Font("Segoe UI", 7f))
-                using (var brush = new SolidBrush(colour))
-                    g.DrawString(weight.ToString(), font, brush, midX + 3, midY - 10);
+                var sz = g.MeasureString(lbl, f);
+                var br = new RectangleF(mx - sz.Width / 2 - 2, my - sz.Height / 2 - 1, sz.Width + 4, sz.Height + 2);
+                using (var bg = new SolidBrush(Color.FromArgb(210, BgColor.R, BgColor.G, BgColor.B)))
+                    g.FillRectangle(bg, br);
+                using (var pen = new Pen(Color.FromArgb(80, col), 0.5f))
+                    g.DrawRectangle(pen, br.X, br.Y, br.Width, br.Height);
+                using (var tb = new SolidBrush(col))
+                    g.DrawString(lbl, f, tb, mx - sz.Width / 2, my - sz.Height / 2);
             }
         }
 
-        private void DrawSelfLoop(Graphics g, CallGraphNode node, Color colour, float thickness)
+        private void DrawSelfLoop(Graphics g, CallGraphNode nd, int weight, int maxW)
         {
-            float loopSize = 30f;
-            var rect = new RectangleF(node.X + NodeWidth / 2f, node.Y - loopSize,
-                loopSize, loopSize);
-            using (var pen = new Pen(colour, thickness))
-                g.DrawEllipse(pen, rect);
+            bool hot  = nd.Name == _hoveredNode;
+            float t   = _structuralView ? 1.5f : Math.Max(1f, 3f * weight / maxW);
+            Color col = hot ? EdgeHot : EdgeBase;
+            using (var pen = new Pen(col, t))
+                g.DrawArc(pen, nd.X + NW / 2f - 10, nd.Y - NH - 10, 28, 28, 0, 270);
         }
 
+        // ?? Nodes ?????????????????????????????????????????????????????????????
         private void DrawNodes(Graphics g)
         {
-            using (var borderPen  = new Pen(NodeBorder, 1.5f))
-            using (var normalBrush = new SolidBrush(NodeFill))
-            using (var hoverBrush  = new SolidBrush(NodeHover))
-            using (var textBrush   = new SolidBrush(NodeText))
-            using (var font = new Font("Segoe UI", 8.5f, FontStyle.Regular))
+            if (_graph == null) return;
+
+            // Per-node call heat
+            var heatMap = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var ed in _graph.Edges.Values)
             {
-                var sf = new StringFormat
-                {
-                    Alignment     = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center,
-                    Trimming      = StringTrimming.EllipsisCharacter
-                };
+                heatMap.TryGetValue(ed.Caller, out int hc); heatMap[ed.Caller] = hc + ed.Weight;
+                heatMap.TryGetValue(ed.Callee, out int hd); heatMap[ed.Callee] = hd + ed.Weight;
+            }
+            int maxHeat = heatMap.Count > 0 ? heatMap.Values.Max() : 1;
 
-                foreach (var node in _graph.Nodes.Values)
+            using (var labelFont = new Font("Segoe UI", 8.5f, FontStyle.Bold))
+            using (var subFont   = new Font("Segoe UI", 6.5f))
+            using (var sf = new StringFormat
+            {
+                Alignment     = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                Trimming      = StringTrimming.EllipsisCharacter
+            })
+            {
+                foreach (var nd in _graph.Nodes.Values)
                 {
-                    bool isHovered = node.Name == _hoveredNode;
-                    var rect = new RectangleF(
-                        node.X - NodeWidth  / 2f,
-                        node.Y - NodeHeight / 2f,
-                        NodeWidth, NodeHeight);
+                    bool hov = nd.Name == _hoveredNode;
+                    heatMap.TryGetValue(nd.Name, out int h);
+                    float t  = maxHeat > 0 ? (float)h / maxHeat : 0f;
 
-                    // Shadow
-                    using (var shadowBrush = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
+                    Color top, bot, border, textCol;
+                    if (_structuralView)
                     {
-                        var shadowRect = rect;
-                        shadowRect.Offset(2, 2);
-                        FillRoundedRect(g, shadowBrush, shadowRect, NodeRadius);
+                        top    = Dark ? Color.FromArgb(55, 65, 100) : Color.FromArgb(200, 215, 248);
+                        bot    = Dark ? Color.FromArgb(36, 44,  72) : Color.FromArgb(172, 192, 238);
+                        border = hov  ? BorderSel : (Dark ? Color.FromArgb(90, 115, 170) : Color.FromArgb(100, 140, 215));
+                        textCol = Dark ? Color.FromArgb(210, 220, 242) : Color.FromArgb(28, 48, 105);
+                    }
+                    else
+                    {
+                        Color h1 = HeatColor(t);
+                        Color h2 = DarkenColor(h1, 0.72f);
+                        top    = hov ? BlendColor(h1, Color.White, 0.28f) : h1;
+                        bot    = hov ? BlendColor(h2, Color.White, 0.18f) : h2;
+                        border = hov ? Color.White : LightenColor(h1, 1.35f);
+                        textCol = Color.White;
                     }
 
-                    // Node fill
-                    FillRoundedRect(g, isHovered ? hoverBrush : normalBrush, rect, NodeRadius);
-                    DrawRoundedRect(g, borderPen, rect, NodeRadius);
+                    var rect = new RectangleF(nd.X - NW / 2f, nd.Y - NH / 2f, NW, NH);
 
-                    // Label — truncate to fit
-                    g.DrawString(node.Name, font, textBrush, rect, sf);
+                    // Drop shadow
+                    using (var sb = new SolidBrush(Color.FromArgb(50, 0, 0, 0)))
+                    { var sr = rect; sr.Offset(3, 3); FillRounded(g, sb, sr, NR); }
+
+                    // Gradient body
+                    using (var gb = new LinearGradientBrush(
+                        new PointF(rect.X, rect.Y), new PointF(rect.X, rect.Bottom), top, bot))
+                        FillRounded(g, gb, rect, NR);
+
+                    // Top gloss strip
+                    using (var gloss = new SolidBrush(Color.FromArgb(50, 255, 255, 255)))
+                        FillRounded(g, gloss, new RectangleF(rect.X + 2, rect.Y + 2, rect.Width - 4, 6), 3);
+
+                    // Border
+                    using (var pen = new Pen(border, hov ? 2.5f : 1.5f))
+                        StrokeRounded(g, pen, rect, NR);
+
+                    // Function name
+                    var labelRect = new RectangleF(rect.X + 4, rect.Y + 1, rect.Width - 8,
+                        h > 0 && !_structuralView ? rect.Height - 13 : rect.Height);
+                    using (var tb = new SolidBrush(textCol))
+                        g.DrawString(nd.Name, labelFont, tb, labelRect, sf);
+
+                    // Call-count sub-label (weighted mode only)
+                    if (!_structuralView && h > 0)
+                    {
+                        using (var sb2 = new SolidBrush(Color.FromArgb(190, textCol)))
+                        using (var sf2 = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far })
+                            g.DrawString($"{h} call{(h == 1 ? "" : "s")}", subFont, sb2,
+                                new RectangleF(rect.X, rect.Y, rect.Width, rect.Height - 2), sf2);
+                    }
                 }
             }
         }
 
-        private static void FillRoundedRect(Graphics g, Brush brush, RectangleF rect, float r)
+        // ?? Overlays ??????????????????????????????????????????????????????????
+        private void DrawStatusBar(Graphics g)
         {
-            using (var path = RoundedRectPath(rect, r))
-                g.FillPath(brush, path);
-        }
+            const int H = 22;
+            int y0 = Height - H;
+            using (var bg = new SolidBrush(Color.FromArgb(210, Dark ? 28 : 238, Dark ? 31 : 241, Dark ? 40 : 252)))
+                g.FillRectangle(bg, 0, y0, Width, H);
+            using (var sep = new Pen(GridColor))
+                g.DrawLine(sep, 0, y0, Width, y0);
 
-        private static void DrawRoundedRect(Graphics g, Pen pen, RectangleF rect, float r)
-        {
-            using (var path = RoundedRectPath(rect, r))
-                g.DrawPath(pen, path);
-        }
-
-        private static GraphicsPath RoundedRectPath(RectangleF rect, float r)
-        {
-            float d = r * 2;
-            var path = new GraphicsPath();
-            path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-            path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-            path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-            path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
+            string mode = _structuralView ? "Structural" : "Weighted";
+            string txt  = $"  {_graph.Nodes.Count} nodes  �  {_graph.Edges.Count} edges  �  Mode: {mode}" +
+                          $"  �  Zoom {_zoom * 100:F0}%  �  Scroll=Zoom  Drag=Pan  Click=Info  Dbl-Click=Center";
+            using (var f = new Font("Segoe UI", 7.5f))
+            using (var b = new SolidBrush(Color.FromArgb(145, Dark ? 195 : 75, Dark ? 200 : 80, Dark ? 218 : 105)))
+                g.DrawString(txt, f, b, 0, y0 + 4);
         }
 
         private void DrawLegend(Graphics g)
         {
-            using (var font = new Font("Segoe UI", 8f))
-            using (var brush = new SolidBrush(ThemeManager.CurrentTheme == ThemeManager.Theme.Dark 
-                ? Color.FromArgb(160, 160, 170)   // Light gray for dark theme
-                : Color.FromArgb(100, 100, 120))) // Dark gray for light theme
+            if (_structuralView) return;
+            const int LW = 135, LH = 20, LX = 10, LY = 10;
+            using (var bg = new SolidBrush(Color.FromArgb(185, Dark ? 28 : 246, Dark ? 31 : 247, Dark ? 40 : 254)))
+                g.FillRectangle(bg, LX, LY, LW, LH);
+            using (var pen = new Pen(GridColor))
+                g.DrawRectangle(pen, LX, LY, LW, LH);
+            using (var f = new Font("Segoe UI", 7f))
+            using (var b = new SolidBrush(TextColor))
             {
-                int nodeCount = _graph?.Nodes.Count ?? 0;
-                int edgeCount = _graph?.Edges.Count ?? 0;
-
-                string legend = nodeCount > 0 
-                    ? $"{nodeCount} APIs, {edgeCount} Calls  •  Scroll=Zoom  •  Drag=Pan  •  Click=Info  •  DblClick=Focus"
-                    : "Scroll to zoom  •  Drag to pan  •  Click/Double-click nodes for details";
-                g.DrawString(legend, font, brush, 8, Height - 20);
-
-                string zoomLabel = string.Format("Zoom: {0:P0}", _zoom);
-                var sz = g.MeasureString(zoomLabel, font);
-                g.DrawString(zoomLabel, font, brush, Width - sz.Width - 8, Height - 20);
+                g.DrawString("Low", f, b, LX + 2, LY + 4);
+                g.DrawString("High", f, b, LX + LW - 26, LY + 4);
             }
+            var bar = new Rectangle(LX + 26, LY + 5, LW - 52, 10);
+            using (var gb = new LinearGradientBrush(bar, Heat[0], Heat[3], LinearGradientMode.Horizontal))
+                g.FillRectangle(gb, bar);
         }
 
-        // ── Mouse interactions ────────────────────────────────────────────────
+        // ?? Geometry helpers ??????????????????????????????????????????????????
+        private static void FillRounded(Graphics g, Brush br, RectangleF r, float rad)
+        {
+            using (var p = RoundPath(r, rad)) g.FillPath(br, p);
+        }
+        private static void StrokeRounded(Graphics g, Pen pen, RectangleF r, float rad)
+        {
+            using (var p = RoundPath(r, rad)) g.DrawPath(pen, p);
+        }
+        private static GraphicsPath RoundPath(RectangleF r, float rad)
+        {
+            float d = rad * 2f;
+            var p = new GraphicsPath();
+            p.AddArc(r.X,         r.Y,          d, d, 180, 90);
+            p.AddArc(r.Right - d, r.Y,          d, d, 270, 90);
+            p.AddArc(r.Right - d, r.Bottom - d, d, d,   0, 90);
+            p.AddArc(r.X,         r.Bottom - d, d, d,  90, 90);
+            p.CloseFigure();
+            return p;
+        }
+
+        // ?? Colour math ???????????????????????????????????????????????????????
+        private static Color HeatColor(float t)
+        {
+            t = Math.Max(0f, Math.Min(1f, t));
+            float seg = t * (Heat.Length - 1);
+            int lo = (int)seg, hi = Math.Min(lo + 1, Heat.Length - 1);
+            return BlendColor(Heat[hi], Heat[lo], seg - lo);
+        }
+        private static Color BlendColor(Color a, Color b, float t)
+        {
+            t = Math.Max(0f, Math.Min(1f, t));
+            return Color.FromArgb(
+                (int)(a.R * t + b.R * (1 - t)),
+                (int)(a.G * t + b.G * (1 - t)),
+                (int)(a.B * t + b.B * (1 - t)));
+        }
+        private static Color DarkenColor(Color c, float f) =>
+            Color.FromArgb(Math.Max(0, (int)(c.R * f)), Math.Max(0, (int)(c.G * f)), Math.Max(0, (int)(c.B * f)));
+        private static Color LightenColor(Color c, float f) =>
+            Color.FromArgb(Math.Min(255, (int)(c.R * f)), Math.Min(255, (int)(c.G * f)), Math.Min(255, (int)(c.B * f)));
+
+        // ?? Mouse ?????????????????????????????????????????????????????????????
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            float delta = e.Delta > 0 ? 1.1f : 0.9f;
-            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, _zoom * delta));
+            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, _zoom * (e.Delta > 0 ? 1.12f : 0.89f)));
             Invalidate();
         }
-
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left)
-            {
-                // Check if clicking on a node
-                string hitNode = HitTestNode(e.Location);
-                if (hitNode != null)
-                {
-                    // Show node info
-                    ShowNodeInfo(hitNode, e.Location);
-                    return;
-                }
-
-                _isDragging   = true;
-                _lastMousePos = e.Location;
-                Cursor        = Cursors.SizeAll;
-            }
+            if (e.Button != MouseButtons.Left) return;
+            string hit = HitTest(e.Location);
+            if (hit != null) { ShowNodeInfo(hit); return; }
+            _dragging = true; _lastMouse = e.Location; Cursor = Cursors.SizeAll;
         }
-
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-
-            // Double-click to zoom and center on node
-            string hitNode = HitTestNode(e.Location);
-            if (hitNode != null && _graph != null && _graph.Nodes.TryGetValue(hitNode, out var node))
-            {
-                // Center on this node
-                _panOffset.X = -node.X * _zoom;
-                _panOffset.Y = -node.Y * _zoom;
-
-                // Zoom in a bit
-                _zoom = Math.Min(MaxZoom, _zoom * 1.5f);
-
-                Invalidate();
-            }
+            string hit = HitTest(e.Location);
+            if (hit == null || !_graph.Nodes.TryGetValue(hit, out var nd)) return;
+            _pan.X = -nd.X * _zoom; _pan.Y = -nd.Y * _zoom;
+            _zoom = Math.Min(MaxZoom, _zoom * 1.5f);
+            Invalidate();
         }
-
-        private void ShowNodeInfo(string nodeName, Point location)
-        {
-            if (_graph == null || !_graph.Nodes.ContainsKey(nodeName)) return;
-
-            // Count incoming and outgoing calls
-            int incomingCalls = 0;
-            int outgoingCalls = 0;
-            var callers = new List<string>();
-            var callees = new List<string>();
-
-            foreach (var edge in _graph.Edges.Values)
-            {
-                if (edge.Callee == nodeName)
-                {
-                    incomingCalls += edge.Weight;
-                    if (!callers.Contains(edge.Caller))
-                        callers.Add(edge.Caller);
-                }
-                if (edge.Caller == nodeName)
-                {
-                    outgoingCalls += edge.Weight;
-                    if (!callees.Contains(edge.Callee))
-                        callees.Add(edge.Callee);
-                }
-            }
-
-            string info = $"API: {nodeName}\n\n" +
-                         $"Calls TO this API: {incomingCalls} (from {callers.Count} APIs)\n" +
-                         $"Calls FROM this API: {outgoingCalls} (to {callees.Count} APIs)";
-
-            if (callers.Count > 0)
-                info += $"\n\nCallers: {string.Join(", ", callers.ToArray())}";
-            if (callees.Count > 0)
-                info += $"\n\nCalls: {string.Join(", ", callees.ToArray())}";
-
-            MessageBox.Show(info, "Call Graph Node Details", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        protected override void OnMouseUp(MouseEventArgs e)
-        {
-            base.OnMouseUp(e);
-            _isDragging = false;
-            Cursor      = Cursors.Default;
-        }
-
+        protected override void OnMouseUp(MouseEventArgs e)   { base.OnMouseUp(e); _dragging = false; Cursor = Cursors.Default; }
+        protected override void OnMouseLeave(EventArgs e)     { base.OnMouseLeave(e); _hoveredNode = null; Invalidate(); }
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-
-            if (_isDragging)
+            if (_dragging)
             {
-                _panOffset.X += e.X - _lastMousePos.X;
-                _panOffset.Y += e.Y - _lastMousePos.Y;
-                _lastMousePos = e.Location;
-                Invalidate();
-                return;
+                _pan.X += e.X - _lastMouse.X; _pan.Y += e.Y - _lastMouse.Y;
+                _lastMouse = e.Location; Invalidate(); return;
             }
-
-            // Hover detection — convert mouse to graph coords
-            string hitNode = HitTestNode(e.Location);
-            if (hitNode != _hoveredNode)
-            {
-                _hoveredNode = hitNode;
-                Cursor       = hitNode != null ? Cursors.Hand : Cursors.Default;
-                Invalidate();
-            }
+            string hit = HitTest(e.Location);
+            if (hit != _hoveredNode) { _hoveredNode = hit; Cursor = hit != null ? Cursors.Hand : Cursors.Default; Invalidate(); }
         }
-
-        protected override void OnMouseLeave(EventArgs e)
+        protected override void OnResize(EventArgs e)
         {
-            base.OnMouseLeave(e);
-            _hoveredNode = null;
-            Invalidate();
+            base.OnResize(e);
+            if (_welcomePanel != null) _welcomePanel.Bounds = ClientRectangle;
         }
 
-        private string HitTestNode(Point screenPt)
+        private string HitTest(Point pt)
         {
             if (_graph == null) return null;
-
-            // Convert screen coords → graph coords
-            float gx = (screenPt.X - Width  / 2f - _panOffset.X) / _zoom;
-            float gy = (screenPt.Y - Height / 2f - _panOffset.Y) / _zoom;
-
-            foreach (var node in _graph.Nodes.Values)
-            {
-                if (Math.Abs(gx - node.X) <= NodeWidth  / 2f &&
-                    Math.Abs(gy - node.Y) <= NodeHeight / 2f)
-                    return node.Name;
-            }
+            float gx = (pt.X - Width  / 2f - _pan.X) / _zoom;
+            float gy = (pt.Y - Height / 2f - _pan.Y) / _zoom;
+            foreach (var nd in _graph.Nodes.Values)
+                if (Math.Abs(gx - nd.X) <= NW / 2f && Math.Abs(gy - nd.Y) <= NH / 2f)
+                    return nd.Name;
             return null;
+        }
+
+        private void ShowNodeInfo(string name)
+        {
+            if (_graph == null) return;
+            int incoming = 0, outgoing = 0;
+            var callers = new List<string>();
+            var callees = new List<string>();
+            foreach (var ed in _graph.Edges.Values)
+            {
+                if (ed.Callee == name) { incoming += ed.Weight; if (!callers.Contains(ed.Caller)) callers.Add(ed.Caller); }
+                if (ed.Caller == name) { outgoing += ed.Weight; if (!callees.Contains(ed.Callee)) callees.Add(ed.Callee); }
+            }
+            string info = $"Function:  {name}\n\n" +
+                          $"Incoming calls : {incoming}  ({callers.Count} caller{(callers.Count == 1 ? "" : "s")})\n" +
+                          $"Outgoing calls : {outgoing}  ({callees.Count} callee{(callees.Count == 1 ? "" : "s")})";
+            if (callers.Count > 0) info += $"\n\nCallers:\n  {string.Join("\n  ", callers)}";
+            if (callees.Count > 0) info += $"\n\nCallees:\n  {string.Join("\n  ", callees)}";
+            MessageBox.Show(info, "Call Graph � Node Details", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

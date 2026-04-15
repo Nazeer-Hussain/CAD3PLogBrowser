@@ -956,9 +956,11 @@ namespace Cad3PLogBrowser
             this.callGraphPanel = new Cad3PLogBrowser.CallGraphPanel();
             this.callGraphResetButton = new System.Windows.Forms.Button();
             this.callGraphExportButton = new System.Windows.Forms.Button();
+            this.callGraphToggleButton = new System.Windows.Forms.Button();
             this.callGraphTab.Controls.Add(this.callGraphPanel);
             this.callGraphTab.Controls.Add(this.callGraphResetButton);
             this.callGraphTab.Controls.Add(this.callGraphExportButton);
+            this.callGraphTab.Controls.Add(this.callGraphToggleButton);
             this.callGraphTab.Location = new System.Drawing.Point(4, 25);
             this.callGraphTab.Name = "callGraphTab";
             this.callGraphTab.Padding = new System.Windows.Forms.Padding(3);
@@ -992,16 +994,21 @@ namespace Cad3PLogBrowser
             this.timelineTab.TabIndex = 6;
             this.timelineTab.Text = "Timeline";
             this.timelineTab.UseVisualStyleBackColor = true;
-            this.callGraphResetButton.Text = "Reset View";
+            this.callGraphResetButton.Text = "⟳ Reset View";
             this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
-            this.callGraphResetButton.Size = new System.Drawing.Size(85, 26);
+            this.callGraphResetButton.Size = new System.Drawing.Size(95, 26);
             this.callGraphResetButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
             this.callGraphResetButton.Click += new System.EventHandler(this.callGraphResetButton_Click);
-            this.callGraphExportButton.Text = "Export PNG...";
-            this.callGraphExportButton.Location = new System.Drawing.Point(97, 6);
-            this.callGraphExportButton.Size = new System.Drawing.Size(100, 26);
+            this.callGraphExportButton.Text = "⬇ Export PNG...";
+            this.callGraphExportButton.Location = new System.Drawing.Point(107, 6);
+            this.callGraphExportButton.Size = new System.Drawing.Size(115, 26);
             this.callGraphExportButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
             this.callGraphExportButton.Click += new System.EventHandler(this.callGraphExportButton_Click);
+            this.callGraphToggleButton.Text = "⇄ Structural View";
+            this.callGraphToggleButton.Location = new System.Drawing.Point(228, 6);
+            this.callGraphToggleButton.Size = new System.Drawing.Size(130, 26);
+            this.callGraphToggleButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+            this.callGraphToggleButton.Click += new System.EventHandler(this.callGraphToggleButton_Click);
             this.callGraphPanel.Location = new System.Drawing.Point(3, 38);
             this.callGraphPanel.Size = new System.Drawing.Size(682, 453);
             this.callGraphPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(
@@ -1554,6 +1561,7 @@ namespace Cad3PLogBrowser
         private Cad3PLogBrowser.CallGraphPanel callGraphPanel;
         private System.Windows.Forms.Button callGraphResetButton;
         private System.Windows.Forms.Button callGraphExportButton;
+        private System.Windows.Forms.Button callGraphToggleButton;
         private System.Windows.Forms.ListView performanceView;
         private System.Windows.Forms.ColumnHeader perfColName;
         private System.Windows.Forms.ColumnHeader perfColCalls;
