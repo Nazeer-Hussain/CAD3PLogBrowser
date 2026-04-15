@@ -28,11 +28,21 @@ namespace Cad3PLogBrowser.Services.Core
 
         private List<string> Merge(IEnumerable<string> filePaths)
         {
-            var buckets = new List<(long ts, string line)>();
-
-            foreach (var path in filePaths)
+            // Estimate total lines across all files
+            long totalBytes = 0;
+            var paths = new List<string>();
+            foreach (var p in filePaths)
             {
-                if (!File.Exists(path)) continue;
+                if (!File.Exists(p)) continue;
+                paths.Add(p);
+                totalBytes += new FileInfo(p).Length;
+            }
+            int estimatedLines = totalBytes > 0 ? (int)Math.Min(totalBytes / 120, int.MaxValue) : 4096;
+
+            var buckets = new List<(long ts, string line)>(estimatedLines);
+
+            foreach (var path in paths)
+            {
                 string tag = Path.GetFileName(path);
 
                 using (var stream = new FileStream(path, FileMode.Open,
@@ -44,7 +54,6 @@ namespace Cad3PLogBrowser.Services.Core
                     while ((raw = reader.ReadLine()) != null)
                     {
                         long ts = ExtractTimestamp(raw);
-                        // Prefix line with source filename for traceability
                         string tagged = string.Format("[{0}] {1}", tag, raw);
                         buckets.Add((ts, tagged));
                     }
@@ -69,7 +78,7 @@ namespace Cad3PLogBrowser.Services.Core
 
         private static long ExtractTimestamp(string line)
         {
-            // Try tab-delimited epoch ms (ENTER/EXIT lines, last field)
+            // Fast path: epoch ms is the last tab-field on ENTER/EXIT lines
             int lastTab = line.LastIndexOf('\t');
             if (lastTab >= 0 && lastTab < line.Length - 1)
             {
@@ -78,12 +87,16 @@ namespace Cad3PLogBrowser.Services.Core
                     return epochMs;
             }
 
-            // Fall back to ISO timestamp at line start → convert to ticks for ordering
+            // Only run the regex if the line looks like it starts with an ISO timestamp
+            if (line.Length < 20 || !char.IsDigit(line[0]))
+                return 0;
+
+            // Fall back to ISO timestamp at line start
             var m = IsoTimestamp.Match(line);
             if (m.Success && DateTime.TryParse(m.Groups[1].Value, out DateTime dt))
                 return dt.ToUniversalTime().Ticks / 10_000; // ticks → ms
 
-            return 0; // no timestamp found
+            return 0;
         }
     }
 }

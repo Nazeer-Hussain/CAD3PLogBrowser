@@ -99,7 +99,7 @@ private void ShowInlineHelpDialog()
 {
     var helpForm = new Form
     {
-        Text = "Quick Help — CAD 3P Log Browser",
+        Text = "Quick Help â€” CAD 3P Log Browser",
         Size = new Size(700, 600),
         StartPosition = FormStartPosition.CenterParent,
         FormBorderStyle = FormBorderStyle.Sizable

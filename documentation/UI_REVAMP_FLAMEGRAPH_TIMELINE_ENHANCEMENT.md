@@ -59,17 +59,17 @@ Load a log file to see the flame graph."
 ?  ?? Open a log file... to get started  ?
 ?                                         ?
 ?  ?? What is a Flame Graph?             ?
-?  • Visual profiling: See where time... ?
-?  • Width = Time spent in function      ?
-?  • Height = Call stack depth            ?
-?  • Color = Different functions          ?
+?  â€¢ Visual profiling: See where time... ?
+?  â€¢ Width = Time spent in function      ?
+?  â€¢ Height = Call stack depth            ?
+?  â€¢ Color = Different functions          ?
 ?                                         ?
 ?  ??? How to Use:                        ?
-?  • Hover over bars to see details      ?
-?  • Click a bar to zoom into...         ?
-?  • Mouse wheel to zoom in/out          ?
-?  • Drag to pan around                  ?
-?  • Right-click to reset view           ?
+?  â€¢ Hover over bars to see details      ?
+?  â€¢ Click a bar to zoom into...         ?
+?  â€¢ Mouse wheel to zoom in/out          ?
+?  â€¢ Drag to pan around                  ?
+?  â€¢ Right-click to reset view           ?
 ???????????????????????????????????????????
 ```
 
@@ -123,9 +123,9 @@ Instructions: "Hover: Details | Click..." (bottom, 7pt, easy to miss)
 **After** (Professional header bar):
 ```
 ??????????????????????????????????????????????????????????????
-? ?? Flame Graph — Performance Profiling    [Instructions?] ? ? Header bar (35px)
+? ?? Flame Graph â€” Performance Profiling    [Instructions?] ? ? Header bar (35px)
 ??????????????????????????????????????????????????????????????
-? Width = Time • Height = Depth • ? Fast • ? Medium • ? Slow? ? Legend (30px)
+? Width = Time â€¢ Height = Depth â€¢ ? Fast â€¢ ? Medium â€¢ ? Slow? ? Legend (30px)
 ??????????????????????????????????????????????????????????????
 ?                                                            ?
 ?  [Flame graph bars here]                                  ?
@@ -135,7 +135,7 @@ Instructions: "Hover: Details | Click..." (bottom, 7pt, easy to miss)
 
 **Features**:
 - ? **Fixed header bar** (35px height, distinct background color)
-- ? **Title with icon** "?? Flame Graph — Performance Profiling" (11pt bold)
+- ? **Title with icon** "?? Flame Graph â€” Performance Profiling" (11pt bold)
 - ? **Zoom indicator** "Zoom: 1.5x" (right side, blue accent)
 - ? **Instructions** (right-aligned, 8pt, readable)
 - ? **Color legend** (below header, shows what colors mean)
@@ -161,7 +161,7 @@ using (var borderPen = new Pen(ThemeManager.BorderColor, 1))
 }
 
 // Title with icon
-string title = "?? Flame Graph — Performance Profiling";
+string title = "?? Flame Graph â€” Performance Profiling";
 using (var font = new Font("Segoe UI", 11f, FontStyle.Bold))
 using (var brush = new SolidBrush(ThemeManager.ForegroundColor))
 {
@@ -176,7 +176,7 @@ if (_zoom != 1.0f)
 }
 
 // Instructions (right side)
-string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click: Reset";
+string instructions = "??? Scroll: Zoom â€¢ Drag: Pan â€¢ Click: Focus â€¢ Right-Click: Reset";
 // Right-aligned, subtle color...
 ```
 
@@ -188,12 +188,12 @@ string instructions = "??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click
 
 **FlameGraph Legend**:
 ```
-Width = Time • Height = Depth • ? Fast (<100ms) • ? Medium (100-500ms) • ? Slow (>500ms)
+Width = Time â€¢ Height = Depth â€¢ ? Fast (<100ms) â€¢ ? Medium (100-500ms) â€¢ ? Slow (>500ms)
 ```
 
 **Timeline Legend**:
 ```
-Length = Duration • Position = Time • ? Fast (<100ms) • ? Medium (100-500ms) • ? Slow (>500ms)
+Length = Duration â€¢ Position = Time â€¢ ? Fast (<100ms) â€¢ ? Medium (100-500ms) â€¢ ? Slow (>500ms)
 ```
 
 **Features**:
@@ -633,8 +633,8 @@ g.TranslateTransform(_panOffset.X, _panOffset.Y + 65); // Content offset
 ?       ? No data...       ?        ?
 ?       ?                  ?        ?
 ?       ? ?? What is...   ?        ? ? Instructions
-?       ? • Visual...      ?        ?
-?       ? • Width = Time   ?        ?
+?       ? â€¢ Visual...      ?        ?
+?       ? â€¢ Width = Time   ?        ?
 ?       ? ...              ?        ?
 ?       ????????????????????        ?
 ?         ? Rounded card             ?
@@ -661,9 +661,9 @@ g.TranslateTransform(_panOffset.X, _panOffset.Y + 65); // Content offset
 **After**:
 ```
 ??????????????????????????????????????
-? ?? Flame Graph — Performance    ... Instructions ? Zoom: 1.0x ? ? Header 35px
+? ?? Flame Graph â€” Performance    ... Instructions ? Zoom: 1.0x ? ? Header 35px
 ??????????????????????????????????????
-? Width=Time • Height=Depth • ?Fast • ?Medium • ?Slow          ? ? Legend 30px
+? Width=Time â€¢ Height=Depth â€¢ ?Fast â€¢ ?Medium â€¢ ?Slow          ? ? Legend 30px
 ??????????????????????????????????????
 ? ???????????????? function1        ?
 ? ?????? func2  ??? func3          ? ? Content (offset Y=65)
@@ -684,17 +684,17 @@ g.TranslateTransform(_panOffset.X, _panOffset.Y + 65); // Content offset
 ?? Open a log file with performance data to get started
 
 ?? What is a Flame Graph?
-• Visual profiling: See where time is spent
-• Width = Time spent in function
-• Height = Call stack depth
-• Color = Different functions (for distinction)
+â€¢ Visual profiling: See where time is spent
+â€¢ Width = Time spent in function
+â€¢ Height = Call stack depth
+â€¢ Color = Different functions (for distinction)
 
 ??? How to Use:
-• Hover over bars to see details
-• Click a bar to zoom into that function
-• Mouse wheel to zoom in/out
-• Drag to pan around
-• Right-click to reset view
+â€¢ Hover over bars to see details
+â€¢ Click a bar to zoom into that function
+â€¢ Mouse wheel to zoom in/out
+â€¢ Drag to pan around
+â€¢ Right-click to reset view
 ```
 
 **Timeline Instructions**:
@@ -702,25 +702,25 @@ g.TranslateTransform(_panOffset.X, _panOffset.Y + 65); // Content offset
 ?? Open a log file with call data to get started
 
 ?? What is a Timeline View?
-• Chronological visualization of API calls
-• X-axis = Time progression
-• Y-axis = Call stack depth
-• Bar length = Duration of call
-• Color = Performance (green/orange/red)
+â€¢ Chronological visualization of API calls
+â€¢ X-axis = Time progression
+â€¢ Y-axis = Call stack depth
+â€¢ Bar length = Duration of call
+â€¢ Color = Performance (green/orange/red)
 
 ??? How to Use:
-• Hover over bars to see call details
-• Click a bar to jump to that log line
-• Mouse wheel to zoom in/out
-• Drag to pan left/right
-• Right-click to reset view
+â€¢ Hover over bars to see call details
+â€¢ Click a bar to jump to that log line
+â€¢ Mouse wheel to zoom in/out
+â€¢ Drag to pan left/right
+â€¢ Right-click to reset view
 ```
 
 ### Header Instructions
 
-**FlameGraph**: `??? Scroll: Zoom • Drag: Pan • Click: Focus • Right-Click: Reset`
+**FlameGraph**: `??? Scroll: Zoom â€¢ Drag: Pan â€¢ Click: Focus â€¢ Right-Click: Reset`
 
-**Timeline**: `??? Scroll: Zoom • Drag: Pan • Click: Jump to Log • Right-Click: Reset`
+**Timeline**: `??? Scroll: Zoom â€¢ Drag: Pan â€¢ Click: Jump to Log â€¢ Right-Click: Reset`
 
 ---
 

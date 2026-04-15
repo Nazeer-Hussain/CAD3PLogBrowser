@@ -225,7 +225,7 @@ English (Resources.resx):
 ERR_NO_FILE_LOADED = No file loaded.
 
 French (Resources.fr.resx):
-ERR_NO_FILE_LOADED = Aucun fichier chargé.
+ERR_NO_FILE_LOADED = Aucun fichier chargÃ©.
 ```
 
 3. **Build and test:**

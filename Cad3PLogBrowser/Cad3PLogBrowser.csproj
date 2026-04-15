@@ -59,7 +59,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-	<Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -119,6 +119,7 @@
     <Compile Include="Services\IconGenerator.cs" />
     <Compile Include="Services\Navigation\BookmarkService.cs" />
     <Compile Include="Services\Navigation\LogNavigationService.cs" />
+    <Compile Include="Services\SearchService.cs" />
     <Compile Include="Services\Search\FilterService.cs" />
     <Compile Include="Services\ThemeManager.cs" />
     <Compile Include="Services\UI\StatusBarManager.cs" />

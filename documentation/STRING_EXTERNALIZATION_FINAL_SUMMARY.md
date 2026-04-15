@@ -236,7 +236,7 @@ Right-click Properties/Resources.resx
 Copy all string resources from Resources.resx and translate values:
 ```
 English: ERR_NO_FILE_LOADED = No file loaded.
-French:  ERR_NO_FILE_LOADED = Aucun fichier chargé.
+French:  ERR_NO_FILE_LOADED = Aucun fichier chargÃ©.
 ```
 
 ### Step 3: Done!

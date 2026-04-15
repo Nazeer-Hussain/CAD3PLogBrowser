@@ -34,7 +34,7 @@ namespace Cad3PLogBrowser
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
         private AppSettings       _appSettings;
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
-        private List<LogEntry>    _lastEntries      = new List<LogEntry>(); // for ENTER/EXIT jump
+        private List<Services.LogEntry>  _lastEntries      = new List<Services.LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
 
         // Feature C2: Lazy loading for large trees
@@ -203,21 +203,23 @@ namespace Cad3PLogBrowser
             UpdateThemeButtonIcon();
         }
 
+        private Bitmap _sunIcon;
+        private Bitmap _moonIcon;
+
         private void UpdateThemeButtonIcon()
         {
-            if (_themeToggleButton != null)
-            {
-                // Generate theme toggle icons
-                bool isDark = _appSettings.Theme == "Dark";
+            if (_themeToggleButton == null) return;
 
-                IconGenerator.GenerateThemeIcons(IconGenerator.IconSize.Medium, out var sunIcon, out var moonIcon);
+            bool isDark = _appSettings.Theme == "Dark";
 
-                // Sun icon in dark mode (click to switch to light), Moon icon in light mode (click to switch to dark)
-                _themeToggleButton.Image = isDark ? sunIcon : moonIcon;
-                _themeToggleButton.ToolTipText = isDark 
-                    ? Resources.TOOLTIP_THEME_TOGGLE_TO_LIGHT 
-                    : Resources.TOOLTIP_THEME_TOGGLE_TO_DARK;
-            }
+            // Generate once and reuse
+            if (_sunIcon == null || _moonIcon == null)
+                IconGenerator.GenerateThemeIcons(IconGenerator.IconSize.Medium, out _sunIcon, out _moonIcon);
+
+            _themeToggleButton.Image = isDark ? _sunIcon : _moonIcon;
+            _themeToggleButton.ToolTipText = isDark
+                ? Resources.TOOLTIP_THEME_TOGGLE_TO_LIGHT
+                : Resources.TOOLTIP_THEME_TOGGLE_TO_DARK;
         }
 
         private void BuildMruMenu()
@@ -299,11 +301,13 @@ namespace Cad3PLogBrowser
         // Each VirtualLogLine holds exactly what the ListView needs for one row.
         private struct VirtualLogLine
         {
-            public string LineNumber;
+            public int    LineNumber;
             public string Text;
             public Color  BackColour;
         }
         private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
+        // O(1) lookup: 1-based line number → virtual list index
+        private Dictionary<int, int> _lineIndexMap = new Dictionary<int, int>();
 
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
@@ -658,7 +662,7 @@ namespace Cad3PLogBrowser
             int idx = logListView.SelectedIndices[0];
 
             // Feature G5: Show selected line info with more detail
-            string lineNum = _virtualLines[idx].LineNumber;
+            string lineNum = _virtualLines[idx].LineNumber.ToString();
             string preview = _virtualLines[idx].Text;
             if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
 
@@ -825,15 +829,29 @@ namespace Cad3PLogBrowser
         private void PopulateTrees(List<string> lines)
         {
             var entries   = _parserService.Parse(lines);
-            _lastEntries  = entries;  // store for ENTER/EXIT jump feature
-            _apiNodes     = _parserService.BuildApiList(entries);
+            var apiNodes  = _parserService.BuildApiList(entries);
             var callTree  = _parserService.BuildCallTree(entries);
             var perfStats = _parserService.BuildPerformanceStats(callTree);
             var graph     = _callGraphService.Build(entries);
+            PopulateTreesFromData(entries, apiNodes, callTree, perfStats, graph);
+        }
+
+        private void PopulateTreesFromData(
+            List<Services.LogEntry>     entries,
+            List<ApiCallNode>           apiNodes,
+            List<CallStackNode>         callTree,
+            List<ApiPerfStats>          perfStats,
+            Services.CallGraph          graph)
+        {
+            _lastEntries  = entries;
+            _apiNodes     = apiNodes;
+
+            // Pre-compute matched status for all APIs in one O(N) pass
+            _matchedApiCache = BuildMatchedApiCache(entries);
 
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
-            PopulatePerformanceTab(perfStats, lines.Count);
+            PopulatePerformanceTab(perfStats, _allLines.Count);
             callGraphPanel.LoadGraph(graph);
 
             // F4: Load dependency graph
@@ -906,7 +924,6 @@ namespace Cad3PLogBrowser
                              : _apiSortMode == ApiSortMode.ByFirstLine ? Resources.TREE_SORT_LABEL_LINE
                              : Resources.TREE_SORT_LABEL_NAME;
             var root = new TreeNode(Resources.TREE_LABEL_API_TREE + sortLabel) { Tag = -1 };
-            root.NodeFont = new System.Drawing.Font(ApiTree.Font, System.Drawing.FontStyle.Bold);
 
             foreach (var node in apiNodes)
             {
@@ -936,24 +953,46 @@ namespace Cad3PLogBrowser
             }
 
             ApiTree.Nodes.Add(root);
-            // Issue Fix: Start collapsed (only root expanded)
+            // Start collapsed (only root expanded)
             root.Expand();
-            // Don't expand first level - let users expand as needed
 
             ApiTree.EndUpdate();
+
+            // Scroll to top and select the first API node
+            if (root.Nodes.Count > 0)
+            {
+                root.EnsureVisible();
+                ApiTree.SelectedNode = root.Nodes[0];
+                ApiTree.SelectedNode.EnsureVisible();
+            }
+        }
+
+        // Cache of API name → all-matched status, built in one pass during tree population
+        private Dictionary<string, bool> _matchedApiCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        private Dictionary<string, bool> BuildMatchedApiCache(List<Services.LogEntry> entries)
+        {
+            var enters = new Dictionary<string, int>(StringComparer.Ordinal);
+            var exits  = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (entries != null)
+            {
+                foreach (var e in entries)
+                {
+                    if (!e.IsApiCall || string.IsNullOrEmpty(e.ApiName)) continue;
+                    if (e.IsCallEnter) { enters.TryGetValue(e.ApiName, out int n); enters[e.ApiName] = n + 1; }
+                    else if (e.IsCallExit) { exits.TryGetValue(e.ApiName, out int n); exits[e.ApiName] = n + 1; }
+                }
+            }
+            var cache = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var kv in enters)
+                cache[kv.Key] = kv.Value == (exits.TryGetValue(kv.Key, out int ex) ? ex : 0);
+            return cache;
         }
 
         private bool AreAllApiCallsMatched(string apiName)
         {
-            if (_lastEntries == null) return true;
-            int enters = 0, exits = 0;
-            foreach (var e in _lastEntries)
-            {
-                if (!e.IsApiCall || e.ApiName != apiName) continue;
-                if (e.IsCallEnter) enters++;
-                else if (e.IsCallExit) exits++;
-            }
-            return enters == exits;
+            if (_matchedApiCache.TryGetValue(apiName, out bool matched)) return matched;
+            return true; // no data → assume matched
         }
 
         private void PopulateCallTree(List<CallStackNode> roots)
@@ -1459,7 +1498,7 @@ namespace Cad3PLogBrowser
 
         private void ScrollLogToLine(int lineNumber)
         {
-            int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNumber.ToString());
+            if (!_lineIndexMap.TryGetValue(lineNumber, out int idx)) return;
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
 
             // Feature H1: Show 10 previous lines by scrolling appropriately
@@ -1485,7 +1524,7 @@ namespace Cad3PLogBrowser
         {
             if (idx < 0 || idx >= _virtualLines.Count) return;
             logDetailBox.Text = string.Format(Resources.LOG_DETAIL_FORMAT,
-                _virtualLines[idx].LineNumber, _virtualLines[idx].Text);
+                _virtualLines[idx].LineNumber.ToString(), _virtualLines[idx].Text);
         }
 
         // ── #7: Virtual mode handler ──────────────────────────────────────────
@@ -1497,7 +1536,7 @@ namespace Cad3PLogBrowser
                 return;
             }
             var vl   = _virtualLines[e.ItemIndex];
-            var item = new ListViewItem(vl.LineNumber);
+            var item = new ListViewItem(vl.LineNumber.ToString());
             item.SubItems.Add(vl.Text);
             item.BackColor = vl.BackColour;
             e.Item = item;
@@ -1565,7 +1604,20 @@ namespace Cad3PLogBrowser
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
                 await Task.Delay(10);
 
-                PopulateTrees(_allLines);
+                // Parse and build all tree data in parallel on background threads
+                var entries = await Task.Run(() => _parserService.Parse(_allLines));
+                var apiNodesTask  = Task.Run(() => _parserService.BuildApiList(entries));
+                var callTreeTask  = Task.Run(() => _parserService.BuildCallTree(entries));
+                await Task.WhenAll(apiNodesTask, callTreeTask);
+                var callTree  = callTreeTask.Result;
+                var perfStats = await Task.Run(() => _parserService.BuildPerformanceStats(callTree));
+                var graph     = await Task.Run(() => _callGraphService.Build(entries));
+
+                FileLoadProgress.Value = 66;
+                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
+
+                // Populate UI with the pre-built data (must be on UI thread)
+                PopulateTreesFromData(entries, apiNodesTask.Result, callTree, perfStats, graph);
                 FileLoadProgress.Value = 100;
 
                 SetDocumentLoaded(true);
@@ -1595,6 +1647,7 @@ namespace Cad3PLogBrowser
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
+            _lineIndexMap = new Dictionary<int, int>(lines.Count);
 
             // Feature B10: Index errors and warnings
             _errorLines.Clear();
@@ -1615,10 +1668,11 @@ namespace Cad3PLogBrowser
 
                 _virtualLines.Add(new VirtualLogLine
                 {
-                    LineNumber = lineNumber.ToString(),
+                    LineNumber = lineNumber,
                     Text       = lines[i],
                     BackColour = backColor
                 });
+                _lineIndexMap[lineNumber] = i;
 
                 // Feature B10: Index error and warning lines
                 if (!string.IsNullOrEmpty(lines[i]))
@@ -1638,6 +1692,7 @@ namespace Cad3PLogBrowser
             {
                 logListView.VirtualListSize = _virtualLines.Count;
                 logListView.Invalidate();
+                AutoResizeLogListColumns();
             }
             UpdateStatusBar();
         }
@@ -1645,14 +1700,17 @@ namespace Cad3PLogBrowser
         private void PopulateVirtualListViewFiltered(IList<FilteredLine> filtered)
         {
             _virtualLines = new List<VirtualLogLine>(filtered.Count);
-            foreach (var fl in filtered)
+            _lineIndexMap = new Dictionary<int, int>(filtered.Count);
+            for (int i = 0; i < filtered.Count; i++)
             {
+                var fl = filtered[i];
                 _virtualLines.Add(new VirtualLogLine
                 {
-                    LineNumber = fl.LineNumber.ToString(),
+                    LineNumber = fl.LineNumber,
                     Text       = fl.Text,
                     BackColour = GetLineColour(fl.Text)
                 });
+                _lineIndexMap[fl.LineNumber] = i;
             }
 
             // Safety check: ensure logListView is initialized
@@ -1745,18 +1803,42 @@ namespace Cad3PLogBrowser
         // Issue Fix: Auto-resize ListView columns to fit content
         private void AutoResizeLogListColumns()
         {
-            // Safety check: ensure logListView is initialized
             if (logListView == null || logListView.Columns.Count < 2) return;
 
-            // Line number column: auto-resize to content
             logListView.Columns[0].Width = 80; // Fixed width for line numbers
 
-            // Log text column: fill remaining space
-            int remainingWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - 4;
-            if (remainingWidth > 0)
+            // Measure the widest visible line to size the text column.
+            // Fall back to the client width when there is no data.
+            int contentWidth = MeasureMaxLineWidth();
+            int viewWidth    = logListView.ClientSize.Width - logListView.Columns[0].Width - 4;
+
+            // Use whichever is larger: content drives the column when it overflows,
+            // otherwise the column fills the available space as before.
+            logListView.Columns[1].Width = Math.Max(viewWidth, contentWidth);
+        }
+
+        /// <summary>
+        /// Returns the pixel width of the longest text in _virtualLines using the
+        /// ListView's current font, or 0 when there are no lines.
+        /// Only samples up to 2000 lines for performance.
+        /// </summary>
+        private int MeasureMaxLineWidth()
+        {
+            if (_virtualLines == null || _virtualLines.Count == 0) return 0;
+
+            int maxWidth = 0;
+            int sampleCount = Math.Min(_virtualLines.Count, 2000);
+            using (var g = logListView.CreateGraphics())
             {
-                logListView.Columns[1].Width = remainingWidth;
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    string text = _virtualLines[i].Text;
+                    if (string.IsNullOrEmpty(text)) continue;
+                    int w = (int)g.MeasureString(text, logListView.Font).Width + 8; // 8px padding
+                    if (w > maxWidth) maxWidth = w;
+                }
             }
+            return maxWidth;
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -1928,11 +2010,19 @@ namespace Cad3PLogBrowser
                     await Task.Delay(10);
 
                     PopulateVirtualListView(_allLines);
-                    FileLoadProgress.Value = 66;
+                    FileLoadProgress.Value = 50;
                     StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
                     await Task.Delay(10);
 
-                    PopulateTrees(_allLines);
+                    // Parse and build all tree data in parallel on background threads
+                    var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
+                    var mApiTask      = Task.Run(() => _parserService.BuildApiList(mergeEntries));
+                    var mCallTask     = Task.Run(() => _parserService.BuildCallTree(mergeEntries));
+                    await Task.WhenAll(mApiTask, mCallTask);
+                    var mCallTree     = mCallTask.Result;
+                    var mPerfStats    = await Task.Run(() => _parserService.BuildPerformanceStats(mCallTree));
+                    var mGraph        = await Task.Run(() => _callGraphService.Build(mergeEntries));
+                    PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph);
                     FileLoadProgress.Value = 100;
 
                     SetDocumentLoaded(true);
@@ -2192,7 +2282,7 @@ namespace Cad3PLogBrowser
             if (logListView.SelectedIndices.Count == 0) return;
 
             int selectedIdx  = logListView.SelectedIndices[0];
-            int selectedLine = int.Parse(_virtualLines[selectedIdx].LineNumber);
+            int selectedLine = _virtualLines[selectedIdx].LineNumber;
 
             // Find the entry at this line
             LogEntry current = null;
@@ -2363,20 +2453,35 @@ namespace Cad3PLogBrowser
 
             try
             {
-                await Task.Run(() =>
+                // Collect all nodes on the UI thread first (TreeNodeCollection is not thread-safe)
+                List<TreeNode> callNodes = null;
+                List<TreeNode> apiNodes  = null;
+                this.Invoke((Action)(() =>
                 {
-                    var token = _cancellationTokenSource.Token;
+                    callNodes = CollectAllNodes(CallTree.Nodes);
+                    apiNodes  = CollectAllNodes(ApiTree.Nodes);
+                }));
 
-                    this.Invoke((Action)(() => CallTree.BeginUpdate()));
-                    ExpandNodeRecursive(CallTree.Nodes, token);
-                    this.Invoke((Action)(() => CallTree.EndUpdate()));
+                var token = _cancellationTokenSource.Token;
 
+                // Expand all in a single UI-thread batch per tree
+                this.Invoke((Action)(() =>
+                {
                     token.ThrowIfCancellationRequested();
+                    CallTree.BeginUpdate();
+                    foreach (var n in callNodes) n.Expand();
+                    CallTree.EndUpdate();
+                }));
 
-                    this.Invoke((Action)(() => ApiTree.BeginUpdate()));
-                    ExpandNodeRecursive(ApiTree.Nodes, token);
-                    this.Invoke((Action)(() => ApiTree.EndUpdate()));
-                });
+                token.ThrowIfCancellationRequested();
+
+                this.Invoke((Action)(() =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    ApiTree.BeginUpdate();
+                    foreach (var n in apiNodes) n.Expand();
+                    ApiTree.EndUpdate();
+                }));
             }
             catch (OperationCanceledException)
             {
@@ -2388,18 +2493,20 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private void ExpandNodeRecursive(TreeNodeCollection nodes, CancellationToken token)
+        private List<TreeNode> CollectAllNodes(TreeNodeCollection nodes)
+        {
+            var list = new List<TreeNode>();
+            CollectAllNodesRecursive(nodes, list);
+            return list;
+        }
+
+        private void CollectAllNodesRecursive(TreeNodeCollection nodes, List<TreeNode> list)
         {
             foreach (TreeNode node in nodes)
             {
-                token.ThrowIfCancellationRequested();
-
-                this.Invoke((Action)(() => node.Expand()));
-
+                list.Add(node);
                 if (node.Nodes.Count > 0)
-                {
-                    ExpandNodeRecursive(node.Nodes, token);
-                }
+                    CollectAllNodesRecursive(node.Nodes, list);
             }
         }
 
@@ -2569,62 +2676,40 @@ namespace Cad3PLogBrowser
 
             try
             {
-                // Parse all lines to LogEntry objects for proper filtering
-                var logEntries = new List<Models.LogEntry>();
-                for (int i = 0; i < _allLines.Count; i++)
-                {
-                    logEntries.Add(new Models.LogEntry
-                    {
-                        LineNumber = i + 1,
-                        Text = _allLines[i],
-                        // Parse level from line if possible
-                        Level = ParseLogLevel(_allLines[i])
-                    });
-                }
+                var allLinesCopy = _allLines; // capture reference; immutable during filter
 
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
-                    var filterService = new Services.Search.FilterService();
-                    var filteredEntries = new List<Models.LogEntry>();
+                    var result = new List<FilteredLine>();
 
-                    for (int i = 0; i < logEntries.Count; i++)
+                    for (int i = 0; i < allLinesCopy.Count; i++)
                     {
-                        if (i % 1000 == 0) // Check cancellation every 1000 lines
+                        if (i % 1000 == 0)
                         {
                             token.ThrowIfCancellationRequested();
-
-                            // Update progress
-                            int progress = (int)((i / (double)logEntries.Count) * 100);
-                            this.Invoke((Action)(() => 
+                            int progress = (int)((i / (double)allLinesCopy.Count) * 100);
+                            this.Invoke((Action)(() =>
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = string.Format(Resources.STATUS_FILTERING_PROGRESS, 
-                                    progress, i, logEntries.Count);
+                                StatusFileName.Text = string.Format(Resources.STATUS_FILTERING_PROGRESS,
+                                    progress, i, allLinesCopy.Count);
                             }));
                         }
 
-                        var entry = logEntries[i];
-
-                        // Use FilterService for comprehensive filtering
-                        if (MatchesFilter(entry, criteria))
-                        {
-                            filteredEntries.Add(entry);
-                        }
+                        string line = allLinesCopy[i];
+                        if (MatchesFilterRaw(line, criteria))
+                            result.Add(new FilteredLine(i + 1, line));
                     }
-
-                    return filteredEntries;
+                    return result;
                 });
 
-                // Convert to FilteredLine format
-                var filteredLines = filtered.Select(e => new FilteredLine(e.LineNumber, e.Text)).ToList();
-
                 _activeFilterText = criteria.GetDescription();
-                PopulateVirtualListViewFiltered(filteredLines);
+                PopulateVirtualListViewFiltered(filtered);
                 ClearHighlighting();
 
-                StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED, 
+                StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED,
                     filtered.Count, _allLines.Count);
             }
             catch (OperationCanceledException)
@@ -2646,46 +2731,47 @@ namespace Cad3PLogBrowser
             ClearHighlighting(); // Clear search highlights when filter is cleared
         }
 
-        /// <summary>
-        /// Checks if a log entry matches the filter criteria.
-        /// Uses FilterService for comprehensive filtering.
-        /// </summary>
-        private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria)
+        // Pre-compiled regex instances reused across filter calls
+        private System.Text.RegularExpressions.Regex _filterDurationRegex =
+            new System.Text.RegularExpressions.Regex(@"\[(\d+)\s*ms\]",
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+        private System.Text.RegularExpressions.Regex _filterTimeRegex =
+            new System.Text.RegularExpressions.Regex(@"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})",
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria)
         {
             // Text filter
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
                 var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                if (entry.Text.IndexOf(criteria.SearchText, comparison) < 0)
+                if (line.IndexOf(criteria.SearchText, comparison) < 0)
                     return false;
             }
 
             // Duration filter
             if (criteria.MinimumDurationMs.HasValue)
             {
-                if (!CheckDurationFilter(entry.Text, criteria.MinimumDurationMs.Value))
+                var m = _filterDurationRegex.Match(line);
+                if (!m.Success || !int.TryParse(m.Groups[1].Value, out int dur) || dur < criteria.MinimumDurationMs.Value)
                     return false;
             }
 
             // Time range filter
             if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
             {
-                if (!CheckTimeRangeFilter(entry.Text, criteria.FromTime, criteria.ToTime))
+                var m = _filterTimeRegex.Match(line);
+                if (!m.Success || !DateTime.TryParse(m.Groups[1].Value, out DateTime lineTime))
                     return false;
-            }
-
-            // Thread ID filter
-            if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
-            {
-                if (string.IsNullOrWhiteSpace(entry.ThreadId) ||
-                    !entry.ThreadId.Equals(criteria.ThreadId, StringComparison.OrdinalIgnoreCase))
-                    return false;
+                var t = lineTime.TimeOfDay;
+                if (criteria.FromTime.HasValue && t < criteria.FromTime.Value.TimeOfDay) return false;
+                if (criteria.ToTime.HasValue   && t > criteria.ToTime.Value.TimeOfDay)   return false;
             }
 
             // Log level filter
             if (criteria.Level.HasValue)
             {
-                if (entry.Level != criteria.Level.Value)
+                if (ParseLogLevel(line) != criteria.Level.Value)
                     return false;
             }
 
@@ -2734,7 +2820,19 @@ namespace Cad3PLogBrowser
         {
             using (var settingsDialog = new SettingsForm(this))
             {
-                settingsDialog.ShowDialog(this);
+                if (settingsDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
+                    SetTabVisible(TabId.Raw,         _appSettings.ShowRawTab);
+                    SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
+                    SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
+                    SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
+                    SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
+                    SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+                    ApplyTheme();
+                    ApplyToolbarVisibility();
+                    ApplyFontSettings();
+                }
                 // Refresh AI service after settings may have changed
                 RefreshAiService();
             }
@@ -3661,7 +3759,6 @@ namespace Cad3PLogBrowser
         {
             mainToolStrip.Visible = showToolbarMenuItem.Checked;
             _appSettings.ShowToolbar = showToolbarMenuItem.Checked;
-            _appSettings.Save();
         }
 
         // ── Feature B7: Find All Results Window ──────────────────────────────
@@ -3902,8 +3999,7 @@ namespace Cad3PLogBrowser
                     StatusFileName.Text = message;
 
                     // Clear status after 3 seconds
-                    var timer = new System.Windows.Forms.Timer();
-                    timer.Interval = 3000;
+                    var timer = new System.Windows.Forms.Timer { Interval = 3000 };
                     timer.Tick += (s, args) =>
                     {
                         StatusFileName.Text = Path.GetFileName(_currentFilePath);
@@ -3915,7 +4011,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERR_COPY_FAILED, ex.Message), 
+                MessageBox.Show(string.Format(Resources.ERR_COPY_FAILED, ex.Message),
                     Resources.TITLE, 
                     MessageBoxButtons.OK, 
                     MessageBoxIcon.Error);
@@ -4077,12 +4173,13 @@ namespace Cad3PLogBrowser
         /// <summary>
         /// Recursively filters tree nodes.
         /// A node is visible if it or any of its children match the search text.
+        /// _treeSearchText is already lower-case; compare without allocating per-node.
         /// </summary>
         /// <returns>True if this node or any child matches.</returns>
         private bool FilterTreeNodeRecursive(TreeNode node)
         {
             bool hasMatch = false;
-            bool nodeMatches = node.Text.ToLowerInvariant().Contains(_treeSearchText);
+            bool nodeMatches = node.Text.IndexOf(_treeSearchText, StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Check children first
             foreach (TreeNode child in node.Nodes)
@@ -4168,7 +4265,7 @@ namespace Cad3PLogBrowser
             if (selectedIndex < 0 || selectedIndex >= _virtualLines.Count)
                 return;
 
-            int lineNumber = int.Parse(_virtualLines[selectedIndex].LineNumber);
+            int lineNumber = _virtualLines[selectedIndex].LineNumber;
             bool added = _bookmarkService.ToggleBookmark(lineNumber);
 
             // Update visual indication (mark with special color)
@@ -4200,7 +4297,7 @@ namespace Cad3PLogBrowser
             if (logListView.SelectedIndices.Count > 0)
             {
                 int idx = logListView.SelectedIndices[0];
-                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+                currentLine = _virtualLines[idx].LineNumber;
             }
 
             int nextBookmark = _bookmarkService.GetNextBookmark(currentLine);
@@ -4229,7 +4326,7 @@ namespace Cad3PLogBrowser
             if (logListView.SelectedIndices.Count > 0)
             {
                 int idx = logListView.SelectedIndices[0];
-                currentLine = int.Parse(_virtualLines[idx].LineNumber);
+                currentLine = _virtualLines[idx].LineNumber;
             }
 
             int prevBookmark = _bookmarkService.GetPreviousBookmark(currentLine);
@@ -4277,7 +4374,7 @@ namespace Cad3PLogBrowser
             for (int i = 0; i < _virtualLines.Count; i++)
             {
                 var vl = _virtualLines[i];
-                int lineNum = int.Parse(vl.LineNumber);
+                int lineNum = vl.LineNumber;
 
                 if (_bookmarkService.IsBookmarked(lineNum))
                 {
@@ -4324,8 +4421,8 @@ namespace Cad3PLogBrowser
             foreach (var lineNum in bookmarks)
             {
                 // Find the line text
-                int idx = _virtualLines.FindIndex(v => v.LineNumber == lineNum.ToString());
-                if (idx >= 0)
+                _lineIndexMap.TryGetValue(lineNum, out int idx);
+                if (idx >= 0 && idx < _virtualLines.Count && _virtualLines[idx].LineNumber == lineNum)
                 {
                     string text = _virtualLines[idx].Text;
                     if (text.Length > 80)

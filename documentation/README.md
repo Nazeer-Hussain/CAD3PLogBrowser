@@ -220,7 +220,7 @@ The application is fully localization-ready!
 2. **Translate all strings:**
    ```
    English: ERR_NO_FILE_LOADED = No file loaded.
-   French:  ERR_NO_FILE_LOADED = Aucun fichier chargé.
+   French:  ERR_NO_FILE_LOADED = Aucun fichier chargÃ©.
    ```
 
 3. **Build and test:**
@@ -398,4 +398,4 @@ Press F8 to jump to next error
 
 **Built with ?? and professional standards**
 
-**?? Professional • Optimized • Production-Ready ??**
+**?? Professional â€¢ Optimized â€¢ Production-Ready ??**

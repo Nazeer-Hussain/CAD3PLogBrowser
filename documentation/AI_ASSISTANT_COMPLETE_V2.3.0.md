@@ -573,9 +573,9 @@ Result:
   ?? Question: "What caused the errors?"
 
   ?? Error Analysis:
-    • Total errors found: 3
-    • Use F8 to navigate through errors
-    • Export with filters to isolate error lines
+    â€¢ Total errors found: 3
+    â€¢ Use F8 to navigate through errors
+    â€¢ Export with filters to isolate error lines
 ```
 
 ### **Example 3: Anomaly Detection**
@@ -585,8 +585,8 @@ Result:
   ?? ANOMALY DETECTION RESULTS
 
   ? PERFORMANCE OUTLIERS: 2 API(s) with 10x+ average duration
-     • DatabaseQuery::ExecuteSlowQuery: 5,234 ms avg (vs session avg 523 ms)
-     • FileIO::ProcessLargeFile: 3,456 ms avg
+     â€¢ DatabaseQuery::ExecuteSlowQuery: 5,234 ms avg (vs session avg 523 ms)
+     â€¢ FileIO::ProcessLargeFile: 3,456 ms avg
      Recommendation: Profile these methods for optimization
 ```
 

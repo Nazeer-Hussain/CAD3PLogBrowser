@@ -30,7 +30,7 @@ this.Text = "CAD 3P Log Browser";
 [assembly: AssemblyTitle("Cad3PLogBrowser 2.0")]
 [assembly: AssemblyDescription("Log Browser Utility for 3rd Party WWGM Adapters")]
 [assembly: AssemblyProduct("Cad3PLogBrowser")]
-[assembly: AssemblyCopyright("Copyright © PTC 2026")]
+[assembly: AssemblyCopyright("Copyright Â© PTC 2026")]
 ```
 
 **After**:
@@ -38,7 +38,7 @@ this.Text = "CAD 3P Log Browser";
 [assembly: AssemblyTitle("CAD 3P Log Browser v2.5")]
 [assembly: AssemblyDescription("Professional Log Analysis Tool for CAD Applications")]
 [assembly: AssemblyProduct("CAD 3P Log Browser")]
-[assembly: AssemblyCopyright("Copyright © PTC 2024")]
+[assembly: AssemblyCopyright("Copyright Â© PTC 2024")]
 ```
 
 **Impact**: 
@@ -75,16 +75,16 @@ this.Text = "CAD 3P Log Browser";
 
 **Before**:
 ```csharp
-Text = "Keyboard Shortcuts — WWGM CAD 3P Log Browser"
+Text = "Keyboard Shortcuts â€” WWGM CAD 3P Log Browser"
 // Header:
-"       WWGM CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n"
+"       WWGM CAD 3P LOG BROWSER â€” KEYBOARD SHORTCUTS\r\n"
 ```
 
 **After**:
 ```csharp
-Text = "Keyboard Shortcuts — CAD 3P Log Browser"
+Text = "Keyboard Shortcuts â€” CAD 3P Log Browser"
 // Header:
-"           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n"
+"           CAD 3P LOG BROWSER â€” KEYBOARD SHORTCUTS\r\n"
 ```
 
 **Impact**: Dialog title and header use consistent professional branding
@@ -189,14 +189,14 @@ Help
 - [ ] F1 opens UserGuide.html in browser
 - [ ] Ctrl+K opens keyboard shortcuts dialog
 - [ ] UserGuide.html title: "CAD 3P Log Browser - User Guide v2.5"
-- [ ] Keyboard shortcuts dialog title: "Keyboard Shortcuts — CAD 3P Log Browser"
+- [ ] Keyboard shortcuts dialog title: "Keyboard Shortcuts â€” CAD 3P Log Browser"
 
 ### File Properties
 - [ ] Right-click exe ? Properties ? Details
 - [ ] Product name: "CAD 3P Log Browser"
 - [ ] File version: Shows v2.5
 - [ ] Description: "Professional Log Analysis Tool for CAD Applications"
-- [ ] Copyright: "Copyright © PTC 2024"
+- [ ] Copyright: "Copyright Â© PTC 2024"
 
 ---
 

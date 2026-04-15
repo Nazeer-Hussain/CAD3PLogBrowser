@@ -1698,10 +1698,10 @@ Time: 42 minutes
 **French (Resources.fr.resx):**
 ```xml
 <data name="ERR_NO_FILE_LOADED">
-  <value>Aucun fichier chargé.</value>
+  <value>Aucun fichier chargÃ©.</value>
 </data>
 <data name="MSG_FILE_SAVED">
-  <value>{0} ligne(s) sauvegardée(s).</value>
+  <value>{0} ligne(s) sauvegardÃ©e(s).</value>
 </data>
 ```
 
@@ -1946,6 +1946,6 @@ See `documentation/QUICK_REFERENCE_MAINTENANCE.md` for:
 **Purpose:** Single source of truth  
 **Status:** ? Complete & Verified  
 
-**?? PROFESSIONAL • COMPLETE • PRODUCTION-READY ??**
+**?? PROFESSIONAL â€¢ COMPLETE â€¢ PRODUCTION-READY ??**
 
 **END OF DOCUMENT**

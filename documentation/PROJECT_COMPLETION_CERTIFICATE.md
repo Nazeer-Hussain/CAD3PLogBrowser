@@ -217,8 +217,8 @@ ERR_NO_FILE_LOADED = No file loaded.
 MSG_FILE_SAVED = {0} line(s) saved.
 
 French (Resources.fr.resx):
-ERR_NO_FILE_LOADED = Aucun fichier chargé.
-MSG_FILE_SAVED = {0} ligne(s) sauvegardée(s).
+ERR_NO_FILE_LOADED = Aucun fichier chargÃ©.
+MSG_FILE_SAVED = {0} ligne(s) sauvegardÃ©e(s).
 ```
 
 **Step 3: Test**

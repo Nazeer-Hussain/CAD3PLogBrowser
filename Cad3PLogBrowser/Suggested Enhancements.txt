@@ -40,7 +40,7 @@ Improve Performance
 
 Report Error Dialog
 Report Error  [X]
-ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„
 Send error/crash report to (semicolon separated email ids):
   [nshaikh@ptc.com_______________________________________]
 
@@ -414,7 +414,7 @@ C6  ?  Right-Click Context Menu (incl. Grok Search + Reload) [NEW]
 What it does
 Comprehensive right-click menu on tree nodes. Includes all Edit menu actions plus Grok search and disk reload. Matches the context menu items noted by the product owner.
 Menu items
-Copy Node Name | Reload from Disk | Expand All | Collapse All | Filter... | Search in Grok | ÄÄ | Copy Subtree as Text | Export Branch to CSV | ÄÄ | Go to EXIT/ENTER | Show in API Tree
+Copy Node Name | Reload from Disk | Expand All | Collapse All | Filter... | Search in Grok | Ã„Ã„ | Copy Subtree as Text | Export Branch to CSV | Ã„Ã„ | Go to EXIT/ENTER | Show in API Tree
 Commit message
 feat: add rich right-click context menu to call tree including Grok and reload
 

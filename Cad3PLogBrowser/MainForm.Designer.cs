@@ -830,6 +830,8 @@ namespace Cad3PLogBrowser
             this.mainTabControl.Controls.Add(this.timelineTab);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
+            this.mainTabControl.Multiline = false;
+            this.mainTabControl.SizeMode = System.Windows.Forms.TabSizeMode.Normal;
             this.mainTabControl.Name = "mainTabControl";
             this.mainTabControl.SelectedIndex = 0;
             this.mainTabControl.Size = new System.Drawing.Size(696, 523);
@@ -855,6 +857,7 @@ namespace Cad3PLogBrowser
             this.logListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logListView.FullRowSelect = true;
             this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.logListView.Scrollable = true;
             this.logListView.Name = "logListView";
             this.logListView.ShowItemToolTips = true;
             this.logListView.VirtualMode = true;
@@ -1200,21 +1203,6 @@ namespace Cad3PLogBrowser
             // 
             this.separatorAfterNavigation.Name = "separatorAfterNavigation";
             this.separatorAfterNavigation.Size = new System.Drawing.Size(6, 25);
-            // 
-            // CallTreeButton
-            // 
-            this.SettingsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.SettingsButton.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
-            this.SettingsButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.SettingsButton.Name = "SettingsButton";
-            this.SettingsButton.Size = new System.Drawing.Size(23, 22);
-            this.SettingsButton.Text = "Settings";
-            this.SettingsButton.Click += new System.EventHandler(this.SettingsButton_Click);
-            // 
-            // separatorAfterSettings
-            // 
-            this.separatorAfterSettings.Name = "separatorAfterSettings";
-            this.separatorAfterSettings.Size = new System.Drawing.Size(6, 25);
             // 
             // CallTreeButton
             // 

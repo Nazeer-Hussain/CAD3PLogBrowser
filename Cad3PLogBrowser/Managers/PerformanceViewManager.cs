@@ -176,56 +176,22 @@ namespace Cad3PLogBrowser.Managers
 
             bool ascending = order == SortOrder.Ascending;
 
-            switch (columnIndex)
+            _statistics.Sort((a, b) =>
             {
-                case 0: // API Name
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.ApiName).ToList()
-                        : _statistics.OrderByDescending(s => s.ApiName).ToList();
-                    break;
-
-                case 1: // Calls
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.CallCount).ToList()
-                        : _statistics.OrderByDescending(s => s.CallCount).ToList();
-                    break;
-
-                case 2: // Total (ms)
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.TotalDurationMs).ToList()
-                        : _statistics.OrderByDescending(s => s.TotalDurationMs).ToList();
-                    break;
-
-                case 3: // Avg (ms)
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.AvgDurationMs).ToList()
-                        : _statistics.OrderByDescending(s => s.AvgDurationMs).ToList();
-                    break;
-
-                case 4: // Min (ms)
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.MinDurationMs).ToList()
-                        : _statistics.OrderByDescending(s => s.MinDurationMs).ToList();
-                    break;
-
-                case 5: // Max (ms)
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.MaxDurationMs).ToList()
-                        : _statistics.OrderByDescending(s => s.MaxDurationMs).ToList();
-                    break;
-
-                case 6: // Self (ms)
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.SelfDurationMs).ToList()
-                        : _statistics.OrderByDescending(s => s.SelfDurationMs).ToList();
-                    break;
-
-                case 7: // Source File
-                    _statistics = ascending
-                        ? _statistics.OrderBy(s => s.SourceFile ?? string.Empty).ToList()
-                        : _statistics.OrderByDescending(s => s.SourceFile ?? string.Empty).ToList();
-                    break;
-            }
+                int cmp;
+                switch (columnIndex)
+                {
+                    case 0: cmp = string.Compare(a.ApiName, b.ApiName, StringComparison.OrdinalIgnoreCase); break;
+                    case 1: cmp = a.CallCount.CompareTo(b.CallCount);           break;
+                    case 2: cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
+                    case 3: cmp = a.AvgDurationMs.CompareTo(b.AvgDurationMs);   break;
+                    case 4: cmp = a.MinDurationMs.CompareTo(b.MinDurationMs);   break;
+                    case 5: cmp = a.MaxDurationMs.CompareTo(b.MaxDurationMs);   break;
+                    case 6: cmp = a.SelfDurationMs.CompareTo(b.SelfDurationMs); break;
+                    default: cmp = 0; break;
+                }
+                return ascending ? cmp : -cmp;
+            });
         }
 
         /// <summary>

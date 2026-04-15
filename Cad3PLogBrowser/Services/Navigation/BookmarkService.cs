@@ -16,7 +16,7 @@ namespace Cad3PLogBrowser.Services.Navigation
         // Fields
         // ??????????????????????????????????????????????????????????????????????
 
-        private HashSet<int> _bookmarkedLines = new HashSet<int>();
+        private SortedSet<int> _bookmarkedLines = new SortedSet<int>();
         private string _currentFilePath = string.Empty;
         private int _currentBookmarkIndex = -1;
 
@@ -97,17 +97,13 @@ namespace Cad3PLogBrowser.Services.Navigation
             if (_bookmarkedLines.Count == 0)
                 return -1;
 
-            var sorted = _bookmarkedLines.OrderBy(x => x).ToList();
+            // SortedSet.GetViewBetween gives us lines > currentLine in O(log N)
+            var after = _bookmarkedLines.GetViewBetween(currentLine + 1, int.MaxValue);
+            if (after.Count > 0)
+                return after.Min;
 
-            // Find next bookmark after current line
-            foreach (var line in sorted)
-            {
-                if (line > currentLine)
-                    return line;
-            }
-
-            // Wrap around to first
-            return sorted[0];
+            // Wrap around
+            return _bookmarkedLines.Min;
         }
 
         /// <summary>
@@ -119,17 +115,12 @@ namespace Cad3PLogBrowser.Services.Navigation
             if (_bookmarkedLines.Count == 0)
                 return -1;
 
-            var sorted = _bookmarkedLines.OrderByDescending(x => x).ToList();
+            var before = _bookmarkedLines.GetViewBetween(int.MinValue, currentLine - 1);
+            if (before.Count > 0)
+                return before.Max;
 
-            // Find previous bookmark before current line
-            foreach (var line in sorted)
-            {
-                if (line < currentLine)
-                    return line;
-            }
-
-            // Wrap around to last
-            return sorted[0];
+            // Wrap around
+            return _bookmarkedLines.Max;
         }
 
         /// <summary>
@@ -183,7 +174,9 @@ namespace Cad3PLogBrowser.Services.Navigation
                     Directory.CreateDirectory(directory);
 
                 // Save as simple text file (one line number per line)
-                var lines = _bookmarkedLines.OrderBy(x => x).Select(x => x.ToString()).ToArray();
+                var lines = new string[_bookmarkedLines.Count];
+                int idx = 0;
+                foreach (var ln in _bookmarkedLines) lines[idx++] = ln.ToString();
                 File.WriteAllLines(bookmarkFile, lines);
             }
             catch (Exception ex)
@@ -212,7 +205,7 @@ namespace Cad3PLogBrowser.Services.Navigation
         /// </summary>
         public List<int> GetAllBookmarksSorted()
         {
-            return _bookmarkedLines.OrderBy(x => x).ToList();
+            return new List<int>(_bookmarkedLines); // already in ascending order
         }
     }
 }
