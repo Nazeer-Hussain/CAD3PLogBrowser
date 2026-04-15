@@ -208,28 +208,21 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\blue_ball.gif" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\apiview.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\apiview2.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\check1.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\check2.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\copy.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\cross.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\details.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\filter.png" />
@@ -238,10 +231,8 @@
     <None Include="Resources\find.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\graph1.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\graph2.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\help.png" />
@@ -250,13 +241,11 @@
     <None Include="Resources\open.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\performance.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\refresh.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\remove.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\save.png" />
@@ -265,7 +254,6 @@
     <None Include="Resources\settings.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\tabs.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\tools.png" />

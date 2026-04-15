@@ -1557,7 +1557,7 @@ namespace Cad3PLogBrowser
             if (_isLoading) return;
             _isLoading = true;
             SetDocumentLoaded(false);
-            FileStatus.Image = Resources.yellow;
+            FileStatus.Image = IconGenerator.CreateStatusLoadingIcon(IconGenerator.IconSize.Small);
             FileLoadProgress.Visible = true;
             FileLoadProgress.Value = 0;
             StatusFileName.Text = Resources.STATUS_LOADING;
@@ -1613,7 +1613,7 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Value = 100;
 
                 SetDocumentLoaded(true);
-                FileStatus.Image = Resources.green_ball;
+                FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
                 _logFileService.WatchFile(filePath);
                 UpdateStatusBar();
                 _appSettings.AddRecentFile(filePath);
@@ -1838,7 +1838,7 @@ namespace Cad3PLogBrowser
         private void ShowLoadError(string filePath, string reason, string detail)
         {
             SetDocumentLoaded(false);
-            FileStatus.Image = Resources.red_ball;
+            FileStatus.Image = IconGenerator.CreateStatusErrorIcon(IconGenerator.IconSize.Small);
             MessageBox.Show(
                 string.Format("{0}:\n{1}\n\nFile: {2}", reason, detail, filePath),
                 Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1846,7 +1846,7 @@ namespace Cad3PLogBrowser
 
         private void OnFileChangedOnDisk(object sender, EventArgs e)
         {
-            if (!_isLoading) FileStatus.Image = Resources.red_ball;
+            if (!_isLoading) FileStatus.Image = IconGenerator.CreateStatusErrorIcon(IconGenerator.IconSize.Small);
         }
 
         // ── UI state ──────────────────────────────────────────────────────────
@@ -2020,7 +2020,7 @@ namespace Cad3PLogBrowser
                     FileLoadProgress.Value = 100;
 
                     SetDocumentLoaded(true);
-                    FileStatus.Image = Resources.green_ball;
+                    FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
                     UpdateStatusBar();
 
                     MessageBox.Show(

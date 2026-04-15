@@ -222,7 +222,7 @@ namespace Cad3PLogBrowser
             // openMenuItem
             // 
             this.openMenuItem.AutoToolTip = true;
-            this.openMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.open;
+            this.openMenuItem.Image = null;
             this.openMenuItem.Name = "openMenuItem";
             this.openMenuItem.ShortcutKeyDisplayString = "";
             this.openMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
@@ -233,7 +233,7 @@ namespace Cad3PLogBrowser
             // 
             // saveAsMenuItem
             // 
-            this.saveAsMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.save;
+            this.saveAsMenuItem.Image = null;
             this.saveAsMenuItem.Name = "saveAsMenuItem";
             this.saveAsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
@@ -308,7 +308,7 @@ namespace Cad3PLogBrowser
             // 
             // reloadMenuItem
             // 
-            this.reloadMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
+            this.reloadMenuItem.Image = null;
             this.reloadMenuItem.Name = "reloadMenuItem";
             this.reloadMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
             this.reloadMenuItem.Size = new System.Drawing.Size(260, 22);
@@ -358,7 +358,7 @@ namespace Cad3PLogBrowser
             // 
             // copyMenuItem
             // 
-            this.copyMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
+            this.copyMenuItem.Image = null;
             this.copyMenuItem.Name = "copyMenuItem";
             this.copyMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
             this.copyMenuItem.Size = new System.Drawing.Size(258, 22);
@@ -367,7 +367,7 @@ namespace Cad3PLogBrowser
             // 
             // findMenuItem
             // 
-            this.findMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.findMenuItem.Image = null;
             this.findMenuItem.Name = "findMenuItem";
             this.findMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.F)));
             this.findMenuItem.Size = new System.Drawing.Size(258, 22);
@@ -391,7 +391,7 @@ namespace Cad3PLogBrowser
             // 
             // filterMenuItem
             // 
-            this.filterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.filterMenuItem.Image = null;
             this.filterMenuItem.Name = "filterMenuItem";
             this.filterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
             this.filterMenuItem.Size = new System.Drawing.Size(258, 22);
@@ -521,7 +521,7 @@ namespace Cad3PLogBrowser
             // 
             // settingsMenuItem
             // 
-            this.settingsMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
+            this.settingsMenuItem.Image = null;
             this.settingsMenuItem.Name = "settingsMenuItem";
             this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.S));
             this.settingsMenuItem.Size = new System.Drawing.Size(218, 22);
@@ -662,7 +662,7 @@ namespace Cad3PLogBrowser
             // 
             // viewHelpMenuItem
             // 
-            this.viewHelpMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.help;
+            this.viewHelpMenuItem.Image = null;
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
@@ -718,7 +718,7 @@ namespace Cad3PLogBrowser
             // FileStatus
             // 
             this.FileStatus.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.FileStatus.Image = global::Cad3PLogBrowser.Properties.Resources.yellow;
+            this.FileStatus.Image = global::Cad3PLogBrowser.Properties.Resources.red_ball;
             this.FileStatus.Name = "FileStatus";
             this.FileStatus.Size = new System.Drawing.Size(16, 17);
             // 
@@ -1051,7 +1051,7 @@ namespace Cad3PLogBrowser
             // OpenButton
             // 
             this.OpenButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.OpenButton.Image = global::Cad3PLogBrowser.Properties.Resources.open;
+            this.OpenButton.Image = null;
             this.OpenButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.OpenButton.Name = "OpenButton";
             this.OpenButton.Size = new System.Drawing.Size(23, 22);
@@ -1061,7 +1061,7 @@ namespace Cad3PLogBrowser
             // SaveButton
             // 
             this.SaveButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.SaveButton.Image = global::Cad3PLogBrowser.Properties.Resources.save;
+            this.SaveButton.Image = null;
             this.SaveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(23, 22);
@@ -1071,7 +1071,7 @@ namespace Cad3PLogBrowser
             // SaveToXLSButton
             // 
             this.SaveToXLSButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.SaveToXLSButton.Image = global::Cad3PLogBrowser.Properties.Resources.save;
+            this.SaveToXLSButton.Image = null;
             this.SaveToXLSButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.SaveToXLSButton.Name = "SaveToXLSButton";
             this.SaveToXLSButton.Size = new System.Drawing.Size(23, 22);
@@ -1081,7 +1081,7 @@ namespace Cad3PLogBrowser
             // RefreshButton
             // 
             this.RefreshButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.RefreshButton.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
+            this.RefreshButton.Image = null;
             this.RefreshButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.RefreshButton.Name = "RefreshButton";
             this.RefreshButton.Size = new System.Drawing.Size(23, 22);
@@ -1096,7 +1096,7 @@ namespace Cad3PLogBrowser
             // CopyButton
             // 
             this.CopyButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.CopyButton.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
+            this.CopyButton.Image = null;
             this.CopyButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.CopyButton.Name = "CopyButton";
             this.CopyButton.Size = new System.Drawing.Size(23, 22);
@@ -1106,7 +1106,7 @@ namespace Cad3PLogBrowser
             // FindButton
             // 
             this.FindButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.FindButton.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.FindButton.Image = null;
             this.FindButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.FindButton.Name = "FindButton";
             this.FindButton.Size = new System.Drawing.Size(23, 22);
@@ -1116,7 +1116,7 @@ namespace Cad3PLogBrowser
             // FindNextButton
             // 
             this.FindNextButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.FindNextButton.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.FindNextButton.Image = null;
             this.FindNextButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.FindNextButton.Name = "FindNextButton";
             this.FindNextButton.Size = new System.Drawing.Size(23, 22);
@@ -1126,7 +1126,7 @@ namespace Cad3PLogBrowser
             // FilterButton
             // 
             this.FilterButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.FilterButton.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.FilterButton.Image = null;
             this.FilterButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.FilterButton.Name = "FilterButton";
             this.FilterButton.Size = new System.Drawing.Size(23, 22);
@@ -1217,7 +1217,7 @@ namespace Cad3PLogBrowser
             this.CallTreeButton.CheckOnClick = true;
             this.CallTreeButton.CheckState = System.Windows.Forms.CheckState.Checked;
             this.CallTreeButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.CallTreeButton.Image = global::Cad3PLogBrowser.Properties.Resources.treeview;
+            this.CallTreeButton.Image = null;
             this.CallTreeButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.CallTreeButton.Name = "CallTreeButton";
             this.CallTreeButton.Size = new System.Drawing.Size(23, 22);
@@ -1228,7 +1228,7 @@ namespace Cad3PLogBrowser
             // 
             this.ApiTreeButton.CheckOnClick = true;
             this.ApiTreeButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.ApiTreeButton.Image = global::Cad3PLogBrowser.Properties.Resources.apiview2;
+            this.ApiTreeButton.Image = null;
             this.ApiTreeButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.ApiTreeButton.Name = "ApiTreeButton";
             this.ApiTreeButton.Size = new System.Drawing.Size(23, 22);
@@ -1243,7 +1243,7 @@ namespace Cad3PLogBrowser
             // SettingsButton
             // 
             this.SettingsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.SettingsButton.Image = global::Cad3PLogBrowser.Properties.Resources.settings;
+            this.SettingsButton.Image = null;
             this.SettingsButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.SettingsButton.Name = "SettingsButton";
             this.SettingsButton.Size = new System.Drawing.Size(23, 22);
@@ -1259,7 +1259,7 @@ namespace Cad3PLogBrowser
             // ShowHelpButton
             // 
             this.ShowHelpButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.ShowHelpButton.Image = global::Cad3PLogBrowser.Properties.Resources.help;
+            this.ShowHelpButton.Image = null;
             this.ShowHelpButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.ShowHelpButton.Name = "ShowHelpButton";
             this.ShowHelpButton.Size = new System.Drawing.Size(23, 22);
@@ -1302,7 +1302,7 @@ namespace Cad3PLogBrowser
             // 
             // contextCopyMenuItem
             // 
-            this.contextCopyMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.copy;
+            this.contextCopyMenuItem.Image = null;
             this.contextCopyMenuItem.Name = "contextCopyMenuItem";
             this.contextCopyMenuItem.ShortcutKeyDisplayString = "Ctrl+C";
             this.contextCopyMenuItem.Size = new System.Drawing.Size(280, 22);
@@ -1323,7 +1323,7 @@ namespace Cad3PLogBrowser
             // 
             // contextFindMenuItem
             // 
-            this.contextFindMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.find;
+            this.contextFindMenuItem.Image = null;
             this.contextFindMenuItem.Name = "contextFindMenuItem";
             this.contextFindMenuItem.ShortcutKeyDisplayString = "Ctrl+F";
             this.contextFindMenuItem.Size = new System.Drawing.Size(280, 22);
@@ -1332,7 +1332,7 @@ namespace Cad3PLogBrowser
             // 
             // contextFilterMenuItem
             // 
-            this.contextFilterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.contextFilterMenuItem.Image = null;
             this.contextFilterMenuItem.Name = "contextFilterMenuItem";
             this.contextFilterMenuItem.ShortcutKeyDisplayString = "Ctrl+I";
             this.contextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
@@ -1375,7 +1375,7 @@ namespace Cad3PLogBrowser
             // 
             // contextRefreshMenuItem
             // 
-            this.contextRefreshMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.refresh;
+            this.contextRefreshMenuItem.Image = null;
             this.contextRefreshMenuItem.Name = "contextRefreshMenuItem";
             this.contextRefreshMenuItem.ShortcutKeyDisplayString = "F5";
             this.contextRefreshMenuItem.Size = new System.Drawing.Size(280, 22);
@@ -1477,7 +1477,7 @@ namespace Cad3PLogBrowser
             // 
             // contextFilterMenuItem
             // 
-            this.contextFilterMenuItem.Image = global::Cad3PLogBrowser.Properties.Resources.filter;
+            this.contextFilterMenuItem.Image = null;
             this.contextFilterMenuItem.Name = "contextFilterMenuItem";
             this.contextFilterMenuItem.ShortcutKeyDisplayString = "Ctrl+I";
             this.contextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
