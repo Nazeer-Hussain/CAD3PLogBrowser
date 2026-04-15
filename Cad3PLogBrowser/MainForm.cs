@@ -1723,60 +1723,130 @@ namespace Cad3PLogBrowser
         // ── Icon Size Management ──────────────────────────────────────────────
         private void ApplyIconSize()
         {
-            IconGenerator.IconSize iconSize;
+            IconGenerator.IconSize sz;
             switch (_appSettings.ToolbarIconSize)
             {
                 case "Small":
-                    iconSize = IconGenerator.IconSize.Small;
+                    sz = IconGenerator.IconSize.Small;
                     mainToolStrip.ImageScalingSize = new Size(16, 16);
                     break;
                 case "Large":
-                    iconSize = IconGenerator.IconSize.Large;
+                    sz = IconGenerator.IconSize.Large;
                     mainToolStrip.ImageScalingSize = new Size(32, 32);
                     break;
-                default: // Medium
-                    iconSize = IconGenerator.IconSize.Medium;
+                default:
+                    sz = IconGenerator.IconSize.Medium;
                     mainToolStrip.ImageScalingSize = new Size(24, 24);
                     break;
             }
 
-            // Generate and apply modern flat icons
-            IconGenerator.GenerateAllIcons(iconSize, 
-                out var openIcon, out var saveIcon, out var refreshIcon,
-                out var copyIcon, out var findIcon, out var filterIcon,
-                out var settingsIcon, out var helpIcon, out var expandIcon,
-                out var collapseIcon, out var treeIcon, out var exportIcon,
-                out var jumpIcon, out var errorIcon, out var warningIcon);
+            // Menu size — always 16px regardless of toolbar setting
+            var msz = IconGenerator.IconSize.Small;
 
-            // Apply icons to toolbar buttons
-            OpenButton.Image = openIcon;
-            SaveButton.Image = saveIcon;
-            SaveToXLSButton.Image = exportIcon;
-            RefreshButton.Image = refreshIcon;
-            CopyButton.Image = copyIcon;
-            FindButton.Image = findIcon;
-            FindNextButton.Image = findIcon; // Reuse find icon
-            FilterButton.Image = filterIcon;
-            ExpandAllButton.Image = expandIcon;
-            CollapseAllButton.Image = collapseIcon;
-            CallTreeButton.Image = treeIcon;
-            ApiTreeButton.Image = treeIcon; // Reuse tree icon
-            SettingsButton.Image = settingsIcon;
-            ShowHelpButton.Image = helpIcon;
+            // ── Toolbar buttons ───────────────────────────────────────────────
+            OpenButton.Image             = IconGenerator.CreateOpenIcon(sz);
+            SaveButton.Image             = IconGenerator.CreateSaveIcon(sz);
+            SaveToXLSButton.Image        = IconGenerator.CreateExportXlsIcon(sz);
+            RefreshButton.Image          = IconGenerator.CreateReloadIcon(sz);
+            CopyButton.Image             = IconGenerator.CreateCopyIcon(sz);
+            FindButton.Image             = IconGenerator.CreateFindIcon(sz);
+            FindNextButton.Image         = IconGenerator.CreateFindNextIcon(sz);
+            FilterButton.Image           = IconGenerator.CreateFilterIcon(sz);
+            ExpandAllButton.Image        = IconGenerator.CreateExpandIcon(sz);
+            ExpandAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            CollapseAllButton.Image      = IconGenerator.CreateCollapseIcon(sz);
+            CollapseAllButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            JumpToMatchingButton.Image   = IconGenerator.CreateJumpMatchIcon(sz);
+            JumpToMatchingButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            CallTreeButton.Image         = IconGenerator.CreateCallTreeIcon(sz);
+            ApiTreeButton.Image          = IconGenerator.CreateApiTreeIcon(sz);
+            SettingsButton.Image         = IconGenerator.CreateSettingsIcon(sz);
+            ShowHelpButton.Image         = IconGenerator.CreateHelpIcon(sz);
 
-            // Apply to error/warning navigation buttons (no images, use text)
-            // These buttons use text display
+            // Navigation error/warning buttons
+            prevErrorButton.Image   = IconGenerator.CreatePrevErrorIcon(sz);
+            prevErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            nextErrorButton.Image   = IconGenerator.CreateNextErrorIcon(sz);
+            nextErrorButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            prevWarningButton.Image = IconGenerator.CreatePrevWarningIcon(sz);
+            prevWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            nextWarningButton.Image = IconGenerator.CreateNextWarningIcon(sz);
+            nextWarningButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 
-            // Also apply to menu items for consistency
-            openMenuItem.Image = openIcon;
-            saveAsMenuItem.Image = saveIcon;
-            exportFilteredLogsMenuItem.Image = exportIcon;
-            reloadMenuItem.Image = refreshIcon;
-            copyMenuItem.Image = copyIcon;
-            findMenuItem.Image = findIcon;
-            filterMenuItem.Image = filterIcon;
-            settingsMenuItem.Image = settingsIcon;
-            viewHelpMenuItem.Image = helpIcon;
+            // ── File menu ─────────────────────────────────────────────────────
+            openMenuItem.Image                 = IconGenerator.CreateOpenIcon(msz);
+            saveAsMenuItem.Image               = IconGenerator.CreateSaveIcon(msz);
+            exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportXlsIcon(msz);
+            exportPerformanceMenuItem.Image    = IconGenerator.CreateExportCsvIcon(msz);
+            exportTreeJsonMenuItem.Image       = IconGenerator.CreateExportJsonIcon(msz);
+            exportTreeXmlMenuItem.Image        = IconGenerator.CreateExportXmlIcon(msz);
+            exportTimelineMenuItem.Image       = IconGenerator.CreateExportImageIcon(msz);
+            exportFlameGraphMenuItem.Image     = IconGenerator.CreateExportImageIcon(msz);
+            mergeLogsMenuItem.Image            = IconGenerator.CreateMergeLogsIcon(msz);
+            reloadMenuItem.Image               = IconGenerator.CreateReloadIcon(msz);
+            exitMenuItem.Image                 = IconGenerator.CreateExitIcon(msz);
+
+            // ── Edit menu ─────────────────────────────────────────────────────
+            copyMenuItem.Image             = IconGenerator.CreateCopyIcon(msz);
+            copyWithHeadersMenuItem.Image  = IconGenerator.CreateCopyHeadersIcon(msz);
+            findMenuItem.Image             = IconGenerator.CreateFindIcon(msz);
+            findNextMenuItem.Image         = IconGenerator.CreateFindNextIcon(msz);
+            findAllMenuItem.Image          = IconGenerator.CreateFindAllIcon(msz);
+            filterMenuItem.Image           = IconGenerator.CreateFilterIcon(msz);
+            clearFilterMenuItem.Image      = IconGenerator.CreateClearFilterIcon(msz);
+            expandAllMenuItem.Image        = IconGenerator.CreateExpandIcon(msz);
+            collapseAllMenuItem.Image      = IconGenerator.CreateCollapseIcon(msz);
+            jumpToMatchingMenuItem.Image   = IconGenerator.CreateJumpMatchIcon(msz);
+            jumpToLineMenuItem.Image       = IconGenerator.CreateJumpLineIcon(msz);
+            toggleBookmarkMenuItem.Image   = IconGenerator.CreateBookmarkIcon(msz);
+            nextBookmarkMenuItem.Image     = IconGenerator.CreateBookmarkNextIcon(msz);
+            previousBookmarkMenuItem.Image = IconGenerator.CreateBookmarkPrevIcon(msz);
+            showBookmarksMenuItem.Image    = IconGenerator.CreateBookmarkShowIcon(msz);
+            clearBookmarksMenuItem.Image   = IconGenerator.CreateBookmarkClearIcon(msz);
+
+            // ── View menu ─────────────────────────────────────────────────────
+            showCallTreeMenuItem.Image     = IconGenerator.CreateCallTreeIcon(msz);
+            showApiTreeMenuItem.Image      = IconGenerator.CreateApiTreeIcon(msz);
+            tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
+            selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
+            showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
+            showTab1MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
+            showTab2MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
+            showTab3MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
+            showTab4MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
+            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabIcon(msz);
+            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabIcon(msz);
+
+            // ── Options menu ──────────────────────────────────────────────────
+            settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
+
+            // ── Help menu ─────────────────────────────────────────────────────
+            viewHelpMenuItem.Image         = IconGenerator.CreateHelpIcon(msz);
+            keyboardShortcutsMenuItem.Image = IconGenerator.CreateKeyboardIcon(msz);
+            aboutMenuItem.Image            = IconGenerator.CreateAboutIcon(msz);
+            checkForUpdatesMenuItem.Image  = IconGenerator.CreateCheckUpdatesIcon(msz);
+            reportErrorsMenuItem.Image     = IconGenerator.CreateReportErrorsIcon(msz);
+
+            // ── Log view context menu ─────────────────────────────────────────
+            contextCopyMenuItem.Image          = IconGenerator.CreateCopyIcon(msz);
+            contextCopyWithHeadersMenuItem.Image = IconGenerator.CreateCopyHeadersIcon(msz);
+            contextFindMenuItem.Image          = IconGenerator.CreateFindIcon(msz);
+            contextFilterMenuItem.Image        = IconGenerator.CreateFilterIcon(msz);
+            contextExpandAllMenuItem.Image     = IconGenerator.CreateExpandIcon(msz);
+            contextCollapseAllMenuItem.Image   = IconGenerator.CreateCollapseIcon(msz);
+            contextJumpToMatchingMenuItem.Image = IconGenerator.CreateJumpMatchIcon(msz);
+            contextRefreshMenuItem.Image       = IconGenerator.CreateReloadIcon(msz);
+
+            // ── Tree context menu ─────────────────────────────────────────────
+            treeContextCopyNodeNameMenuItem.Image   = IconGenerator.CreateCopyIcon(msz);
+            treeContextCopySubtreeMenuItem.Image    = IconGenerator.CreateCopyHeadersIcon(msz);
+            treeContextExpandAllMenuItem.Image      = IconGenerator.CreateExpandIcon(msz);
+            treeContextCollapseAllMenuItem.Image    = IconGenerator.CreateCollapseIcon(msz);
+            treeContextJumpToMatchingMenuItem.Image = IconGenerator.CreateJumpMatchIcon(msz);
+            treeContextSaveBranchMenuItem.Image     = IconGenerator.CreateSaveBranchIcon(msz);
+            treeContextExportBranchCsvMenuItem.Image = IconGenerator.CreateExportCsvIcon(msz);
+            treeContextSearchInGrokMenuItem.Image   = IconGenerator.CreateGrokIcon(msz);
+            treeContextShowInOtherTreeMenuItem.Image = IconGenerator.CreateShowInTreeIcon(msz);
         }
 
         private static Color GetLineColour(string line)

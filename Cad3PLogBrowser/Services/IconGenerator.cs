@@ -23,28 +23,69 @@ namespace Cad3PLogBrowser.Services
 
         // ?? Segoe MDL2 / Fluent codepoints ???????????????????????????????????
         // Reference: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
-        private const char IconOpen       = '\uE8E5'; // OpenFile
-        private const char IconSave       = '\uE74E'; // Save
-        private const char IconRefresh    = '\uE72C'; // Refresh
-        private const char IconCopy       = '\uE8C8'; // Copy
-        private const char IconFind       = '\uE721'; // Search
-        private const char IconFilter     = '\uE71C'; // Filter
-        private const char IconSettings   = '\uE713'; // Settings gear
-        private const char IconHelp       = '\uE897'; // Help
-        private const char IconExpand     = '\uE74B'; // Add / Plus
-        private const char IconCollapse   = '\uE74D'; // Remove / Minus
-        private const char IconTree       = '\uE9F9'; // Org / Hierarchy
-        private const char IconExport     = '\uEDE1'; // Export
-        private const char IconJump       = '\uE7C5'; // GoToStart (right arrow)
-        private const char IconError      = '\uE783'; // ErrorBadge
-        private const char IconWarning    = '\uE7BA'; // Warning triangle
-        private const char IconStatusOk   = '\uE73E'; // Accept / tick
-        private const char IconStatusLoad = '\uE9F5'; // Sync / Processing
-        private const char IconStatusErr  = '\uEB90'; // ErrorCircle / blocked
-        private const char IconCheck      = '\uE73E'; // Accept
-        private const char IconCross      = '\uE894'; // Cancel / X
-        private const char IconSun        = '\uE706'; // Brightness / Sun
-        private const char IconMoon       = '\uE793'; // ClearNight / Moon
+        // File menu
+        private const char IconOpen            = '\uE8E5'; // OpenFile
+        private const char IconSave            = '\uE74E'; // Save
+        private const char IconExportXls       = '\uEDE1'; // Export
+        private const char IconExportCsv       = '\uE8F1'; // Page
+        private const char IconExportImage     = '\uEB9F'; // Photo2
+        private const char IconExportJson      = '\uE943'; // Code
+        private const char IconExportXml       = '\uE8A5'; // Document
+        private const char IconMergeLogs       = '\uE8F0'; // MergeCall
+        private const char IconReload          = '\uE72C'; // Refresh
+        private const char IconExit            = '\uE7E8'; // ChromeClose
+        // Edit menu
+        private const char IconCopy            = '\uE8C8'; // Copy
+        private const char IconCopyHeaders     = '\uE8CF'; // ClipboardList
+        private const char IconFind            = '\uE721'; // Search
+        private const char IconFindNext        = '\uE893'; // ChevronRight
+        private const char IconFindAll         = '\uE773'; // SearchAndApps
+        private const char IconFilter          = '\uE71C'; // Filter
+        private const char IconClearFilter     = '\uE77A'; // ClearFilter
+        private const char IconExpand          = '\uE74B'; // Add
+        private const char IconCollapse        = '\uE74D'; // Remove
+        private const char IconJumpMatch       = '\uE7C5'; // GoToStart
+        private const char IconJumpLine        = '\uE8AB'; // GoToLine
+        private const char IconBookmark        = '\uE8D3'; // Bookmark
+        private const char IconBookmarkNext    = '\uEAD4'; // BookmarkMirrored
+        private const char IconBookmarkPrev    = '\uEAD3'; // BookmarkFilled
+        private const char IconBookmarkShow    = '\uE8A4'; // ShowAll
+        private const char IconBookmarkClear   = '\uE8D4'; // BookmarkOutline
+        // View menu
+        private const char IconCallTree        = '\uE9F9'; // Hierarchy
+        private const char IconApiTree         = '\uE9D9'; // BulletedList
+        private const char IconFont            = '\uE8D2'; // Font
+        private const char IconToolbar         = '\uE700'; // GlobalNavButton
+        private const char IconTab             = '\uE74C'; // Tab
+        // Navigation buttons
+        private const char IconPrevError       = '\uE892'; // ChevronLeft
+        private const char IconNextError       = '\uE893'; // ChevronRight
+        private const char IconPrevWarning     = '\uEDDB'; // TriangleSolidLeft
+        private const char IconNextWarning     = '\uEDDC'; // TriangleSolidRight
+        // Help menu
+        private const char IconHelp            = '\uE897'; // Help
+        private const char IconKeyboard        = '\uE765'; // Keyboard
+        private const char IconAbout           = '\uE946'; // Info
+        private const char IconUpdate          = '\uE895'; // Sync
+        private const char IconReport          = '\uE730'; // ReportDocument
+        // Tree context menu
+        private const char IconSaveBranch      = '\uE78C'; // SaveLocal
+        private const char IconGrok            = '\uE774'; // WebSearch
+        private const char IconShowInTree      = '\uE8B0'; // ShowResults
+        private const char IconSettings        = '\uE713'; // Settings gear
+        // Status bar indicators
+        private const char IconStatusOk        = '\uE73E'; // Accept
+        private const char IconStatusLoad      = '\uE9F5'; // Sync
+        private const char IconStatusErr       = '\uEB90'; // ErrorCircle
+        // Tree node state
+        private const char IconCheck           = '\uE73E'; // Accept
+        private const char IconCross           = '\uE894'; // Cancel
+        // Navigation error/warning
+        private const char IconError           = '\uE783'; // ErrorBadge
+        private const char IconWarning         = '\uE7BA'; // Warning triangle
+        // Theme toggle
+        private const char IconSun             = '\uE706'; // Brightness
+        private const char IconMoon            = '\uE793'; // ClearNight
 
         // ?? Colour helpers ????????????????????????????????????????????????????
         private static bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
@@ -153,24 +194,80 @@ namespace Cad3PLogBrowser.Services
         }
 
         // ??????????????????????????????????????????????????????????????????????
-        // TOOLBAR / MENU ICONS  — neutral glyph colour, matches VS conventions
+        // FILE MENU
         // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateOpenIcon(IconSize sz)         => Render(IconOpen,        sz, AccentBlue);
+        public static Bitmap CreateSaveIcon(IconSize sz)         => Render(IconSave,        sz, AccentBlue);
+        public static Bitmap CreateExportXlsIcon(IconSize sz)    => Render(IconExportXls,   sz, AccentGreen);
+        public static Bitmap CreateExportCsvIcon(IconSize sz)    => Render(IconExportCsv,   sz, AccentGreen);
+        public static Bitmap CreateExportImageIcon(IconSize sz)  => Render(IconExportImage, sz, AccentGreen);
+        public static Bitmap CreateExportJsonIcon(IconSize sz)   => Render(IconExportJson,  sz, AccentGreen);
+        public static Bitmap CreateExportXmlIcon(IconSize sz)    => Render(IconExportXml,   sz, AccentGreen);
+        public static Bitmap CreateMergeLogsIcon(IconSize sz)    => Render(IconMergeLogs,   sz, AccentBlue);
+        public static Bitmap CreateReloadIcon(IconSize sz)       => Render(IconReload,      sz, GlyphColor);
+        public static Bitmap CreateExitIcon(IconSize sz)         => Render(IconExit,        sz, AccentRed);
 
-        public static Bitmap CreateOpenIcon(IconSize sz)     => Render(IconOpen,     sz, AccentBlue);
-        public static Bitmap CreateSaveIcon(IconSize sz)     => Render(IconSave,     sz, AccentBlue);
-        public static Bitmap CreateRefreshIcon(IconSize sz)  => Render(IconRefresh,  sz, GlyphColor);
-        public static Bitmap CreateCopyIcon(IconSize sz)     => Render(IconCopy,     sz, GlyphColor);
-        public static Bitmap CreateFindIcon(IconSize sz)     => Render(IconFind,     sz, GlyphColor);
-        public static Bitmap CreateFilterIcon(IconSize sz)   => Render(IconFilter,   sz, AccentBlue);
-        public static Bitmap CreateSettingsIcon(IconSize sz) => Render(IconSettings, sz, GlyphColor);
-        public static Bitmap CreateHelpIcon(IconSize sz)     => Render(IconHelp,     sz, AccentBlue);
-        public static Bitmap CreateExpandIcon(IconSize sz)   => Render(IconExpand,   sz, GlyphColor);
-        public static Bitmap CreateCollapseIcon(IconSize sz) => Render(IconCollapse, sz, GlyphColor);
-        public static Bitmap CreateTreeIcon(IconSize sz)     => Render(IconTree,     sz, GlyphColor);
-        public static Bitmap CreateExportIcon(IconSize sz)   => Render(IconExport,   sz, AccentGreen);
-        public static Bitmap CreateJumpIcon(IconSize sz)     => Render(IconJump,     sz, GlyphColor);
-        public static Bitmap CreateErrorIcon(IconSize sz)    => Render(IconError,    sz, AccentRed);
-        public static Bitmap CreateWarningIcon(IconSize sz)  => Render(IconWarning,  sz, AccentAmber);
+        // ??????????????????????????????????????????????????????????????????????
+        // EDIT MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateCopyIcon(IconSize sz)          => Render(IconCopy,         sz, GlyphColor);
+        public static Bitmap CreateCopyHeadersIcon(IconSize sz)   => Render(IconCopyHeaders,  sz, GlyphColor);
+        public static Bitmap CreateFindIcon(IconSize sz)          => Render(IconFind,          sz, GlyphColor);
+        public static Bitmap CreateFindNextIcon(IconSize sz)      => Render(IconFindNext,      sz, GlyphColor);
+        public static Bitmap CreateFindAllIcon(IconSize sz)       => Render(IconFindAll,       sz, GlyphColor);
+        public static Bitmap CreateFilterIcon(IconSize sz)        => Render(IconFilter,        sz, AccentBlue);
+        public static Bitmap CreateClearFilterIcon(IconSize sz)   => Render(IconClearFilter,   sz, AccentAmber);
+        public static Bitmap CreateExpandIcon(IconSize sz)        => Render(IconExpand,        sz, GlyphColor);
+        public static Bitmap CreateCollapseIcon(IconSize sz)      => Render(IconCollapse,      sz, GlyphColor);
+        public static Bitmap CreateJumpMatchIcon(IconSize sz)     => Render(IconJumpMatch,     sz, AccentBlue);
+        public static Bitmap CreateJumpLineIcon(IconSize sz)      => Render(IconJumpLine,      sz, GlyphColor);
+        public static Bitmap CreateBookmarkIcon(IconSize sz)      => Render(IconBookmark,      sz, AccentAmber);
+        public static Bitmap CreateBookmarkNextIcon(IconSize sz)  => Render(IconBookmarkNext,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkPrevIcon(IconSize sz)  => Render(IconBookmarkPrev,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkShowIcon(IconSize sz)  => Render(IconBookmarkShow,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkClearIcon(IconSize sz) => Render(IconBookmarkClear, sz, GlyphColor);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // VIEW MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateCallTreeIcon(IconSize sz)  => Render(IconCallTree, sz, GlyphColor);
+        public static Bitmap CreateApiTreeIcon(IconSize sz)   => Render(IconApiTree,  sz, GlyphColor);
+        public static Bitmap CreateFontIcon(IconSize sz)      => Render(IconFont,     sz, GlyphColor);
+        public static Bitmap CreateToolbarIcon(IconSize sz)   => Render(IconToolbar,  sz, GlyphColor);
+        public static Bitmap CreateTabIcon(IconSize sz)       => Render(IconTab,      sz, GlyphColor);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // NAVIGATION BUTTONS (prev/next error/warning)
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreatePrevErrorIcon(IconSize sz)   => Render(IconPrevError,   sz, AccentRed);
+        public static Bitmap CreateNextErrorIcon(IconSize sz)   => Render(IconNextError,   sz, AccentRed);
+        public static Bitmap CreatePrevWarningIcon(IconSize sz) => Render(IconPrevWarning, sz, AccentAmber);
+        public static Bitmap CreateNextWarningIcon(IconSize sz) => Render(IconNextWarning, sz, AccentAmber);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // HELP MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateHelpIcon(IconSize sz)          => Render(IconHelp,     sz, AccentBlue);
+        public static Bitmap CreateKeyboardIcon(IconSize sz)      => Render(IconKeyboard, sz, GlyphColor);
+        public static Bitmap CreateAboutIcon(IconSize sz)         => Render(IconAbout,    sz, AccentBlue);
+        public static Bitmap CreateCheckUpdatesIcon(IconSize sz)  => Render(IconUpdate,   sz, AccentGreen);
+        public static Bitmap CreateReportErrorsIcon(IconSize sz)  => Render(IconReport,   sz, AccentRed);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // TREE CONTEXT MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateSaveBranchIcon(IconSize sz)  => Render(IconSaveBranch, sz, AccentBlue);
+        public static Bitmap CreateGrokIcon(IconSize sz)        => Render(IconGrok,       sz, GlyphColor);
+        public static Bitmap CreateShowInTreeIcon(IconSize sz)  => Render(IconShowInTree, sz, GlyphColor);
+        public static Bitmap CreateSettingsIcon(IconSize sz)    => Render(IconSettings,   sz, GlyphColor);
+        public static Bitmap CreateRefreshIcon(IconSize sz)     => Render(IconReload,     sz, GlyphColor);
+
+        // ?? Legacy aliases so GenerateAllIcons signature is unchanged ?????????
+        public static Bitmap CreateExportIcon(IconSize sz)  => CreateExportXlsIcon(sz);
+        public static Bitmap CreateJumpIcon(IconSize sz)    => CreateJumpMatchIcon(sz);
+        public static Bitmap CreateTreeIcon(IconSize sz)    => CreateCallTreeIcon(sz);
+        public static Bitmap CreateErrorIcon(IconSize sz)   => Render(IconError,   sz, AccentRed);
+        public static Bitmap CreateWarningIcon(IconSize sz) => Render(IconWarning, sz, AccentAmber);
 
         // ??????????????????????????????????????????????????????????????????????
         // STATUS BAR INDICATOR ICONS  — coloured circle + white glyph inside
