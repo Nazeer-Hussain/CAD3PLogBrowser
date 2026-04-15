@@ -249,9 +249,9 @@ Process order: Menu ? Tool ? Split
 
 MenuStrip (Dock.Top, auto Y) ? Takes top, auto height ~26px
 ToolStrip (Dock.Top, auto Y) ? Below menu, height = f(IconSize)
-  • Small (16): ~23px
-  • Medium (24): ~29px
-  • Large (32): ~38px
+  â€¢ Small (16): ~23px
+  â€¢ Medium (24): ~29px
+  â€¢ Large (32): ~38px
 SplitContainer (Dock.Fill) ? Fills remaining space automatically
   ?? Panel1: Trees + Search (manual layout via LayoutTrees())
   ?? Panel2: Tabs (Dock.Fill)

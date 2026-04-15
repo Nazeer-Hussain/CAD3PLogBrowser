@@ -140,14 +140,14 @@ namespace Cad3PLogBrowser
 
         private void OkButton_Click(object sender, EventArgs e)
         {
-            // Apply tab visibility
-            _mainForm.SetTabVisible(MainForm.TabId.Log,         chkShowLog.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.Raw,         chkShowRaw.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.Performance, chkShowPerformance.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.LogDetails,  chkShowLogDetails.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.CallGraph,   chkShowCallGraph.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.FlameGraph,  chkShowFlameGraph.Checked);
-            _mainForm.SetTabVisible(MainForm.TabId.Timeline,    chkShowTimeline.Checked);
+            // Save tab visibility
+            _settings.ShowLogTab         = chkShowLog.Checked;
+            _settings.ShowRawTab         = chkShowRaw.Checked;
+            _settings.ShowPerformanceTab = chkShowPerformance.Checked;
+            _settings.ShowLogDetailsTab  = chkShowLogDetails.Checked;
+            _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
+            _settings.ShowFlameGraphTab  = chkShowFlameGraph.Checked;
+            _settings.ShowTimelineTab    = chkShowTimeline.Checked;
 
             // Save Grok & AI settings
             _settings.GrokUrl                = txtGrokUrl.Text.Trim();
@@ -179,19 +179,8 @@ namespace Cad3PLogBrowser
             _settings.MaxFileSizeMbForListView = (long)nudMaxFileMb.Value;
 
             _settings.Save();
-
-            // Apply theme immediately
-            _mainForm.ApplyTheme();
-
-            // Apply toolbar visibility
-            _mainForm.ApplyToolbarVisibility();
-
-            // Apply font settings
-            _mainForm.ApplyFontSettings();
-
-            DialogResult = DialogResult.OK;
         }
 
-        private void CancelButton_Click(object sender, EventArgs e) => DialogResult = DialogResult.Cancel;
+        private void CancelButton_Click(object sender, EventArgs e) { }
     }
 }

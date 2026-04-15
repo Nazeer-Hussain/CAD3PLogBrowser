@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -118,53 +118,14 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="refresh" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\refresh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="settings" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\settings.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="find" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\find.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="tools" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\tools.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="copy" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\copy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="help" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\help.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="treeview" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\treeview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="TITLE" xml:space="preserve">
     <value>CAD 3P Log Browser v2.5</value>
-  </data>
-  <data name="apiview" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\apiview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="green_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\green_ball.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="apiview2" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\apiview2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="red_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\red_ball.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="filter" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\filter.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="save" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\save.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="open" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images_blue\open.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="yellow_ball" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\yellow_ball.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="MSG_FILE_SAVED" xml:space="preserve">
     <value>{0} line(s) saved.</value>
@@ -301,7 +262,6 @@
   <data name="MSG_HELP_FILE_NOT_FOUND" xml:space="preserve">
     <value>Help file (Cad3PLogBrowser.chm) not found.\n\nPress Ctrl+K to view keyboard shortcuts,\nor visit the GitHub repository for documentation.</value>
   </data>
-
   <!-- Theme Toggle Button -->
   <data name="TOOLTIP_THEME_TOGGLE_TO_LIGHT" xml:space="preserve">
     <value>Switch to Light Theme (Ctrl+T)</value>
@@ -309,7 +269,6 @@
   <data name="TOOLTIP_THEME_TOGGLE_TO_DARK" xml:space="preserve">
     <value>Switch to Dark Theme (Ctrl+T)</value>
   </data>
-
   <!-- API Tree Context Menu -->
   <data name="MENU_SORT_BY_NAME" xml:space="preserve">
     <value>Sort by Name (A-Z)</value>
@@ -335,7 +294,6 @@
   <data name="MENU_SEARCH_IN_GROK" xml:space="preserve">
     <value>Search in Grok</value>
   </data>
-
   <!-- Call Tree Context Menu -->
   <data name="MENU_COPY_METHOD_NAME" xml:space="preserve">
     <value>Copy Method Name</value>
@@ -355,7 +313,6 @@
   <data name="MENU_SHOW_IN_API_TREE" xml:space="preserve">
     <value>Show in API Tree</value>
   </data>
-
   <!-- Status Messages -->
   <data name="STATUS_LOADING" xml:space="preserve">
     <value>Loading...</value>
@@ -396,7 +353,6 @@
   <data name="STATUS_LOADED_CHILDREN" xml:space="preserve">
     <value>Loaded {0} children for {1}</value>
   </data>
-
   <!-- Tree Labels -->
   <data name="TREE_LABEL_CALL_TREE" xml:space="preserve">
     <value>Call Tree</value>
@@ -405,7 +361,7 @@
     <value>API Tree</value>
   </data>
   <data name="TREE_SORT_LABEL_COUNT" xml:space="preserve">
-    <value> [sorted: count ↓]</value>
+    <value> [sorted: count â†“]</value>
   </data>
   <data name="TREE_SORT_LABEL_LINE" xml:space="preserve">
     <value> [sorted: line]</value>
@@ -413,7 +369,6 @@
   <data name="TREE_SORT_LABEL_NAME" xml:space="preserve">
     <value> [sorted: name]</value>
   </data>
-
   <!-- Dialog Titles -->
   <data name="DIALOG_TITLE_MERGE_LOGS" xml:space="preserve">
     <value>Merge Logs</value>
@@ -437,12 +392,11 @@
     <value>Clear Bookmarks</value>
   </data>
   <data name="DIALOG_TITLE_QUICK_HELP" xml:space="preserve">
-    <value>Quick Help — CAD 3P Log Browser</value>
+    <value>Quick Help â€” CAD 3P Log Browser</value>
   </data>
   <data name="DIALOG_TITLE_KEYBOARD_SHORTCUTS" xml:space="preserve">
-    <value>Keyboard Shortcuts — CAD 3P Log Browser</value>
+    <value>Keyboard Shortcuts â€” CAD 3P Log Browser</value>
   </data>
-
   <!-- Tab Titles -->
   <data name="TAB_LOG" xml:space="preserve">
     <value>Log</value>
@@ -456,7 +410,6 @@
   <data name="TAB_CALL_GRAPH" xml:space="preserve">
     <value>Call Graph</value>
   </data>
-
   <!-- Merge Dialog Messages -->
   <data name="MSG_SELECT_TWO_FILES_TO_MERGE" xml:space="preserve">
     <value>Please select at least 2 files to merge.</value>
@@ -467,7 +420,6 @@
   <data name="MSG_MERGE_FAILED" xml:space="preserve">
     <value>Merge failed:\n\n{0}</value>
   </data>
-
   <!-- File Dialog Titles -->
   <data name="FILE_DIALOG_SELECT_LOGS_TO_MERGE" xml:space="preserve">
     <value>Select Log Files to Merge</value>
@@ -475,7 +427,6 @@
   <data name="FILE_DIALOG_FILTER_LOGS" xml:space="preserve">
     <value>Log files (*.log;*.log.*)|*.log;*.log.*|All files (*.*)|*.*</value>
   </data>
-
   <!-- Load Error Messages -->
   <data name="LOAD_ERROR_ACCESS_DENIED" xml:space="preserve">
     <value>Access denied</value>
@@ -486,15 +437,13 @@
   <data name="LOAD_ERROR_UNEXPECTED" xml:space="preserve">
     <value>Unexpected error</value>
   </data>
-
   <!-- Performance Summary -->
   <data name="PERF_SUMMARY_ROW_LABEL" xml:space="preserve">
-    <value>── Summary ──</value>
+    <value>â”€â”€ Summary â”€â”€</value>
   </data>
   <data name="PERF_SUMMARY_STATS" xml:space="preserve">
     <value>{0} unique APIs  |  {1} lines</value>
   </data>
-
   <!-- API Details -->
   <data name="API_DETAILS_HEADER" xml:space="preserve">
     <value>=== API Details: {0} ===</value>
@@ -512,22 +461,19 @@
     <value>ENTER/EXIT matched: {0}</value>
   </data>
   <data name="API_DETAILS_MATCHED_YES" xml:space="preserve">
-    <value>Yes ✓</value>
+    <value>Yes âœ“</value>
   </data>
   <data name="API_DETAILS_MATCHED_NO" xml:space="preserve">
-    <value>No ✗ (missing EXIT)</value>
+    <value>No âœ— (missing EXIT)</value>
   </data>
-
   <!-- Tree Search -->
   <data name="TREE_SEARCH_PLACEHOLDER" xml:space="preserve">
     <value>Search tree nodes...</value>
   </data>
-
   <!-- Log Detail Format -->
   <data name="LOG_DETAIL_FORMAT" xml:space="preserve">
     <value>Line {0}:\r\n\r\n{1}</value>
   </data>
-
   <!-- Tooltip Format -->
   <data name="TREE_NODE_TOOLTIP_FORMAT" xml:space="preserve">
     <value>API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms</value>
@@ -535,7 +481,6 @@
   <data name="TREE_NODE_EXIT_NOT_FOUND" xml:space="preserve">
     <value>? (no EXIT found)</value>
   </data>
-
   <!-- Prompts -->
   <data name="PROMPT_ENTER_LINE_NUMBER" xml:space="preserve">
     <value>Enter line number (1 to {0}):</value>
@@ -546,12 +491,10 @@
   <data name="PROMPT_CLEAR_BOOKMARKS" xml:space="preserve">
     <value>Clear all {0} bookmarks?</value>
   </data>
-
   <!-- Recent Files -->
   <data name="MSG_FILE_NOT_FOUND_REMOVED" xml:space="preserve">
     <value>File not found:\n{0}\n\nRemoving from recent files list.</value>
   </data>
-
   <!-- Copy Messages -->
   <data name="MSG_COPIED_WITH_HEADERS" xml:space="preserve">
     <value>Copied {0} line(s) with headers to clipboard</value>
@@ -559,12 +502,10 @@
   <data name="MSG_COPIED_WITHOUT_HEADERS" xml:space="preserve">
     <value>Copied {0} line(s) to clipboard</value>
   </data>
-
   <!-- Font Messages -->
   <data name="MSG_FONT_CHANGED" xml:space="preserve">
     <value>Font changed to {0} {1}pt</value>
   </data>
-
   <!-- Bookmark Messages -->
   <data name="MSG_BOOKMARK_ADDED" xml:space="preserve">
     <value>Bookmark added at line {0}</value>
@@ -584,7 +525,6 @@
   <data name="BOOKMARKS_LIST_HEADER" xml:space="preserve">
     <value>Bookmarks ({0}):</value>
   </data>
-
   <!-- Export Messages -->
   <data name="MSG_EXPORT_FILTERED_SUCCESSFUL" xml:space="preserve">
     <value>{0:N0} {1} exported successfully.\n\nFile: {2}</value>
@@ -595,12 +535,10 @@
   <data name="EXPORT_FILTER_INFO_FILTERED" xml:space="preserve">
     <value>filtered lines (filter: '{0}')</value>
   </data>
-
   <!-- Theme Toggle Button Initial Text -->
   <data name="TOOLTIP_THEME_TOGGLE_DEFAULT" xml:space="preserve">
     <value>Toggle Dark/Light Theme (Ctrl+T)</value>
   </data>
-
   <!-- Recent Files Menu -->
   <data name="MENU_RECENT_FILES" xml:space="preserve">
     <value>Recent &amp;Files</value>
@@ -608,7 +546,6 @@
   <data name="MENU_CLEAR_RECENT_FILES" xml:space="preserve">
     <value>&amp;Clear Recent Files</value>
   </data>
-
   <!-- File Filters -->
   <data name="FILE_FILTER_LOG_FILES" xml:space="preserve">
     <value>Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*</value>
@@ -628,7 +565,6 @@
   <data name="FILE_FILTER_LOG_SAVE" xml:space="preserve">
     <value>Log files (*.log)|*.log|All files (*.*)|*.*</value>
   </data>
-
   <!-- File Name Suffixes -->
   <data name="FILENAME_SUFFIX_FILTERED" xml:space="preserve">
     <value>_filtered.log</value>
@@ -654,7 +590,6 @@
   <data name="FILENAME_SUFFIX_CALLGRAPH_PNG" xml:space="preserve">
     <value>_callgraph.png</value>
   </data>
-
   <!-- Tab Names -->
   <data name="TAB_NAME_DEPENDENCY_GRAPH" xml:space="preserve">
     <value>Dependency Graph</value>
@@ -662,12 +597,10 @@
   <data name="TAB_NAME_AI_ASSISTANT" xml:space="preserve">
     <value>AI Assistant</value>
   </data>
-
   <!-- Button Labels -->
   <data name="BUTTON_RESET_VIEW" xml:space="preserve">
     <value>Reset View</value>
   </data>
-
   <!-- Menu Items -->
   <data name="MENU_SHOW_DEPENDENCY_GRAPH" xml:space="preserve">
     <value>Show &amp;Dependency Graph</value>
@@ -675,7 +608,6 @@
   <data name="MENU_SHOW_AI_ASSISTANT" xml:space="preserve">
     <value>Show &amp;AI Assistant</value>
   </data>
-
   <!-- AI Error Messages -->
   <data name="ERR_AI_QUERY_FAILED" xml:space="preserve">
     <value>AI query failed: {0}</value>
@@ -701,12 +633,10 @@
   <data name="ERR_AI_PATTERN_FINDING_FAILED" xml:space="preserve">
     <value>Pattern finding failed: {0}</value>
   </data>
-
   <!-- Status Messages - Additional -->
   <data name="STATUS_NO_LINE_SELECTED" xml:space="preserve">
     <value>No line selected</value>
   </data>
-
   <!-- CSV Export Headers -->
   <data name="CSV_HEADER_PERFORMANCE" xml:space="preserve">
     <value>API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File</value>
@@ -714,7 +644,6 @@
   <data name="CSV_HEADER_BRANCH" xml:space="preserve">
     <value>Method,Depth,Duration_ms</value>
   </data>
-
   <!-- Bookmark List Format -->
   <data name="BOOKMARK_LINE_FORMAT" xml:space="preserve">
     <value>Line {0}: {1}</value>
@@ -722,7 +651,6 @@
   <data name="BOOKMARK_LINE_SIMPLE" xml:space="preserve">
     <value>Line {0}</value>
   </data>
-
   <!-- Status Bar Messages -->
   <data name="STATUS_FILTER_ACTIVE" xml:space="preserve">
     <value>Filter: '{0}'  |  Showing {1:N0} / {2:N0} lines</value>
@@ -739,17 +667,14 @@
   <data name="STATUS_FILTER_APPLIED" xml:space="preserve">
     <value>Filter applied: {0:N0} of {1:N0} lines match.</value>
   </data>
-
   <!-- Tree Lazy Loading -->
   <data name="TREE_LAZY_LOAD_PLACEHOLDER" xml:space="preserve">
     <value>   (click to load children...)</value>
   </data>
-
   <!-- API Details Line Format -->
   <data name="API_DETAILS_LINE_INDENTED" xml:space="preserve">
     <value>  Line {0}</value>
   </data>
-
   <!-- Operation Names -->
   <data name="OPERATION_EXPANDING_ALL_NODES" xml:space="preserve">
     <value>Expanding all nodes</value>
@@ -766,12 +691,10 @@
   <data name="OPERATION_MERGING_FILES" xml:space="preserve">
     <value>Merging {0} log files</value>
   </data>
-
   <!-- Progress Messages -->
   <data name="PROGRESS_PRESS_ESC_TO_CANCEL" xml:space="preserve">
     <value>{0} (Press ESC to cancel)</value>
   </data>
-
   <!-- Operation Status Messages -->
   <data name="STATUS_OPERATION_IN_PROGRESS" xml:space="preserve">
     <value>{0}... (ESC or click here to cancel)</value>
@@ -779,5 +702,4 @@
   <data name="STATUS_OPERATION_CANCELLED" xml:space="preserve">
     <value>{0} cancelled.</value>
   </data>
-
 </root>

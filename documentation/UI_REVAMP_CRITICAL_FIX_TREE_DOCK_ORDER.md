@@ -13,7 +13,7 @@ December 2024
 
 ### Root Cause Discovery
 
-The problem wasn't the Dock values themselves—it was the **ORDER** controls were added to the panel!
+The problem wasn't the Dock values themselvesâ€”it was the **ORDER** controls were added to the panel!
 
 #### WinForms Dock Processing Rule
 **CRITICAL**: WinForms processes docked controls in **REVERSE** order of how they're added to the Controls collection!
@@ -266,7 +266,7 @@ Please verify:
 ? ?   ? Child 2                         ??
 ? ? ? ROOT NODE 2        ? VISIBLE!    ?? ? Trees (Dock.Fill)
 ? ?   ? Child 1                         ??
-? ?     • Leaf 1                        ??
+? ?     â€¢ Leaf 1                        ??
 ? ?                                     ??
 ? ?              (Remaining height)     ??
 ??????????????????????????????????????????
@@ -285,7 +285,7 @@ With correct add order:
 ### Technical Guarantee
 
 ```csharp
-// Panel1 size: W × H (e.g., 283 × 520)
+// Panel1 size: W Ã— H (e.g., 283 Ã— 520)
 
 // Process order (reverse of add order):
 // 1. treeSearchTextBox (Dock.Top)

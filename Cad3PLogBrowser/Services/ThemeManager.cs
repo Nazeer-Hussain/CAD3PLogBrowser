@@ -164,6 +164,10 @@ namespace Cad3PLogBrowser.Services
                         tabControl.DrawItem -= TabControl_DrawItem;
                     }
 
+                    // Ensure single-row scrollable tabs regardless of theme or DrawMode
+                    tabControl.Multiline = false;
+                    tabControl.SizeMode  = TabSizeMode.Normal;
+
                     tabControl.BackColor = ControlBackgroundColor;
                     tabControl.ForeColor = ControlForegroundColor;
 

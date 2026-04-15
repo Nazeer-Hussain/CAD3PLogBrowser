@@ -15,6 +15,23 @@ namespace Cad3PLogBrowser.Services
         private string _lastSearchTerm = string.Empty;
         private StringComparison _lastComparison = StringComparison.OrdinalIgnoreCase;
 
+        private Regex _cachedRegex;
+        private string _cachedRegexPattern;
+        private RegexOptions _cachedRegexOptions;
+
+        private Regex GetOrBuildRegex(string pattern, RegexOptions options)
+        {
+            if (_cachedRegex != null &&
+                _cachedRegexPattern == pattern &&
+                _cachedRegexOptions == options)
+                return _cachedRegex;
+
+            _cachedRegex = new Regex(pattern, options | RegexOptions.Compiled);
+            _cachedRegexPattern = pattern;
+            _cachedRegexOptions = options;
+            return _cachedRegex;
+        }
+
         // ── Reset ─────────────────────────────────────────────────────────────
         /// <summary>Call this whenever a new file is loaded to clear search position.</summary>
         public void Reset()
@@ -54,7 +71,7 @@ namespace Cad3PLogBrowser.Services
                 try
                 {
                     var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
-                    var regex = new Regex(searchTerm, options);
+                    var regex = GetOrBuildRegex(searchTerm, options);
 
                     for (int i = 0; i < lines.Count; i++)
                     {

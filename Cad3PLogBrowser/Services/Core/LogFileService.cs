@@ -38,17 +38,19 @@ namespace Cad3PLogBrowser.Services
         {
             return Task.Run(() =>
             {
-                var lines = new List<string>();
                 var fileInfo = new FileInfo(filePath);
                 long fileSize = fileInfo.Length;
                 long bytesRead = 0;
                 int lastReportedProgress = 0;
 
                 using (var stream = new FileStream(filePath, FileMode.Open,
-                    FileAccess.Read, FileShare.ReadWrite))
+                    FileAccess.Read, FileShare.ReadWrite, bufferSize: 65536))
                 using (var reader = new StreamReader(stream, Encoding.UTF8,
                     detectEncodingFromByteOrderMarks: true))
                 {
+                    // Estimate initial capacity: average log line ~120 bytes
+                    int estimatedLines = fileSize > 0 ? (int)Math.Min(fileSize / 120, int.MaxValue) : 4096;
+                    var lines = new List<string>(estimatedLines);
                     string line;
                     int lineCount = 0;
                     while ((line = reader.ReadLine()) != null)
@@ -68,8 +70,8 @@ namespace Cad3PLogBrowser.Services
                             }
                         }
                     }
+                    return lines;
                 }
-                return lines;
             });
         }
 
@@ -87,28 +89,25 @@ namespace Cad3PLogBrowser.Services
             int linesWritten = 0;
             int lastReportedProgress = 0;
 
-            var sb = new StringBuilder();
-            foreach (var line in linesList)
+            using (var writer = new StreamWriter(filePath, append: false, encoding: Encoding.UTF8,
+                bufferSize: 65536))
             {
-                sb.AppendLine(line);
-                linesWritten++;
-
-                // Report progress every ~10%
-                if (progressCallback != null && totalLines > 1000)
+                foreach (var line in linesList)
                 {
-                    int progress = (linesWritten * 90) / totalLines; // Reserve 10% for disk write
-                    if (progress > lastReportedProgress + 10 || linesWritten == totalLines)
+                    writer.WriteLine(line);
+                    linesWritten++;
+
+                    if (progressCallback != null && totalLines > 1000)
                     {
-                        lastReportedProgress = progress;
-                        progressCallback(progress, $"Writing: {linesWritten:N0}/{totalLines:N0} lines");
+                        int progress = (linesWritten * 95) / totalLines;
+                        if (progress > lastReportedProgress + 10 || linesWritten == totalLines)
+                        {
+                            lastReportedProgress = progress;
+                            progressCallback(progress, $"Writing: {linesWritten:N0}/{totalLines:N0} lines");
+                        }
                     }
                 }
             }
-
-            if (progressCallback != null)
-                progressCallback(95, "Saving to disk...");
-
-            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
 
             if (progressCallback != null)
                 progressCallback(100, "Complete");

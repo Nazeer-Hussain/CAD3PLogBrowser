@@ -26,9 +26,12 @@ namespace Cad3PLogBrowser.Services
         public string  SaveSnippetSuffix    { get; set; } = "_snippet";
         public int     SplitterDistance     { get; set; } = 285;
         public bool    ShowLogTab           { get; set; } = true;
+        public bool    ShowRawTab            { get; set; } = true;
         public bool    ShowPerformanceTab   { get; set; } = true;
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
+        public bool    ShowFlameGraphTab    { get; set; } = true;
+        public bool    ShowTimelineTab      { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;

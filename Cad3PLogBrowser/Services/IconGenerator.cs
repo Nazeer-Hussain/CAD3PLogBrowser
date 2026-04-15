@@ -1,616 +1,340 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace Cad3PLogBrowser.Services
 {
     /// <summary>
-    /// Generates modern flat icons for the application toolbar.
-    /// Supports multiple sizes (Small=16x16, Medium=24x24, Large=32x32).
+    /// Renders professional icons from the Windows-built-in Segoe MDL2 Assets font
+    /// (the same icon set used by File Explorer, Settings, Taskbar on Windows 10/11).
+    /// Falls back to Segoe UI Symbol if MDL2 is unavailable.
+    /// All icons are rendered with ClearType + AntiAlias at the requested size.
+    /// Codepoint reference: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
     /// </summary>
     public static class IconGenerator
     {
-        public enum IconSize
-        {
-            Small = 16,   // 16x16
-            Medium = 24,  // 24x24
-            Large = 32    // 32x32
-        }
+        public enum IconSize { Small = 16, Medium = 24, Large = 32 }
 
-        private static Color GetThemeAccentColor()
-        {
-            // Use a universal blue that works in both themes
-            return Color.FromArgb(0, 122, 204);  // VS Blue
-        }
+        // ?? Font names (in preference order) ?????????????????????????????????
+        private const string FluentFont = "Segoe Fluent Icons";   // Windows 11
+        private const string Mdl2Font   = "Segoe MDL2 Assets";    // Windows 10
+        private const string FallbackFont = "Segoe UI Symbol";    // older Windows
 
-        private static Color GetThemeForegroundColor()
-        {
-            // This will be determined by context, use neutral dark
-            return Color.FromArgb(40, 40, 40);
-        }
+        // ?? Segoe MDL2 / Fluent codepoints ???????????????????????????????????
+        // Reference: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
+        // File menu
+        private const char IconOpen            = '\uE8E5'; // OpenFile
+        private const char IconSave            = '\uE74E'; // Save
+        private const char IconExportXls       = '\uEDE1'; // Export
+        private const char IconExportCsv       = '\uE8F1'; // Page
+        private const char IconExportImage     = '\uEB9F'; // Photo2
+        private const char IconExportJson      = '\uE943'; // Code
+        private const char IconExportXml       = '\uE8A5'; // Document
+        private const char IconMergeLogs       = '\uE8F0'; // MergeCall
+        private const char IconReload          = '\uE72C'; // Refresh
+        private const char IconExit            = '\uE7E8'; // ChromeClose
+        // Edit menu
+        private const char IconCopy            = '\uE8C8'; // Copy
+        private const char IconCopyHeaders     = '\uE8CF'; // ClipboardList
+        private const char IconFind            = '\uE721'; // Search
+        private const char IconFindNext        = '\uE893'; // ChevronRight
+        private const char IconFindAll         = '\uE773'; // SearchAndApps
+        private const char IconFilter          = '\uE71C'; // Filter
+        private const char IconClearFilter     = '\uE77A'; // ClearFilter
+        private const char IconExpand          = '\uE74B'; // Add
+        private const char IconCollapse        = '\uE74D'; // Remove
+        private const char IconJumpMatch       = '\uE7C5'; // GoToStart
+        private const char IconJumpLine        = '\uE8AB'; // GoToLine
+        private const char IconBookmark        = '\uE8D3'; // Bookmark
+        private const char IconBookmarkNext    = '\uEAD4'; // BookmarkMirrored
+        private const char IconBookmarkPrev    = '\uEAD3'; // BookmarkFilled
+        private const char IconBookmarkShow    = '\uE8A4'; // ShowAll
+        private const char IconBookmarkClear   = '\uE8D4'; // BookmarkOutline
+        // View menu
+        private const char IconCallTree        = '\uE9F9'; // Hierarchy
+        private const char IconApiTree         = '\uE9D9'; // BulletedList
+        private const char IconFont            = '\uE8D2'; // Font
+        private const char IconToolbar         = '\uE700'; // GlobalNavButton
+        private const char IconTab             = '\uE74C'; // Tab
+        // Navigation buttons
+        private const char IconPrevError       = '\uE892'; // ChevronLeft
+        private const char IconNextError       = '\uE893'; // ChevronRight
+        private const char IconPrevWarning     = '\uEDDB'; // TriangleSolidLeft
+        private const char IconNextWarning     = '\uEDDC'; // TriangleSolidRight
+        // Help menu
+        private const char IconHelp            = '\uE897'; // Help
+        private const char IconKeyboard        = '\uE765'; // Keyboard
+        private const char IconAbout           = '\uE946'; // Info
+        private const char IconUpdate          = '\uE895'; // Sync
+        private const char IconReport          = '\uE730'; // ReportDocument
+        // Tree context menu
+        private const char IconSaveBranch      = '\uE78C'; // SaveLocal
+        private const char IconGrok            = '\uE774'; // WebSearch
+        private const char IconShowInTree      = '\uE8B0'; // ShowResults
+        private const char IconSettings        = '\uE713'; // Settings gear
+        // Status bar indicators
+        private const char IconStatusOk        = '\uE73E'; // Accept
+        private const char IconStatusLoad      = '\uE9F5'; // Sync
+        private const char IconStatusErr       = '\uEB90'; // ErrorCircle
+        // Tree node state
+        private const char IconCheck           = '\uE73E'; // Accept
+        private const char IconCross           = '\uE894'; // Cancel
+        // Navigation error/warning
+        private const char IconError           = '\uE783'; // ErrorBadge
+        private const char IconWarning         = '\uE7BA'; // Warning triangle
+        // Theme toggle
+        private const char IconSun             = '\uE706'; // Brightness
+        private const char IconMoon            = '\uE793'; // ClearNight
 
-        private static Color GetThemeBackgroundColor()
-        {
-            return Color.Transparent;
-        }
+        // ?? Colour helpers ????????????????????????????????????????????????????
+        private static bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
 
-        // ?? Icon Generation Methods ??????????????????????????????????????????
+        // Normal toolbar glyph colour — matches VS toolbar conventions
+        private static Color GlyphColor    => Dark ? Color.FromArgb(208, 212, 220) : Color.FromArgb(50,  60,  80);
+        private static Color AccentBlue    => Color.FromArgb(0,   122, 204);
+        private static Color AccentGreen   => Color.FromArgb(16,  137,  62);
+        private static Color AccentAmber   => Color.FromArgb(215, 140,  20);
+        private static Color AccentRed     => Color.FromArgb(205,  40,  40);
+        private static Color AccentTeal    => Color.FromArgb(0,   151, 135);
+        private static Color StatusGreen   => Color.FromArgb(30,  170,  80);
+        private static Color StatusAmber   => Color.FromArgb(225, 155,  10);
+        private static Color StatusRed     => Color.FromArgb(200,  35,  35);
 
-        public static Bitmap CreateOpenIcon(IconSize size)
+        // ?? Cached font name ??????????????????????????????????????????????????
+        private static string _fontName;
+        private static string FontName
         {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
+            get
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 8;
-
-                // Folder shape
-                using (var brush = new SolidBrush(accentColor))
-                using (var pen = new Pen(accentColor, Math.Max(1, s / 16f)))
+                if (_fontName != null) return _fontName;
+                // Pick the best available icon font
+                foreach (var name in new[] { FluentFont, Mdl2Font, FallbackFont })
                 {
-                    // Folder body
-                    var rect = new Rectangle(padding, padding + s / 4, s - padding * 2, s - padding - s / 4);
-                    g.FillRectangle(brush, rect);
-
-                    // Folder tab
-                    var tabRect = new Rectangle(padding, padding, s / 2, s / 5);
-                    g.FillRectangle(brush, tabRect);
+                    using (var test = new Font(name, 12f))
+                        if (test.Name == name) { _fontName = name; return name; }
                 }
+                _fontName = FallbackFont;
+                return _fontName;
             }
-            return bmp;
         }
 
-        public static Bitmap CreateSaveIcon(IconSize size)
+        // ?? Core renderer ?????????????????????????????????????????????????????
+        /// <summary>
+        /// Renders a single icon glyph from Segoe MDL2 / Fluent Icons at the given
+        /// pixel size, centred on a transparent background.
+        /// </summary>
+        /// <param name="glyph">Unicode codepoint from the icon font.</param>
+        /// <param name="sz">Target icon size.</param>
+        /// <param name="color">Glyph fill colour.</param>
+        /// <param name="glyphScale">
+        /// Fraction of the bitmap the glyph should fill (0.0–1.0).
+        /// 0.72 gives comfortable padding like VS toolbar icons.
+        /// </param>
+        private static Bitmap Render(char glyph, IconSize sz, Color color, float glyphScale = 0.72f)
         {
-            int s = (int)size;
+            int s = (int)sz;
             var bmp = new Bitmap(s, s);
             using (var g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.SmoothingMode     = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                 g.Clear(Color.Transparent);
 
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 8;
-
-                // Floppy disk shape
-                using (var brush = new SolidBrush(accentColor))
-                using (var whiteBrush = new SolidBrush(Color.White))
+                float fontSize = s * glyphScale;
+                using (var font = new Font(FontName, fontSize, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (var brush = new SolidBrush(color))
                 {
-                    // Main body
-                    var rect = new Rectangle(padding, padding, s - padding * 2, s - padding * 2);
-                    g.FillRectangle(brush, rect);
-
-                    // Label area (white rectangle at bottom)
-                    var labelRect = new Rectangle(padding * 2, s - padding * 4, s - padding * 4, s / 4);
-                    g.FillRectangle(whiteBrush, labelRect);
-
-                    // Save button/notch at top
-                    var notchRect = new Rectangle(s - padding * 3, padding, padding * 2, s / 3);
-                    g.FillRectangle(whiteBrush, notchRect);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateRefreshIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 8f)))
-                {
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.ArrowAnchor;
-                    pen.CustomEndCap = new AdjustableArrowCap(s / 8f, s / 8f);
-
-                    // Circular arrow
-                    var rect = new Rectangle(padding, padding, s - padding * 2, s - padding * 2);
-                    g.DrawArc(pen, rect, -45, 270);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateCopyIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-                int offset = s / 5;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 12f)))
-                {
-                    // Back rectangle
-                    g.DrawRectangle(pen, padding, padding + offset, s - padding * 2 - offset, s - padding * 2 - offset);
-
-                    // Front rectangle (offset)
-                    g.DrawRectangle(pen, padding + offset, padding, s - padding * 2 - offset, s - padding * 2 - offset);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateFindIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                {
-                    // Magnifying glass circle
-                    int circleSize = s * 2 / 3;
-                    g.DrawEllipse(pen, padding, padding, circleSize, circleSize);
-
-                    // Handle
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.Round;
-                    int handleStart = padding + circleSize * 7 / 10;
-                    g.DrawLine(pen, handleStart, handleStart, s - padding, s - padding);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateFilterIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 8;
-
-                using (var brush = new SolidBrush(accentColor))
-                {
-                    // Funnel shape
-                    var points = new Point[]
+                    var sf = new StringFormat
                     {
-                        new Point(padding, padding),
-                        new Point(s - padding, padding),
-                        new Point(s * 2 / 3, s / 2),
-                        new Point(s * 2 / 3, s - padding),
-                        new Point(s / 3, s - padding),
-                        new Point(s / 3, s / 2)
+                        Alignment     = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center,
+                        FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
                     };
-                    g.FillPolygon(brush, points);
+                    g.DrawString(glyph.ToString(), font, brush, s / 2f, s / 2f, sf);
                 }
             }
             return bmp;
         }
 
-        public static Bitmap CreateSettingsIcon(IconSize size)
+        /// <summary>
+        /// Renders a status-indicator icon: a solid-filled circle with a glyph inside.
+        /// Used for the FileStatus toolbar label (green/amber/red).
+        /// </summary>
+        private static Bitmap RenderStatus(char glyph, IconSize sz, Color circleColor)
         {
-            int s = (int)size;
+            int s = (int)sz;
             var bmp = new Bitmap(s, s);
             using (var g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.SmoothingMode     = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                 g.Clear(Color.Transparent);
 
-                var accentColor = GetThemeAccentColor();
-                int centerX = s / 2;
-                int centerY = s / 2;
-                int outerRadius = s * 4 / 10;
-                int innerRadius = s / 5;
+                // Filled circle background
+                float p = s * 0.06f;
+                using (var br = new SolidBrush(circleColor))
+                    g.FillEllipse(br, p, p, s - p * 2, s - p * 2);
 
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                using (var brush = new SolidBrush(accentColor))
+                // White glyph centred inside
+                float fontSize = s * 0.58f;
+                using (var font = new Font(FontName, fontSize, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (var brush = new SolidBrush(Color.White))
                 {
-                    // Gear teeth (8 teeth)
-                    for (int i = 0; i < 8; i++)
+                    var sf = new StringFormat
                     {
-                        double angle = i * Math.PI / 4;
-                        int x1 = centerX + (int)(outerRadius * 0.7 * Math.Cos(angle));
-                        int y1 = centerY + (int)(outerRadius * 0.7 * Math.Sin(angle));
-                        int x2 = centerX + (int)(outerRadius * Math.Cos(angle));
-                        int y2 = centerY + (int)(outerRadius * Math.Sin(angle));
-                        g.DrawLine(pen, x1, y1, x2, y2);
-                    }
-
-                    // Center circle
-                    g.FillEllipse(brush, centerX - innerRadius, centerY - innerRadius, innerRadius * 2, innerRadius * 2);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateHelpIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 8;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                {
-                    // Circle
-                    g.DrawEllipse(pen, padding, padding, s - padding * 2, s - padding * 2);
-
-                    // Question mark
-                    using (var font = new Font("Segoe UI", s * 0.5f, FontStyle.Bold))
-                    using (var brush = new SolidBrush(accentColor))
-                    {
-                        var format = new StringFormat
-                        {
-                            Alignment = StringAlignment.Center,
-                            LineAlignment = StringAlignment.Center
-                        };
-                        g.DrawString("?", font, brush, s / 2f, s / 2f, format);
-                    }
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateExpandIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                {
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.Round;
-
-                    // Plus sign
-                    int center = s / 2;
-                    int lineLength = s - padding * 2;
-
-                    // Horizontal line
-                    g.DrawLine(pen, padding, center, s - padding, center);
-
-                    // Vertical line
-                    g.DrawLine(pen, center, padding, center, s - padding);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateCollapseIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                {
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.Round;
-
-                    // Minus sign (horizontal line)
-                    int center = s / 2;
-                    g.DrawLine(pen, padding, center, s - padding, center);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateTreeIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 8;
-
-                using (var pen = new Pen(accentColor, Math.Max(1, s / 12f)))
-                using (var brush = new SolidBrush(accentColor))
-                {
-                    // Tree structure
-                    int nodeSize = Math.Max(3, s / 8);
-
-                    // Root node
-                    g.FillEllipse(brush, padding, padding, nodeSize, nodeSize);
-
-                    // Child nodes
-                    int childY = s / 2;
-                    int child1X = s / 3;
-                    int child2X = s * 2 / 3;
-
-                    g.FillEllipse(brush, child1X - nodeSize / 2, childY - nodeSize / 2, nodeSize, nodeSize);
-                    g.FillEllipse(brush, child2X - nodeSize / 2, childY - nodeSize / 2, nodeSize, nodeSize);
-
-                    // Grandchild nodes
-                    int grandChildY = s - padding - nodeSize;
-                    g.FillEllipse(brush, padding * 2, grandChildY, nodeSize, nodeSize);
-                    g.FillEllipse(brush, s / 2 - nodeSize / 2, grandChildY, nodeSize, nodeSize);
-                    g.FillEllipse(brush, s - padding * 2 - nodeSize, grandChildY, nodeSize, nodeSize);
-
-                    // Connecting lines
-                    g.DrawLine(pen, padding + nodeSize / 2, padding + nodeSize, child1X, childY - nodeSize / 2);
-                    g.DrawLine(pen, padding + nodeSize / 2, padding + nodeSize, child2X, childY - nodeSize / 2);
-                    g.DrawLine(pen, child1X, childY + nodeSize / 2, padding * 2 + nodeSize / 2, grandChildY);
-                    g.DrawLine(pen, child1X, childY + nodeSize / 2, s / 2, grandChildY);
-                    g.DrawLine(pen, child2X, childY + nodeSize / 2, s - padding * 2 - nodeSize / 2, grandChildY);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateExportIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = Color.FromArgb(34, 139, 34); // Green for export
-                int padding = s / 8;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                using (var brush = new SolidBrush(accentColor))
-                {
-                    // Document outline
-                    g.DrawRectangle(pen, padding, padding, s - padding * 2, s - padding * 2);
-
-                    // Arrow pointing out (up and right)
-                    int arrowX = s * 2 / 3;
-                    int arrowY = s / 3;
-                    int arrowSize = s / 4;
-
-                    pen.CustomEndCap = new AdjustableArrowCap(s / 10f, s / 10f);
-                    g.DrawLine(pen, s / 2, s / 2, arrowX + arrowSize, arrowY - arrowSize);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateJumpIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var accentColor = GetThemeAccentColor();
-                int padding = s / 6;
-
-                using (var pen = new Pen(accentColor, Math.Max(2, s / 10f)))
-                {
-                    pen.StartCap = LineCap.ArrowAnchor;
-                    pen.EndCap = LineCap.ArrowAnchor;
-                    pen.CustomStartCap = new AdjustableArrowCap(s / 12f, s / 12f);
-                    pen.CustomEndCap = new AdjustableArrowCap(s / 12f, s / 12f);
-
-                    // Double-headed arrow (horizontal)
-                    int centerY = s / 2;
-                    g.DrawLine(pen, padding, centerY, s - padding, centerY);
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateErrorIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var errorColor = Color.FromArgb(220, 50, 50); // Red
-                int padding = s / 8;
-
-                using (var pen = new Pen(errorColor, Math.Max(2, s / 10f)))
-                using (var brush = new SolidBrush(errorColor))
-                {
-                    // Circle
-                    g.DrawEllipse(pen, padding, padding, s - padding * 2, s - padding * 2);
-
-                    // X or exclamation mark
-                    using (var font = new Font("Segoe UI", s * 0.5f, FontStyle.Bold))
-                    {
-                        var format = new StringFormat
-                        {
-                            Alignment = StringAlignment.Center,
-                            LineAlignment = StringAlignment.Center
-                        };
-                        g.DrawString("!", font, brush, s / 2f, s / 2f, format);
-                    }
-                }
-            }
-            return bmp;
-        }
-
-        public static Bitmap CreateWarningIcon(IconSize size)
-        {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var warningColor = Color.FromArgb(255, 165, 0); // Orange
-                int padding = s / 8;
-
-                using (var brush = new SolidBrush(warningColor))
-                {
-                    // Triangle
-                    var points = new Point[]
-                    {
-                        new Point(s / 2, padding),
-                        new Point(s - padding, s - padding),
-                        new Point(padding, s - padding)
+                        Alignment     = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center,
+                        FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
                     };
-                    g.FillPolygon(brush, points);
-
-                    // Exclamation mark
-                    using (var font = new Font("Segoe UI", s * 0.4f, FontStyle.Bold))
-                    using (var textBrush = new SolidBrush(Color.Black))
-                    {
-                        var format = new StringFormat
-                        {
-                            Alignment = StringAlignment.Center,
-                            LineAlignment = StringAlignment.Center
-                        };
-                        g.DrawString("!", font, textBrush, s / 2f, s * 0.6f, format);
-                    }
+                    g.DrawString(glyph.ToString(), font, brush, s / 2f, s / 2f, sf);
                 }
             }
             return bmp;
         }
 
-        public static Bitmap CreateSunIcon(IconSize size)
+        // ??????????????????????????????????????????????????????????????????????
+        // FILE MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateOpenIcon(IconSize sz)         => Render(IconOpen,        sz, AccentBlue);
+        public static Bitmap CreateSaveIcon(IconSize sz)         => Render(IconSave,        sz, AccentBlue);
+        public static Bitmap CreateExportXlsIcon(IconSize sz)    => Render(IconExportXls,   sz, AccentGreen);
+        public static Bitmap CreateExportCsvIcon(IconSize sz)    => Render(IconExportCsv,   sz, AccentGreen);
+        public static Bitmap CreateExportImageIcon(IconSize sz)  => Render(IconExportImage, sz, AccentGreen);
+        public static Bitmap CreateExportJsonIcon(IconSize sz)   => Render(IconExportJson,  sz, AccentGreen);
+        public static Bitmap CreateExportXmlIcon(IconSize sz)    => Render(IconExportXml,   sz, AccentGreen);
+        public static Bitmap CreateMergeLogsIcon(IconSize sz)    => Render(IconMergeLogs,   sz, AccentBlue);
+        public static Bitmap CreateReloadIcon(IconSize sz)       => Render(IconReload,      sz, GlyphColor);
+        public static Bitmap CreateExitIcon(IconSize sz)         => Render(IconExit,        sz, AccentRed);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // EDIT MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateCopyIcon(IconSize sz)          => Render(IconCopy,         sz, GlyphColor);
+        public static Bitmap CreateCopyHeadersIcon(IconSize sz)   => Render(IconCopyHeaders,  sz, GlyphColor);
+        public static Bitmap CreateFindIcon(IconSize sz)          => Render(IconFind,          sz, GlyphColor);
+        public static Bitmap CreateFindNextIcon(IconSize sz)      => Render(IconFindNext,      sz, GlyphColor);
+        public static Bitmap CreateFindAllIcon(IconSize sz)       => Render(IconFindAll,       sz, GlyphColor);
+        public static Bitmap CreateFilterIcon(IconSize sz)        => Render(IconFilter,        sz, AccentBlue);
+        public static Bitmap CreateClearFilterIcon(IconSize sz)   => Render(IconClearFilter,   sz, AccentAmber);
+        public static Bitmap CreateExpandIcon(IconSize sz)        => Render(IconExpand,        sz, GlyphColor);
+        public static Bitmap CreateCollapseIcon(IconSize sz)      => Render(IconCollapse,      sz, GlyphColor);
+        public static Bitmap CreateJumpMatchIcon(IconSize sz)     => Render(IconJumpMatch,     sz, AccentBlue);
+        public static Bitmap CreateJumpLineIcon(IconSize sz)      => Render(IconJumpLine,      sz, GlyphColor);
+        public static Bitmap CreateBookmarkIcon(IconSize sz)      => Render(IconBookmark,      sz, AccentAmber);
+        public static Bitmap CreateBookmarkNextIcon(IconSize sz)  => Render(IconBookmarkNext,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkPrevIcon(IconSize sz)  => Render(IconBookmarkPrev,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkShowIcon(IconSize sz)  => Render(IconBookmarkShow,  sz, AccentAmber);
+        public static Bitmap CreateBookmarkClearIcon(IconSize sz) => Render(IconBookmarkClear, sz, GlyphColor);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // VIEW MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateCallTreeIcon(IconSize sz)  => Render(IconCallTree, sz, GlyphColor);
+        public static Bitmap CreateApiTreeIcon(IconSize sz)   => Render(IconApiTree,  sz, GlyphColor);
+        public static Bitmap CreateFontIcon(IconSize sz)      => Render(IconFont,     sz, GlyphColor);
+        public static Bitmap CreateToolbarIcon(IconSize sz)   => Render(IconToolbar,  sz, GlyphColor);
+        public static Bitmap CreateTabIcon(IconSize sz)       => Render(IconTab,      sz, GlyphColor);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // NAVIGATION BUTTONS (prev/next error/warning)
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreatePrevErrorIcon(IconSize sz)   => Render(IconPrevError,   sz, AccentRed);
+        public static Bitmap CreateNextErrorIcon(IconSize sz)   => Render(IconNextError,   sz, AccentRed);
+        public static Bitmap CreatePrevWarningIcon(IconSize sz) => Render(IconPrevWarning, sz, AccentAmber);
+        public static Bitmap CreateNextWarningIcon(IconSize sz) => Render(IconNextWarning, sz, AccentAmber);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // HELP MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateHelpIcon(IconSize sz)          => Render(IconHelp,     sz, AccentBlue);
+        public static Bitmap CreateKeyboardIcon(IconSize sz)      => Render(IconKeyboard, sz, GlyphColor);
+        public static Bitmap CreateAboutIcon(IconSize sz)         => Render(IconAbout,    sz, AccentBlue);
+        public static Bitmap CreateCheckUpdatesIcon(IconSize sz)  => Render(IconUpdate,   sz, AccentGreen);
+        public static Bitmap CreateReportErrorsIcon(IconSize sz)  => Render(IconReport,   sz, AccentRed);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // TREE CONTEXT MENU
+        // ??????????????????????????????????????????????????????????????????????
+        public static Bitmap CreateSaveBranchIcon(IconSize sz)  => Render(IconSaveBranch, sz, AccentBlue);
+        public static Bitmap CreateGrokIcon(IconSize sz)        => Render(IconGrok,       sz, GlyphColor);
+        public static Bitmap CreateShowInTreeIcon(IconSize sz)  => Render(IconShowInTree, sz, GlyphColor);
+        public static Bitmap CreateSettingsIcon(IconSize sz)    => Render(IconSettings,   sz, GlyphColor);
+        public static Bitmap CreateRefreshIcon(IconSize sz)     => Render(IconReload,     sz, GlyphColor);
+
+        // ?? Legacy aliases so GenerateAllIcons signature is unchanged ?????????
+        public static Bitmap CreateExportIcon(IconSize sz)  => CreateExportXlsIcon(sz);
+        public static Bitmap CreateJumpIcon(IconSize sz)    => CreateJumpMatchIcon(sz);
+        public static Bitmap CreateTreeIcon(IconSize sz)    => CreateCallTreeIcon(sz);
+        public static Bitmap CreateErrorIcon(IconSize sz)   => Render(IconError,   sz, AccentRed);
+        public static Bitmap CreateWarningIcon(IconSize sz) => Render(IconWarning, sz, AccentAmber);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // STATUS BAR INDICATOR ICONS  — coloured circle + white glyph inside
+        // ??????????????????????????????????????????????????????????????????????
+
+        /// <summary>Green — file loaded successfully.</summary>
+        public static Bitmap CreateStatusOkIcon(IconSize sz)      => RenderStatus(IconStatusOk,   sz, StatusGreen);
+
+        /// <summary>Amber — file loading / processing.</summary>
+        public static Bitmap CreateStatusLoadingIcon(IconSize sz)  => RenderStatus(IconStatusLoad, sz, StatusAmber);
+
+        /// <summary>Red — error / no file loaded.</summary>
+        public static Bitmap CreateStatusErrorIcon(IconSize sz)    => RenderStatus(IconStatusErr,  sz, StatusRed);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // TREE-NODE ICONS  — matched / unmatched API pairs
+        // ??????????????????????????????????????????????????????????????????????
+
+        /// <summary>Small teal circle with tick — matched ENTER/EXIT pair.</summary>
+        public static Bitmap CreateCheckIcon(IconSize sz)  => RenderStatus(IconCheck, sz, AccentTeal);
+
+        /// <summary>Small red circle with X — unmatched API call.</summary>
+        public static Bitmap CreateCrossIcon(IconSize sz)  => RenderStatus(IconCross, sz, AccentRed);
+
+        // ??????????????????????????????????????????????????????????????????????
+        // THEME TOGGLE ICONS
+        // ??????????????????????????????????????????????????????????????????????
+
+        /// <summary>Sun glyph — click to switch to light theme.</summary>
+        public static Bitmap CreateSunIcon(IconSize sz)  => Render(IconSun,  sz, Color.FromArgb(230, 185, 30), 0.78f);
+
+        /// <summary>Moon glyph — click to switch to dark theme.</summary>
+        public static Bitmap CreateMoonIcon(IconSize sz) => Render(IconMoon, sz, Color.FromArgb(140, 160, 220), 0.78f);
+
+        /// <summary>Generates both theme-toggle icons in one call.</summary>
+        public static void GenerateThemeIcons(IconSize sz, out Bitmap sunIcon, out Bitmap moonIcon)
         {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var sunColor = Color.FromArgb(255, 200, 0); // Bright yellow
-                int padding = s / 4;
-                int centerX = s / 2;
-                int centerY = s / 2;
-                int sunRadius = s / 5;
-
-                using (var brush = new SolidBrush(sunColor))
-                using (var pen = new Pen(sunColor, Math.Max(1, s / 16f)))
-                {
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.Round;
-
-                    // Center circle
-                    g.FillEllipse(brush, centerX - sunRadius, centerY - sunRadius, sunRadius * 2, sunRadius * 2);
-
-                    // Sun rays (8 rays)
-                    int rayLength = s / 6;
-                    int outerRadius = sunRadius + rayLength;
-                    for (int i = 0; i < 8; i++)
-                    {
-                        double angle = i * Math.PI / 4;
-                        int innerX = centerX + (int)(sunRadius * Math.Cos(angle));
-                        int innerY = centerY + (int)(sunRadius * Math.Sin(angle));
-                        int outerX = centerX + (int)(outerRadius * Math.Cos(angle));
-                        int outerY = centerY + (int)(outerRadius * Math.Sin(angle));
-                        g.DrawLine(pen, innerX, innerY, outerX, outerY);
-                    }
-                }
-            }
-            return bmp;
+            sunIcon  = CreateSunIcon(sz);
+            moonIcon = CreateMoonIcon(sz);
         }
 
-        public static Bitmap CreateMoonIcon(IconSize size)
+        // ??????????????????????????????????????????????????????????????????????
+        // BATCH GENERATOR  (called by MainForm.ApplyIconSize)
+        // ??????????????????????????????????????????????????????????????????????
+
+        public static void GenerateAllIcons(IconSize sz,
+            out Bitmap openIcon,    out Bitmap saveIcon,    out Bitmap refreshIcon,
+            out Bitmap copyIcon,    out Bitmap findIcon,    out Bitmap filterIcon,
+            out Bitmap settingsIcon,out Bitmap helpIcon,    out Bitmap expandIcon,
+            out Bitmap collapseIcon,out Bitmap treeIcon,    out Bitmap exportIcon,
+            out Bitmap jumpIcon,    out Bitmap errorIcon,   out Bitmap warningIcon)
         {
-            int s = (int)size;
-            var bmp = new Bitmap(s, s);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.Transparent);
-
-                var moonColor = Color.FromArgb(100, 100, 150); // Bluish moon
-                int padding = s / 6;
-
-                using (var brush = new SolidBrush(moonColor))
-                {
-                    // Moon crescent - outer circle
-                    var outerRect = new Rectangle(padding, padding, s - padding * 2, s - padding * 2);
-
-                    // Use GraphicsPath for proper crescent shape
-                    using (var path = new GraphicsPath())
-                    {
-                        // Add outer circle
-                        path.AddEllipse(outerRect);
-
-                        // Cut inner circle (offset to create crescent)
-                        int cutSize = (int)((s - padding * 2) * 0.8);
-                        int cutOffset = s / 6;
-                        var cutRect = new Rectangle(padding + cutOffset, padding, cutSize, cutSize);
-                        path.AddEllipse(cutRect);
-
-                        // Fill with winding mode to create crescent
-                        g.FillPath(brush, path);
-                    }
-                }
-            }
-            return bmp;
-        }
-
-        // ?? Helper method to create all icons at once ????????????????????
-        public static void GenerateAllIcons(IconSize size, out Bitmap open, out Bitmap save, 
-            out Bitmap refresh, out Bitmap copy, out Bitmap find, out Bitmap filter,
-            out Bitmap settings, out Bitmap help, out Bitmap expand, out Bitmap collapse,
-            out Bitmap tree, out Bitmap exportIcon, out Bitmap jump, out Bitmap error,
-            out Bitmap warning)
-        {
-            open = CreateOpenIcon(size);
-            save = CreateSaveIcon(size);
-            refresh = CreateRefreshIcon(size);
-            copy = CreateCopyIcon(size);
-            find = CreateFindIcon(size);
-            filter = CreateFilterIcon(size);
-            settings = CreateSettingsIcon(size);
-            help = CreateHelpIcon(size);
-            expand = CreateExpandIcon(size);
-            collapse = CreateCollapseIcon(size);
-            tree = CreateTreeIcon(size);
-            exportIcon = CreateExportIcon(size);
-            jump = CreateJumpIcon(size);
-            error = CreateErrorIcon(size);
-            warning = CreateWarningIcon(size);
-        }
-
-        public static void GenerateThemeIcons(IconSize size, out Bitmap sun, out Bitmap moon)
-        {
-            sun = CreateSunIcon(size);
-            moon = CreateMoonIcon(size);
+            openIcon     = CreateOpenIcon(sz);
+            saveIcon     = CreateSaveIcon(sz);
+            refreshIcon  = CreateRefreshIcon(sz);
+            copyIcon     = CreateCopyIcon(sz);
+            findIcon     = CreateFindIcon(sz);
+            filterIcon   = CreateFilterIcon(sz);
+            settingsIcon = CreateSettingsIcon(sz);
+            helpIcon     = CreateHelpIcon(sz);
+            expandIcon   = CreateExpandIcon(sz);
+            collapseIcon = CreateCollapseIcon(sz);
+            treeIcon     = CreateTreeIcon(sz);
+            exportIcon   = CreateExportIcon(sz);
+            jumpIcon     = CreateJumpIcon(sz);
+            errorIcon    = CreateErrorIcon(sz);
+            warningIcon  = CreateWarningIcon(sz);
         }
     }
 }

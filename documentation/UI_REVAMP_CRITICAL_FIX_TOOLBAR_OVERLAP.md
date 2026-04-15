@@ -141,9 +141,9 @@ MainForm
 ?? mainToolStrip                    (Dock.Top)
 ?  ?? Open, Save, Find, etc.
 ?  ?? Height: Varies by ImageScalingSize
-?      • Small (16x16): ~21-23px
-?      • Medium (24x24): ~28-30px
-?      • Large (32x32): ~36-38px
+?      â€¢ Small (16x16): ~21-23px
+?      â€¢ Medium (24x24): ~28-30px
+?      â€¢ Large (32x32): ~36-38px
 ?
 ?? mainSplitContainer               (Dock.Fill)
    ?? Panel1 (Left)

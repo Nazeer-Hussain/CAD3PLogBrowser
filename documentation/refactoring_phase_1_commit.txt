@@ -49,13 +49,13 @@ FOUNDATION CLASSES CREATED (9 files, ~2,155 lines)
 ? Utilities/Constants.cs (350 lines)
    - Centralizes ~50 magic numbers and strings
    - Organized into logical nested classes:
-     • Performance thresholds (Fast/Slow)
-     • UI display values (splitter, MRU count)
-     • File names and paths (settings, recent files)
-     • Parsing keywords (ENTER/EXIT, log levels)
-     • Application metadata (name, URLs)
-     • Color names (error, warning, highlight)
-     • Keyboard shortcuts (all shortcuts)
+     â€¢ Performance thresholds (Fast/Slow)
+     â€¢ UI display values (splitter, MRU count)
+     â€¢ File names and paths (settings, recent files)
+     â€¢ Parsing keywords (ENTER/EXIT, log levels)
+     â€¢ Application metadata (name, URLs)
+     â€¢ Color names (error, warning, highlight)
+     â€¢ Keyboard shortcuts (all shortcuts)
    - Self-documenting constant names
 
 ? Utilities/Extensions.cs (350 lines)

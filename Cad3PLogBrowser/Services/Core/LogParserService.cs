@@ -61,45 +61,97 @@ namespace Cad3PLogBrowser.Services
             if (string.IsNullOrEmpty(raw))
                 return entry;
 
-            // Split on ": " to get the colon-separated header fields.
-            // Maximum 7 splits — the 7th token is the full tab-delimited payload.
-            string[] colonParts = raw.Split(new[] { ": " }, 7, StringSplitOptions.None);
+            // Walk colon-separated fields without allocating a string array.
+            // Format: {DateTime}: {Level}: {PID}: {TID}: {App}: {Area}: {payload}
+            // We need fields at indices 1 (Level), 3 (TID), 4 (App), 5 (Area), 6+ (payload).
+            const string sep = ": ";
+            int pos = 0;
+            int fieldIndex = 0;
+            int payloadStart = -1;
 
-            if (colonParts.Length >= 2)
-                entry.Level = colonParts[ColonFieldLevel].Trim();
-
-            if (colonParts.Length >= 4)
-                entry.ThreadId = colonParts[ColonFieldTid].Trim();
-
-            if (colonParts.Length >= 5)
-                entry.App = colonParts[ColonFieldApp].Trim();
-
-            if (colonParts.Length >= 6)
-                entry.Area = colonParts[ColonFieldArea].Trim();
-
-            // The 7th colon-part is the tab-delimited payload (may not exist on config/error lines)
-            if (colonParts.Length >= 7)
+            while (pos < raw.Length)
             {
-                string payload = colonParts[6];
-                string[] tabParts = payload.Split('\t');
-
-                if (tabParts.Length > TabFieldEntryType)
+                int next = raw.IndexOf(sep, pos, StringComparison.Ordinal);
+                if (next < 0 || fieldIndex >= 6)
                 {
-                    string entryType = tabParts[TabFieldEntryType].Trim();
-                    if (entryType == "ENTER" || entryType == "EXIT")
-                    {
-                        entry.IsApiCall    = true;
-                        entry.IsCallEnter  = entryType == "ENTER";
-                        entry.IsCallExit   = entryType == "EXIT";
-                        entry.ApiName      = tabParts[TabFieldApiName].Trim();
-                        entry.SourceFile   = tabParts[TabFieldSourceFile].Trim();
-                        entry.Module       = tabParts[TabFieldModule].Trim();
-
-                        if (tabParts.Length > TabFieldEpochMs &&
-                            long.TryParse(tabParts[TabFieldEpochMs].Trim(), out long epochMs))
-                            entry.EpochMs = epochMs;
-                    }
+                    // fieldIndex 6 = rest of string is the tab-delimited payload
+                    if (fieldIndex == 6) payloadStart = pos;
+                    break;
                 }
+
+                string field = raw.Substring(pos, next - pos);
+
+                switch (fieldIndex)
+                {
+                    case ColonFieldLevel:  entry.Level    = field; break;
+                    case ColonFieldTid:    entry.ThreadId = field; break;
+                    case ColonFieldApp:    entry.App      = field; break;
+                    case ColonFieldArea:   entry.Area     = field; break;
+                }
+
+                fieldIndex++;
+                pos = next + sep.Length;
+            }
+
+            // pos now points at field 6 (the payload) if we exited normally
+            if (fieldIndex == 6) payloadStart = pos;
+
+            if (payloadStart < 0 || payloadStart >= raw.Length)
+                return entry;
+
+            // Parse tab-delimited payload fields without Split.
+            // Fields by index: 0=State  1=Module  2=SourceFile  3=ApiName  4=EntryType  5=EpochMs
+            // tabPos[N] = start offset of field N inside payload.
+            // tabPos[0] = 0 (always); tabPos[N>0] = position right after the (N)th tab.
+            // tabCount  = number of tabs found = highest field index that has a start recorded.
+            string payload = raw.Substring(payloadStart);
+            int[] tabPos = new int[7];
+            int tabCount = 0;
+            tabPos[0] = 0;
+            for (int i = 0; i < payload.Length && tabCount < 6; i++)
+            {
+                if (payload[i] == '\t')
+                    tabPos[++tabCount] = i + 1;
+            }
+
+            // Need at least 5 tabs to reach field 4 (EntryType)
+            if (tabCount < TabFieldEntryType)
+                return entry;
+
+            // Helper: end offset of field N (exclusive) = start of next field minus the tab, or end of string
+            // End of field N = tabPos[N+1] - 1  when N+1 <= tabCount, else payload.Length
+            int FieldEnd(int n) => (n + 1 <= tabCount) ? tabPos[n + 1] - 1 : payload.Length;
+
+            // Field 4: EntryType ("ENTER" or "EXIT")
+            string entryType = payload.Substring(tabPos[TabFieldEntryType],
+                FieldEnd(TabFieldEntryType) - tabPos[TabFieldEntryType]).Trim();
+
+            if (entryType != "ENTER" && entryType != "EXIT")
+                return entry;
+
+            entry.IsApiCall   = true;
+            entry.IsCallEnter = entryType == "ENTER";
+            entry.IsCallExit  = !entry.IsCallEnter;
+
+            // Field 3: ApiName
+            entry.ApiName = payload.Substring(tabPos[TabFieldApiName],
+                FieldEnd(TabFieldApiName) - tabPos[TabFieldApiName]).Trim();
+
+            // Field 2: SourceFile
+            entry.SourceFile = payload.Substring(tabPos[TabFieldSourceFile],
+                FieldEnd(TabFieldSourceFile) - tabPos[TabFieldSourceFile]).Trim();
+
+            // Field 1: Module
+            entry.Module = payload.Substring(tabPos[TabFieldModule],
+                FieldEnd(TabFieldModule) - tabPos[TabFieldModule]).Trim();
+
+            // Field 5: EpochMs — present when tabCount >= 5
+            if (tabCount >= TabFieldEpochMs)
+            {
+                string epochStr = payload.Substring(tabPos[TabFieldEpochMs],
+                    FieldEnd(TabFieldEpochMs) - tabPos[TabFieldEpochMs]).Trim();
+                long.TryParse(epochStr, out long epochMs);
+                entry.EpochMs = epochMs;
             }
 
             return entry;
@@ -166,9 +218,9 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (entry.IsCallExit)
                 {
+                    if (stack.Count == 0) continue;
+
                     // Walk the stack looking for the matching ENTER.
-                    // This handles cases where an inner ENTER has no matching EXIT
-                    // (the API exited abnormally or the log was truncated).
                     var tempPopped = new Stack<CallStackNode>();
                     bool matched = false;
 

@@ -51,8 +51,8 @@ string instruction = "??? Click"  // Displays: ??? Click
 | ?? | ?? | `[?]` or `[IDEA]` | "What is..." sections |
 | ?? | ?? | `>>` | "Open file..." |
 | ?? | ?? | `[SEARCH]` or `[ZOOM]` | Zoom indicator |
-| • (bullet) | ? | `\|` | List separators |
-| — (emdash) | ? | `-` | Dash separator |
+| â€¢ (bullet) | ? | `\|` | List separators |
+| â€” (emdash) | ? | `-` | Dash separator |
 
 **Files Modified**:
 1. ? `FlameGraphPanel.cs` - All emojis replaced
@@ -68,8 +68,8 @@ $content = $content -replace '??', '[FLAME]' `
                     -replace '??', '[IDEA]' `
                     -replace '??', '>>' `
                     -replace '??', '[ZOOM]' `
-                    -replace '—', '-' `
-                    -replace '•', '|'
+                    -replace 'â€”', '-' `
+                    -replace 'â€¢', '|'
 Set-Content "file.cs" -Value $content -Encoding UTF8
 ```
 
@@ -455,7 +455,7 @@ value = Math.Max(min, Math.Min(max, value));
 - **Horizontal (X)**: Time axis, primary scroll direction
   - Same as FlameGraph (30% + zoom-scaled)
 - **Vertical (Y)**: Depth levels, less important
-  - Very limited (±50px)
+  - Very limited (Â±50px)
   - Mostly horizontal scrolling
 
 ---

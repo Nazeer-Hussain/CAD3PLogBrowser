@@ -30,10 +30,12 @@ namespace Cad3PLogBrowser.Services
                         string callee  = entry.ApiName;
                         string edgeKey = caller + "→" + callee;
 
-                        if (!graph.Edges.ContainsKey(edgeKey))
-                            graph.Edges[edgeKey] = new CallGraphEdge(caller, callee);
-
-                        graph.Edges[edgeKey].Weight++;
+                        if (!graph.Edges.TryGetValue(edgeKey, out var edge))
+                        {
+                            edge = new CallGraphEdge(caller, callee);
+                            graph.Edges[edgeKey] = edge;
+                        }
+                        edge.Weight++;
                     }
                     callStack.Push(entry.ApiName);
                 }
