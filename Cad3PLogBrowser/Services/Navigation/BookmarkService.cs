@@ -18,7 +18,6 @@ namespace Cad3PLogBrowser.Services.Navigation
 
         private SortedSet<int> _bookmarkedLines = new SortedSet<int>();
         private string _currentFilePath = string.Empty;
-        private int _currentBookmarkIndex = -1;
 
         // ??????????????????????????????????????????????????????????????????????
         // Properties
@@ -83,7 +82,6 @@ namespace Cad3PLogBrowser.Services.Navigation
         public void ClearAllBookmarks()
         {
             _bookmarkedLines.Clear();
-            _currentBookmarkIndex = -1;
         }
 
         /// <summary>
@@ -130,7 +128,6 @@ namespace Cad3PLogBrowser.Services.Navigation
         {
             _currentFilePath = filePath;
             _bookmarkedLines.Clear();
-            _currentBookmarkIndex = -1;
 
             if (string.IsNullOrEmpty(filePath))
                 return;

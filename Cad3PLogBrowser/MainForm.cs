@@ -2511,7 +2511,7 @@ namespace Cad3PLogBrowser
         }
 
         // ── C1: Expand / Collapse all ─────────────────────────────────────────
-        public async void ExpandAllTrees()
+        public void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
 
