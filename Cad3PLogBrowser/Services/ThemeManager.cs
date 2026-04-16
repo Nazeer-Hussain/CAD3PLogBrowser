@@ -82,21 +82,41 @@ namespace Cad3PLogBrowser.Services
 
             ApplyThemeToControls(form.Controls);
 
-            // Apply theme to MenuStrip
-            foreach (Control control in form.Controls)
+            // Walk ALL controls recursively to find every MenuStrip / ToolStrip / StatusStrip
+            ApplyThemeToStrips(form.Controls);
+
+            // Apply renderer to every ContextMenuStrip attached to controls on this form
+            ApplyThemeToContextMenus(form);
+        }
+
+        /// <summary>
+        /// Walks every control and applies the dark/light renderer to any ContextMenuStrip
+        /// assigned to a ContextMenuStrip property (ContextMenu is in components, not Controls).
+        /// </summary>
+        private static void ApplyThemeToContextMenus(Form form)
+        {
+            // Collect all ContextMenuStrips via the component container
+            if (form.Container == null) return;
+            foreach (System.ComponentModel.IComponent comp in form.Container.Components)
+            {
+                if (comp is ContextMenuStrip cms)
+                    ApplyThemeToToolStrip(cms);
+            }
+        }
+
+        private static void ApplyThemeToStrips(Control.ControlCollection controls)
+        {
+            foreach (Control control in controls)
             {
                 if (control is MenuStrip menuStrip)
-                {
                     ApplyThemeToMenuStrip(menuStrip);
-                }
-                if (control is ToolStrip toolStrip)
-                {
-                    ApplyThemeToToolStrip(toolStrip);
-                }
-                if (control is StatusStrip statusStrip)
-                {
+                else if (control is StatusStrip statusStrip)
                     ApplyThemeToStatusStrip(statusStrip);
-                }
+                else if (control is ToolStrip toolStrip)
+                    ApplyThemeToToolStrip(toolStrip);
+
+                if (control.Controls.Count > 0)
+                    ApplyThemeToStrips(control.Controls);
             }
         }
 
@@ -451,14 +471,29 @@ namespace Cad3PLogBrowser.Services
                 g.DrawRectangle(borderPen, tabBounds.X, tabBounds.Y, tabBounds.Width - 1, tabBounds.Height - 1);
             }
 
-            // Draw tab text
+            // Draw tab text (and icon if the tab has one)
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;
             stringFormat.LineAlignment = StringAlignment.Center;
 
+            // Draw icon if the TabControl has an ImageList and the tab has an image key
+            Rectangle textRect = tabBounds;
+            if (tabControl.ImageList != null && !string.IsNullOrEmpty(tabPage.ImageKey)
+                && tabControl.ImageList.Images.ContainsKey(tabPage.ImageKey))
+            {
+                Image img = tabControl.ImageList.Images[tabPage.ImageKey];
+                int imgSize = 16;
+                int imgX = tabBounds.X + 4;
+                int imgY = tabBounds.Y + (tabBounds.Height - imgSize) / 2;
+                g.DrawImage(img, imgX, imgY, imgSize, imgSize);
+                // Shrink text rect so it sits to the right of the icon
+                textRect = new Rectangle(tabBounds.X + imgSize + 6, tabBounds.Y,
+                                         tabBounds.Width - imgSize - 10, tabBounds.Height);
+            }
+
             using (SolidBrush textBrush = new SolidBrush(tabForeColor))
             {
-                g.DrawString(tabPage.Text, tabControl.Font, textBrush, tabBounds, stringFormat);
+                g.DrawString(tabPage.Text, tabControl.Font, textBrush, textRect, stringFormat);
             }
         }
 
