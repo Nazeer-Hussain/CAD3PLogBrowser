@@ -153,31 +153,39 @@ namespace Cad3PLogBrowser
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            // Semi-transparent dim over everything behind us
-            using (var dimBrush = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
-                e.Graphics.FillRectangle(dimBrush, ClientRectangle);
+            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+
+            // Subtle scrim: barely-there tint so the content behind is still readable.
+            // Dark mode  ? very light frost (white 18 %)
+            // Light mode ? very light grey frost (dark 12 %)
+            // Both avoid the "black hole" look of a heavy opaque overlay.
+            Color scrim = dark
+                ? Color.FromArgb(46,  255, 255, 255)   // white 18 %
+                : Color.FromArgb(30,   30,  30,  30);   // near-black 12 %
+
+            using (var scrimBrush = new SolidBrush(scrim))
+                e.Graphics.FillRectangle(scrimBrush, ClientRectangle);
 
             if (_card.Width == 0) return;
 
-            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            Color cardBack   = dark ? Color.FromArgb(45, 45, 48) : Color.FromArgb(250, 250, 252);
-            Color cardBorder = Color.FromArgb(0, 122, 204);   // VS blue accent always
+            Color cardBack   = dark ? Color.FromArgb(52, 52, 56) : Color.FromArgb(248, 249, 252);
+            Color cardBorder = Color.FromArgb(0, 122, 204);   // VS blue accent
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // Drop shadow (simple offset fill)
-            using (var shadowBrush = new SolidBrush(Color.FromArgb(60, 0, 0, 0)))
+            // Soft drop shadow
+            using (var shadowBrush = new SolidBrush(Color.FromArgb(40, 0, 0, 0)))
             {
-                var shadow = Rectangle.Inflate(_card, 2, 2);
-                shadow.Offset(3, 3);
-                FillRoundedRect(e.Graphics, shadowBrush, shadow, CornerR);
+                var shadow = Rectangle.Inflate(_card, 3, 3);
+                shadow.Offset(2, 4);
+                FillRoundedRect(e.Graphics, shadowBrush, shadow, CornerR + 2);
             }
 
             // Card background
             using (var cardBrush = new SolidBrush(cardBack))
                 FillRoundedRect(e.Graphics, cardBrush, _card, CornerR);
 
-            // Accent top border (2 px blue line at top of card)
+            // Accent top border
             using (var accentPen = new Pen(cardBorder, 2f))
             {
                 int r = CornerR;
@@ -186,8 +194,8 @@ namespace Cad3PLogBrowser
                     _card.Right - r, _card.Y + 1);
             }
 
-            // Card outline
-            using (var borderPen = new Pen(Color.FromArgb(80, cardBorder), 1f))
+            // Card outline — very faint
+            using (var borderPen = new Pen(Color.FromArgb(60, cardBorder), 1f))
                 DrawRoundedRect(e.Graphics, borderPen, _card, CornerR);
         }
 
