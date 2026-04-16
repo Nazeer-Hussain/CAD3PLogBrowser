@@ -163,10 +163,23 @@ namespace Cad3PLogBrowser.Services
                     treeView.BackColor = BackgroundColor;
                     treeView.ForeColor = ForegroundColor;
                     treeView.LineColor = BorderColor;
-                    treeView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
+                    treeView.BorderStyle = _currentTheme == Theme.Dark
+                        ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
 
-                    // Use default drawing - Windows handles +/- glyphs correctly
-                    treeView.DrawMode = TreeViewDrawMode.Normal;
+                    if (_currentTheme == Theme.Dark)
+                    {
+                        // OwnerDrawAll gives us full control over every node so Windows never
+                        // paints selection/hover in system colours that are unreadable on dark.
+                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawAll;
+                        treeView.DrawNode -= TreeView_DrawNode;  // avoid double-subscribe
+                        treeView.DrawNode += TreeView_DrawNode;
+                    }
+                    else
+                    {
+                        // Back to Normal so light mode uses the built-in Windows rendering.
+                        treeView.DrawMode = TreeViewDrawMode.Normal;
+                        treeView.DrawNode -= TreeView_DrawNode;
+                    }
                 }
                 else if (control is TabControl tabControl)
                 {
@@ -519,6 +532,79 @@ namespace Cad3PLogBrowser.Services
                 g.DrawString(tabPage.Text, tabControl.Font, textBrush,
                     new RectangleF(startX, tabBounds.Y, textSize.Width + 2, tabBounds.Height), sf);
             }
+        }
+
+        // ?? Dark-mode TreeView owner-draw ?????????????????????????????????????
+        // DrawMode.OwnerDrawAll means we are responsible for EVERY pixel of each
+        // node row — background, expand/collapse glyph, icon, and text.
+        private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
+        {
+            TreeView tv   = (TreeView)sender;
+            Graphics g    = e.Graphics;
+            TreeNode node = e.Node;
+            Rectangle r   = e.Bounds;
+
+            if (r.Width <= 0 || r.Height <= 0) return;
+
+            bool selected = (e.State & TreeNodeStates.Selected)  != 0
+                         || (e.State & TreeNodeStates.Focused)    != 0;
+            bool hot      = (e.State & TreeNodeStates.Hot)        != 0;
+
+            // ?? Row background ????????????????????????????????????????????????
+            Color rowBack = selected ? Color.FromArgb(0, 122, 204)    // VS blue selection
+                          : hot      ? Color.FromArgb(62, 62, 64)     // subtle hover
+                          :            DarkBackground;
+            using (var br = new SolidBrush(rowBack))
+                g.FillRectangle(br, r);
+
+            // ?? Expand / collapse glyph ???????????????????????????????????????
+            // Draw a simple +/- box at the standard indent position.
+            if (node.Nodes.Count > 0)
+            {
+                int glyphSize = 9;
+                int glyphX    = r.X - glyphSize - 2;    // to the left of the node indent
+                int glyphY    = r.Y + (r.Height - glyphSize) / 2;
+                Rectangle glyphRect = new Rectangle(glyphX, glyphY, glyphSize, glyphSize);
+
+                using (var pen = new Pen(Color.FromArgb(160, 160, 160)))
+                {
+                    g.DrawRectangle(pen, glyphRect);
+                    // Horizontal bar (always present)
+                    int midY = glyphRect.Y + glyphRect.Height / 2;
+                    int midX = glyphRect.X + glyphRect.Width  / 2;
+                    g.DrawLine(pen, glyphRect.X + 2, midY, glyphRect.Right - 2, midY);
+                    // Vertical bar only when collapsed
+                    if (!node.IsExpanded)
+                        g.DrawLine(pen, midX, glyphRect.Y + 2, midX, glyphRect.Bottom - 2);
+                }
+            }
+
+            // ?? Node icon (from ImageList) ????????????????????????????????????
+            int textX = r.X;
+            if (tv.ImageList != null && node.ImageIndex >= 0
+                && node.ImageIndex < tv.ImageList.Images.Count)
+            {
+                int iconSize = tv.ImageList.ImageSize.Width;
+                int iconY    = r.Y + (r.Height - iconSize) / 2;
+                g.DrawImage(tv.ImageList.Images[node.ImageIndex], textX, iconY, iconSize, iconSize);
+                textX += iconSize + 2;
+            }
+
+            // ?? Node text ?????????????????????????????????????????????????????
+            Color textColor = selected ? Color.White
+                            : node.ForeColor != Color.Empty && node.ForeColor != tv.ForeColor
+                                ? node.ForeColor          // honour per-node colour (e.g. error/warning)
+                                : DarkForeground;
+
+            var sf = new System.Drawing.StringFormat
+            {
+                Alignment     = StringAlignment.Near,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
+            };
+            using (var textBrush = new SolidBrush(textColor))
+                g.DrawString(node.Text, tv.Font, textBrush,
+                    new RectangleF(textX, r.Y, r.Width - (textX - r.X), r.Height), sf);
         }
 
         private class DarkColorTable : ProfessionalColorTable
