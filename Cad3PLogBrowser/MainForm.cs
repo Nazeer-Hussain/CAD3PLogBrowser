@@ -1810,12 +1810,12 @@ namespace Cad3PLogBrowser
             tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
-            showTab1MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab2MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab3MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab4MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabIcon(msz);
-            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabIcon(msz);
+            showTab1MenuItem.Image         = IconGenerator.CreateTabLogIcon(msz);
+            showTab2MenuItem.Image         = IconGenerator.CreateTabPerformanceIcon(msz);
+            showTab3MenuItem.Image         = IconGenerator.CreateTabLogDetailsIcon(msz);
+            showTab4MenuItem.Image         = IconGenerator.CreateTabCallGraphIcon(msz);
+            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
+            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabTimelineIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
             settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
@@ -1847,6 +1847,56 @@ namespace Cad3PLogBrowser
             treeContextExportBranchCsvMenuItem.Image = IconGenerator.CreateExportCsvIcon(msz);
             treeContextSearchInGrokMenuItem.Image   = IconGenerator.CreateGrokIcon(msz);
             treeContextShowInOtherTreeMenuItem.Image = IconGenerator.CreateShowInTreeIcon(msz);
+        }
+
+        // ── Tab Icons ─────────────────────────────────────────────────────────
+        /// <summary>
+        /// Assigns a distinct Segoe MDL2 icon to every tab in mainTabControl.
+        /// Creates a 16×16 ImageList owned by the form (disposed with the form).
+        /// Safe to call multiple times — replaces the previous ImageList.
+        /// </summary>
+        private void ApplyTabIcons()
+        {
+            var sz = IconGenerator.IconSize.Small;
+
+            // Build a fresh ImageList every call (handles theme changes)
+            var il = new ImageList
+            {
+                ColorDepth = ColorDepth.Depth32Bit,
+                ImageSize  = new Size(16, 16),
+                TransparentColor = Color.Transparent
+            };
+
+            // Index 0 – Log
+            il.Images.Add("log",        IconGenerator.CreateTabLogIcon(sz));
+            // Index 1 – Performance
+            il.Images.Add("perf",       IconGenerator.CreateTabPerformanceIcon(sz));
+            // Index 2 – Log Details
+            il.Images.Add("details",    IconGenerator.CreateTabLogDetailsIcon(sz));
+            // Index 3 – Call Graph
+            il.Images.Add("callgraph",  IconGenerator.CreateTabCallGraphIcon(sz));
+            // Index 4 – Flame Graph
+            il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
+            // Index 5 – Timeline
+            il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
+            // Index 6 – generic fallback (AI / Dependency / future tabs)
+            il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
+
+            // Dispose the old ImageList before replacing it
+            var oldIl = mainTabControl.ImageList;
+            mainTabControl.ImageList = il;
+            oldIl?.Dispose();
+
+            // Assign by key so order-independence is guaranteed
+            logTab.ImageKey        = "log";
+            performanceTab.ImageKey = "perf";
+            logDetailTab.ImageKey  = "details";
+            callGraphTab.ImageKey  = "callgraph";
+            flameGraphTab.ImageKey = "flame";
+            timelineTab.ImageKey   = "timeline";
+
+            // Dynamic tabs added at runtime (AI / Dependency) — assign generic icon when they exist
+            if (_aiTab != null) _aiTab.ImageKey = "generic";
         }
 
         private static Color GetLineColour(string line)
@@ -3197,10 +3247,12 @@ namespace Cad3PLogBrowser
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
-            logTab.Text = Resources.TAB_LOG;
-            performanceTab.Text = Resources.TAB_PERFORMANCE;
-            logDetailTab.Text = Resources.TAB_LOG_DETAILS;
-            callGraphTab.Text = Resources.TAB_CALL_GRAPH;
+            logTab.Text        = Resources.TAB_LOG;
+            performanceTab.Text  = Resources.TAB_PERFORMANCE;
+            logDetailTab.Text    = Resources.TAB_LOG_DETAILS;
+            callGraphTab.Text    = Resources.TAB_CALL_GRAPH;
+
+            ApplyTabIcons();
 
             // CRITICAL FIX: Restore splitter distance AFTER all window layout is complete
             // Use BeginInvoke to run after the message queue is processed
@@ -4931,6 +4983,7 @@ namespace Cad3PLogBrowser
             if (mainTabControl != null)
             {
                 mainTabControl.TabPages.Add(_aiTab);
+                ApplyTabIcons();   // re-run so the new tab gets its icon
             }
 
             // Create View menu item

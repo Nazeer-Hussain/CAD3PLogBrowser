@@ -56,7 +56,14 @@ namespace Cad3PLogBrowser.Services
         private const char IconApiTree         = '\uE9D9'; // BulletedList
         private const char IconFont            = '\uE8D2'; // Font
         private const char IconToolbar         = '\uE700'; // GlobalNavButton
-        private const char IconTab             = '\uE74C'; // Tab
+        private const char IconTab             = '\uE74C'; // Tab (generic / submenu header)
+        // Per-tab icons
+        private const char IconTabLog          = '\uE8F1'; // Page / document list  ? Log view
+        private const char IconTabPerformance  = '\uE9F9'; // Org chart             ? Performance
+        private const char IconTabLogDetails   = '\uE8A5'; // Document detail       ? Log Details
+        private const char IconTabCallGraph    = '\uE8EE'; // Relationship          ? Call Graph
+        private const char IconTabFlameGraph   = '\uE792'; // Burn / flame          ? Flame Graph
+        private const char IconTabTimeline     = '\uE81C'; // Timeline / clock      ? Timeline
         // Navigation buttons
         private const char IconPrevError       = '\uE892'; // ChevronLeft
         private const char IconNextError       = '\uE893'; // ChevronRight
@@ -235,6 +242,14 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateFontIcon(IconSize sz)      => Render(IconFont,     sz, GlyphColor);
         public static Bitmap CreateToolbarIcon(IconSize sz)   => Render(IconToolbar,  sz, GlyphColor);
         public static Bitmap CreateTabIcon(IconSize sz)       => Render(IconTab,      sz, GlyphColor);
+
+        // Per-tab icons — each tab gets a distinct, semantically matching glyph
+        public static Bitmap CreateTabLogIcon(IconSize sz)         => Render(IconTabLog,         sz, AccentBlue);
+        public static Bitmap CreateTabPerformanceIcon(IconSize sz) => Render(IconTabPerformance, sz, AccentGreen);
+        public static Bitmap CreateTabLogDetailsIcon(IconSize sz)  => Render(IconTabLogDetails,  sz, GlyphColor);
+        public static Bitmap CreateTabCallGraphIcon(IconSize sz)   => Render(IconTabCallGraph,   sz, AccentBlue);
+        public static Bitmap CreateTabFlameGraphIcon(IconSize sz)  => Render(IconTabFlameGraph,  sz, AccentRed);
+        public static Bitmap CreateTabTimelineIcon(IconSize sz)    => Render(IconTabTimeline,    sz, AccentAmber);
 
         // ??????????????????????????????????????????????????????????????????????
         // NAVIGATION BUTTONS (prev/next error/warning)
