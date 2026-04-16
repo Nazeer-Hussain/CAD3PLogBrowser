@@ -1412,6 +1412,12 @@ namespace Cad3PLogBrowser
         private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e)
         {
             ScrollLogToLine(e.Node?.Tag);
+
+            // If the Log Details tab is the active tab, auto-inspect the selected line.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && e.Node?.Tag is int ln
+                && _lineIndexMap.TryGetValue(ln, out int idx))
+                ShowLogDetail(idx);
             ShowApiDetails(e.Node);  // D3: show invocation details
 
             // D5: Cross-reference - highlight matching node in Call Tree if both visible
@@ -1493,13 +1499,18 @@ namespace Cad3PLogBrowser
         {
             ScrollLogToLine(e.Node?.Tag);
 
+            // If the Log Details tab is the active tab, auto-inspect the selected line.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && e.Node?.Tag is int ln
+                && _lineIndexMap.TryGetValue(ln, out int idx))
+                ShowLogDetail(idx);
+
             // D5: Cross-reference - highlight matching node in API Tree if both have data
             if (e.Node != null && ApiTree.Nodes.Count > 0)
             {
                 string methodName = GetMethodNameFromNode(e.Node);
                 if (!string.IsNullOrEmpty(methodName))
                 {
-                    // Don't trigger recursive selection events
                     ApiTree.AfterSelect -= ApiTree_AfterSelect;
                     TryHighlightInApiTree(methodName);
                     ApiTree.AfterSelect += ApiTree_AfterSelect;
@@ -1532,6 +1543,11 @@ namespace Cad3PLogBrowser
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateSelectionStatus();
+
+            // If the Log Details tab is active, auto-inspect the newly selected row.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && logListView.SelectedIndices.Count > 0)
+                ShowLogDetail(logListView.SelectedIndices[0]);
         }
 
         private void ShowLogDetail(int idx)
