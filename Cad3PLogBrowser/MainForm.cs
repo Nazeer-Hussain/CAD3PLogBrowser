@@ -308,6 +308,8 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
 
+            _appSettings = AppSettings.Load();
+
             // Centred operation overlay — must be added before other setup so BringToFront works
             _overlay = new OperationOverlayPanel();
             Controls.Add(_overlay);
