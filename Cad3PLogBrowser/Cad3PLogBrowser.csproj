@@ -198,6 +198,7 @@
     <Compile Include="UI\OperationOverlayPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UI\LineInspectorPanel.cs" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="stdole">

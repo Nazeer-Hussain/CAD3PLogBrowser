@@ -24,6 +24,7 @@ namespace Cad3PLogBrowser
         private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
         private OperationOverlayPanel      _overlay;
+        private UI.LineInspectorPanel      _lineInspector;
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
@@ -313,6 +314,11 @@ namespace Cad3PLogBrowser
             _overlay = new OperationOverlayPanel();
             Controls.Add(_overlay);
             _overlay.BringToFront();
+
+            // Replace logDetailBox with the structured Line Inspector
+            _lineInspector = new UI.LineInspectorPanel();
+            logDetailTab.Controls.Clear();
+            logDetailTab.Controls.Add(_lineInspector);
             _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
@@ -455,6 +461,7 @@ namespace Cad3PLogBrowser
                 timelinePanel?.UpdateTheme();
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
+                _lineInspector?.ApplyTheme();
 
                 // Apply icon size
                 ApplyIconSize();
@@ -1535,9 +1542,14 @@ namespace Cad3PLogBrowser
 
         private void ShowLogDetail(int idx)
         {
-            if (idx < 0 || idx >= _virtualLines.Count) return;
-            logDetailBox.Text = string.Format(Resources.LOG_DETAIL_FORMAT,
-                _virtualLines[idx].LineNumber.ToString(), _virtualLines[idx].Text);
+            if (idx < 0 || idx >= _virtualLines.Count || _lineInspector == null) return;
+
+            // Convert _virtualLines to the panel's simple InspectorLine type
+            var lines = new List<UI.LineInspectorPanel.InspectorLine>(_virtualLines.Count);
+            foreach (var vl in _virtualLines)
+                lines.Add(new UI.LineInspectorPanel.InspectorLine { LineNumber = vl.LineNumber, Text = vl.Text });
+
+            _lineInspector.Inspect(lines, idx, _lastEntries);
         }
 
         // ── #7: Virtual mode handler ──────────────────────────────────────────
