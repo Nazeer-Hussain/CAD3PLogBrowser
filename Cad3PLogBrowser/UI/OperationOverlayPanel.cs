@@ -98,9 +98,14 @@ namespace Cad3PLogBrowser
         /// <summary>Switches to determinate mode and updates progress 0–100.</summary>
         public void SetProgress(int percent, string statusText)
         {
-            _bar.Style   = ProgressBarStyle.Blocks;
-            _bar.Value   = Math.Max(0, Math.Min(100, percent));
-            _label.Text  = statusText;
+            _bar.Style  = ProgressBarStyle.Blocks;
+            _bar.Value  = Math.Max(0, Math.Min(100, percent));
+            _label.Text = statusText;
+            // Force immediate repaint — the caller is on the UI thread after an
+            // Invoke, so without Refresh() the visual update waits for the next
+            // WM_PAINT which may not arrive before the next SetProgress call.
+            _bar.Refresh();
+            _label.Refresh();
         }
 
         /// <summary>Hides the overlay.</summary>

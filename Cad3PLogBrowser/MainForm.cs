@@ -2599,22 +2599,26 @@ namespace Cad3PLogBrowser
             try
             {
                 var token = _cancellationTokenSource.Token;
+                int count = 0;
 
                 CallTree.BeginUpdate();
                 foreach (var n in CollectAllNodes(CallTree.Nodes))
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
+                    if (++count % 100 == 0) Application.DoEvents();
                 }
                 CallTree.EndUpdate();
 
                 token.ThrowIfCancellationRequested();
 
+                count = 0;
                 ApiTree.BeginUpdate();
                 foreach (var n in CollectAllNodes(ApiTree.Nodes))
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
+                    if (++count % 100 == 0) Application.DoEvents();
                 }
                 ApiTree.EndUpdate();
             }
@@ -2657,6 +2661,7 @@ namespace Cad3PLogBrowser
                 CallTree.CollapseAll();
                 foreach (TreeNode n in CallTree.Nodes) n.Expand();
                 CallTree.EndUpdate();
+                Application.DoEvents();
 
                 token.ThrowIfCancellationRequested();
 
@@ -2664,6 +2669,7 @@ namespace Cad3PLogBrowser
                 ApiTree.CollapseAll();
                 foreach (TreeNode n in ApiTree.Nodes) n.Expand();
                 ApiTree.EndUpdate();
+                Application.DoEvents();
             }
             catch (OperationCanceledException)
             {
