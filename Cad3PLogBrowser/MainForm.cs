@@ -2593,9 +2593,8 @@ namespace Cad3PLogBrowser
         public void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
+            Update(); // flush pending paints synchronously so overlay is visible before work starts
 
-            // BeginInvoke defers work until after the current call returns so the
-            // message pump runs at least once — making the overlay actually visible.
             BeginInvoke((Action)(() =>
             {
                 try
@@ -2651,6 +2650,7 @@ namespace Cad3PLogBrowser
         public void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
+            Update(); // flush pending paints synchronously so overlay is visible before work starts
 
             BeginInvoke((Action)(() =>
             {
