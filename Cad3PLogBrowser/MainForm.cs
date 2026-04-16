@@ -23,6 +23,7 @@ namespace Cad3PLogBrowser
         private readonly Services.Core.MergeLogService _mergeLogService;
         private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
+        private OperationOverlayPanel      _overlay;
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
@@ -307,7 +308,10 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
 
-            _appSettings = AppSettings.Load();
+            // Centred operation overlay — must be added before other setup so BringToFront works
+            _overlay = new OperationOverlayPanel();
+            Controls.Add(_overlay);
+            _overlay.BringToFront();
             _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
@@ -433,6 +437,7 @@ namespace Cad3PLogBrowser
                 flameGraphPanel?.UpdateTheme();
                 timelinePanel?.UpdateTheme();
                 _aiPanel?.UpdateTheme();
+                _overlay?.UpdateTheme();
 
                 // Apply icon size
                 ApplyIconSize();
@@ -1568,6 +1573,7 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Visible = true;
             FileLoadProgress.Value = 0;
             StatusFileName.Text = Resources.STATUS_LOADING;
+            _overlay.Show(Resources.STATUS_LOADING);
 
             try
             {
@@ -1579,6 +1585,7 @@ namespace Cad3PLogBrowser
                     {
                         FileLoadProgress.Value = progress;
                         StatusFileName.Text = message;
+                        _overlay.SetProgress(progress, message);
                     }));
                 });
 
@@ -1601,6 +1608,7 @@ namespace Cad3PLogBrowser
                 PopulateVirtualListView(_allLines);
                 FileLoadProgress.Value = 33;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
+                _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
                 await Task.Delay(10);
 
                 // Parse and build all tree data in parallel on background threads
@@ -1614,6 +1622,7 @@ namespace Cad3PLogBrowser
 
                 FileLoadProgress.Value = 66;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
+                _overlay.SetProgress(66, Resources.STATUS_BUILDING_CALL_TREE);
 
                 // Populate UI with the pre-built data (must be on UI thread)
                 PopulateTreesFromData(entries, apiNodesTask.Result, callTree, perfStats, graph);
@@ -1634,6 +1643,7 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Visible = false;
                 FileLoadProgress.Value = 0;
                 _isLoading = false;
+                _overlay.Hide();
             }
         }
 
@@ -2038,7 +2048,9 @@ namespace Cad3PLogBrowser
                         {
                             FileLoadProgress.Style = ProgressBarStyle.Blocks;
                             FileLoadProgress.Value = progress;
-                            StatusFileName.Text = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
+                            var msg = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
+                            StatusFileName.Text = msg;
+                            _overlay.SetProgress(progress, msg);
                         }));
                     });
                 });
@@ -2459,6 +2471,9 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Visible = true;
             StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
+            // Show centred overlay
+            _overlay.Show(operationName);
+
             // Disable menu items during operation
             SetOperationInProgress(true);
         }
@@ -2469,6 +2484,9 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Style = ProgressBarStyle.Blocks;
             StatusFileName.Text = string.Empty;
             _currentOperation = string.Empty;
+
+            // Hide centred overlay
+            _overlay.Hide();
 
             // Re-enable menu items
             SetOperationInProgress(false);
@@ -2816,8 +2834,10 @@ namespace Cad3PLogBrowser
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = string.Format(Resources.STATUS_FILTERING_PROGRESS,
+                                var msg = string.Format(Resources.STATUS_FILTERING_PROGRESS,
                                     progress, i, allLinesCopy.Count);
+                                StatusFileName.Text = msg;
+                                _overlay.SetProgress(progress, msg);
                             }));
                         }
 

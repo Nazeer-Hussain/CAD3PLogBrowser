@@ -195,6 +195,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="UI\OperationOverlayPanel.cs" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="stdole">
