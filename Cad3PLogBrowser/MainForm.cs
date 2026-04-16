@@ -23,6 +23,7 @@ namespace Cad3PLogBrowser
         private readonly Services.Core.MergeLogService _mergeLogService;
         private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
+        private OperationOverlayPanel      _overlay;
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
@@ -189,9 +190,8 @@ namespace Cad3PLogBrowser
 
         private void ThemeToggleButton_Click(object sender, EventArgs e)
         {
-            // Toggle theme
             _appSettings.Theme = _appSettings.Theme == "Dark" ? "Light" : "Dark";
-            ApplyTheme();
+            ApplyThemeWithOverlay();
             UpdateThemeButtonIcon();
         }
 
@@ -308,6 +308,11 @@ namespace Cad3PLogBrowser
             InitializeComponent();
 
             _appSettings = AppSettings.Load();
+
+            // Centred operation overlay — must be added before other setup so BringToFront works
+            _overlay = new OperationOverlayPanel();
+            Controls.Add(_overlay);
+            _overlay.BringToFront();
             _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
@@ -415,6 +420,22 @@ namespace Cad3PLogBrowser
                 LoadFileAsync(filePath);
         }
 
+        private void ApplyThemeWithOverlay()
+        {
+            // Theme switching walks every control and redraws trees — show the
+            // overlay so the user sees something is happening during the wait.
+            string opName = _appSettings.Theme == "Dark" ? "Switching to Dark Theme…" : "Switching to Light Theme…";
+            StartOperation(opName);   // shows overlay + DoEvents so it paints
+            try
+            {
+                ApplyTheme();
+            }
+            finally
+            {
+                EndOperation();
+            }
+        }
+
         public void ApplyTheme()
         {
             // EMERGENCY FIX: Suspend layout during theme change to prevent freeze
@@ -433,6 +454,7 @@ namespace Cad3PLogBrowser
                 flameGraphPanel?.UpdateTheme();
                 timelinePanel?.UpdateTheme();
                 _aiPanel?.UpdateTheme();
+                _overlay?.UpdateTheme();
 
                 // Apply icon size
                 ApplyIconSize();
@@ -1304,6 +1326,13 @@ namespace Cad3PLogBrowser
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
 
+            // When the API tree becomes visible, ensure the root node is selected and in view
+            if (showApi && ApiTree.Nodes.Count > 0 && ApiTree.SelectedNode == null)
+            {
+                ApiTree.SelectedNode = ApiTree.Nodes[0];
+                ApiTree.Nodes[0].EnsureVisible();
+            }
+
             // Update View menu items
             showCallTreeMenuItem.Checked = showCall;
             showApiTreeMenuItem.Checked = showApi;
@@ -1561,6 +1590,7 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Visible = true;
             FileLoadProgress.Value = 0;
             StatusFileName.Text = Resources.STATUS_LOADING;
+            _overlay.Show(Resources.STATUS_LOADING);
 
             try
             {
@@ -1572,6 +1602,7 @@ namespace Cad3PLogBrowser
                     {
                         FileLoadProgress.Value = progress;
                         StatusFileName.Text = message;
+                        _overlay.SetProgress(progress, message);
                     }));
                 });
 
@@ -1594,6 +1625,7 @@ namespace Cad3PLogBrowser
                 PopulateVirtualListView(_allLines);
                 FileLoadProgress.Value = 33;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
+                _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
                 await Task.Delay(10);
 
                 // Parse and build all tree data in parallel on background threads
@@ -1607,6 +1639,7 @@ namespace Cad3PLogBrowser
 
                 FileLoadProgress.Value = 66;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
+                _overlay.SetProgress(66, Resources.STATUS_BUILDING_CALL_TREE);
 
                 // Populate UI with the pre-built data (must be on UI thread)
                 PopulateTreesFromData(entries, apiNodesTask.Result, callTree, perfStats, graph);
@@ -1627,6 +1660,7 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Visible = false;
                 FileLoadProgress.Value = 0;
                 _isLoading = false;
+                _overlay.Hide();
             }
         }
 
@@ -1810,12 +1844,12 @@ namespace Cad3PLogBrowser
             tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
-            showTab1MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab2MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab3MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showTab4MenuItem.Image         = IconGenerator.CreateTabIcon(msz);
-            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabIcon(msz);
-            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabIcon(msz);
+            showTab1MenuItem.Image         = IconGenerator.CreateTabLogIcon(msz);
+            showTab2MenuItem.Image         = IconGenerator.CreateTabPerformanceIcon(msz);
+            showTab3MenuItem.Image         = IconGenerator.CreateTabLogDetailsIcon(msz);
+            showTab4MenuItem.Image         = IconGenerator.CreateTabCallGraphIcon(msz);
+            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
+            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabTimelineIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
             settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
@@ -1847,6 +1881,58 @@ namespace Cad3PLogBrowser
             treeContextExportBranchCsvMenuItem.Image = IconGenerator.CreateExportCsvIcon(msz);
             treeContextSearchInGrokMenuItem.Image   = IconGenerator.CreateGrokIcon(msz);
             treeContextShowInOtherTreeMenuItem.Image = IconGenerator.CreateShowInTreeIcon(msz);
+        }
+
+        // ── Tab Icons ─────────────────────────────────────────────────────────
+        /// <summary>
+        /// Assigns a distinct Segoe MDL2 icon to every tab in mainTabControl.
+        /// Creates a 16×16 ImageList owned by the form (disposed with the form).
+        /// Safe to call multiple times — replaces the previous ImageList.
+        /// </summary>
+        private void ApplyTabIcons()
+        {
+            var sz = IconGenerator.IconSize.Small;
+
+            // Build a fresh ImageList every call (handles theme changes)
+            var il = new ImageList
+            {
+                ColorDepth = ColorDepth.Depth32Bit,
+                ImageSize  = new Size(16, 16),
+                TransparentColor = Color.Transparent
+            };
+
+            // Index 0 – Log
+            il.Images.Add("log",        IconGenerator.CreateTabLogIcon(sz));
+            // Index 1 – Performance
+            il.Images.Add("perf",       IconGenerator.CreateTabPerformanceIcon(sz));
+            // Index 2 – Log Details
+            il.Images.Add("details",    IconGenerator.CreateTabLogDetailsIcon(sz));
+            // Index 3 – Call Graph
+            il.Images.Add("callgraph",  IconGenerator.CreateTabCallGraphIcon(sz));
+            // Index 4 – Flame Graph
+            il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
+            // Index 5 – Timeline
+            il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
+            // Index 6 – AI Assistant
+            il.Images.Add("ai",         IconGenerator.CreateTabAiIcon(sz));
+            // Index 7 – generic fallback (Dependency / future tabs)
+            il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
+
+            // Dispose the old ImageList before replacing it
+            var oldIl = mainTabControl.ImageList;
+            mainTabControl.ImageList = il;
+            oldIl?.Dispose();
+
+            // Assign by key so order-independence is guaranteed
+            logTab.ImageKey        = "log";
+            performanceTab.ImageKey = "perf";
+            logDetailTab.ImageKey  = "details";
+            callGraphTab.ImageKey  = "callgraph";
+            flameGraphTab.ImageKey = "flame";
+            timelineTab.ImageKey   = "timeline";
+
+            // Dynamic tabs added at runtime
+            if (_aiTab != null) _aiTab.ImageKey = "ai";
         }
 
         private static Color GetLineColour(string line)
@@ -1979,7 +2065,9 @@ namespace Cad3PLogBrowser
                         {
                             FileLoadProgress.Style = ProgressBarStyle.Blocks;
                             FileLoadProgress.Value = progress;
-                            StatusFileName.Text = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
+                            var msg = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
+                            StatusFileName.Text = msg;
+                            _overlay.SetProgress(progress, msg);
                         }));
                     });
                 });
@@ -2400,8 +2488,13 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Visible = true;
             StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
-            // Disable menu items during operation
+            // Disable menu items during operation (must be before DoEvents to block re-entrancy)
             SetOperationInProgress(true);
+
+            // Show centred overlay and flush all pending paint messages so the overlay
+            // is physically visible on screen before any synchronous work begins.
+            _overlay.Show(operationName);
+            Application.DoEvents();
         }
 
         private void EndOperation()
@@ -2410,6 +2503,9 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Style = ProgressBarStyle.Blocks;
             StatusFileName.Text = string.Empty;
             _currentOperation = string.Empty;
+
+            // Hide centred overlay
+            _overlay.Hide();
 
             // Re-enable menu items
             SetOperationInProgress(false);
@@ -2511,41 +2607,35 @@ namespace Cad3PLogBrowser
         }
 
         // ── C1: Expand / Collapse all ─────────────────────────────────────────
-        public async void ExpandAllTrees()
+        public void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
 
             try
             {
-                // Collect all nodes on the UI thread first (TreeNodeCollection is not thread-safe)
-                List<TreeNode> callNodes = null;
-                List<TreeNode> apiNodes  = null;
-                this.Invoke((Action)(() =>
-                {
-                    callNodes = CollectAllNodes(CallTree.Nodes);
-                    apiNodes  = CollectAllNodes(ApiTree.Nodes);
-                }));
-
                 var token = _cancellationTokenSource.Token;
+                int count = 0;
 
-                // Expand all in a single UI-thread batch per tree
-                this.Invoke((Action)(() =>
+                CallTree.BeginUpdate();
+                foreach (var n in CollectAllNodes(CallTree.Nodes))
                 {
                     token.ThrowIfCancellationRequested();
-                    CallTree.BeginUpdate();
-                    foreach (var n in callNodes) n.Expand();
-                    CallTree.EndUpdate();
-                }));
+                    n.Expand();
+                    if (++count % 100 == 0) Application.DoEvents();
+                }
+                CallTree.EndUpdate();
 
                 token.ThrowIfCancellationRequested();
 
-                this.Invoke((Action)(() =>
+                count = 0;
+                ApiTree.BeginUpdate();
+                foreach (var n in CollectAllNodes(ApiTree.Nodes))
                 {
                     token.ThrowIfCancellationRequested();
-                    ApiTree.BeginUpdate();
-                    foreach (var n in apiNodes) n.Expand();
-                    ApiTree.EndUpdate();
-                }));
+                    n.Expand();
+                    if (++count % 100 == 0) Application.DoEvents();
+                }
+                ApiTree.EndUpdate();
             }
             catch (OperationCanceledException)
             {
@@ -2574,36 +2664,27 @@ namespace Cad3PLogBrowser
             }
         }
 
-        public async void CollapseAllTrees()
+        public void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
 
             try
             {
-                await Task.Run(() =>
-                {
-                    var token = _cancellationTokenSource.Token;
+                var token = _cancellationTokenSource.Token;
 
-                    this.Invoke((Action)(() =>
-                    {
-                        CallTree.BeginUpdate();
-                        CallTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in CallTree.Nodes) n.Expand();
-                        CallTree.EndUpdate();
-                    }));
+                CallTree.BeginUpdate();
+                CallTree.CollapseAll();
+                foreach (TreeNode n in CallTree.Nodes) n.Expand();
+                CallTree.EndUpdate();
+                Application.DoEvents();
 
-                    token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
-                    this.Invoke((Action)(() =>
-                    {
-                        ApiTree.BeginUpdate();
-                        ApiTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in ApiTree.Nodes) n.Expand();
-                        ApiTree.EndUpdate();
-                    }));
-                });
+                ApiTree.BeginUpdate();
+                ApiTree.CollapseAll();
+                foreach (TreeNode n in ApiTree.Nodes) n.Expand();
+                ApiTree.EndUpdate();
+                Application.DoEvents();
             }
             catch (OperationCanceledException)
             {
@@ -2757,8 +2838,10 @@ namespace Cad3PLogBrowser
                             {
                                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
                                 FileLoadProgress.Value = progress;
-                                StatusFileName.Text = string.Format(Resources.STATUS_FILTERING_PROGRESS,
+                                var msg = string.Format(Resources.STATUS_FILTERING_PROGRESS,
                                     progress, i, allLinesCopy.Count);
+                                StatusFileName.Text = msg;
+                                _overlay.SetProgress(progress, msg);
                             }));
                         }
 
@@ -2893,7 +2976,7 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
-                    ApplyTheme();
+                    ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
                 }
@@ -3197,10 +3280,12 @@ namespace Cad3PLogBrowser
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
-            logTab.Text = Resources.TAB_LOG;
-            performanceTab.Text = Resources.TAB_PERFORMANCE;
-            logDetailTab.Text = Resources.TAB_LOG_DETAILS;
-            callGraphTab.Text = Resources.TAB_CALL_GRAPH;
+            logTab.Text        = Resources.TAB_LOG;
+            performanceTab.Text  = Resources.TAB_PERFORMANCE;
+            logDetailTab.Text    = Resources.TAB_LOG_DETAILS;
+            callGraphTab.Text    = Resources.TAB_CALL_GRAPH;
+
+            ApplyTabIcons();
 
             // CRITICAL FIX: Restore splitter distance AFTER all window layout is complete
             // Use BeginInvoke to run after the message queue is processed
@@ -4931,14 +5016,16 @@ namespace Cad3PLogBrowser
             if (mainTabControl != null)
             {
                 mainTabControl.TabPages.Add(_aiTab);
+                ApplyTabIcons();   // re-run so the new tab gets its icon
             }
 
             // Create View menu item
             var showAiMenuItem = new ToolStripMenuItem(Resources.MENU_SHOW_AI_ASSISTANT)
             {
-                Name = "showAiMenuItem",
+                Name        = "showAiMenuItem",
                 CheckOnClick = true,
-                Checked = true
+                Checked      = true,
+                Image        = IconGenerator.CreateTabAiIcon(IconGenerator.IconSize.Small)
             };
             showAiMenuItem.CheckedChanged += (s, e) =>
             {

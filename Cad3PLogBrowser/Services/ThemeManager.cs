@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -53,6 +53,7 @@ namespace Cad3PLogBrowser.Services
         public static void SetTheme(Theme theme)
         {
             _currentTheme = theme;
+            DisposeTreeGdiObjects(); // invalidate cached brushes/pens so colours rebuild for new theme
         }
 
         // ?? Color Accessors ???????????????????????????????????????????????????
@@ -82,21 +83,41 @@ namespace Cad3PLogBrowser.Services
 
             ApplyThemeToControls(form.Controls);
 
-            // Apply theme to MenuStrip
-            foreach (Control control in form.Controls)
+            // Walk ALL controls recursively to find every MenuStrip / ToolStrip / StatusStrip
+            ApplyThemeToStrips(form.Controls);
+
+            // Apply renderer to every ContextMenuStrip attached to controls on this form
+            ApplyThemeToContextMenus(form);
+        }
+
+        /// <summary>
+        /// Walks every control and applies the dark/light renderer to any ContextMenuStrip
+        /// assigned to a ContextMenuStrip property (ContextMenu is in components, not Controls).
+        /// </summary>
+        private static void ApplyThemeToContextMenus(Form form)
+        {
+            // Collect all ContextMenuStrips via the component container
+            if (form.Container == null) return;
+            foreach (System.ComponentModel.IComponent comp in form.Container.Components)
+            {
+                if (comp is ContextMenuStrip cms)
+                    ApplyThemeToToolStrip(cms);
+            }
+        }
+
+        private static void ApplyThemeToStrips(Control.ControlCollection controls)
+        {
+            foreach (Control control in controls)
             {
                 if (control is MenuStrip menuStrip)
-                {
                     ApplyThemeToMenuStrip(menuStrip);
-                }
-                if (control is ToolStrip toolStrip)
-                {
-                    ApplyThemeToToolStrip(toolStrip);
-                }
-                if (control is StatusStrip statusStrip)
-                {
+                else if (control is StatusStrip statusStrip)
                     ApplyThemeToStatusStrip(statusStrip);
-                }
+                else if (control is ToolStrip toolStrip)
+                    ApplyThemeToToolStrip(toolStrip);
+
+                if (control.Controls.Count > 0)
+                    ApplyThemeToStrips(control.Controls);
             }
         }
 
@@ -143,10 +164,24 @@ namespace Cad3PLogBrowser.Services
                     treeView.BackColor = BackgroundColor;
                     treeView.ForeColor = ForegroundColor;
                     treeView.LineColor = BorderColor;
-                    treeView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
+                    treeView.BorderStyle = _currentTheme == Theme.Dark
+                        ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
 
-                    // Use default drawing - Windows handles +/- glyphs correctly
-                    treeView.DrawMode = TreeViewDrawMode.Normal;
+                    if (_currentTheme == Theme.Dark)
+                    {
+                        // OwnerDrawText: Windows draws the full tree structure (indent lines,
+                        // +/- glyphs, icons) using TreeView.BackColor (already dark).
+                        // We only override the text-label area for selection + text colour.
+                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawText;
+                        treeView.DrawNode -= TreeView_DrawNode;
+                        treeView.DrawNode += TreeView_DrawNode;
+                    }
+                    else
+                    {
+                        // Back to Normal so light mode uses the built-in Windows rendering.
+                        treeView.DrawMode = TreeViewDrawMode.Normal;
+                        treeView.DrawNode -= TreeView_DrawNode;
+                    }
                 }
                 else if (control is TabControl tabControl)
                 {
@@ -154,9 +189,21 @@ namespace Cad3PLogBrowser.Services
                     if (_currentTheme == Theme.Dark)
                     {
                         tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
-                        // Remove any existing handler to avoid duplicates
-                        tabControl.DrawItem -= TabControl_DrawItem;
-                        tabControl.DrawItem += TabControl_DrawItem;
+                            // Remove any existing handler to avoid duplicates
+                            tabControl.DrawItem -= TabControl_DrawItem;
+                            tabControl.DrawItem += TabControl_DrawItem;
+                            // OwnerDrawFixed forces all tabs to ItemSize.Width.
+                            // Measure the widest tab text + 16px icon + padding so nothing gets clipped.
+                            int maxW = 80; // minimum width
+                            using (var g = tabControl.CreateGraphics())
+                            {
+                                foreach (TabPage tp in tabControl.TabPages)
+                                {
+                                    int w = (int)g.MeasureString(tp.Text, tabControl.Font).Width + 16 + 16; // icon + gaps
+                                    if (w > maxW) maxW = w;
+                                }
+                            }
+                            tabControl.ItemSize = new Size(maxW, 26);
                     }
                     else
                     {
@@ -451,15 +498,101 @@ namespace Cad3PLogBrowser.Services
                 g.DrawRectangle(borderPen, tabBounds.X, tabBounds.Y, tabBounds.Width - 1, tabBounds.Height - 1);
             }
 
-            // Draw tab text
-            StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;
-            stringFormat.LineAlignment = StringAlignment.Center;
-
+            // Center the icon + text block as a unit within the tab
             using (SolidBrush textBrush = new SolidBrush(tabForeColor))
             {
-                g.DrawString(tabPage.Text, tabControl.Font, textBrush, tabBounds, stringFormat);
+                const int iconSize = 16;
+                const int iconGap  = 4;  // pixels between icon and text
+
+                bool hasIcon = tabControl.ImageList != null
+                    && !string.IsNullOrEmpty(tabPage.ImageKey)
+                    && tabControl.ImageList.Images.ContainsKey(tabPage.ImageKey);
+
+                SizeF textSize = g.MeasureString(tabPage.Text, tabControl.Font);
+
+                // Total content width: icon (optional) + gap + text
+                float contentW = hasIcon ? iconSize + iconGap + textSize.Width : textSize.Width;
+                float startX   = tabBounds.X + (tabBounds.Width - contentW) / 2f;
+                float midY     = tabBounds.Y + tabBounds.Height / 2f;
+
+                if (hasIcon)
+                {
+                    Image img = tabControl.ImageList.Images[tabPage.ImageKey];
+                    g.DrawImage(img,
+                        (int)startX,
+                        (int)(midY - iconSize / 2f),
+                        iconSize, iconSize);
+                    startX += iconSize + iconGap;
+                }
+
+                var sf = new StringFormat
+                {
+                    Alignment     = StringAlignment.Near,
+                    LineAlignment = StringAlignment.Center,
+                    FormatFlags   = StringFormatFlags.NoWrap
+                };
+                g.DrawString(tabPage.Text, tabControl.Font, textBrush,
+                    new RectangleF(startX, tabBounds.Y, textSize.Width + 2, tabBounds.Height), sf);
             }
+        }
+
+        // ?? Dark-mode TreeView owner-draw ?????????????????????????????????????
+        // ?? Cached GDI objects for dark-mode TreeView drawing ?????????????????
+        // Allocated once, reused on every DrawNode call, disposed on theme change.
+        private static SolidBrush _treeBackBrush;
+        private static SolidBrush _treeSelBrush;
+        private static SolidBrush _treeHotBrush;
+        private static SolidBrush _treeTextBrush;
+        private static SolidBrush _treeSelTextBrush;
+        private static Pen        _treeGlyphPen;
+        private static StringFormat _treeSf;
+
+        private static void EnsureTreeGdiObjects()
+        {
+            if (_treeBackBrush != null) return;   // already built
+            _treeBackBrush    = new SolidBrush(DarkBackground);
+            _treeSelBrush     = new SolidBrush(Color.FromArgb(0, 122, 204));
+            _treeHotBrush     = new SolidBrush(Color.FromArgb(62, 62, 64));
+            _treeTextBrush    = new SolidBrush(DarkForeground);
+            _treeSelTextBrush = new SolidBrush(Color.White);
+            _treeGlyphPen     = new Pen(Color.FromArgb(160, 160, 160));
+            _treeSf = new StringFormat
+            {
+                Alignment     = StringAlignment.Near,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
+            };
+        }
+
+        private static void DisposeTreeGdiObjects()
+        {
+            _treeBackBrush?.Dispose();    _treeBackBrush    = null;
+            _treeSelBrush?.Dispose();     _treeSelBrush     = null;
+            _treeHotBrush?.Dispose();     _treeHotBrush     = null;
+            _treeTextBrush?.Dispose();    _treeTextBrush    = null;
+            _treeSelTextBrush?.Dispose(); _treeSelTextBrush = null;
+            _treeGlyphPen?.Dispose();     _treeGlyphPen     = null;
+            _treeSf?.Dispose();           _treeSf           = null;
+        }
+
+        // In OwnerDrawText mode Windows paints tree structure (indent, lines, glyphs, icons)
+        // using TreeView.BackColor (already DarkBackground). We only override the label area.
+        private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
+        {
+            var tv = (TreeView)sender;
+            if (e.Bounds.Width <= 0 || e.Bounds.Height <= 0) return;
+            EnsureTreeGdiObjects();
+            bool selected = (e.State & TreeNodeStates.Selected) != 0 || (e.State & TreeNodeStates.Focused) != 0;
+            bool hot = (e.State & TreeNodeStates.Hot) != 0;
+            SolidBrush bg = selected ? _treeSelBrush : hot ? _treeHotBrush : _treeBackBrush;
+            e.Graphics.FillRectangle(bg, e.Bounds);
+            bool hasNodeColor = e.Node.ForeColor != Color.Empty && e.Node.ForeColor != tv.ForeColor;
+            SolidBrush textBrush; SolidBrush tempBrush = null;
+            if (selected) textBrush = _treeSelTextBrush;
+            else if (hasNodeColor) textBrush = tempBrush = new SolidBrush(e.Node.ForeColor);
+            else textBrush = _treeTextBrush;
+            e.Graphics.DrawString(e.Node.Text, tv.Font, textBrush, e.Bounds, _treeSf);
+            tempBrush?.Dispose();
         }
 
         private class DarkColorTable : ProfessionalColorTable
