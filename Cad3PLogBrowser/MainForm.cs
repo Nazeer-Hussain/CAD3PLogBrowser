@@ -190,9 +190,8 @@ namespace Cad3PLogBrowser
 
         private void ThemeToggleButton_Click(object sender, EventArgs e)
         {
-            // Toggle theme
             _appSettings.Theme = _appSettings.Theme == "Dark" ? "Light" : "Dark";
-            ApplyTheme();
+            ApplyThemeWithOverlay();
             UpdateThemeButtonIcon();
         }
 
@@ -419,6 +418,22 @@ namespace Cad3PLogBrowser
         {
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 LoadFileAsync(filePath);
+        }
+
+        private void ApplyThemeWithOverlay()
+        {
+            // Theme switching walks every control and redraws trees — show the
+            // overlay so the user sees something is happening during the wait.
+            string opName = _appSettings.Theme == "Dark" ? "Switching to Dark Theme…" : "Switching to Light Theme…";
+            StartOperation(opName);   // shows overlay + DoEvents so it paints
+            try
+            {
+                ApplyTheme();
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         public void ApplyTheme()
@@ -2961,7 +2976,7 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
-                    ApplyTheme();
+                    ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
                 }
