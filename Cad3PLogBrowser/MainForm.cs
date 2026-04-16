@@ -1879,7 +1879,9 @@ namespace Cad3PLogBrowser
             il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
             // Index 5 – Timeline
             il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
-            // Index 6 – generic fallback (AI / Dependency / future tabs)
+            // Index 6 – AI Assistant
+            il.Images.Add("ai",         IconGenerator.CreateTabAiIcon(sz));
+            // Index 7 – generic fallback (Dependency / future tabs)
             il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
 
             // Dispose the old ImageList before replacing it
@@ -1895,8 +1897,8 @@ namespace Cad3PLogBrowser
             flameGraphTab.ImageKey = "flame";
             timelineTab.ImageKey   = "timeline";
 
-            // Dynamic tabs added at runtime (AI / Dependency) — assign generic icon when they exist
-            if (_aiTab != null) _aiTab.ImageKey = "generic";
+            // Dynamic tabs added at runtime
+            if (_aiTab != null) _aiTab.ImageKey = "ai";
         }
 
         private static Color GetLineColour(string line)

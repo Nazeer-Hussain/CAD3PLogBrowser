@@ -64,6 +64,7 @@ namespace Cad3PLogBrowser.Services
         private const char IconTabCallGraph    = '\uE8EE'; // Relationship          ? Call Graph
         private const char IconTabFlameGraph   = '\uE792'; // Burn / flame          ? Flame Graph
         private const char IconTabTimeline     = '\uE81C'; // Timeline / clock      ? Timeline
+        private const char IconTabAI           = '\uE8BD'; // Chat / message        ? AI Assistant
         // Navigation buttons
         private const char IconPrevError       = '\uE892'; // ChevronLeft
         private const char IconNextError       = '\uE893'; // ChevronRight
@@ -250,6 +251,7 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateTabCallGraphIcon(IconSize sz)   => Render(IconTabCallGraph,   sz, AccentBlue);
         public static Bitmap CreateTabFlameGraphIcon(IconSize sz)  => Render(IconTabFlameGraph,  sz, AccentRed);
         public static Bitmap CreateTabTimelineIcon(IconSize sz)    => Render(IconTabTimeline,    sz, AccentAmber);
+        public static Bitmap CreateTabAiIcon(IconSize sz)          => Render(IconTabAI,          sz, AccentTeal);
 
         // ??????????????????????????????????????????????????????????????????????
         // NAVIGATION BUTTONS (prev/next error/warning)

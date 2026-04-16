@@ -174,9 +174,21 @@ namespace Cad3PLogBrowser.Services
                     if (_currentTheme == Theme.Dark)
                     {
                         tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
-                        // Remove any existing handler to avoid duplicates
-                        tabControl.DrawItem -= TabControl_DrawItem;
-                        tabControl.DrawItem += TabControl_DrawItem;
+                            // Remove any existing handler to avoid duplicates
+                            tabControl.DrawItem -= TabControl_DrawItem;
+                            tabControl.DrawItem += TabControl_DrawItem;
+                            // OwnerDrawFixed forces all tabs to ItemSize.Width.
+                            // Measure the widest tab text + 16px icon + padding so nothing gets clipped.
+                            int maxW = 80; // minimum width
+                            using (var g = tabControl.CreateGraphics())
+                            {
+                                foreach (TabPage tp in tabControl.TabPages)
+                                {
+                                    int w = (int)g.MeasureString(tp.Text, tabControl.Font).Width + 16 + 16; // icon + gaps
+                                    if (w > maxW) maxW = w;
+                                }
+                            }
+                            tabControl.ItemSize = new Size(maxW, 26);
                     }
                     else
                     {
@@ -471,29 +483,41 @@ namespace Cad3PLogBrowser.Services
                 g.DrawRectangle(borderPen, tabBounds.X, tabBounds.Y, tabBounds.Width - 1, tabBounds.Height - 1);
             }
 
-            // Draw tab text (and icon if the tab has one)
-            StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;
-            stringFormat.LineAlignment = StringAlignment.Center;
-
-            // Draw icon if the TabControl has an ImageList and the tab has an image key
-            Rectangle textRect = tabBounds;
-            if (tabControl.ImageList != null && !string.IsNullOrEmpty(tabPage.ImageKey)
-                && tabControl.ImageList.Images.ContainsKey(tabPage.ImageKey))
-            {
-                Image img = tabControl.ImageList.Images[tabPage.ImageKey];
-                int imgSize = 16;
-                int imgX = tabBounds.X + 4;
-                int imgY = tabBounds.Y + (tabBounds.Height - imgSize) / 2;
-                g.DrawImage(img, imgX, imgY, imgSize, imgSize);
-                // Shrink text rect so it sits to the right of the icon
-                textRect = new Rectangle(tabBounds.X + imgSize + 6, tabBounds.Y,
-                                         tabBounds.Width - imgSize - 10, tabBounds.Height);
-            }
-
+            // Center the icon + text block as a unit within the tab
             using (SolidBrush textBrush = new SolidBrush(tabForeColor))
             {
-                g.DrawString(tabPage.Text, tabControl.Font, textBrush, textRect, stringFormat);
+                const int iconSize = 16;
+                const int iconGap  = 4;  // pixels between icon and text
+
+                bool hasIcon = tabControl.ImageList != null
+                    && !string.IsNullOrEmpty(tabPage.ImageKey)
+                    && tabControl.ImageList.Images.ContainsKey(tabPage.ImageKey);
+
+                SizeF textSize = g.MeasureString(tabPage.Text, tabControl.Font);
+
+                // Total content width: icon (optional) + gap + text
+                float contentW = hasIcon ? iconSize + iconGap + textSize.Width : textSize.Width;
+                float startX   = tabBounds.X + (tabBounds.Width - contentW) / 2f;
+                float midY     = tabBounds.Y + tabBounds.Height / 2f;
+
+                if (hasIcon)
+                {
+                    Image img = tabControl.ImageList.Images[tabPage.ImageKey];
+                    g.DrawImage(img,
+                        (int)startX,
+                        (int)(midY - iconSize / 2f),
+                        iconSize, iconSize);
+                    startX += iconSize + iconGap;
+                }
+
+                var sf = new StringFormat
+                {
+                    Alignment     = StringAlignment.Near,
+                    LineAlignment = StringAlignment.Center,
+                    FormatFlags   = StringFormatFlags.NoWrap
+                };
+                g.DrawString(tabPage.Text, tabControl.Font, textBrush,
+                    new RectangleF(startX, tabBounds.Y, textSize.Width + 2, tabBounds.Height), sf);
             }
         }
 
