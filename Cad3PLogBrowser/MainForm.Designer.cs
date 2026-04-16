@@ -718,7 +718,7 @@ namespace Cad3PLogBrowser
             // FileStatus
             // 
             this.FileStatus.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.FileStatus.Image = global::Cad3PLogBrowser.Properties.Resources.red_ball;
+            this.FileStatus.Image = null;
             this.FileStatus.Name = "FileStatus";
             this.FileStatus.Size = new System.Drawing.Size(16, 17);
             // 
