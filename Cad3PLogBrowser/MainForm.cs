@@ -1304,6 +1304,13 @@ namespace Cad3PLogBrowser
             CallTree.Visible = showCall;
             ApiTree.Visible  = showApi;
 
+            // When the API tree becomes visible, ensure the root node is selected and in view
+            if (showApi && ApiTree.Nodes.Count > 0 && ApiTree.SelectedNode == null)
+            {
+                ApiTree.SelectedNode = ApiTree.Nodes[0];
+                ApiTree.Nodes[0].EnsureVisible();
+            }
+
             // Update View menu items
             showCallTreeMenuItem.Checked = showCall;
             showApiTreeMenuItem.Checked = showApi;
@@ -4991,9 +4998,10 @@ namespace Cad3PLogBrowser
             // Create View menu item
             var showAiMenuItem = new ToolStripMenuItem(Resources.MENU_SHOW_AI_ASSISTANT)
             {
-                Name = "showAiMenuItem",
+                Name        = "showAiMenuItem",
                 CheckOnClick = true,
-                Checked = true
+                Checked      = true,
+                Image        = IconGenerator.CreateTabAiIcon(IconGenerator.IconSize.Small)
             };
             showAiMenuItem.CheckedChanged += (s, e) =>
             {
