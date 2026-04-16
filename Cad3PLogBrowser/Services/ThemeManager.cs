@@ -167,48 +167,43 @@ namespace Cad3PLogBrowser.Services
                     treeView.BorderStyle = _currentTheme == Theme.Dark
                         ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
 
-                    if (_currentTheme == Theme.Dark)
+                    var wantedMode = _currentTheme == Theme.Dark
+                        ? TreeViewDrawMode.OwnerDrawText
+                        : TreeViewDrawMode.Normal;
+
+                    // Only re-subscribe / change DrawMode when actually switching modes —
+                    // avoids the double-unsubscribe/subscribe cost on every theme refresh.
+                    if (treeView.DrawMode != wantedMode)
                     {
-                        // OwnerDrawText: Windows draws the full tree structure (indent lines,
-                        // +/- glyphs, icons) using TreeView.BackColor (already dark).
-                        // We only override the text-label area for selection + text colour.
-                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawText;
                         treeView.DrawNode -= TreeView_DrawNode;
-                        treeView.DrawNode += TreeView_DrawNode;
-                    }
-                    else
-                    {
-                        // Back to Normal so light mode uses the built-in Windows rendering.
-                        treeView.DrawMode = TreeViewDrawMode.Normal;
-                        treeView.DrawNode -= TreeView_DrawNode;
+                        if (wantedMode == TreeViewDrawMode.OwnerDrawText)
+                            treeView.DrawNode += TreeView_DrawNode;
+                        treeView.DrawMode = wantedMode;
                     }
                 }
                 else if (control is TabControl tabControl)
                 {
-                    // For dark theme, use DrawMode to custom draw tabs
-                    if (_currentTheme == Theme.Dark)
+                    var wantedTabMode = _currentTheme == Theme.Dark
+                        ? TabDrawMode.OwnerDrawFixed : TabDrawMode.Normal;
+
+                    if (tabControl.DrawMode != wantedTabMode)
                     {
-                        tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
-                            // Remove any existing handler to avoid duplicates
-                            tabControl.DrawItem -= TabControl_DrawItem;
+                        tabControl.DrawItem -= TabControl_DrawItem;
+                        if (wantedTabMode == TabDrawMode.OwnerDrawFixed)
+                        {
                             tabControl.DrawItem += TabControl_DrawItem;
-                            // OwnerDrawFixed forces all tabs to ItemSize.Width.
-                            // Measure the widest tab text + 16px icon + padding so nothing gets clipped.
-                            int maxW = 80; // minimum width
+                            int maxW = 80;
                             using (var g = tabControl.CreateGraphics())
                             {
                                 foreach (TabPage tp in tabControl.TabPages)
                                 {
-                                    int w = (int)g.MeasureString(tp.Text, tabControl.Font).Width + 16 + 16; // icon + gaps
+                                    int w = (int)g.MeasureString(tp.Text, tabControl.Font).Width + 16 + 16;
                                     if (w > maxW) maxW = w;
                                 }
                             }
                             tabControl.ItemSize = new Size(maxW, 26);
-                    }
-                    else
-                    {
-                        tabControl.DrawMode = TabDrawMode.Normal;
-                        tabControl.DrawItem -= TabControl_DrawItem;
+                        }
+                        tabControl.DrawMode = wantedTabMode;
                     }
 
                     // Ensure single-row scrollable tabs regardless of theme or DrawMode

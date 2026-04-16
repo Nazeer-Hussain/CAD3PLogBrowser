@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -42,8 +42,8 @@ namespace Cad3PLogBrowser.Services
         private const char IconFindAll         = '\uE773'; // SearchAndApps
         private const char IconFilter          = '\uE71C'; // Filter
         private const char IconClearFilter     = '\uE77A'; // ClearFilter
-        private const char IconExpand          = '\uE74B'; // Add
-        private const char IconCollapse        = '\uE74D'; // Remove
+        private const char IconExpand          = 'î¥ˆ'; // ExpandAll
+        private const char IconCollapse        = 'î¥‰'; // CollapseAll
         private const char IconJumpMatch       = '\uE7C5'; // GoToStart
         private const char IconJumpLine        = '\uE8AB'; // GoToLine
         private const char IconBookmark        = '\uE8D3'; // Bookmark
@@ -98,7 +98,7 @@ namespace Cad3PLogBrowser.Services
         // ?? Colour helpers ????????????????????????????????????????????????????
         private static bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
 
-        // Normal toolbar glyph colour — matches VS toolbar conventions
+        // Normal toolbar glyph colour â€” matches VS toolbar conventions
         private static Color GlyphColor    => Dark ? Color.FromArgb(208, 212, 220) : Color.FromArgb(50,  60,  80);
         private static Color AccentBlue    => Color.FromArgb(0,   122, 204);
         private static Color AccentGreen   => Color.FromArgb(16,  137,  62);
@@ -136,7 +136,7 @@ namespace Cad3PLogBrowser.Services
         /// <param name="sz">Target icon size.</param>
         /// <param name="color">Glyph fill colour.</param>
         /// <param name="glyphScale">
-        /// Fraction of the bitmap the glyph should fill (0.0–1.0).
+        /// Fraction of the bitmap the glyph should fill (0.0â€“1.0).
         /// 0.72 gives comfortable padding like VS toolbar icons.
         /// </param>
         private static Bitmap Render(char glyph, IconSize sz, Color color, float glyphScale = 0.72f)
@@ -244,7 +244,7 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateToolbarIcon(IconSize sz)   => Render(IconToolbar,  sz, GlyphColor);
         public static Bitmap CreateTabIcon(IconSize sz)       => Render(IconTab,      sz, GlyphColor);
 
-        // Per-tab icons — each tab gets a distinct, semantically matching glyph
+        // Per-tab icons â€” each tab gets a distinct, semantically matching glyph
         public static Bitmap CreateTabLogIcon(IconSize sz)         => Render(IconTabLog,         sz, AccentBlue);
         public static Bitmap CreateTabPerformanceIcon(IconSize sz) => Render(IconTabPerformance, sz, AccentGreen);
         public static Bitmap CreateTabLogDetailsIcon(IconSize sz)  => Render(IconTabLogDetails,  sz, GlyphColor);
@@ -287,36 +287,36 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateWarningIcon(IconSize sz) => Render(IconWarning, sz, AccentAmber);
 
         // ??????????????????????????????????????????????????????????????????????
-        // STATUS BAR INDICATOR ICONS  — coloured circle + white glyph inside
+        // STATUS BAR INDICATOR ICONS  â€” coloured circle + white glyph inside
         // ??????????????????????????????????????????????????????????????????????
 
-        /// <summary>Green — file loaded successfully.</summary>
+        /// <summary>Green â€” file loaded successfully.</summary>
         public static Bitmap CreateStatusOkIcon(IconSize sz)      => RenderStatus(IconStatusOk,   sz, StatusGreen);
 
-        /// <summary>Amber — file loading / processing.</summary>
+        /// <summary>Amber â€” file loading / processing.</summary>
         public static Bitmap CreateStatusLoadingIcon(IconSize sz)  => RenderStatus(IconStatusLoad, sz, StatusAmber);
 
-        /// <summary>Red — error / no file loaded.</summary>
+        /// <summary>Red â€” error / no file loaded.</summary>
         public static Bitmap CreateStatusErrorIcon(IconSize sz)    => RenderStatus(IconStatusErr,  sz, StatusRed);
 
         // ??????????????????????????????????????????????????????????????????????
-        // TREE-NODE ICONS  — matched / unmatched API pairs
+        // TREE-NODE ICONS  â€” matched / unmatched API pairs
         // ??????????????????????????????????????????????????????????????????????
 
-        /// <summary>Small teal circle with tick — matched ENTER/EXIT pair.</summary>
+        /// <summary>Small teal circle with tick â€” matched ENTER/EXIT pair.</summary>
         public static Bitmap CreateCheckIcon(IconSize sz)  => RenderStatus(IconCheck, sz, AccentTeal);
 
-        /// <summary>Small red circle with X — unmatched API call.</summary>
+        /// <summary>Small red circle with X â€” unmatched API call.</summary>
         public static Bitmap CreateCrossIcon(IconSize sz)  => RenderStatus(IconCross, sz, AccentRed);
 
         // ??????????????????????????????????????????????????????????????????????
         // THEME TOGGLE ICONS
         // ??????????????????????????????????????????????????????????????????????
 
-        /// <summary>Sun glyph — click to switch to light theme.</summary>
+        /// <summary>Sun glyph â€” click to switch to light theme.</summary>
         public static Bitmap CreateSunIcon(IconSize sz)  => Render(IconSun,  sz, Color.FromArgb(230, 185, 30), 0.78f);
 
-        /// <summary>Moon glyph — click to switch to dark theme.</summary>
+        /// <summary>Moon glyph â€” click to switch to dark theme.</summary>
         public static Bitmap CreateMoonIcon(IconSize sz) => Render(IconMoon, sz, Color.FromArgb(140, 160, 220), 0.78f);
 
         /// <summary>Generates both theme-toggle icons in one call.</summary>

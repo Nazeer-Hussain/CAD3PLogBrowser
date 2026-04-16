@@ -944,8 +944,8 @@ namespace Cad3PLogBrowser
             {
                 // Check if all occurrences have matching ENTER/EXIT pairs
                 bool allMatched = AreAllApiCallsMatched(node.ApiName);
-                // Feature C3: Show call count in API tree root node
-                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, node.LineNumbers.Count);
+                int totalCalls = node.LineNumbers.Count + node.ExitOnlyLines.Count;
+                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, totalCalls);
                 var apiRoot = new TreeNode(apiLabel)
                 {
                     Tag             = node.FirstLine,
@@ -953,7 +953,7 @@ namespace Cad3PLogBrowser
                     SelectedImageIndex = allMatched ? 0 : 1
                 };
 
-                // Children: "ApiName — Ln N" per invocation
+                // Children: one per ENTER invocation
                 foreach (int lineNo in node.LineNumbers)
                 {
                     var child = new TreeNode(string.Format("{0} — Ln {1}", node.ApiName, lineNo))
@@ -961,6 +961,18 @@ namespace Cad3PLogBrowser
                         Tag                = lineNo,
                         ImageIndex         = allMatched ? 0 : 1,
                         SelectedImageIndex = allMatched ? 0 : 1
+                    };
+                    apiRoot.Nodes.Add(child);
+                }
+
+                // EXIT-only children (orphan EXITs with no matching ENTER)
+                foreach (int lineNo in node.ExitOnlyLines)
+                {
+                    var child = new TreeNode(string.Format("{0} — Ln {1}  [EXIT only]", node.ApiName, lineNo))
+                    {
+                        Tag                = lineNo,
+                        ImageIndex         = 1,    // always unmatched
+                        SelectedImageIndex = 1
                     };
                     apiRoot.Nodes.Add(child);
                 }

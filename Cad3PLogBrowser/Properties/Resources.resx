@@ -358,7 +358,7 @@
     <value>API Tree</value>
   </data>
   <data name="TREE_SORT_LABEL_COUNT" xml:space="preserve">
-    <value> [sorted: count â†“]</value>
+    <value> [sorted: count ↓]</value>
   </data>
   <data name="TREE_SORT_LABEL_LINE" xml:space="preserve">
     <value> [sorted: line]</value>
@@ -389,10 +389,10 @@
     <value>Clear Bookmarks</value>
   </data>
   <data name="DIALOG_TITLE_QUICK_HELP" xml:space="preserve">
-    <value>Quick Help â€” CAD 3P Log Browser</value>
+    <value>Quick Help — CAD 3P Log Browser</value>
   </data>
   <data name="DIALOG_TITLE_KEYBOARD_SHORTCUTS" xml:space="preserve">
-    <value>Keyboard Shortcuts â€” CAD 3P Log Browser</value>
+    <value>Keyboard Shortcuts — CAD 3P Log Browser</value>
   </data>
   <!-- Tab Titles -->
   <data name="TAB_LOG" xml:space="preserve">
@@ -436,7 +436,7 @@
   </data>
   <!-- Performance Summary -->
   <data name="PERF_SUMMARY_ROW_LABEL" xml:space="preserve">
-    <value>â”€â”€ Summary â”€â”€</value>
+    <value>── Summary ──</value>
   </data>
   <data name="PERF_SUMMARY_STATS" xml:space="preserve">
     <value>{0} unique APIs  |  {1} lines</value>
@@ -458,10 +458,10 @@
     <value>ENTER/EXIT matched: {0}</value>
   </data>
   <data name="API_DETAILS_MATCHED_YES" xml:space="preserve">
-    <value>Yes âœ“</value>
+    <value>Yes ✓</value>
   </data>
   <data name="API_DETAILS_MATCHED_NO" xml:space="preserve">
-    <value>No âœ— (missing EXIT)</value>
+    <value>No ✗ (missing EXIT)</value>
   </data>
   <!-- Tree Search -->
   <data name="TREE_SEARCH_PLACEHOLDER" xml:space="preserve">
