@@ -53,6 +53,7 @@ namespace Cad3PLogBrowser.Services
         public static void SetTheme(Theme theme)
         {
             _currentTheme = theme;
+            DisposeTreeGdiObjects(); // invalidate cached brushes/pens so colours rebuild for new theme
         }
 
         // ?? Color Accessors ???????????????????????????????????????????????????
@@ -535,6 +536,44 @@ namespace Cad3PLogBrowser.Services
         }
 
         // ?? Dark-mode TreeView owner-draw ?????????????????????????????????????
+        // ?? Cached GDI objects for dark-mode TreeView drawing ?????????????????
+        // Allocated once, reused on every DrawNode call, disposed on theme change.
+        private static SolidBrush _treeBackBrush;
+        private static SolidBrush _treeSelBrush;
+        private static SolidBrush _treeHotBrush;
+        private static SolidBrush _treeTextBrush;
+        private static SolidBrush _treeSelTextBrush;
+        private static Pen        _treeGlyphPen;
+        private static StringFormat _treeSf;
+
+        private static void EnsureTreeGdiObjects()
+        {
+            if (_treeBackBrush != null) return;   // already built
+            _treeBackBrush    = new SolidBrush(DarkBackground);
+            _treeSelBrush     = new SolidBrush(Color.FromArgb(0, 122, 204));
+            _treeHotBrush     = new SolidBrush(Color.FromArgb(62, 62, 64));
+            _treeTextBrush    = new SolidBrush(DarkForeground);
+            _treeSelTextBrush = new SolidBrush(Color.White);
+            _treeGlyphPen     = new Pen(Color.FromArgb(160, 160, 160));
+            _treeSf = new StringFormat
+            {
+                Alignment     = StringAlignment.Near,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
+            };
+        }
+
+        private static void DisposeTreeGdiObjects()
+        {
+            _treeBackBrush?.Dispose();    _treeBackBrush    = null;
+            _treeSelBrush?.Dispose();     _treeSelBrush     = null;
+            _treeHotBrush?.Dispose();     _treeHotBrush     = null;
+            _treeTextBrush?.Dispose();    _treeTextBrush    = null;
+            _treeSelTextBrush?.Dispose(); _treeSelTextBrush = null;
+            _treeGlyphPen?.Dispose();     _treeGlyphPen     = null;
+            _treeSf?.Dispose();           _treeSf           = null;
+        }
+
         // DrawMode.OwnerDrawAll means we are responsible for EVERY pixel of each
         // node row — background, expand/collapse glyph, icon, and text.
         private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
@@ -546,37 +585,32 @@ namespace Cad3PLogBrowser.Services
 
             if (r.Width <= 0 || r.Height <= 0) return;
 
-            bool selected = (e.State & TreeNodeStates.Selected)  != 0
-                         || (e.State & TreeNodeStates.Focused)    != 0;
-            bool hot      = (e.State & TreeNodeStates.Hot)        != 0;
+            EnsureTreeGdiObjects();
+
+            bool selected = (e.State & TreeNodeStates.Selected) != 0
+                         || (e.State & TreeNodeStates.Focused)  != 0;
+            bool hot      = (e.State & TreeNodeStates.Hot)      != 0;
 
             // ?? Row background ????????????????????????????????????????????????
-            Color rowBack = selected ? Color.FromArgb(0, 122, 204)    // VS blue selection
-                          : hot      ? Color.FromArgb(62, 62, 64)     // subtle hover
-                          :            DarkBackground;
-            using (var br = new SolidBrush(rowBack))
-                g.FillRectangle(br, r);
+            SolidBrush rowBrush = selected ? _treeSelBrush
+                                : hot      ? _treeHotBrush
+                                :            _treeBackBrush;
+            g.FillRectangle(rowBrush, r);
 
             // ?? Expand / collapse glyph ???????????????????????????????????????
-            // Draw a simple +/- box at the standard indent position.
             if (node.Nodes.Count > 0)
             {
                 int glyphSize = 9;
-                int glyphX    = r.X - glyphSize - 2;    // to the left of the node indent
+                int glyphX    = r.X - glyphSize - 2;
                 int glyphY    = r.Y + (r.Height - glyphSize) / 2;
                 Rectangle glyphRect = new Rectangle(glyphX, glyphY, glyphSize, glyphSize);
 
-                using (var pen = new Pen(Color.FromArgb(160, 160, 160)))
-                {
-                    g.DrawRectangle(pen, glyphRect);
-                    // Horizontal bar (always present)
-                    int midY = glyphRect.Y + glyphRect.Height / 2;
-                    int midX = glyphRect.X + glyphRect.Width  / 2;
-                    g.DrawLine(pen, glyphRect.X + 2, midY, glyphRect.Right - 2, midY);
-                    // Vertical bar only when collapsed
-                    if (!node.IsExpanded)
-                        g.DrawLine(pen, midX, glyphRect.Y + 2, midX, glyphRect.Bottom - 2);
-                }
+                g.DrawRectangle(_treeGlyphPen, glyphRect);
+                int midY = glyphRect.Y + glyphRect.Height / 2;
+                int midX = glyphRect.X + glyphRect.Width  / 2;
+                g.DrawLine(_treeGlyphPen, glyphRect.X + 2, midY, glyphRect.Right - 2, midY);
+                if (!node.IsExpanded)
+                    g.DrawLine(_treeGlyphPen, midX, glyphRect.Y + 2, midX, glyphRect.Bottom - 2);
             }
 
             // ?? Node icon (from ImageList) ????????????????????????????????????
@@ -591,20 +625,25 @@ namespace Cad3PLogBrowser.Services
             }
 
             // ?? Node text ?????????????????????????????????????????????????????
-            Color textColor = selected ? Color.White
-                            : node.ForeColor != Color.Empty && node.ForeColor != tv.ForeColor
-                                ? node.ForeColor          // honour per-node colour (e.g. error/warning)
-                                : DarkForeground;
+            // Per-node ForeColor overrides (e.g. error/warning rows) are honoured;
+            // everything else uses the cached brushes.
+            bool hasNodeColor = node.ForeColor != Color.Empty
+                             && node.ForeColor != tv.ForeColor;
 
-            var sf = new System.Drawing.StringFormat
-            {
-                Alignment     = StringAlignment.Near,
-                LineAlignment = StringAlignment.Center,
-                FormatFlags   = StringFormatFlags.NoWrap | StringFormatFlags.NoClip
-            };
-            using (var textBrush = new SolidBrush(textColor))
-                g.DrawString(node.Text, tv.Font, textBrush,
-                    new RectangleF(textX, r.Y, r.Width - (textX - r.X), r.Height), sf);
+            SolidBrush textBrush;
+            SolidBrush tempBrush = null;
+
+            if (selected)
+                textBrush = _treeSelTextBrush;
+            else if (hasNodeColor)
+                textBrush = tempBrush = new SolidBrush(node.ForeColor); // rare path
+            else
+                textBrush = _treeTextBrush;
+
+            g.DrawString(node.Text, tv.Font, textBrush,
+                new RectangleF(textX, r.Y, r.Width - (textX - r.X), r.Height), _treeSf);
+
+            tempBrush?.Dispose(); // only non-null for custom-coloured nodes
         }
 
         private class DarkColorTable : ProfessionalColorTable
