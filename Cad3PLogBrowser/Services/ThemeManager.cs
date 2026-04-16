@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -169,10 +169,11 @@ namespace Cad3PLogBrowser.Services
 
                     if (_currentTheme == Theme.Dark)
                     {
-                        // OwnerDrawAll gives us full control over every node so Windows never
-                        // paints selection/hover in system colours that are unreadable on dark.
-                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawAll;
-                        treeView.DrawNode -= TreeView_DrawNode;  // avoid double-subscribe
+                        // OwnerDrawText: Windows draws the full tree structure (indent lines,
+                        // +/- glyphs, icons) using TreeView.BackColor (already dark).
+                        // We only override the text-label area for selection + text colour.
+                        treeView.DrawMode = TreeViewDrawMode.OwnerDrawText;
+                        treeView.DrawNode -= TreeView_DrawNode;
                         treeView.DrawNode += TreeView_DrawNode;
                     }
                     else
@@ -574,76 +575,24 @@ namespace Cad3PLogBrowser.Services
             _treeSf?.Dispose();           _treeSf           = null;
         }
 
-        // DrawMode.OwnerDrawAll means we are responsible for EVERY pixel of each
-        // node row — background, expand/collapse glyph, icon, and text.
+        // In OwnerDrawText mode Windows paints tree structure (indent, lines, glyphs, icons)
+        // using TreeView.BackColor (already DarkBackground). We only override the label area.
         private static void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
-            TreeView tv   = (TreeView)sender;
-            Graphics g    = e.Graphics;
-            TreeNode node = e.Node;
-            Rectangle r   = e.Bounds;
-
-            if (r.Width <= 0 || r.Height <= 0) return;
-
+            var tv = (TreeView)sender;
+            if (e.Bounds.Width <= 0 || e.Bounds.Height <= 0) return;
             EnsureTreeGdiObjects();
-
-            bool selected = (e.State & TreeNodeStates.Selected) != 0
-                         || (e.State & TreeNodeStates.Focused)  != 0;
-            bool hot      = (e.State & TreeNodeStates.Hot)      != 0;
-
-            // ?? Row background ????????????????????????????????????????????????
-            SolidBrush rowBrush = selected ? _treeSelBrush
-                                : hot      ? _treeHotBrush
-                                :            _treeBackBrush;
-            g.FillRectangle(rowBrush, r);
-
-            // ?? Expand / collapse glyph ???????????????????????????????????????
-            if (node.Nodes.Count > 0)
-            {
-                int glyphSize = 9;
-                int glyphX    = r.X - glyphSize - 2;
-                int glyphY    = r.Y + (r.Height - glyphSize) / 2;
-                Rectangle glyphRect = new Rectangle(glyphX, glyphY, glyphSize, glyphSize);
-
-                g.DrawRectangle(_treeGlyphPen, glyphRect);
-                int midY = glyphRect.Y + glyphRect.Height / 2;
-                int midX = glyphRect.X + glyphRect.Width  / 2;
-                g.DrawLine(_treeGlyphPen, glyphRect.X + 2, midY, glyphRect.Right - 2, midY);
-                if (!node.IsExpanded)
-                    g.DrawLine(_treeGlyphPen, midX, glyphRect.Y + 2, midX, glyphRect.Bottom - 2);
-            }
-
-            // ?? Node icon (from ImageList) ????????????????????????????????????
-            int textX = r.X;
-            if (tv.ImageList != null && node.ImageIndex >= 0
-                && node.ImageIndex < tv.ImageList.Images.Count)
-            {
-                int iconSize = tv.ImageList.ImageSize.Width;
-                int iconY    = r.Y + (r.Height - iconSize) / 2;
-                g.DrawImage(tv.ImageList.Images[node.ImageIndex], textX, iconY, iconSize, iconSize);
-                textX += iconSize + 2;
-            }
-
-            // ?? Node text ?????????????????????????????????????????????????????
-            // Per-node ForeColor overrides (e.g. error/warning rows) are honoured;
-            // everything else uses the cached brushes.
-            bool hasNodeColor = node.ForeColor != Color.Empty
-                             && node.ForeColor != tv.ForeColor;
-
-            SolidBrush textBrush;
-            SolidBrush tempBrush = null;
-
-            if (selected)
-                textBrush = _treeSelTextBrush;
-            else if (hasNodeColor)
-                textBrush = tempBrush = new SolidBrush(node.ForeColor); // rare path
-            else
-                textBrush = _treeTextBrush;
-
-            g.DrawString(node.Text, tv.Font, textBrush,
-                new RectangleF(textX, r.Y, r.Width - (textX - r.X), r.Height), _treeSf);
-
-            tempBrush?.Dispose(); // only non-null for custom-coloured nodes
+            bool selected = (e.State & TreeNodeStates.Selected) != 0 || (e.State & TreeNodeStates.Focused) != 0;
+            bool hot = (e.State & TreeNodeStates.Hot) != 0;
+            SolidBrush bg = selected ? _treeSelBrush : hot ? _treeHotBrush : _treeBackBrush;
+            e.Graphics.FillRectangle(bg, e.Bounds);
+            bool hasNodeColor = e.Node.ForeColor != Color.Empty && e.Node.ForeColor != tv.ForeColor;
+            SolidBrush textBrush; SolidBrush tempBrush = null;
+            if (selected) textBrush = _treeSelTextBrush;
+            else if (hasNodeColor) textBrush = tempBrush = new SolidBrush(e.Node.ForeColor);
+            else textBrush = _treeTextBrush;
+            e.Graphics.DrawString(e.Node.Text, tv.Font, textBrush, e.Bounds, _treeSf);
+            tempBrush?.Dispose();
         }
 
         private class DarkColorTable : ProfessionalColorTable

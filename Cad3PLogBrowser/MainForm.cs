@@ -2594,46 +2594,41 @@ namespace Cad3PLogBrowser
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
 
-            try
+            // BeginInvoke defers work until after the current call returns so the
+            // message pump runs at least once — making the overlay actually visible.
+            BeginInvoke((Action)(() =>
             {
-                // Collect all nodes on the UI thread first (TreeNodeCollection is not thread-safe)
-                List<TreeNode> callNodes = null;
-                List<TreeNode> apiNodes  = null;
-                this.Invoke((Action)(() =>
+                try
                 {
-                    callNodes = CollectAllNodes(CallTree.Nodes);
-                    apiNodes  = CollectAllNodes(ApiTree.Nodes);
-                }));
+                    var token = _cancellationTokenSource.Token;
 
-                var token = _cancellationTokenSource.Token;
-
-                // Expand all in a single UI-thread batch per tree
-                this.Invoke((Action)(() =>
-                {
-                    token.ThrowIfCancellationRequested();
                     CallTree.BeginUpdate();
-                    foreach (var n in callNodes) n.Expand();
+                    foreach (var n in CollectAllNodes(CallTree.Nodes))
+                    {
+                        token.ThrowIfCancellationRequested();
+                        n.Expand();
+                    }
                     CallTree.EndUpdate();
-                }));
 
-                token.ThrowIfCancellationRequested();
-
-                this.Invoke((Action)(() =>
-                {
                     token.ThrowIfCancellationRequested();
+
                     ApiTree.BeginUpdate();
-                    foreach (var n in apiNodes) n.Expand();
+                    foreach (var n in CollectAllNodes(ApiTree.Nodes))
+                    {
+                        token.ThrowIfCancellationRequested();
+                        n.Expand();
+                    }
                     ApiTree.EndUpdate();
-                }));
-            }
-            catch (OperationCanceledException)
-            {
-                StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
-            }
-            finally
-            {
-                EndOperation();
-            }
+                }
+                catch (OperationCanceledException)
+                {
+                    StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
+                }
+                finally
+                {
+                    EndOperation();
+                }
+            }));
         }
 
         private List<TreeNode> CollectAllNodes(TreeNodeCollection nodes)
@@ -2653,45 +2648,37 @@ namespace Cad3PLogBrowser
             }
         }
 
-        public async void CollapseAllTrees()
+        public void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
 
-            try
+            BeginInvoke((Action)(() =>
             {
-                await Task.Run(() =>
+                try
                 {
                     var token = _cancellationTokenSource.Token;
 
-                    this.Invoke((Action)(() =>
-                    {
-                        CallTree.BeginUpdate();
-                        CallTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in CallTree.Nodes) n.Expand();
-                        CallTree.EndUpdate();
-                    }));
+                    CallTree.BeginUpdate();
+                    CallTree.CollapseAll();
+                    foreach (TreeNode n in CallTree.Nodes) n.Expand();
+                    CallTree.EndUpdate();
 
                     token.ThrowIfCancellationRequested();
 
-                    this.Invoke((Action)(() =>
-                    {
-                        ApiTree.BeginUpdate();
-                        ApiTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in ApiTree.Nodes) n.Expand();
-                        ApiTree.EndUpdate();
-                    }));
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
-            }
-            finally
-            {
-                EndOperation();
-            }
+                    ApiTree.BeginUpdate();
+                    ApiTree.CollapseAll();
+                    foreach (TreeNode n in ApiTree.Nodes) n.Expand();
+                    ApiTree.EndUpdate();
+                }
+                catch (OperationCanceledException)
+                {
+                    StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
+                }
+                finally
+                {
+                    EndOperation();
+                }
+            }));
         }
 
         // Feature C1: Menu event handlers
