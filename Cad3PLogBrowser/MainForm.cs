@@ -2473,11 +2473,13 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Visible = true;
             StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
-            // Show centred overlay
-            _overlay.Show(operationName);
-
-            // Disable menu items during operation
+            // Disable menu items during operation (must be before DoEvents to block re-entrancy)
             SetOperationInProgress(true);
+
+            // Show centred overlay and flush all pending paint messages so the overlay
+            // is physically visible on screen before any synchronous work begins.
+            _overlay.Show(operationName);
+            Application.DoEvents();
         }
 
         private void EndOperation()
@@ -2593,41 +2595,37 @@ namespace Cad3PLogBrowser
         public void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
-            Update(); // flush pending paints synchronously so overlay is visible before work starts
 
-            BeginInvoke((Action)(() =>
+            try
             {
-                try
+                var token = _cancellationTokenSource.Token;
+
+                CallTree.BeginUpdate();
+                foreach (var n in CollectAllNodes(CallTree.Nodes))
                 {
-                    var token = _cancellationTokenSource.Token;
-
-                    CallTree.BeginUpdate();
-                    foreach (var n in CollectAllNodes(CallTree.Nodes))
-                    {
-                        token.ThrowIfCancellationRequested();
-                        n.Expand();
-                    }
-                    CallTree.EndUpdate();
-
                     token.ThrowIfCancellationRequested();
+                    n.Expand();
+                }
+                CallTree.EndUpdate();
 
-                    ApiTree.BeginUpdate();
-                    foreach (var n in CollectAllNodes(ApiTree.Nodes))
-                    {
-                        token.ThrowIfCancellationRequested();
-                        n.Expand();
-                    }
-                    ApiTree.EndUpdate();
-                }
-                catch (OperationCanceledException)
+                token.ThrowIfCancellationRequested();
+
+                ApiTree.BeginUpdate();
+                foreach (var n in CollectAllNodes(ApiTree.Nodes))
                 {
-                    StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
+                    token.ThrowIfCancellationRequested();
+                    n.Expand();
                 }
-                finally
-                {
-                    EndOperation();
-                }
-            }));
+                ApiTree.EndUpdate();
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         private List<TreeNode> CollectAllNodes(TreeNodeCollection nodes)
@@ -2650,35 +2648,31 @@ namespace Cad3PLogBrowser
         public void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
-            Update(); // flush pending paints synchronously so overlay is visible before work starts
 
-            BeginInvoke((Action)(() =>
+            try
             {
-                try
-                {
-                    var token = _cancellationTokenSource.Token;
+                var token = _cancellationTokenSource.Token;
 
-                    CallTree.BeginUpdate();
-                    CallTree.CollapseAll();
-                    foreach (TreeNode n in CallTree.Nodes) n.Expand();
-                    CallTree.EndUpdate();
+                CallTree.BeginUpdate();
+                CallTree.CollapseAll();
+                foreach (TreeNode n in CallTree.Nodes) n.Expand();
+                CallTree.EndUpdate();
 
-                    token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
-                    ApiTree.BeginUpdate();
-                    ApiTree.CollapseAll();
-                    foreach (TreeNode n in ApiTree.Nodes) n.Expand();
-                    ApiTree.EndUpdate();
-                }
-                catch (OperationCanceledException)
-                {
-                    StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
-                }
-                finally
-                {
-                    EndOperation();
-                }
-            }));
+                ApiTree.BeginUpdate();
+                ApiTree.CollapseAll();
+                foreach (TreeNode n in ApiTree.Nodes) n.Expand();
+                ApiTree.EndUpdate();
+            }
+            catch (OperationCanceledException)
+            {
+                StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         // Feature C1: Menu event handlers
