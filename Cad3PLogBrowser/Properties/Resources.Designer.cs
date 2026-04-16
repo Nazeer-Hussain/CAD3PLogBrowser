@@ -914,6 +914,12 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MENU_SHOW_IN_API_TREE", resourceCulture);
             }
         }
+
+        internal static string MENU_INSPECT_LINE {
+            get {
+                return ResourceManager.GetString("MENU_INSPECT_LINE", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Show in Call Tree.

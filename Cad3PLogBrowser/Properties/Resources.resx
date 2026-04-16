@@ -307,6 +307,9 @@
   <data name="MENU_SHOW_IN_API_TREE" xml:space="preserve">
     <value>Show in API Tree</value>
   </data>
+  <data name="MENU_INSPECT_LINE" xml:space="preserve">
+    <value>Inspect Line (F12)</value>
+  </data>
   <!-- Status Messages -->
   <data name="STATUS_LOADING" xml:space="preserve">
     <value>Loading...</value>

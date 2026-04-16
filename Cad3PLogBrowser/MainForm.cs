@@ -749,6 +749,8 @@ namespace Cad3PLogBrowser
                     var n = ApiTree.SelectedNode;
                     if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
                 });
+                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
@@ -1482,11 +1484,6 @@ namespace Cad3PLogBrowser
                 logDetailBox.Invoke((Action)(() => logDetailBox.Text = sb.ToString()));
             else
                 logDetailBox.Text = sb.ToString();
-
-            // Switch to Log Details tab to show it
-            if (mainTabControl != null && logDetailTab != null &&
-                mainTabControl.TabPages.Contains(logDetailTab))
-                mainTabControl.SelectedTab = logDetailTab;
         }
 
         private void ApiTree_Click(object sender, EventArgs e) { }
@@ -1529,15 +1526,12 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
             logListView.Focus();
-            ShowLogDetail(idx);
         }
 
         // ── Log Details panel ─────────────────────────────────────────────────
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateSelectionStatus();
-            if (logListView.SelectedIndices.Count > 0)
-                ShowLogDetail(logListView.SelectedIndices[0]);
         }
 
         private void ShowLogDetail(int idx)
@@ -1550,7 +1544,22 @@ namespace Cad3PLogBrowser
                 lines.Add(new UI.LineInspectorPanel.InspectorLine { LineNumber = vl.LineNumber, Text = vl.Text });
 
             _lineInspector.Inspect(lines, idx, _lastEntries);
+
+            // Switch to Log Details tab
+            if (mainTabControl != null && logDetailTab != null
+                && mainTabControl.TabPages.Contains(logDetailTab))
+                mainTabControl.SelectedTab = logDetailTab;
         }
+
+        /// <summary>Inspects the currently selected log-list row (F12 / context menu).</summary>
+        private void InspectSelectedLine()
+        {
+            if (logListView.SelectedIndices.Count == 0) return;
+            ShowLogDetail(logListView.SelectedIndices[0]);
+        }
+
+        private void contextInspectLineMenuItem_Click(object sender, EventArgs e) =>
+            InspectSelectedLine();
 
         // ── #7: Virtual mode handler ──────────────────────────────────────────
         private void listView1_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
@@ -2584,6 +2593,10 @@ namespace Cad3PLogBrowser
                     ThemeToggleButton_Click(this, EventArgs.Empty);
                     return true;
 
+                case Keys.F12:                                   // Inspect selected line
+                    InspectSelectedLine();
+                    return true;
+
                 case Keys.F8:                                    // Next Error
                     NavigateToNextError();
                     return true;
@@ -2734,7 +2747,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToPreviousError()
@@ -2753,7 +2765,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToNextWarning()
@@ -2771,7 +2782,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToPreviousWarning()
@@ -2790,7 +2800,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         // Feature B10: Toolbar button click handlers
@@ -3455,6 +3464,8 @@ namespace Cad3PLogBrowser
 
                 // ═══ NAVIGATION (Call Tree only - ENTER/EXIT matching) ═══
                 contextMenu.Items.Add(Resources.MENU_JUMP_TO_MATCHING, null, (s, ev) => JumpToMatchingPair());
+                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 

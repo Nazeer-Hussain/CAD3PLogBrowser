@@ -154,6 +154,8 @@ namespace Cad3PLogBrowser
             this.contextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.contextSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.contextInspectLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.treeContextCopyNodeNameMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -1296,6 +1298,8 @@ namespace Cad3PLogBrowser
             this.contextCollapseAllMenuItem,
             this.contextJumpToMatchingMenuItem,
             this.contextSeparator3,
+            this.contextInspectLineMenuItem,
+            this.contextSeparator4,
             this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
             this.logContextMenu.Size = new System.Drawing.Size(280, 220);
@@ -1372,6 +1376,19 @@ namespace Cad3PLogBrowser
             // 
             this.contextSeparator3.Name = "contextSeparator3";
             this.contextSeparator3.Size = new System.Drawing.Size(277, 6);
+            // 
+            // contextInspectLineMenuItem
+            // 
+            this.contextInspectLineMenuItem.Name = "contextInspectLineMenuItem";
+            this.contextInspectLineMenuItem.ShortcutKeyDisplayString = "F12";
+            this.contextInspectLineMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextInspectLineMenuItem.Text = "&Inspect Line";
+            this.contextInspectLineMenuItem.Click += new System.EventHandler(this.contextInspectLineMenuItem_Click);
+            // 
+            // contextSeparator4
+            // 
+            this.contextSeparator4.Name = "contextSeparator4";
+            this.contextSeparator4.Size = new System.Drawing.Size(277, 6);
             // 
             // contextRefreshMenuItem
             // 
@@ -1668,6 +1685,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem contextCollapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextJumpToMatchingMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
+        private System.Windows.Forms.ToolStripSeparator contextSeparator4;
+        private System.Windows.Forms.ToolStripMenuItem  contextInspectLineMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
         private System.Windows.Forms.ContextMenuStrip treeContextMenu;
         private System.Windows.Forms.ToolStripMenuItem treeContextCopyNodeNameMenuItem;
