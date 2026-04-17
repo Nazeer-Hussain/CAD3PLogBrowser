@@ -2151,8 +2151,8 @@ namespace Cad3PLogBrowser
 
         private void saveAsMenuItem_Click(object sender, EventArgs e)
         {
-            // Save the ENTER→EXIT block for the currently selected tree node to a file.
-            // The default filename is: {original-basename}{snippet-suffix}.log
+            // Save the ENTER→EXIT block for the currently selected tree node.
+            // Default filename: {original-basename}{snippet-suffix}.log
             TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
             if (activeTree?.SelectedNode == null)
             {
@@ -2161,43 +2161,19 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            string methodName = GetMethodNameFromNode(activeTree.SelectedNode);
-            var branchLines   = new List<string>();
-            bool inBranch     = false;
-            int  depth        = 0;
+            TreeNode node       = activeTree.SelectedNode;
+            string methodName   = GetMethodNameFromNode(node);
+            int    enterLine    = (node.Tag is int t && t > 0) ? t : -1;
+            List<string> lines  = ExtractBranchLines(enterLine, methodName);
 
-            foreach (var line in _virtualLines)
-            {
-                string t = line.Text;
-                if (!inBranch)
-                {
-                    if (t.Contains("[ENTER]") && t.Contains(methodName))
-                    {
-                        inBranch = true;
-                        depth    = 1;
-                        branchLines.Add(t);
-                    }
-                }
-                else
-                {
-                    branchLines.Add(t);
-                    if (t.Contains("[ENTER]")) depth++;
-                    if (t.Contains("[EXIT]"))
-                    {
-                        depth--;
-                        if (depth == 0) break;
-                    }
-                }
-            }
-
-            if (branchLines.Count == 0)
+            if (lines.Count == 0)
             {
                 MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string baseName = string.IsNullOrEmpty(_currentFilePath)
+            string baseName    = string.IsNullOrEmpty(_currentFilePath)
                 ? methodName.Replace("::", "_")
                 : Path.GetFileNameWithoutExtension(_currentFilePath);
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
@@ -2215,9 +2191,9 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    File.WriteAllLines(dlg.FileName, branchLines);
+                    File.WriteAllLines(dlg.FileName, lines);
                     MessageBox.Show(
-                        string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dlg.FileName),
+                        string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -3711,9 +3687,75 @@ namespace Cad3PLogBrowser
             int paren = text.IndexOf(" (");
             if (paren > 0) return text.Substring(0, paren).Trim();
             // Strip line number suffix like " — Ln 123"
-            int dash = text.IndexOf(" — ");
+            int dash = text.IndexOf(" \u2014 ");
             if (dash > 0) return text.Substring(0, dash).Trim();
             return text.Trim();
+        }
+
+        // ── Branch extraction helpers ─────────────────────────────────────────
+        // Log format: ...: Area: State\tModule\tSourceFile\tApiName\tENTER\tEpochMs
+        // ENTER/EXIT are tab-delimited fields, NOT [ENTER]/[EXIT] in brackets.
+
+        private static bool IsApiEnterLine(string line) =>
+            line.Contains("\tENTER\t") || line.TrimEnd().EndsWith("\tENTER");
+
+        private static bool IsApiExitLine(string line) =>
+            line.Contains("\tEXIT\t") || line.TrimEnd().EndsWith("\tEXIT");
+
+        /// <summary>
+        /// Extracts the log lines from an ENTER to its matching EXIT (inclusive),
+        /// correctly handling nested calls of the same method.
+        /// Scans _allLines (not filtered) so active filters cannot hide the ENTER/EXIT.
+        /// </summary>
+        /// <param name="enterLine1Based">
+        ///   1-based line number of the ENTER line (from the node's Tag).
+        ///   Pass -1 to fall back to searching by methodName.
+        /// </param>
+        private List<string> ExtractBranchLines(int enterLine1Based, string methodName)
+        {
+            var lines = new List<string>();
+            if (_allLines == null || _allLines.Count == 0) return lines;
+
+            // Determine the 0-based start index.
+            int startIdx = -1;
+            if (enterLine1Based > 0 && enterLine1Based <= _allLines.Count)
+            {
+                // Use the exact line the parser recorded for this call
+                startIdx = enterLine1Based - 1;
+            }
+            else if (!string.IsNullOrEmpty(methodName))
+            {
+                // Fall back: scan for first ENTER line that contains the method name
+                for (int i = 0; i < _allLines.Count; i++)
+                {
+                    string t = _allLines[i];
+                    if (IsApiEnterLine(t) && t.Contains(methodName))
+                    {
+                        startIdx = i;
+                        break;
+                    }
+                }
+            }
+
+            if (startIdx < 0) return lines;
+
+            int depth = 0;
+            for (int i = startIdx; i < _allLines.Count; i++)
+            {
+                string t = _allLines[i];
+                lines.Add(t);
+
+                if (IsApiEnterLine(t)) depth++;
+                if (IsApiExitLine(t))
+                {
+                    depth--;
+                    if (depth <= 0) break;
+                }
+            }
+
+            // If we hit end-of-file before the matching EXIT, still return what we have
+            // (unmatched ENTER) rather than showing an error for incomplete traces.
+            return lines;
         }
 
         // J3: Search in Grok
@@ -4029,39 +4071,12 @@ namespace Cad3PLogBrowser
             TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
             if (activeTree?.SelectedNode == null) return;
 
-            TreeNode selectedNode = activeTree.SelectedNode;
-            string methodName = GetMethodNameFromNode(selectedNode);
+            TreeNode node      = activeTree.SelectedNode;
+            string methodName  = GetMethodNameFromNode(node);
+            int    enterLine   = (node.Tag is int t && t > 0) ? t : -1;
+            List<string> lines = ExtractBranchLines(enterLine, methodName);
 
-            // Find the ENTER and EXIT lines for this method
-            var branchLines = new List<string>();
-            bool inBranch = false;
-            int depth = 0;
-
-            foreach (var line in _virtualLines)
-            {
-                string lineText = line.Text;
-
-                if (lineText.Contains("[ENTER]") && lineText.Contains(methodName))
-                {
-                    inBranch = true;
-                    depth = 1;
-                    branchLines.Add(lineText);
-                }
-                else if (inBranch)
-                {
-                    branchLines.Add(lineText);
-
-                    if (lineText.Contains("[ENTER]")) depth++;
-                    if (lineText.Contains("[EXIT]"))
-                    {
-                        depth--;
-                        if (depth == 0)
-                            break;
-                    }
-                }
-            }
-
-            if (branchLines.Count == 0)
+            if (lines.Count == 0)
             {
                 MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -4080,8 +4095,8 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    File.WriteAllLines(dialog.FileName, branchLines);
-                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dialog.FileName),
+                    File.WriteAllLines(dialog.FileName, lines);
+                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
