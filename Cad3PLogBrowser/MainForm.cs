@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -88,10 +88,10 @@ namespace Cad3PLogBrowser
         {
             switch (id)
             {
-                case TabId.Log:         return showTab1MenuItem;
-                case TabId.Raw:         return showTab2MenuItem;
-                case TabId.Performance: return showTab3MenuItem;
-                case TabId.LogDetails:  return showTab4MenuItem;
+                case TabId.Log:         return showLogTabMenuItem;
+                case TabId.Raw:         return showRawTabMenuItem;
+                case TabId.Performance: return showPerformanceTabMenuItem;
+                case TabId.LogDetails:  return showLogDetailsTabMenuItem;
                 case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
@@ -114,27 +114,30 @@ namespace Cad3PLogBrowser
 
             if (mainTabControl.TabPages.Count <= 1)
             {
-                if (ReferenceEquals(tab, logTab)) showTab1MenuItem.Checked = true;
-                if (ReferenceEquals(tab, performanceTab)) showTab2MenuItem.Checked = true;
-                if (ReferenceEquals(tab, logDetailTab)) showTab3MenuItem.Checked = true;
-                if (ReferenceEquals(tab, callGraphTab)) showTab4MenuItem.Checked = true;
+                if (ReferenceEquals(tab, logTab))         showLogTabMenuItem.Checked         = true;
+                if (ReferenceEquals(tab, rawTab))         showRawTabMenuItem.Checked         = true;
+                if (ReferenceEquals(tab, performanceTab)) showPerformanceTabMenuItem.Checked = true;
+                if (ReferenceEquals(tab, logDetailTab))   showLogDetailsTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
+                if (ReferenceEquals(tab, flameGraphTab))  showFlameGraphTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
                 return;
             }
 
             mainTabControl.TabPages.Remove(tab);
         }
 
-        private void showTab1MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logTab,         showTab1MenuItem.Checked);
+        private void showLogTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logTab,         showLogTabMenuItem.Checked);
 
-        private void showTab2MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(rawTab,         showTab2MenuItem.Checked);
+        private void showRawTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(rawTab,         showRawTabMenuItem.Checked);
 
-        private void showTab3MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(performanceTab, showTab3MenuItem.Checked);
+        private void showPerformanceTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(performanceTab, showPerformanceTabMenuItem.Checked);
 
-        private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logDetailTab,   showTab4MenuItem.Checked);
+        private void showLogDetailsTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logDetailTab,   showLogDetailsTabMenuItem.Checked);
 
         private void showCallGraphMenuItem_CheckedChanged(object sender, EventArgs e) =>
             SetTabVisible(callGraphTab,   showCallGraphMenuItem.Checked);
@@ -1954,10 +1957,10 @@ namespace Cad3PLogBrowser
             tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
-            showTab1MenuItem.Image          = IconGenerator.CreateTabLogIcon(msz);
-            showTab2MenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
-            showTab3MenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
-            showTab4MenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
+            showLogTabMenuItem.Image          = IconGenerator.CreateTabLogIcon(msz);
+            showRawTabMenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
+            showPerformanceTabMenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
+            showLogDetailsTabMenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
             showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
             showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
             showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
@@ -2014,19 +2017,21 @@ namespace Cad3PLogBrowser
 
             // Index 0 – Log
             il.Images.Add("log",        IconGenerator.CreateTabLogIcon(sz));
-            // Index 1 – Performance
+            // Index 1 – Raw
+            il.Images.Add("raw",        IconGenerator.CreateTabRawIcon(sz));
+            // Index 2 – Performance
             il.Images.Add("perf",       IconGenerator.CreateTabPerformanceIcon(sz));
-            // Index 2 – Log Details
+            // Index 3 – Log Details
             il.Images.Add("details",    IconGenerator.CreateTabLogDetailsIcon(sz));
-            // Index 3 – Call Graph
+            // Index 4 – Call Graph
             il.Images.Add("callgraph",  IconGenerator.CreateTabCallGraphIcon(sz));
-            // Index 4 – Flame Graph
+            // Index 5 – Flame Graph
             il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
-            // Index 5 – Timeline
+            // Index 6 – Timeline
             il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
-            // Index 6 – AI Assistant
+            // Index 7 – AI Assistant
             il.Images.Add("ai",         IconGenerator.CreateTabAiIcon(sz));
-            // Index 7 – generic fallback (Dependency / future tabs)
+            // Index 8 – generic fallback
             il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
 
             // Dispose the old ImageList before replacing it
@@ -2035,12 +2040,13 @@ namespace Cad3PLogBrowser
             oldIl?.Dispose();
 
             // Assign by key so order-independence is guaranteed
-            logTab.ImageKey        = "log";
+            logTab.ImageKey         = "log";
+            rawTab.ImageKey         = "raw";
             performanceTab.ImageKey = "perf";
-            logDetailTab.ImageKey  = "details";
-            callGraphTab.ImageKey  = "callgraph";
-            flameGraphTab.ImageKey = "flame";
-            timelineTab.ImageKey   = "timeline";
+            logDetailTab.ImageKey   = "details";
+            callGraphTab.ImageKey   = "callgraph";
+            flameGraphTab.ImageKey  = "flame";
+            timelineTab.ImageKey    = "timeline";
 
             // Dynamic tabs added at runtime
             if (_aiTab != null) _aiTab.ImageKey = "ai";

@@ -1,4 +1,4 @@
-namespace Cad3PLogBrowser
+﻿namespace Cad3PLogBrowser
 {
     partial class MainForm
     {
@@ -78,10 +78,10 @@ namespace Cad3PLogBrowser
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showTab1MenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showTab2MenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showTab3MenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showRawTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showLogDetailsTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showFlameGraphTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTimelineTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -565,10 +565,10 @@ namespace Cad3PLogBrowser
             // tabsMenuItem
             // 
             this.tabsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showTab1MenuItem,
-            this.showTab2MenuItem,
-            this.showTab3MenuItem,
-            this.showTab4MenuItem,
+            this.showLogTabMenuItem,
+            this.showRawTabMenuItem,
+            this.showPerformanceTabMenuItem,
+            this.showLogDetailsTabMenuItem,
             this.showCallGraphMenuItem,
             this.showFlameGraphTabMenuItem,
             this.showTimelineTabMenuItem});
@@ -576,41 +576,41 @@ namespace Cad3PLogBrowser
             this.tabsMenuItem.Size = new System.Drawing.Size(178, 22);
             this.tabsMenuItem.Text = "Show &Tabs";
             // 
-            // showTab1MenuItem - LogView
+            // showLogTabMenuItem - LogView
             // 
-            this.showTab1MenuItem.CheckOnClick = true;
-            this.showTab1MenuItem.Checked = true;
-            this.showTab1MenuItem.Name = "showTab1MenuItem";
-            this.showTab1MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab1MenuItem.Text = "&LogView";
-            this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
+            this.showLogTabMenuItem.CheckOnClick = true;
+            this.showLogTabMenuItem.Checked = true;
+            this.showLogTabMenuItem.Name = "showLogTabMenuItem";
+            this.showLogTabMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showLogTabMenuItem.Text = "&LogView";
+            this.showLogTabMenuItem.CheckedChanged += new System.EventHandler(this.showLogTabMenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem - Raw
+            // showRawTabMenuItem - Raw
             // 
-            this.showTab2MenuItem.CheckOnClick = true;
-            this.showTab2MenuItem.Checked = true;
-            this.showTab2MenuItem.Name = "showTab2MenuItem";
-            this.showTab2MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab2MenuItem.Text = "&Raw";
-            this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
+            this.showRawTabMenuItem.CheckOnClick = true;
+            this.showRawTabMenuItem.Checked = true;
+            this.showRawTabMenuItem.Name = "showRawTabMenuItem";
+            this.showRawTabMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showRawTabMenuItem.Text = "&Raw";
+            this.showRawTabMenuItem.CheckedChanged += new System.EventHandler(this.showRawTabMenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem - Performance
+            // showPerformanceTabMenuItem - Performance
             // 
-            this.showTab3MenuItem.CheckOnClick = true;
-            this.showTab3MenuItem.Checked = true;
-            this.showTab3MenuItem.Name = "showTab3MenuItem";
-            this.showTab3MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab3MenuItem.Text = "&Performance";
-            this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
+            this.showPerformanceTabMenuItem.CheckOnClick = true;
+            this.showPerformanceTabMenuItem.Checked = true;
+            this.showPerformanceTabMenuItem.Name = "showPerformanceTabMenuItem";
+            this.showPerformanceTabMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showPerformanceTabMenuItem.Text = "&Performance";
+            this.showPerformanceTabMenuItem.CheckedChanged += new System.EventHandler(this.showPerformanceTabMenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem - Log Details
+            // showLogDetailsTabMenuItem - Log Details
             // 
-            this.showTab4MenuItem.CheckOnClick = true;
-            this.showTab4MenuItem.Checked = true;
-            this.showTab4MenuItem.Name = "showTab4MenuItem";
-            this.showTab4MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab4MenuItem.Text = "&Log Details";
-            this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
+            this.showLogDetailsTabMenuItem.CheckOnClick = true;
+            this.showLogDetailsTabMenuItem.Checked = true;
+            this.showLogDetailsTabMenuItem.Name = "showLogDetailsTabMenuItem";
+            this.showLogDetailsTabMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showLogDetailsTabMenuItem.Text = "&Log Details";
+            this.showLogDetailsTabMenuItem.CheckedChanged += new System.EventHandler(this.showLogDetailsTabMenuItem_CheckedChanged);
             // 
             // showCallGraphMenuItem
             // 
@@ -1663,10 +1663,10 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showTab1MenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showTab2MenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showTab3MenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showTab4MenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showRawTabMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTimelineTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallGraphMenuItem;
