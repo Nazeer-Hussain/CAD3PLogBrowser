@@ -23,7 +23,7 @@ namespace Cad3PLogBrowser
 
         // ── Tabs & Layout ─────────────────────────────────────────────────────
         private CheckBox  chkShowLog, chkShowRaw, chkShowPerformance, chkShowLogDetails;
-        private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline;
+        private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline, chkShowAiTab;
         private ComboBox  cmbInitialView;
         private ComboBox  cmbDefaultTreeView;
 
@@ -144,25 +144,29 @@ namespace Cad3PLogBrowser
             var tp = Tab("Tabs & Layout");
 
             var grp = new GroupBox { Text = "Visible Tabs",
-                Location = new Point(12, 10), Size = new Size(498, 100), TabStop = false };
+                Location = new Point(12, 10), Size = new Size(498, 136), TabStop = false };
 
-            chkShowLog         = Chk(grp, "Log View",     14, 24);
-            chkShowRaw         = Chk(grp, "Raw",         120, 24);
-            chkShowPerformance = Chk(grp, "Performance", 200, 24);
-            chkShowLogDetails  = Chk(grp, "Log Details", 330, 24);
-            chkShowCallGraph   = Chk(grp, "Call Graph",   14, 58);
-            chkShowFlameGraph  = Chk(grp, "Flame Graph", 120, 58);
-            chkShowTimeline    = Chk(grp, "Timeline",    250, 58);
+            // Row 1: Log, Raw, Performance, Log Details
+            chkShowLog         = Chk(grp, "Log View",      14,  24);
+            chkShowRaw         = Chk(grp, "Raw",           120,  24);
+            chkShowPerformance = Chk(grp, "Performance",   200,  24);
+            chkShowLogDetails  = Chk(grp, "Log Details",   330,  24);
+            // Row 2: Call Graph, Flame Graph, Timeline
+            chkShowCallGraph   = Chk(grp, "Call Graph",     14,  58);
+            chkShowFlameGraph  = Chk(grp, "Flame Graph",   120,  58);
+            chkShowTimeline    = Chk(grp, "Timeline",       250,  58);
+            // Row 3: AI Assistant
+            chkShowAiTab       = Chk(grp, "AI Assistant",   14,  92);
             tp.Controls.Add(grp);
 
-            cmbInitialView = AddRow(tp, "Start-up tab:", 126, out _);
+            cmbInitialView = AddRow(tp, "Start-up tab:", 160, out _);
             cmbInitialView.Items.AddRange(new object[]
             {
                 "Log", "Raw", "Performance", "Log Details",
-                "Call Graph", "Flame Graph", "Timeline"
+                "Call Graph", "Flame Graph", "Timeline", "AI Assistant"
             });
 
-            cmbDefaultTreeView = AddRow(tp, "Default tree view:", 162, out _);
+            cmbDefaultTreeView = AddRow(tp, "Default tree view:", 196, out _);
             cmbDefaultTreeView.Items.AddRange(new object[] { "Call Tree", "API Tree" });
             cmbDefaultTreeView.Size = new Size(130, 24);
 
@@ -276,6 +280,7 @@ namespace Cad3PLogBrowser
             chkShowCallGraph.Checked   = _mainForm.IsTabVisible(MainForm.TabId.CallGraph);
             chkShowFlameGraph.Checked  = _mainForm.IsTabVisible(MainForm.TabId.FlameGraph);
             chkShowTimeline.Checked    = _mainForm.IsTabVisible(MainForm.TabId.Timeline);
+            chkShowAiTab.Checked       = _settings.ShowAiTab;
             cmbInitialView.SelectedItem = _settings.InitialView ?? "Log";
             if (cmbInitialView.SelectedIndex < 0) cmbInitialView.SelectedIndex = 0;
             cmbDefaultTreeView.SelectedItem = _settings.DefaultTreeView == "Api" ? "API Tree" : "Call Tree";
@@ -321,6 +326,7 @@ namespace Cad3PLogBrowser
             _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
             _settings.ShowFlameGraphTab  = chkShowFlameGraph.Checked;
             _settings.ShowTimelineTab    = chkShowTimeline.Checked;
+            _settings.ShowAiTab          = chkShowAiTab.Checked;
             _settings.InitialView        = cmbInitialView.SelectedItem?.ToString() ?? "Log";
             _settings.DefaultTreeView    = cmbDefaultTreeView.SelectedItem?.ToString() == "API Tree" ? "Api" : "Call";
 
@@ -370,6 +376,7 @@ namespace Cad3PLogBrowser
             _settings.ShowCallGraphTab    = def.ShowCallGraphTab;
             _settings.ShowFlameGraphTab   = def.ShowFlameGraphTab;
             _settings.ShowTimelineTab     = def.ShowTimelineTab;
+            _settings.ShowAiTab           = def.ShowAiTab;
             _settings.InitialView         = def.InitialView;
             _settings.DefaultTreeView     = def.DefaultTreeView;
             _settings.LogFontFamily       = def.LogFontFamily;

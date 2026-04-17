@@ -32,6 +32,7 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowCallGraphTab     { get; set; } = true;
         public bool    ShowFlameGraphTab    { get; set; } = true;
         public bool    ShowTimelineTab      { get; set; } = true;
+        public bool    ShowAiTab            { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"

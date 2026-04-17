@@ -633,6 +633,7 @@ namespace Cad3PLogBrowser
                 case "Call Graph":  target = callGraphTab;    break;
                 case "Flame Graph": target = flameGraphTab;   break;
                 case "Timeline":    target = timelineTab;     break;
+                case "AI Assistant": target = _aiTab;          break;
                 // Legacy values saved by older builds
                 case "LogView":     target = logTab;          break;
                 case "ApiView":     target = logTab;          break;
@@ -3086,6 +3087,15 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+                    // AI tab is a dynamic TabPage — toggle directly
+                    if (_aiTab != null && mainTabControl != null)
+                    {
+                        bool showAi = _appSettings.ShowAiTab;
+                        if (showAi && !mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Add(_aiTab);
+                        else if (!showAi && mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Remove(_aiTab);
+                    }
                     ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
