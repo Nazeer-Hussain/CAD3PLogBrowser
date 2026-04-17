@@ -167,7 +167,11 @@ namespace Cad3PLogBrowser.Services
         /// </summary>
         public List<ApiCallNode> BuildApiList(List<LogEntry> entries)
         {
-            var map = new Dictionary<string, ApiCallNode>(StringComparer.Ordinal);
+            var map   = new Dictionary<string, ApiCallNode>(StringComparer.Ordinal);
+            // Running count of unmatched ENTERs per API.
+            // ENTER → depth++   |   EXIT when depth>0 → depth-- (matched, no node added)
+            //                         EXIT when depth==0 → orphan EXIT → ExitOnlyLines
+            var depth = new Dictionary<string, int>(StringComparer.Ordinal);
 
             foreach (var entry in entries)
             {
@@ -176,13 +180,22 @@ namespace Cad3PLogBrowser.Services
                 if (!map.TryGetValue(entry.ApiName, out var node))
                 {
                     node = new ApiCallNode { ApiName = entry.ApiName };
-                    map[entry.ApiName] = node;
+                    map[entry.ApiName]   = node;
+                    depth[entry.ApiName] = 0;
                 }
 
                 if (entry.IsCallEnter)
-                    node.LineNumbers.Add(entry.LineNumber);          // normal: ENTER starts a call
-                else if (entry.IsCallExit && !node.LineNumbers.Contains(entry.LineNumber))
-                    node.ExitOnlyLines.Add(entry.LineNumber);        // EXIT with no prior ENTER
+                {
+                    node.LineNumbers.Add(entry.LineNumber);
+                    depth[entry.ApiName]++;
+                }
+                else if (entry.IsCallExit)
+                {
+                    if (depth[entry.ApiName] > 0)
+                        depth[entry.ApiName]--;          // normal matched EXIT — no extra node
+                    else
+                        node.ExitOnlyLines.Add(entry.LineNumber); // orphan EXIT with no ENTER
+                }
             }
 
             var list = new List<ApiCallNode>(map.Values);
