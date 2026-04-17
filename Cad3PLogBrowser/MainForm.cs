@@ -602,9 +602,15 @@ namespace Cad3PLogBrowser
             return false;
         }
 
-        /// <summary>Selects the start-up tab that was saved in Settings.</summary>
+        /// <summary>Selects the start-up tab and tree view that were saved in Settings.</summary>
         private void ApplyInitialView()
         {
+            // Apply default tree view (Call Tree vs API Tree)
+            if (_appSettings.DefaultTreeView == "Api")
+                ShowApiTree();
+            else
+                ShowCallTree();
+
             // Map the human-readable setting string to a tab page
             TabPage target = null;
             switch (_appSettings.InitialView ?? "Log")

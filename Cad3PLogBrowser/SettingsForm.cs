@@ -25,6 +25,7 @@ namespace Cad3PLogBrowser
         private CheckBox  chkShowLog, chkShowRaw, chkShowPerformance, chkShowLogDetails;
         private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline;
         private ComboBox  cmbInitialView;
+        private ComboBox  cmbDefaultTreeView;
 
         // ── Log Font ──────────────────────────────────────────────────────────
         private ComboBox       cmbFontFamily;
@@ -112,17 +113,26 @@ namespace Cad3PLogBrowser
             cmbIconSize = AddRow(tp, "Toolbar icon size:", 58, out _);
             cmbIconSize.Items.AddRange(new object[] { "Small", "Medium", "Large" });
 
-            chkShowToolbar = new CheckBox { AutoSize = true, Text = "Show toolbar",
-                Location = new Point(330, 60), Checked = true };
+            // Show toolbar on its own row, aligned with the control column
+            chkShowToolbar = new CheckBox
+            {
+                AutoSize = true, Text = "Show toolbar", Checked = true,
+                Location = new Point(175, 94)
+            };
             tp.Controls.Add(chkShowToolbar);
+            Lbl(tp, "Toolbar visible:", 12, 97);
 
-            cmbHighlightColor = AddRow(tp, "Highlight colour:", 94, out _);
+            cmbHighlightColor = AddRow(tp, "Highlight colour:", 130, out _);
             foreach (string n in new[] { "Yellow","Cyan","LimeGreen","Orange","HotPink","LightBlue","Plum","Gold" })
                 cmbHighlightColor.Items.Add(n);
             cmbHighlightColor.SelectedIndexChanged += (s, e) => UpdateColourPreview();
 
-            panelColorPreview = new Panel { BorderStyle = BorderStyle.FixedSingle,
-                Location = new Point(370, 91), Size = new Size(52, 24) };
+            panelColorPreview = new Panel
+            {
+                BorderStyle = BorderStyle.FixedSingle,
+                Location    = new Point(370, 127),
+                Size        = new Size(52, 24)
+            };
             tp.Controls.Add(panelColorPreview);
 
             return tp;
@@ -151,6 +161,10 @@ namespace Cad3PLogBrowser
                 "Log", "Raw", "Performance", "Log Details",
                 "Call Graph", "Flame Graph", "Timeline"
             });
+
+            cmbDefaultTreeView = AddRow(tp, "Default tree view:", 162, out _);
+            cmbDefaultTreeView.Items.AddRange(new object[] { "Call Tree", "API Tree" });
+            cmbDefaultTreeView.Size = new Size(130, 24);
 
             return tp;
         }
@@ -264,6 +278,8 @@ namespace Cad3PLogBrowser
             chkShowTimeline.Checked    = _mainForm.IsTabVisible(MainForm.TabId.Timeline);
             cmbInitialView.SelectedItem = _settings.InitialView ?? "Log";
             if (cmbInitialView.SelectedIndex < 0) cmbInitialView.SelectedIndex = 0;
+            cmbDefaultTreeView.SelectedItem = _settings.DefaultTreeView == "Api" ? "API Tree" : "Call Tree";
+            if (cmbDefaultTreeView.SelectedIndex < 0) cmbDefaultTreeView.SelectedIndex = 0;
 
             // Log Font
             cmbFontFamily.SelectedItem = _settings.LogFontFamily ?? "Consolas";
@@ -306,6 +322,7 @@ namespace Cad3PLogBrowser
             _settings.ShowFlameGraphTab  = chkShowFlameGraph.Checked;
             _settings.ShowTimelineTab    = chkShowTimeline.Checked;
             _settings.InitialView        = cmbInitialView.SelectedItem?.ToString() ?? "Log";
+            _settings.DefaultTreeView    = cmbDefaultTreeView.SelectedItem?.ToString() == "API Tree" ? "Api" : "Call";
 
             // Log Font
             _settings.LogFontFamily = cmbFontFamily.SelectedItem?.ToString() ?? "Consolas";
@@ -354,6 +371,7 @@ namespace Cad3PLogBrowser
             _settings.ShowFlameGraphTab   = def.ShowFlameGraphTab;
             _settings.ShowTimelineTab     = def.ShowTimelineTab;
             _settings.InitialView         = def.InitialView;
+            _settings.DefaultTreeView     = def.DefaultTreeView;
             _settings.LogFontFamily       = def.LogFontFamily;
             _settings.LogFontSize         = def.LogFontSize;
             _settings.LogFontStyle        = def.LogFontStyle;
