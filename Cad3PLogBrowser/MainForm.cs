@@ -374,6 +374,9 @@ namespace Cad3PLogBrowser
 
             // Force layout again when form is shown to ensure correct positioning
             LayoutTrees();
+
+            // Restore the start-up tab chosen by the user in Settings
+            ApplyInitialView();
         }
 
         /// <summary>
@@ -597,6 +600,28 @@ namespace Cad3PLogBrowser
                     return true;
             }
             return false;
+        }
+
+        /// <summary>Selects the start-up tab that was saved in Settings.</summary>
+        private void ApplyInitialView()
+        {
+            // Map the human-readable setting string to a tab page
+            TabPage target = null;
+            switch (_appSettings.InitialView ?? "Log")
+            {
+                case "Log":         target = logTab;          break;
+                case "Raw":         target = rawTab;          break;
+                case "Performance": target = performanceTab;  break;
+                case "Log Details": target = logDetailTab;    break;
+                case "Call Graph":  target = callGraphTab;    break;
+                case "Flame Graph": target = flameGraphTab;   break;
+                case "Timeline":    target = timelineTab;     break;
+                // Legacy values saved by older builds
+                case "LogView":     target = logTab;          break;
+                case "ApiView":     target = logTab;          break;
+            }
+            if (target != null && mainTabControl.TabPages.Contains(target))
+                mainTabControl.SelectedTab = target;
         }
 
         private void SaveSettings()
