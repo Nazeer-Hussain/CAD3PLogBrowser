@@ -583,31 +583,31 @@ namespace Cad3PLogBrowser
             this.showTab1MenuItem.Text = "&LogView";
             this.showTab1MenuItem.CheckedChanged += new System.EventHandler(this.showTab1MenuItem_CheckedChanged);
             // 
-            // showTab2MenuItem - Performance View
+            // showTab2MenuItem - Raw
             // 
             this.showTab2MenuItem.CheckOnClick = true;
             this.showTab2MenuItem.Checked = true;
             this.showTab2MenuItem.Name = "showTab2MenuItem";
             this.showTab2MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab2MenuItem.Text = "&Performance View";
+            this.showTab2MenuItem.Text = "&Raw";
             this.showTab2MenuItem.CheckedChanged += new System.EventHandler(this.showTab2MenuItem_CheckedChanged);
             // 
-            // showTab3MenuItem - Details
+            // showTab3MenuItem - Performance
             // 
             this.showTab3MenuItem.CheckOnClick = true;
             this.showTab3MenuItem.Checked = true;
             this.showTab3MenuItem.Name = "showTab3MenuItem";
             this.showTab3MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab3MenuItem.Text = "&Details";
+            this.showTab3MenuItem.Text = "&Performance";
             this.showTab3MenuItem.CheckedChanged += new System.EventHandler(this.showTab3MenuItem_CheckedChanged);
             // 
-            // showTab4MenuItem - CallGraph
+            // showTab4MenuItem - Log Details
             // 
             this.showTab4MenuItem.CheckOnClick = true;
             this.showTab4MenuItem.Checked = true;
             this.showTab4MenuItem.Name = "showTab4MenuItem";
             this.showTab4MenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTab4MenuItem.Text = "&CallGraph";
+            this.showTab4MenuItem.Text = "&Log Details";
             this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
             // 
             // showFlameGraphTabMenuItem

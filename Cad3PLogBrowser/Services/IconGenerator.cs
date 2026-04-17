@@ -58,7 +58,8 @@ namespace Cad3PLogBrowser.Services
         private const char IconToolbar         = '\uE700'; // GlobalNavButton
         private const char IconTab             = '\uE74C'; // Tab (generic / submenu header)
         // Per-tab icons
-        private const char IconTabLog          = '\uE8F1'; // Page / document list  ? Log view
+        private const char IconTabLog          = '\uE8F1'; // Page / document list  - Log view
+        private const char IconTabRaw          = '\uE8A5'; // Document              - Raw text view
         private const char IconTabPerformance  = '\uE7EF'; // Org chart             ? Performance
         private const char IconTabLogDetails   = '\uE8A5'; // Document detail       ? Log Details
         private const char IconTabCallGraph    = '\uE8EE'; // Relationship          ? Call Graph
@@ -246,6 +247,7 @@ namespace Cad3PLogBrowser.Services
 
         // Per-tab icons — each tab gets a distinct, semantically matching glyph
         public static Bitmap CreateTabLogIcon(IconSize sz)         => Render(IconTabLog,         sz, AccentBlue);
+        public static Bitmap CreateTabRawIcon(IconSize sz)         => Render(IconTabRaw,         sz, GlyphColor);
         public static Bitmap CreateTabPerformanceIcon(IconSize sz) => Render(IconTabPerformance, sz, AccentGreen);
         public static Bitmap CreateTabLogDetailsIcon(IconSize sz)  => Render(IconTabLogDetails,  sz, GlyphColor);
         public static Bitmap CreateTabCallGraphIcon(IconSize sz)   => Render(IconTabCallGraph,   sz, AccentBlue);

@@ -1950,12 +1950,12 @@ namespace Cad3PLogBrowser
             tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
-            showTab1MenuItem.Image         = IconGenerator.CreateTabLogIcon(msz);
-            showTab2MenuItem.Image         = IconGenerator.CreateTabPerformanceIcon(msz);
-            showTab3MenuItem.Image         = IconGenerator.CreateTabLogDetailsIcon(msz);
-            showTab4MenuItem.Image         = IconGenerator.CreateTabCallGraphIcon(msz);
+            showTab1MenuItem.Image          = IconGenerator.CreateTabLogIcon(msz);
+            showTab2MenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
+            showTab3MenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
+            showTab4MenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
             showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
-            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabTimelineIcon(msz);
+            showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
             settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
