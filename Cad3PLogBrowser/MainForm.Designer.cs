@@ -82,6 +82,7 @@ namespace Cad3PLogBrowser
             this.showTab2MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab3MenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTab4MenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showCallGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showFlameGraphTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTimelineTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -568,6 +569,7 @@ namespace Cad3PLogBrowser
             this.showTab2MenuItem,
             this.showTab3MenuItem,
             this.showTab4MenuItem,
+            this.showCallGraphMenuItem,
             this.showFlameGraphTabMenuItem,
             this.showTimelineTabMenuItem});
             this.tabsMenuItem.Name = "tabsMenuItem";
@@ -609,6 +611,15 @@ namespace Cad3PLogBrowser
             this.showTab4MenuItem.Size = new System.Drawing.Size(180, 22);
             this.showTab4MenuItem.Text = "&Log Details";
             this.showTab4MenuItem.CheckedChanged += new System.EventHandler(this.showTab4MenuItem_CheckedChanged);
+            // 
+            // showCallGraphMenuItem
+            // 
+            this.showCallGraphMenuItem.CheckOnClick = true;
+            this.showCallGraphMenuItem.Checked = true;
+            this.showCallGraphMenuItem.Name = "showCallGraphMenuItem";
+            this.showCallGraphMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showCallGraphMenuItem.Text = "&Call Graph";
+            this.showCallGraphMenuItem.CheckedChanged += new System.EventHandler(this.showCallGraphMenuItem_CheckedChanged);
             // 
             // showFlameGraphTabMenuItem
             // 
@@ -1658,6 +1669,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ToolStripMenuItem showTab4MenuItem;
         private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTimelineTabMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showCallGraphMenuItem;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterOpen;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterExports;

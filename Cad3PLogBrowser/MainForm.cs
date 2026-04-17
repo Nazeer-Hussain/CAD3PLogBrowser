@@ -92,7 +92,7 @@ namespace Cad3PLogBrowser
                 case TabId.Raw:         return showTab2MenuItem;
                 case TabId.Performance: return showTab3MenuItem;
                 case TabId.LogDetails:  return showTab4MenuItem;
-                case TabId.CallGraph:   return null; // No specific menu item
+                case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
                 default:                return null;
@@ -135,6 +135,9 @@ namespace Cad3PLogBrowser
 
         private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
             SetTabVisible(logDetailTab,   showTab4MenuItem.Checked);
+
+        private void showCallGraphMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(callGraphTab,   showCallGraphMenuItem.Checked);
 
         private void showCallTreeMenuItem_CheckedChanged(object sender, EventArgs e)
         {
@@ -1954,6 +1957,7 @@ namespace Cad3PLogBrowser
             showTab2MenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
             showTab3MenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
             showTab4MenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
+            showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
             showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
             showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
 
