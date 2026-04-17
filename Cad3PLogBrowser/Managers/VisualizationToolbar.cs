@@ -110,10 +110,10 @@ namespace Cad3PLogBrowser.Managers
             // Search button
             _searchButton = new ToolStripButton
             {
-                Text = "??",
-                ToolTipText = "Search functions",
-                DisplayStyle = ToolStripItemDisplayStyle.Text,
-                Font = new Font("Segoe UI", 9f)
+                Text        = "Search",
+                ToolTipText = "Search function names",
+                DisplayStyle = ToolStripItemDisplayStyle.Image,
+                Image        = IconGenerator.CreateFindIcon(IconGenerator.IconSize.Small)
             };
 
             // Add items to toolbar
