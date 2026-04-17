@@ -825,6 +825,7 @@ namespace Cad3PLogBrowser
             // mainTabControl
             // 
             this.mainTabControl.Controls.Add(this.logTab);
+            this.mainTabControl.Controls.Add(this.rawTab);
             this.mainTabControl.Controls.Add(this.performanceTab);
             this.mainTabControl.Controls.Add(this.logDetailTab);
             this.mainTabControl.Controls.Add(this.callGraphTab);
@@ -883,12 +884,22 @@ namespace Cad3PLogBrowser
             // 
             // rawTab
             // 
+            this.rawTextBox = new System.Windows.Forms.RichTextBox();
+            this.rawTextBox.Dock      = System.Windows.Forms.DockStyle.Fill;
+            this.rawTextBox.ReadOnly  = true;
+            this.rawTextBox.WordWrap  = false;
+            this.rawTextBox.Font      = new System.Drawing.Font("Consolas", 9.75F);
+            this.rawTextBox.BackColor = System.Drawing.SystemColors.Window;
+            this.rawTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
+            this.rawTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.rawTextBox.Name      = "rawTextBox";
+            this.rawTab.Controls.Add(this.rawTextBox);
             this.rawTab.Location = new System.Drawing.Point(4, 25);
             this.rawTab.Name = "rawTab";
             this.rawTab.Padding = new System.Windows.Forms.Padding(3);
             this.rawTab.Size = new System.Drawing.Size(688, 494);
             this.rawTab.TabIndex = 1;
-            this.rawTab.Text = "rawTab";
+            this.rawTab.Text = "Raw";
             this.rawTab.UseVisualStyleBackColor = true;
             // 
             // performanceTab � Performance
@@ -1572,6 +1583,7 @@ namespace Cad3PLogBrowser
         private Managers.TimelinePanel timelinePanel;
         private System.Windows.Forms.TabPage logTab;
         private System.Windows.Forms.TabPage rawTab;
+        private System.Windows.Forms.RichTextBox rawTextBox;
         private System.Windows.Forms.TabPage performanceTab;
         private System.Windows.Forms.TabPage logDetailTab;
         private System.Windows.Forms.TabPage callGraphTab;

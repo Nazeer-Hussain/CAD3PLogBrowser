@@ -398,6 +398,9 @@
   <data name="TAB_LOG" xml:space="preserve">
     <value>Log</value>
   </data>
+  <data name="TAB_RAW" xml:space="preserve">
+    <value>Raw</value>
+  </data>
   <data name="TAB_PERFORMANCE" xml:space="preserve">
     <value>Performance</value>
   </data>

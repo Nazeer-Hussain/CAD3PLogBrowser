@@ -125,16 +125,16 @@ namespace Cad3PLogBrowser
         }
 
         private void showTab1MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logTab, showTab1MenuItem.Checked);
+            SetTabVisible(logTab,         showTab1MenuItem.Checked);
 
         private void showTab2MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(performanceTab, showTab2MenuItem.Checked);
+            SetTabVisible(rawTab,         showTab2MenuItem.Checked);
 
         private void showTab3MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logDetailTab, showTab3MenuItem.Checked);
+            SetTabVisible(performanceTab, showTab3MenuItem.Checked);
 
         private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(callGraphTab, showTab4MenuItem.Checked);
+            SetTabVisible(logDetailTab,   showTab4MenuItem.Checked);
 
         private void showCallTreeMenuItem_CheckedChanged(object sender, EventArgs e)
         {
@@ -479,6 +479,14 @@ namespace Cad3PLogBrowser
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
                 {
                     logListView.Invalidate();
+                }
+
+                // Apply theme to raw text view
+                if (rawTextBox != null)
+                {
+                    bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+                    rawTextBox.BackColor = ThemeManager.ControlBackgroundColor;
+                    rawTextBox.ForeColor = ThemeManager.ForegroundColor;
                 }
 
                 // Refresh the call graph panel
@@ -1703,6 +1711,7 @@ namespace Cad3PLogBrowser
 
                 // Populate views with progress
                 PopulateVirtualListView(_allLines);
+                PopulateRawView(_allLines);
                 FileLoadProgress.Value = 33;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
                 _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
@@ -1750,6 +1759,23 @@ namespace Cad3PLogBrowser
         /// items are produced on demand in RetrieveVirtualItem. This makes loading
         /// 500k-line files near-instant.
         /// </summary>
+        private void PopulateRawView(IList<string> lines)
+        {
+            if (rawTextBox == null) return;
+            // Cap at 50 000 lines to keep the RichTextBox responsive
+            const int MaxRawLines = 50_000;
+            bool truncated = lines.Count > MaxRawLines;
+            var sb = new System.Text.StringBuilder(Math.Min(lines.Count, MaxRawLines) * 80);
+            int count = Math.Min(lines.Count, MaxRawLines);
+            for (int i = 0; i < count; i++)
+            {
+                sb.AppendLine(lines[i]);
+            }
+            if (truncated)
+                sb.AppendLine($"[... {lines.Count - MaxRawLines:N0} more lines not shown — file exceeds raw view limit ...]");
+            rawTextBox.Text = sb.ToString();
+        }
+
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
@@ -3360,10 +3386,11 @@ namespace Cad3PLogBrowser
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
-            logTab.Text        = Resources.TAB_LOG;
-            performanceTab.Text  = Resources.TAB_PERFORMANCE;
-            logDetailTab.Text    = Resources.TAB_LOG_DETAILS;
-            callGraphTab.Text    = Resources.TAB_CALL_GRAPH;
+            logTab.Text         = Resources.TAB_LOG;
+            rawTab.Text         = Resources.TAB_RAW;
+            performanceTab.Text = Resources.TAB_PERFORMANCE;
+            logDetailTab.Text   = Resources.TAB_LOG_DETAILS;
+            callGraphTab.Text   = Resources.TAB_CALL_GRAPH;
 
             ApplyTabIcons();
 

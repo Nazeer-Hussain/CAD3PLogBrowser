@@ -1532,10 +1532,13 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("TAB_LOG", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Log Details.
-        /// </summary>
+
+        internal static string TAB_RAW {
+            get {
+                return ResourceManager.GetString("TAB_RAW", resourceCulture);
+            }
+        }
+
         internal static string TAB_LOG_DETAILS {
             get {
                 return ResourceManager.GetString("TAB_LOG_DETAILS", resourceCulture);
