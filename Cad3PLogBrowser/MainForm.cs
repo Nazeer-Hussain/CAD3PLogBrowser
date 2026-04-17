@@ -2149,63 +2149,82 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        private async void saveAsMenuItem_Click(object sender, EventArgs e)
+        private void saveAsMenuItem_Click(object sender, EventArgs e)
         {
-            if (_virtualLines.Count == 0) return;
-            if (saveLogFileDialog.ShowDialog() != DialogResult.OK) return;
-
-            var lines = new List<string>();
-            if (logListView.SelectedIndices.Count > 0)
+            // Save the ENTER→EXIT block for the currently selected tree node to a file.
+            // The default filename is: {original-basename}{snippet-suffix}.log
+            TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            if (activeTree?.SelectedNode == null)
             {
-                foreach (int idx in logListView.SelectedIndices)
-                    lines.Add(_virtualLines[idx].Text);
-            }
-            else
-            {
-                foreach (var vl in _virtualLines)
-                    lines.Add(vl.Text);
+                MessageBox.Show("Please select a node in the tree first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
 
-            StartOperation(string.Format(Resources.OPERATION_SAVING_LINES, lines.Count));
+            string methodName = GetMethodNameFromNode(activeTree.SelectedNode);
+            var branchLines   = new List<string>();
+            bool inBranch     = false;
+            int  depth        = 0;
 
-            try
+            foreach (var line in _virtualLines)
             {
-                await Task.Run(() =>
+                string t = line.Text;
+                if (!inBranch)
                 {
-                    var token = _cancellationTokenSource.Token;
-
-                    _logFileService.WriteLines(saveLogFileDialog.FileName, lines, (progress, message) =>
+                    if (t.Contains("[ENTER]") && t.Contains(methodName))
                     {
-                        token.ThrowIfCancellationRequested();
+                        inBranch = true;
+                        depth    = 1;
+                        branchLines.Add(t);
+                    }
+                }
+                else
+                {
+                    branchLines.Add(t);
+                    if (t.Contains("[ENTER]")) depth++;
+                    if (t.Contains("[EXIT]"))
+                    {
+                        depth--;
+                        if (depth == 0) break;
+                    }
+                }
+            }
 
-                        this.Invoke((Action)(() =>
-                        {
-                            FileLoadProgress.Style = ProgressBarStyle.Blocks;
-                            FileLoadProgress.Value = progress;
-                            var msg = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
-                            StatusFileName.Text = msg;
-                            _overlay.SetProgress(progress, msg);
-                        }));
-                    });
-                });
+            if (branchLines.Count == 0)
+            {
+                MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-                MessageBox.Show(string.Format(Resources.MSG_FILE_SAVED, lines.Count), Resources.TITLE, 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (OperationCanceledException)
+            string baseName = string.IsNullOrEmpty(_currentFilePath)
+                ? methodName.Replace("::", "_")
+                : Path.GetFileNameWithoutExtension(_currentFilePath);
+            string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
+
+            using (var dlg = new SaveFileDialog())
             {
-                StatusFileName.Text = Resources.STATUS_SAVE_CANCELLED;
-                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(string.Format(Resources.MSG_SAVE_ERROR, ex.Message), Resources.TITLE, 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                EndOperation();
+                dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH ?? "Save Selected Branch";
+                dlg.Filter           = Resources.FILE_FILTER_LOG_SAVE;
+                dlg.FileName         = defaultName;
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    File.WriteAllLines(dlg.FileName, branchLines);
+                    MessageBox.Show(
+                        string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -2324,65 +2343,104 @@ namespace Cad3PLogBrowser
         // ── Feature I1: Export Filtered Logs ──────────────────────────────────
         private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
         {
-            if (_virtualLines.Count == 0)
+            // Export the Performance tab statistics to a SpreadsheetML (.xls) file.
+            if (_apiPerfStats == null || _apiPerfStats.Count == 0)
             {
-                MessageBox.Show(Resources.ERR_NO_DATA_TO_EXPORT, Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No performance data to export. Load a log file first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
+            string baseName = string.IsNullOrEmpty(_currentFilePath)
+                ? "performance"
+                : Path.GetFileNameWithoutExtension(_currentFilePath);
+
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Title = Resources.DIALOG_TITLE_SAVE_BRANCH;
-                dlg.Filter = Resources.FILE_FILTER_LOG_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + Resources.FILENAME_SUFFIX_FILTERED;
-
-                if (!string.IsNullOrEmpty(_currentFilePath))
-                    dlg.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+                dlg.Title  = "Export Performance to XLS";
+                dlg.Filter = "Excel Workbook (*.xls)|*.xls|All files (*.*)|*.*";
+                dlg.FileName = baseName + "_performance.xls";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                FileLoadProgress.Visible = true;
-                FileLoadProgress.Value = 0;
-                StatusFileName.Text = Resources.STATUS_EXPORTING_LOGS;
-
                 try
                 {
-                    var lines = new List<string>();
-                    foreach (var vl in _virtualLines)
-                        lines.Add(vl.Text);
-
-                    // Save with progress callback
-                    _logFileService.WriteLines(dlg.FileName, lines, (progress, message) =>
-                    {
-                        this.Invoke((Action)(() =>
-                        {
-                            FileLoadProgress.Value = progress;
-                            StatusFileName.Text = message;
-                        }));
-                    });
-
-                    FileLoadProgress.Visible = false;
-                    UpdateStatusBar();
-
-                    string filterInfo = string.IsNullOrEmpty(_activeFilterText) 
-                        ? Resources.EXPORT_FILTER_INFO_ALL_LINES 
-                        : string.Format(Resources.EXPORT_FILTER_INFO_FILTERED, _activeFilterText);
-
+                    WritePerformanceXls(dlg.FileName, _apiPerfStats);
                     MessageBox.Show(
-                        string.Format(Resources.MSG_EXPORT_FILTERED_SUCCESSFUL,
-                            lines.Count, filterInfo, dlg.FileName),
+                        $"Performance data exported to:\n{dlg.FileName}\n\n{_apiPerfStats.Count} rows written.",
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    FileLoadProgress.Visible = false;
-                    UpdateStatusBar();
-                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FILE_FAILED, ex.Message),
-                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Export failed: {ex.Message}", Resources.TITLE,
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
+
+        /// <summary>
+        /// Writes performance statistics to a SpreadsheetML XML file readable by Excel 97-2003+.
+        /// No external library required — pure XML.
+        /// </summary>
+        private static void WritePerformanceXls(string path, IList<ApiPerfStats> stats)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<?xml version=\"1.0\"?>");
+            sb.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            sb.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
+            sb.AppendLine("  xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            sb.AppendLine(" <Styles>");
+            sb.AppendLine("  <Style ss:ID=\"Header\"><Font ss:Bold=\"1\"/><Interior ss:Color=\"#17375E\" ss:Pattern=\"Solid\"/><Font ss:Color=\"#FFFFFF\" ss:Bold=\"1\"/></Style>");
+            sb.AppendLine("  <Style ss:ID=\"Red\"><Interior ss:Color=\"#FFCCCC\" ss:Pattern=\"Solid\"/></Style>");
+            sb.AppendLine("  <Style ss:ID=\"Amber\"><Interior ss:Color=\"#FFF3CC\" ss:Pattern=\"Solid\"/></Style>");
+            sb.AppendLine(" </Styles>");
+            sb.AppendLine(" <Worksheet ss:Name=\"Performance\">");
+            sb.AppendLine("  <Table>");
+
+            // Header row
+            sb.AppendLine("   <Row>");
+            foreach (string h in new[] { "API Name", "Calls", "Total (ms)", "Avg (ms)", "Min (ms)", "Max (ms)", "Self (ms)", "Source File" })
+            {
+                sb.AppendLine($"    <Cell ss:StyleID=\"Header\"><Data ss:Type=\"String\">{XmlEsc(h)}</Data></Cell>");
+            }
+            sb.AppendLine("   </Row>");
+
+            // Data rows
+            foreach (var s in stats)
+            {
+                string style = s.TotalDurationMs >= 1000 ? "Red" :
+                               s.TotalDurationMs >= 100  ? "Amber" : "";
+                string sAttr = string.IsNullOrEmpty(style) ? "" : $" ss:StyleID=\"{style}\"";
+                sb.AppendLine("   <Row>");
+                Cell(sb, "String",  s.ApiName,                    sAttr);
+                Cell(sb, "Number",  s.CallCount.ToString(),        sAttr);
+                Cell(sb, "Number",  s.TotalDurationMs.ToString(),  sAttr);
+                Cell(sb, "Number",  s.AvgDurationMs.ToString(),    sAttr);
+                Cell(sb, "Number",  (s.MinDurationMs < 0 ? 0 : s.MinDurationMs).ToString(), sAttr);
+                Cell(sb, "Number",  s.MaxDurationMs.ToString(),    sAttr);
+                Cell(sb, "Number",  s.SelfDurationMs.ToString(),   sAttr);
+                Cell(sb, "String",  s.SourceFile ?? "",            sAttr);
+                sb.AppendLine("   </Row>");
+            }
+
+            sb.AppendLine("  </Table>");
+            sb.AppendLine(" </Worksheet>");
+            sb.AppendLine("</Workbook>");
+
+            File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8);
+        }
+
+        private static void Cell(System.Text.StringBuilder sb, string type, string value, string styleAttr)
+        {
+            sb.AppendLine($"    <Cell{styleAttr}><Data ss:Type=\"{type}\">{XmlEsc(value)}</Data></Cell>");
+        }
+
+        private static string XmlEsc(string s) =>
+            string.IsNullOrEmpty(s) ? "" :
+            s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
         // MOVED: CopyButton_Click is now in Feature 1 section below
 
