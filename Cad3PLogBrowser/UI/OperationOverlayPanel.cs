@@ -87,11 +87,15 @@ namespace Cad3PLogBrowser
         /// <summary>Displays the overlay in marquee (indeterminate) mode.</summary>
         public void Show(string operationName)
         {
-            _label.Text           = operationName;
-            _bar.Style            = ProgressBarStyle.Marquee;
+            // Do nothing until the parent form's handle exists - calling
+            // Visible = true before the form is shown leaves ghost artefacts.
+            if (!IsHandleCreated) return;
+
+            _label.Text                = operationName;
+            _bar.Style                 = ProgressBarStyle.Marquee;
             _bar.MarqueeAnimationSpeed = 25;
-            _subLabel.Visible     = true;
-            Visible               = true;
+            _subLabel.Visible          = true;
+            Visible                    = true;
             BringToFront();
         }
 

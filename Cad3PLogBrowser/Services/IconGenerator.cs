@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -26,9 +26,9 @@ namespace Cad3PLogBrowser.Services
         // File menu
         private const char IconOpen            = '\uE8E5'; // OpenFile
         private const char IconSave            = '\uE74E'; // Save
-        private const char IconExportXls       = '\uEDE1'; // Export
+        private const char IconExportXls       = '\uE8A7'; // SaveAs (export spreadsheet)
         private const char IconExportCsv       = '\uE8F1'; // Page
-        private const char IconExportImage     = '\uEB9F'; // Photo2
+        private const char IconExportImage     = '\uE722'; // Pictures (export image)
         private const char IconExportJson      = '\uE943'; // Code
         private const char IconExportXml       = '\uE8A5'; // Document
         private const char IconMergeLogs       = '\uE8F0'; // MergeCall
@@ -42,34 +42,34 @@ namespace Cad3PLogBrowser.Services
         private const char IconFindAll         = '\uE773'; // SearchAndApps
         private const char IconFilter          = '\uE71C'; // Filter
         private const char IconClearFilter     = '\uE77A'; // ClearFilter
-        private const char IconExpand          = ''; // ExpandAll
-        private const char IconCollapse        = ''; // CollapseAll
+        private const char IconExpand          = ''; // ExpandAll
+        private const char IconCollapse        = ''; // CollapseAll
         private const char IconJumpMatch       = '\uE7C5'; // GoToStart
         private const char IconJumpLine        = '\uE8AB'; // GoToLine
         private const char IconBookmark        = '\uE8D3'; // Bookmark
-        private const char IconBookmarkNext    = '\uEAD4'; // BookmarkMirrored
-        private const char IconBookmarkPrev    = '\uEAD3'; // BookmarkFilled
+        private const char IconBookmarkNext    = '\uE893'; // ChevronRight (next bookmark)
+        private const char IconBookmarkPrev    = '\uE892'; // ChevronLeft (prev bookmark)
         private const char IconBookmarkShow    = '\uE8A4'; // ShowAll
         private const char IconBookmarkClear   = '\uE8D4'; // BookmarkOutline
         // View menu
-        private const char IconCallTree        = '\uE9F9'; // Hierarchy
-        private const char IconApiTree         = '\uE9D9'; // BulletedList
+        private const char IconCallTree        = '\uE8AC'; // Hierarchy
+        private const char IconApiTree         = '\uE71D'; // SortLines (API list)
         private const char IconFont            = '\uE8D2'; // Font
         private const char IconToolbar         = '\uE700'; // GlobalNavButton
         private const char IconTab             = '\uE74C'; // Tab (generic / submenu header)
         // Per-tab icons
         private const char IconTabLog          = '\uE8F1'; // Page / document list  ? Log view
-        private const char IconTabPerformance  = '\uE9F9'; // Org chart             ? Performance
+        private const char IconTabPerformance  = '\uE7EF'; // Org chart             ? Performance
         private const char IconTabLogDetails   = '\uE8A5'; // Document detail       ? Log Details
         private const char IconTabCallGraph    = '\uE8EE'; // Relationship          ? Call Graph
-        private const char IconTabFlameGraph   = '\uE792'; // Burn / flame          ? Flame Graph
+        private const char IconTabFlameGraph   = '\uE7C1'; // BulletedList2 (stacked bars)
         private const char IconTabTimeline     = '\uE81C'; // Timeline / clock      ? Timeline
         private const char IconTabAI           = '\uE8BD'; // Chat / message        ? AI Assistant
         // Navigation buttons
         private const char IconPrevError       = '\uE892'; // ChevronLeft
         private const char IconNextError       = '\uE893'; // ChevronRight
-        private const char IconPrevWarning     = '\uEDDB'; // TriangleSolidLeft
-        private const char IconNextWarning     = '\uEDDC'; // TriangleSolidRight
+        private const char IconPrevWarning     = '\uE892'; // ChevronLeft (prev warning)
+        private const char IconNextWarning     = '\uE893'; // ChevronRight (next warning)
         // Help menu
         private const char IconHelp            = '\uE897'; // Help
         private const char IconKeyboard        = '\uE765'; // Keyboard
@@ -83,8 +83,8 @@ namespace Cad3PLogBrowser.Services
         private const char IconSettings        = '\uE713'; // Settings gear
         // Status bar indicators
         private const char IconStatusOk        = '\uE73E'; // Accept
-        private const char IconStatusLoad      = '\uE9F5'; // Sync
-        private const char IconStatusErr       = '\uEB90'; // ErrorCircle
+        private const char IconStatusLoad      = '\uE72C'; // Refresh (loading indicator)
+        private const char IconStatusErr       = '\uE783'; // ErrorBadge (error indicator)
         // Tree node state
         private const char IconCheck           = '\uE73E'; // Accept
         private const char IconCross           = '\uE894'; // Cancel
