@@ -4,7 +4,8 @@
     <StartArguments>c:\\temp\\abcd.txt</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <StartArguments>c:\\temp\\abcd.txt</StartArguments>
+    <StartArguments>
+    </StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <ProjectView>ProjectFiles</ProjectView>

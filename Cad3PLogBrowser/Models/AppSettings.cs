@@ -22,7 +22,7 @@ namespace Cad3PLogBrowser.Services
 
         // ── UI preferences ────────────────────────────────────────────────────
         public string  HighlightColorName   { get; set; } = "Yellow";
-        public string  InitialView          { get; set; } = "LogView"; // "LogView" | "ApiView"
+        public string  InitialView          { get; set; } = "Log"; // matches SettingsForm combo items
         public string  SaveSnippetSuffix    { get; set; } = "_snippet";
         public int     SplitterDistance     { get; set; } = 285;
         public bool    ShowLogTab           { get; set; } = true;
@@ -32,7 +32,9 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowCallGraphTab     { get; set; } = true;
         public bool    ShowFlameGraphTab    { get; set; } = true;
         public bool    ShowTimelineTab      { get; set; } = true;
+        public bool    ShowAiTab            { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
+        public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;
 

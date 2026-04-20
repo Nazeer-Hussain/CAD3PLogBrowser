@@ -323,7 +323,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2>&#128218; CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v2.6</p>
+        <p>User Guide &#8212; v2.7</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -355,6 +355,7 @@
 
     <div class="nav-section">Analysis Tabs</div>
     <ul>
+        <li><a href="#raw-view">Raw View Tab</a></li>
         <li><a href="#performance">Performance Tab</a></li>
         <li><a href="#log-details">Log Details Tab</a></li>
         <li><a href="#call-graph">Call Graph Tab</a></li>
@@ -391,7 +392,7 @@
 <div class="page-header">
     <h1>&#128218; CAD 3P Log Browser</h1>
     <p>Complete User Guide &amp; Reference Manual</p>
-    <span class="badge">v2.6</span>
+    <span class="badge">v2.7</span>
     <span class="badge">.NET Framework 4.8</span>
     <span class="badge">Windows</span>
 </div>
@@ -408,11 +409,11 @@
             <ul>
                 <li>Call Tree (hierarchical call stack)</li>
                 <li>API Tree (grouped by method)</li>
+                <li>Raw View (unformatted file text)</li>
                 <li>Performance statistics table</li>
                 <li>Call Graph (dependency graph)</li>
                 <li>Flame Graph (profiling view)</li>
                 <li>Timeline (Gantt-style view)</li>
-                <li>Dependency Graph</li>
                 <li>AI Assistant</li>
             </ul>
         </div>
@@ -435,25 +436,34 @@
 
 <!-- ═══ WHAT'S NEW ═══ -->
 <div class="section" id="whats-new">
-    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v2.6</h2>
+    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v2.7</h2>
 
-    <h3>&#127912; Theme Toggle Button</h3>
-    <p>A dedicated <strong>sun / moon icon button</strong> now lives in the toolbar between Settings and Help. Click it (or press <kbd>Ctrl+T</kbd>) to instantly switch between Dark and Light themes. The button icon updates to reflect the current theme.</p>
+    <h3>&#128221; Raw View Tab</h3>
+    <p>A new <strong>Raw</strong> tab shows the unformatted file content in a read-only, scrollable text box (Consolas font, horizontal + vertical scrollbars). Files above 50,000 lines are capped with a visible notice. Toggle it via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Raw</span>.</p>
 
-    <h3>&#127795; AI Assistant Tab</h3>
-    <p>A fully integrated <strong>AI analysis panel</strong> powered by Claude API. Summarise logs, detect anomalies, analyse performance, find patterns, suggest root causes, and generate bug reports &#8212; all from one tab.</p>
+    <h3>&#128196; API Tree &#8212; ENTER/EXIT counting fixed</h3>
+    <p>Each invocation of an API now appears as <strong>exactly one node</strong>, regardless of whether ENTER+EXIT, ENTER-only, or EXIT-only exists. Orphan EXIT lines (no matching ENTER) are shown with an <em>[EXIT only]</em> label and a red &#10060; icon. Call counts are no longer doubled.</p>
 
-    <h3>&#128218; Dependency Graph Tab</h3>
-    <p>A new <strong>Dependency Graph</strong> tab visualises which methods call which, giving a high-level architectural view of your log session.</p>
+    <h3>&#9881; Settings Dialog &#8212; fully redesigned</h3>
+    <p>The settings dialog is now a compact <strong>TabControl</strong> with six organised pages instead of a single long scroll. A <strong>Reset to Defaults</strong> button (bottom-left) instantly resets all non-security settings. New settings added: <em>Default open folder</em>, <em>Default tree view</em>, and <em>Start-up tab</em>.</p>
 
-    <h3>&#9881; Generated Toolbar Icons</h3>
-    <p>All toolbar icons are now <strong>programmatically generated flat icons</strong> (no embedded image files). They scale perfectly at Small (16&#215;16), Medium (24&#215;24), and Large (32&#215;32) and adapt to the active theme.</p>
+    <h3>&#127794; Start-up tab &amp; tree view restored</h3>
+    <p>The <em>Start-up tab</em> and <em>Default tree view</em> settings are now correctly applied when the application launches, not just saved. Choose any of the 8 tabs and Call Tree or API Tree as your preferred opening state.</p>
 
-    <h3>&#128269; Improved Tree Search</h3>
-    <p>The tree-search box above the tree panel now filters nodes in real-time, highlights matching nodes in yellow, and auto-expands parent nodes that contain a match.</p>
+    <h3>&#128197; Show Tabs menu &#8212; all 8 tabs, correct labels &amp; icons</h3>
+    <p>The <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs</span> submenu now contains all eight tabs with meaningful names (<em>Log View, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant</em>) and matching icons. Previously, Call Graph had no entry and several items had wrong labels.</p>
 
-    <h3>&#128218; HTML User Guide</h3>
-    <p>This guide &#8212; a fully navigable, dark-sidebar HTML document &#8212; replaces the old plain-text help.</p>
+    <h3>&#127912; Theme switching performance improved</h3>
+    <p>Switching themes no longer re-subscribes drawing handlers on every control on every call &#8212; only the first switch from light&#8596;dark direction incurs the full walk. Repeated theme toggles are now near-instant.</p>
+
+    <h3>&#128683; Expand/Collapse icons corrected</h3>
+    <p>The Expand All and Collapse All toolbar buttons now use the correct Segoe MDL2 glyphs (ChevronDown / ChevronRight) instead of the generic Add/Remove symbols that rendered as <code>??</code> on some systems.</p>
+
+    <h3>&#128295; All toolbar icons render on Windows 10 RTM+</h3>
+    <p>Eleven icon codepoints that were in the extended PUA range (E9xx&#8211;EDxx) and unavailable on older Windows 10 builds have been replaced with equivalents in the guaranteed-available E7xx&#8211;E8xx range.</p>
+
+    <h3>&#128193; Resource string encoding fixed</h3>
+    <p>Six resource strings (sort labels, dialog titles, summary row) were double-encoded as mojibake. They now display correctly: &#8595;, &#8212;, &#9472;, &#10003;, &#10007;.</p>
 </div>
 
 
@@ -502,7 +512,7 @@
             <tr><td><strong>Menu Bar</strong></td><td>Five top-level menus: <em>File, Edit, Options, View, Help</em></td></tr>
             <tr><td><strong>Toolbar</strong></td><td>One-click access to the most common actions (see <a href="#toolbar">Toolbar Reference</a>)</td></tr>
             <tr><td><strong>Tree Panel (left)</strong></td><td>Call Tree or API Tree + real-time search box at the top</td></tr>
-            <tr><td><strong>Tab Panel (right)</strong></td><td>Log View, Performance, Log Details, Call Graph, Flame Graph, Timeline, Dependency Graph, AI Assistant</td></tr>
+            <tr><td><strong>Tab Panel (right)</strong></td><td>Log View, <strong>Raw</strong>, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant &#8212; toggle each via <span class="menu">View &#8594; Show Tabs</span></td></tr>
             <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line preview</td></tr>
             <tr><td><strong>Splitter</strong></td><td>Drag the vertical divider to resize the tree vs. tab panels. Position is saved per session.</td></tr>
         </tbody>
@@ -527,8 +537,8 @@
         <tbody>
             <tr><td>Open file</td><td><kbd>Ctrl+O</kbd> / &#128193; Open</td><td>File &#8594; Open&#8230;</td><td>Supports .log, .log.*, and any text file</td></tr>
             <tr><td>Merge log files</td><td><kbd>Ctrl+M</kbd></td><td>File &#8594; Merge Log Files&#8230;</td><td>Select 2+ files; merged view is time-sorted</td></tr>
-            <tr><td>Save selected lines</td><td><kbd>Ctrl+S</kbd> / &#128190; Save</td><td>File &#8594; Save Selected&#8230;</td><td>Saves visible/selected lines to a new .log file</td></tr>
-            <tr><td>Save to XLS</td><td><kbd>Ctrl+Shift+E</kbd> / &#128202; XLS</td><td>File &#8594; Save to XLS&#8230;</td><td>Exports filtered view to Excel format</td></tr>
+            <tr><td>Save selected branch</td><td><kbd>Ctrl+S</kbd> / &#128190; Save</td><td>File &#8594; Save Selected&#8230;</td><td>Saves the ENTER&#8594;EXIT log block for the <em>currently selected tree node</em> to a .log file named <code>{original-file}{suffix}.log</code></td></tr>
+            <tr><td>Export Performance to XLS</td><td><kbd>Ctrl+Shift+E</kbd> / &#128202; XLS</td><td>File &#8594; Save to XLS&#8230;</td><td>Exports the <strong>Performance tab statistics</strong> (all API rows) to a SpreadsheetML .xls file readable by Excel</td></tr>
             <tr><td>Export Performance CSV</td><td>&#8212;</td><td>File &#8594; Export Performance to CSV&#8230;</td><td>Exports the Performance tab table</td></tr>
             <tr><td>Export Tree as JSON</td><td>&#8212;</td><td>File &#8594; Export Tree as JSON&#8230;</td><td>Full call tree in JSON format</td></tr>
             <tr><td>Export Tree as XML</td><td>&#8212;</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Full call tree in XML format</td></tr>
@@ -651,6 +661,22 @@
     </ul>
 </div>
 
+
+<!-- ═══ RAW VIEW TAB ═══ -->
+<div class="section" id="raw-view">
+    <h2 class="section-title"><span class="ico">&#128196;</span> Raw View Tab</h2>
+    <p>The <strong>Raw</strong> tab shows the complete unformatted file content in a read-only text box &#8212; useful for checking the exact bytes as they appear on disk, for copying arbitrary spans, or for viewing lines that the parser might skip.</p>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Font</span><span class="desc">Consolas 9.75 pt &#8212; same monospace as the log view</span></div>
+        <div class="feature-row"><span class="label">Scrollbars</span><span class="desc">Both horizontal and vertical &#8212; long lines never wrap</span></div>
+        <div class="feature-row"><span class="label">Read-only</span><span class="desc">Content cannot be edited; select text to copy with <kbd>Ctrl+C</kbd></span></div>
+        <div class="feature-row"><span class="label">Line cap</span><span class="desc">Files above 50,000 lines show the first 50,000 with a notice at the bottom. Use the Log View for full navigation of very large files.</span></div>
+        <div class="feature-row"><span class="label">Theme-aware</span><span class="desc">Background and foreground follow the active Light / Dark theme</span></div>
+    </div>
+
+    <p>Toggle via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Raw</span> or uncheck <em>Raw</em> in the <strong>Settings &#8594; Tabs &amp; Layout</strong> page.</p>
+</div>
 
 <!-- ═══ SEARCH & FILTER ═══ -->
 <div class="section" id="search-filter">
@@ -793,8 +819,11 @@
 
     <div class="card">
         <div class="feature-row"><span class="label">Root node format</span><span class="desc"><code>MethodName  (N calls)</code> &#8212; click to scroll to first occurrence</span></div>
-        <div class="feature-row"><span class="label">Child node format</span><span class="desc"><code>MethodName &#8212; Ln 1234</code> &#8212; click to scroll to that specific line</span></div>
-        <div class="feature-row"><span class="label">&#9989; / &#10060; icon</span><span class="desc">Green if <em>all</em> invocations are matched; red if any ENTER lacks a matching EXIT</span></div>
+        <div class="feature-row"><span class="label">Child node (normal)</span><span class="desc"><code>MethodName &#8212; Ln 1234</code> &#8212; ENTER line; click to scroll to that invocation</span></div>
+        <div class="feature-row"><span class="label">Child node (orphan)</span><span class="desc"><code>MethodName &#8212; Ln 1234 &nbsp;[EXIT only]</code> &#8212; EXIT with no matching ENTER; always shown with &#10060;</span></div>
+        <div class="feature-row"><span class="label">&#9989; icon (green check)</span><span class="desc">All invocations have a matching ENTER + EXIT pair</span></div>
+        <div class="feature-row"><span class="label">&#10060; icon (red cross)</span><span class="desc">One or more ENTER lines lack a matching EXIT (or vice versa)</span></div>
+        <div class="feature-row"><span class="label">One node per call</span><span class="desc">Each invocation appears as exactly one child node whether ENTER+EXIT, ENTER-only, or EXIT-only exists</span></div>
     </div>
 
     <p>Selecting an API Tree node also displays its invocation details in the <strong>Log Details</strong> tab (API name, total count, first occurrence, all line numbers, match status).</p>
@@ -857,7 +886,7 @@
 <!-- ═══ PERFORMANCE TAB ═══ -->
 <div class="section" id="performance">
     <h2 class="section-title"><span class="ico">&#128202;</span> Performance Tab</h2>
-    <p>Provides a sortable statistics table for every method seen in the log. Enable via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Performance View</span>.</p>
+    <p>Provides a sortable statistics table for every method seen in the log. Enable via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Performance</span>.</p>
 
     <table>
         <thead><tr><th>Column</th><th>Description</th></tr></thead>
@@ -1004,8 +1033,9 @@
     <table>
         <thead><tr><th>Format</th><th>How to access</th><th>Content</th></tr></thead>
         <tbody>
-            <tr><td>Plain text (.log)</td><td><kbd>Ctrl+S</kbd> or File &#8594; Save Selected&#8230;</td><td>Currently visible (or selected) log lines</td></tr>
-            <tr><td>Excel (.xls)</td><td><kbd>Ctrl+Shift+E</kbd> or File &#8594; Save to XLS&#8230;</td><td>Filtered view exported to Excel format</td></tr>
+            <tr><td>Plain text (.log) &#8212; branch</td><td><kbd>Ctrl+S</kbd> or File &#8594; Save Selected&#8230;</td><td>The complete ENTER&#8594;EXIT log block for the currently selected tree node. Default filename: <code>{original-name}{suffix}.log</code> where suffix is set in Settings &#8594; Files &amp; Behavior</td></tr>
+            <tr><td>Plain text (.log) &#8212; branch context menu</td><td>Right-click tree node &#8594; Save Branch&#8230;</td><td>Same ENTER&#8594;EXIT extraction, but prompted directly from the context menu with a method-named default filename</td></tr>
+            <tr><td>Excel (.xls) &#8212; Performance</td><td><kbd>Ctrl+Shift+E</kbd> or File &#8594; Save to XLS&#8230;</td><td>All rows from the Performance tab: API Name, Calls, Total/Avg/Min/Max/Self (ms), Source File. Rows are colour-coded red/amber matching the Performance tab thresholds</td></tr>
         </tbody>
     </table>
 
@@ -1036,31 +1066,71 @@
 <!-- ═══ SETTINGS ═══ -->
 <div class="section" id="settings">
     <h2 class="section-title"><span class="ico">&#9881;</span> Settings Dialog <kbd>Ctrl+Shift+S</kbd></h2>
-    <p>Open via <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> or the toolbar Settings button.</p>
+    <p>Open via <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> or the toolbar Settings button. The dialog is organised into <strong>six tabs</strong>. Click <strong>Reset to Defaults</strong> (bottom-left) to restore all non-security settings in one step.</p>
 
+    <h3>Appearance</h3>
     <table>
-        <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>Theme</td><td>Light or Dark &#8212; applied immediately; also toggled by the toolbar &#9728;/&#9790; button or <kbd>Ctrl+T</kbd></td></tr>
-            <tr><td>Toolbar icon size</td><td>Small (16 px), Medium (24 px), Large (32 px)</td></tr>
-            <tr><td>Show toolbar</td><td>Hides / shows the entire toolbar</td></tr>
-            <tr><td>Log font family / size / style</td><td>Font used in the Log View and Log Details. Apply via View &#8594; Select Font&#8230;</td></tr>
-            <tr><td>Slow call threshold (ms)</td><td>Duration above which performance rows are coloured red (default 1000 ms)</td></tr>
-            <tr><td>Highlight colour</td><td>Background colour used for search highlights</td></tr>
-            <tr><td>Save snippet suffix</td><td>Appended to the filename when using Save Branch</td></tr>
-            <tr><td>Recent file count</td><td>How many recent files to remember (max 10)</td></tr>
-            <tr><td>Initial directory</td><td>Overrides PTC_LOG_DIR for the Open dialog</td></tr>
-            <tr><td>Grok URL</td><td>Base URL for the &#8220;Search in Grok&#8221; tree context menu item</td></tr>
-            <tr><td>Claude API key</td><td>Anthropic API key for the AI Assistant Claude mode</td></tr>
-            <tr><td>Use Claude API</td><td>Enables/disables Claude API; falls back to built-in heuristics when off</td></tr>
-            <tr><td>Window position / size</td><td>Saved and restored automatically</td></tr>
-            <tr><td>Splitter distance</td><td>Saved and restored automatically</td></tr>
-            <tr><td>Search history</td><td>Last 20 search terms; persisted between sessions</td></tr>
+            <tr><td>Theme</td><td>Light</td><td>Light or Dark &#8212; applied immediately; also toggled by <kbd>Ctrl+T</kbd></td></tr>
+            <tr><td>Toolbar icon size</td><td>Medium</td><td>Small (16 px), Medium (24 px), Large (32 px)</td></tr>
+            <tr><td>Toolbar visible</td><td>&#10003;</td><td>Show or hide the main toolbar</td></tr>
+            <tr><td>Highlight colour</td><td>Yellow</td><td>Background colour for search-match highlighting</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Tabs &amp; Layout</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Visible Tabs</td><td>All &#10003;</td><td>8 checkboxes (Log View, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant) &#8212; uncheck to hide a tab</td></tr>
+            <tr><td>Start-up tab</td><td>Log</td><td>Which tab is selected when the application opens. Choices: Log, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant</td></tr>
+            <tr><td>Default tree view</td><td>Call Tree</td><td>Which tree panel is shown on startup: <em>Call Tree</em> or <em>API Tree</em></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Log Font</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Font family</td><td>Consolas</td><td>Monospace font used in Log View and Log Details</td></tr>
+            <tr><td>Font size (pt)</td><td>9.0</td><td>Range 6&#8211;24 pt</td></tr>
+            <tr><td>Bold / Italic</td><td>Off</td><td>Style modifiers</td></tr>
+            <tr><td>Preview Font&#8230;</td><td>&#8212;</td><td>Button &#8212; shows a sample text box in the chosen font</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Files &amp; Behavior</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Default open folder</td><td><em>empty</em></td><td>Overrides <code>PTC_LOG_DIR</code> env var as the default directory for the Open dialog. Browse&#8230; button included.</td></tr>
+            <tr><td>Max recent files</td><td>10</td><td>How many files appear in File &#8594; Recent Files (5&#8211;20)</td></tr>
+            <tr><td>Snippet file suffix</td><td>_snippet</td><td>Appended to the original log filename when using <em>Save Selected</em> (<kbd>Ctrl+S</kbd>) or <em>Save Branch</em>. E.g. suffix <code>_snippet</code> with file <code>trace.log</code> produces <code>trace_snippet.log</code></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Performance</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Slow call threshold</td><td>1000 ms</td><td>Performance rows &#8805; this value are coloured red; rows &#8805; 1/10 of this are amber</td></tr>
+            <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list is bypassed and only the Raw tab populates</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Integration</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Grok URL</td><td><em>empty</em></td><td>Base URL for the &#8220;Search in Grok&#8221; tree context menu item</td></tr>
+            <tr><td>Claude API Key</td><td><em>empty</em></td><td>Anthropic API key for AI Claude mode (stored password-masked)</td></tr>
+            <tr><td>Enable Claude AI</td><td>Off</td><td>When on, the AI Assistant uses the Claude API; when off, the built-in heuristic engine is used</td></tr>
         </tbody>
     </table>
 
     <div class="info">
-        <strong>&#128193; Storage location:</strong> All settings are saved to <code>%AppData%\CAD3PLogBrowser\appsettings.json</code>. Delete this file to reset everything to defaults.
+        <strong>&#128193; Storage location:</strong> All settings are saved to <code>%AppData%\CAD3PLogBrowser\settings.json</code>. Use <strong>Reset to Defaults</strong> in the dialog, or delete this file, to restore factory defaults.
     </div>
 </div>
 
@@ -1096,8 +1166,8 @@
         <tbody>
             <tr><td>Open&#8230;</td><td><kbd>Ctrl+O</kbd></td><td>Open a log file</td></tr>
             <tr><td>Merge Log Files&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
-            <tr><td>Save Selected&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected lines to .log</td></tr>
-            <tr><td>Save to XLS&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export filtered view to Excel</td></tr>
+            <tr><td>Save Selected&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save the ENTER&#8594;EXIT block of the selected tree node to a .log file</td></tr>
+            <tr><td>Save to XLS&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export Performance tab statistics to Excel SpreadsheetML (.xls)</td></tr>
             <tr><td>Export Performance to CSV&#8230;</td><td></td><td>Export performance statistics</td></tr>
             <tr><td>Export Tree as JSON&#8230;</td><td></td><td>Export call tree as JSON</td></tr>
             <tr><td>Export Tree as XML&#8230;</td><td></td><td>Export call tree as XML</td></tr>
@@ -1146,14 +1216,14 @@
         <tbody>
             <tr><td>Show Call Tree (&#10003;)</td><td>Toggle Call Tree in the left panel</td></tr>
             <tr><td>Show API Tree (&#10003;)</td><td>Toggle API Tree in the left panel (mutually exclusive with Call Tree)</td></tr>
-            <tr><td>Show Tabs &#8594; LogView</td><td>Show/hide the Log View tab</td></tr>
-            <tr><td>Show Tabs &#8594; Performance View</td><td>Show/hide the Performance tab</td></tr>
-            <tr><td>Show Tabs &#8594; Details</td><td>Show/hide the Log Details tab</td></tr>
-            <tr><td>Show Tabs &#8594; CallGraph</td><td>Show/hide the Call Graph tab</td></tr>
+            <tr><td>Show Tabs &#8594; Log View</td><td>Show/hide the Log View tab</td></tr>
+            <tr><td>Show Tabs &#8594; Raw</td><td>Show/hide the Raw View tab</td></tr>
+            <tr><td>Show Tabs &#8594; Performance</td><td>Show/hide the Performance tab</td></tr>
+            <tr><td>Show Tabs &#8594; Log Details</td><td>Show/hide the Log Details tab</td></tr>
+            <tr><td>Show Tabs &#8594; Call Graph</td><td>Show/hide the Call Graph tab</td></tr>
             <tr><td>Show Tabs &#8594; Flame Graph</td><td>Show/hide the Flame Graph tab</td></tr>
             <tr><td>Show Tabs &#8594; Timeline</td><td>Show/hide the Timeline tab</td></tr>
-            <tr><td>Show Tabs &#8594; Dependency Graph</td><td>Show/hide the Dependency Graph tab (added dynamically)</td></tr>
-            <tr><td>Show Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab (added dynamically)</td></tr>
+            <tr><td>Show Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab</td></tr>
             <tr><td>Select Font&#8230;</td><td>Open font picker for the log view</td></tr>
             <tr><td>Show Toolbar (&#10003;)</td><td>Hide/show the main toolbar</td></tr>
         </tbody>
@@ -1377,7 +1447,7 @@
 
 
 <footer>
-    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v2.6 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v2.7 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
     <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
 </footer>
 

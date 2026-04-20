@@ -159,12 +159,19 @@ namespace Cad3PLogBrowser.Services
 
         // ── API list (flat, unique names) ─────────────────────────────────────
         /// <summary>
-        /// Returns one <see cref="ApiCallNode"/> per unique API name found in the log,
-        /// with all line numbers at which that API appears.
+        /// Returns one <see cref="ApiCallNode"/> per unique API name found in the log.
+        /// <see cref="ApiCallNode.LineNumbers"/> contains only the ENTER line for each
+        /// invocation so that each call is counted exactly once.
+        /// Invocations that have only an EXIT (no matching ENTER) are tracked separately
+        /// in <see cref="ApiCallNode.ExitOnlyLines"/>.
         /// </summary>
         public List<ApiCallNode> BuildApiList(List<LogEntry> entries)
         {
-            var map = new Dictionary<string, ApiCallNode>(StringComparer.Ordinal);
+            var map   = new Dictionary<string, ApiCallNode>(StringComparer.Ordinal);
+            // Running count of unmatched ENTERs per API.
+            // ENTER → depth++   |   EXIT when depth>0 → depth-- (matched, no node added)
+            //                         EXIT when depth==0 → orphan EXIT → ExitOnlyLines
+            var depth = new Dictionary<string, int>(StringComparer.Ordinal);
 
             foreach (var entry in entries)
             {
@@ -173,9 +180,22 @@ namespace Cad3PLogBrowser.Services
                 if (!map.TryGetValue(entry.ApiName, out var node))
                 {
                     node = new ApiCallNode { ApiName = entry.ApiName };
-                    map[entry.ApiName] = node;
+                    map[entry.ApiName]   = node;
+                    depth[entry.ApiName] = 0;
                 }
-                node.LineNumbers.Add(entry.LineNumber);
+
+                if (entry.IsCallEnter)
+                {
+                    node.LineNumbers.Add(entry.LineNumber);
+                    depth[entry.ApiName]++;
+                }
+                else if (entry.IsCallExit)
+                {
+                    if (depth[entry.ApiName] > 0)
+                        depth[entry.ApiName]--;          // normal matched EXIT — no extra node
+                    else
+                        node.ExitOnlyLines.Add(entry.LineNumber); // orphan EXIT with no ENTER
+                }
             }
 
             var list = new List<ApiCallNode>(map.Values);
@@ -329,9 +349,13 @@ namespace Cad3PLogBrowser.Services
     /// <summary>One unique API name with all line numbers it appears on.</summary>
     public class ApiCallNode
     {
-        public string    ApiName     { get; set; }
-        public List<int> LineNumbers { get; } = new List<int>();
-        public int       FirstLine   => LineNumbers.Count > 0 ? LineNumbers[0] : -1;
+        public string    ApiName      { get; set; }
+        /// <summary>Line numbers of ENTER calls (one per invocation).</summary>
+        public List<int> LineNumbers  { get; } = new List<int>();
+        /// <summary>EXIT lines that had no matching ENTER (orphan EXITs).</summary>
+        public List<int> ExitOnlyLines { get; } = new List<int>();
+        public int       FirstLine    => LineNumbers.Count > 0 ? LineNumbers[0]
+                                      : ExitOnlyLines.Count > 0 ? ExitOnlyLines[0] : -1;
         public override string ToString() =>
             string.Format("{0}  ({1}×)", ApiName, LineNumbers.Count);
     }

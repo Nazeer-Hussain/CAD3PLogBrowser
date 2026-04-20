@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -24,6 +24,7 @@ namespace Cad3PLogBrowser
         private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
         private OperationOverlayPanel      _overlay;
+        private UI.LineInspectorPanel      _lineInspector;
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
@@ -87,11 +88,11 @@ namespace Cad3PLogBrowser
         {
             switch (id)
             {
-                case TabId.Log:         return showTab1MenuItem;
-                case TabId.Raw:         return showTab2MenuItem;
-                case TabId.Performance: return showTab3MenuItem;
-                case TabId.LogDetails:  return showTab4MenuItem;
-                case TabId.CallGraph:   return null; // No specific menu item
+                case TabId.Log:         return showLogTabMenuItem;
+                case TabId.Raw:         return showRawTabMenuItem;
+                case TabId.Performance: return showPerformanceTabMenuItem;
+                case TabId.LogDetails:  return showLogDetailsTabMenuItem;
+                case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
                 default:                return null;
@@ -113,27 +114,33 @@ namespace Cad3PLogBrowser
 
             if (mainTabControl.TabPages.Count <= 1)
             {
-                if (ReferenceEquals(tab, logTab)) showTab1MenuItem.Checked = true;
-                if (ReferenceEquals(tab, performanceTab)) showTab2MenuItem.Checked = true;
-                if (ReferenceEquals(tab, logDetailTab)) showTab3MenuItem.Checked = true;
-                if (ReferenceEquals(tab, callGraphTab)) showTab4MenuItem.Checked = true;
+                if (ReferenceEquals(tab, logTab))         showLogTabMenuItem.Checked         = true;
+                if (ReferenceEquals(tab, rawTab))         showRawTabMenuItem.Checked         = true;
+                if (ReferenceEquals(tab, performanceTab)) showPerformanceTabMenuItem.Checked = true;
+                if (ReferenceEquals(tab, logDetailTab))   showLogDetailsTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
+                if (ReferenceEquals(tab, flameGraphTab))  showFlameGraphTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
                 return;
             }
 
             mainTabControl.TabPages.Remove(tab);
         }
 
-        private void showTab1MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logTab, showTab1MenuItem.Checked);
+        private void showLogTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logTab,         showLogTabMenuItem.Checked);
 
-        private void showTab2MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(performanceTab, showTab2MenuItem.Checked);
+        private void showRawTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(rawTab,         showRawTabMenuItem.Checked);
 
-        private void showTab3MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(logDetailTab, showTab3MenuItem.Checked);
+        private void showPerformanceTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(performanceTab, showPerformanceTabMenuItem.Checked);
 
-        private void showTab4MenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(callGraphTab, showTab4MenuItem.Checked);
+        private void showLogDetailsTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(logDetailTab,   showLogDetailsTabMenuItem.Checked);
+
+        private void showCallGraphMenuItem_CheckedChanged(object sender, EventArgs e) =>
+            SetTabVisible(callGraphTab,   showCallGraphMenuItem.Checked);
 
         private void showCallTreeMenuItem_CheckedChanged(object sender, EventArgs e)
         {
@@ -313,6 +320,11 @@ namespace Cad3PLogBrowser
             _overlay = new OperationOverlayPanel();
             Controls.Add(_overlay);
             _overlay.BringToFront();
+
+            // Replace logDetailBox with the structured Line Inspector
+            _lineInspector = new UI.LineInspectorPanel();
+            logDetailTab.Controls.Clear();
+            logDetailTab.Controls.Add(_lineInspector);
             _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
@@ -368,6 +380,9 @@ namespace Cad3PLogBrowser
 
             // Force layout again when form is shown to ensure correct positioning
             LayoutTrees();
+
+            // Restore the start-up tab chosen by the user in Settings
+            ApplyInitialView();
         }
 
         /// <summary>
@@ -455,6 +470,7 @@ namespace Cad3PLogBrowser
                 timelinePanel?.UpdateTheme();
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
+                _lineInspector?.ApplyTheme();
 
                 // Apply icon size
                 ApplyIconSize();
@@ -469,6 +485,14 @@ namespace Cad3PLogBrowser
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
                 {
                     logListView.Invalidate();
+                }
+
+                // Apply theme to raw text view
+                if (rawTextBox != null)
+                {
+                    bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+                    rawTextBox.BackColor = ThemeManager.ControlBackgroundColor;
+                    rawTextBox.ForeColor = ThemeManager.ForegroundColor;
                 }
 
                 // Refresh the call graph panel
@@ -590,6 +614,35 @@ namespace Cad3PLogBrowser
                     return true;
             }
             return false;
+        }
+
+        /// <summary>Selects the start-up tab and tree view that were saved in Settings.</summary>
+        private void ApplyInitialView()
+        {
+            // Apply default tree view (Call Tree vs API Tree)
+            if (_appSettings.DefaultTreeView == "Api")
+                ShowApiTree();
+            else
+                ShowCallTree();
+
+            // Map the human-readable setting string to a tab page
+            TabPage target = null;
+            switch (_appSettings.InitialView ?? "Log")
+            {
+                case "Log":         target = logTab;          break;
+                case "Raw":         target = rawTab;          break;
+                case "Performance": target = performanceTab;  break;
+                case "Log Details": target = logDetailTab;    break;
+                case "Call Graph":  target = callGraphTab;    break;
+                case "Flame Graph": target = flameGraphTab;   break;
+                case "Timeline":    target = timelineTab;     break;
+                case "AI Assistant": target = _aiTab;          break;
+                // Legacy values saved by older builds
+                case "LogView":     target = logTab;          break;
+                case "ApiView":     target = logTab;          break;
+            }
+            if (target != null && mainTabControl.TabPages.Contains(target))
+                mainTabControl.SelectedTab = target;
         }
 
         private void SaveSettings()
@@ -742,6 +795,8 @@ namespace Cad3PLogBrowser
                     var n = ApiTree.SelectedNode;
                     if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
                 });
+                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
@@ -935,8 +990,8 @@ namespace Cad3PLogBrowser
             {
                 // Check if all occurrences have matching ENTER/EXIT pairs
                 bool allMatched = AreAllApiCallsMatched(node.ApiName);
-                // Feature C3: Show call count in API tree root node
-                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, node.LineNumbers.Count);
+                int totalCalls = node.LineNumbers.Count + node.ExitOnlyLines.Count;
+                string apiLabel = string.Format("{0}  ({1} calls)", node.ApiName, totalCalls);
                 var apiRoot = new TreeNode(apiLabel)
                 {
                     Tag             = node.FirstLine,
@@ -944,7 +999,7 @@ namespace Cad3PLogBrowser
                     SelectedImageIndex = allMatched ? 0 : 1
                 };
 
-                // Children: "ApiName — Ln N" per invocation
+                // Children: one per ENTER invocation
                 foreach (int lineNo in node.LineNumbers)
                 {
                     var child = new TreeNode(string.Format("{0} — Ln {1}", node.ApiName, lineNo))
@@ -952,6 +1007,18 @@ namespace Cad3PLogBrowser
                         Tag                = lineNo,
                         ImageIndex         = allMatched ? 0 : 1,
                         SelectedImageIndex = allMatched ? 0 : 1
+                    };
+                    apiRoot.Nodes.Add(child);
+                }
+
+                // EXIT-only children (orphan EXITs with no matching ENTER)
+                foreach (int lineNo in node.ExitOnlyLines)
+                {
+                    var child = new TreeNode(string.Format("{0} — Ln {1}  [EXIT only]", node.ApiName, lineNo))
+                    {
+                        Tag                = lineNo,
+                        ImageIndex         = 1,    // always unmatched
+                        SelectedImageIndex = 1
                     };
                     apiRoot.Nodes.Add(child);
                 }
@@ -1403,6 +1470,12 @@ namespace Cad3PLogBrowser
         private void ApiTree_AfterSelect(object sender, TreeViewEventArgs e)
         {
             ScrollLogToLine(e.Node?.Tag);
+
+            // If the Log Details tab is the active tab, auto-inspect the selected line.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && e.Node?.Tag is int ln
+                && _lineIndexMap.TryGetValue(ln, out int idx))
+                ShowLogDetail(idx);
             ShowApiDetails(e.Node);  // D3: show invocation details
 
             // D5: Cross-reference - highlight matching node in Call Tree if both visible
@@ -1475,11 +1548,6 @@ namespace Cad3PLogBrowser
                 logDetailBox.Invoke((Action)(() => logDetailBox.Text = sb.ToString()));
             else
                 logDetailBox.Text = sb.ToString();
-
-            // Switch to Log Details tab to show it
-            if (mainTabControl != null && logDetailTab != null &&
-                mainTabControl.TabPages.Contains(logDetailTab))
-                mainTabControl.SelectedTab = logDetailTab;
         }
 
         private void ApiTree_Click(object sender, EventArgs e) { }
@@ -1489,13 +1557,18 @@ namespace Cad3PLogBrowser
         {
             ScrollLogToLine(e.Node?.Tag);
 
+            // If the Log Details tab is the active tab, auto-inspect the selected line.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && e.Node?.Tag is int ln
+                && _lineIndexMap.TryGetValue(ln, out int idx))
+                ShowLogDetail(idx);
+
             // D5: Cross-reference - highlight matching node in API Tree if both have data
             if (e.Node != null && ApiTree.Nodes.Count > 0)
             {
                 string methodName = GetMethodNameFromNode(e.Node);
                 if (!string.IsNullOrEmpty(methodName))
                 {
-                    // Don't trigger recursive selection events
                     ApiTree.AfterSelect -= ApiTree_AfterSelect;
                     TryHighlightInApiTree(methodName);
                     ApiTree.AfterSelect += ApiTree_AfterSelect;
@@ -1522,23 +1595,45 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
             logListView.Focus();
-            ShowLogDetail(idx);
         }
 
         // ── Log Details panel ─────────────────────────────────────────────────
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateSelectionStatus();
-            if (logListView.SelectedIndices.Count > 0)
+
+            // If the Log Details tab is active, auto-inspect the newly selected row.
+            if (mainTabControl.SelectedTab == logDetailTab
+                && logListView.SelectedIndices.Count > 0)
                 ShowLogDetail(logListView.SelectedIndices[0]);
         }
 
         private void ShowLogDetail(int idx)
         {
-            if (idx < 0 || idx >= _virtualLines.Count) return;
-            logDetailBox.Text = string.Format(Resources.LOG_DETAIL_FORMAT,
-                _virtualLines[idx].LineNumber.ToString(), _virtualLines[idx].Text);
+            if (idx < 0 || idx >= _virtualLines.Count || _lineInspector == null) return;
+
+            // Convert _virtualLines to the panel's simple InspectorLine type
+            var lines = new List<UI.LineInspectorPanel.InspectorLine>(_virtualLines.Count);
+            foreach (var vl in _virtualLines)
+                lines.Add(new UI.LineInspectorPanel.InspectorLine { LineNumber = vl.LineNumber, Text = vl.Text });
+
+            _lineInspector.Inspect(lines, idx, _lastEntries);
+
+            // Switch to Log Details tab
+            if (mainTabControl != null && logDetailTab != null
+                && mainTabControl.TabPages.Contains(logDetailTab))
+                mainTabControl.SelectedTab = logDetailTab;
         }
+
+        /// <summary>Inspects the currently selected log-list row (F12 / context menu).</summary>
+        private void InspectSelectedLine()
+        {
+            if (logListView.SelectedIndices.Count == 0) return;
+            ShowLogDetail(logListView.SelectedIndices[0]);
+        }
+
+        private void contextInspectLineMenuItem_Click(object sender, EventArgs e) =>
+            InspectSelectedLine();
 
         // ── #7: Virtual mode handler ──────────────────────────────────────────
         private void listView1_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
@@ -1623,6 +1718,7 @@ namespace Cad3PLogBrowser
 
                 // Populate views with progress
                 PopulateVirtualListView(_allLines);
+                PopulateRawView(_allLines);
                 FileLoadProgress.Value = 33;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
                 _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
@@ -1670,6 +1766,23 @@ namespace Cad3PLogBrowser
         /// items are produced on demand in RetrieveVirtualItem. This makes loading
         /// 500k-line files near-instant.
         /// </summary>
+        private void PopulateRawView(IList<string> lines)
+        {
+            if (rawTextBox == null) return;
+            // Cap at 50 000 lines to keep the RichTextBox responsive
+            const int MaxRawLines = 50_000;
+            bool truncated = lines.Count > MaxRawLines;
+            var sb = new System.Text.StringBuilder(Math.Min(lines.Count, MaxRawLines) * 80);
+            int count = Math.Min(lines.Count, MaxRawLines);
+            for (int i = 0; i < count; i++)
+            {
+                sb.AppendLine(lines[i]);
+            }
+            if (truncated)
+                sb.AppendLine($"[... {lines.Count - MaxRawLines:N0} more lines not shown — file exceeds raw view limit ...]");
+            rawTextBox.Text = sb.ToString();
+        }
+
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
@@ -1844,12 +1957,13 @@ namespace Cad3PLogBrowser
             tabsMenuItem.Image             = IconGenerator.CreateTabIcon(msz);
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
-            showTab1MenuItem.Image         = IconGenerator.CreateTabLogIcon(msz);
-            showTab2MenuItem.Image         = IconGenerator.CreateTabPerformanceIcon(msz);
-            showTab3MenuItem.Image         = IconGenerator.CreateTabLogDetailsIcon(msz);
-            showTab4MenuItem.Image         = IconGenerator.CreateTabCallGraphIcon(msz);
+            showLogTabMenuItem.Image          = IconGenerator.CreateTabLogIcon(msz);
+            showRawTabMenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
+            showPerformanceTabMenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
+            showLogDetailsTabMenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
+            showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
             showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
-            showTimelineTabMenuItem.Image  = IconGenerator.CreateTabTimelineIcon(msz);
+            showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
             settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
@@ -1903,19 +2017,21 @@ namespace Cad3PLogBrowser
 
             // Index 0 – Log
             il.Images.Add("log",        IconGenerator.CreateTabLogIcon(sz));
-            // Index 1 – Performance
+            // Index 1 – Raw
+            il.Images.Add("raw",        IconGenerator.CreateTabRawIcon(sz));
+            // Index 2 – Performance
             il.Images.Add("perf",       IconGenerator.CreateTabPerformanceIcon(sz));
-            // Index 2 – Log Details
+            // Index 3 – Log Details
             il.Images.Add("details",    IconGenerator.CreateTabLogDetailsIcon(sz));
-            // Index 3 – Call Graph
+            // Index 4 – Call Graph
             il.Images.Add("callgraph",  IconGenerator.CreateTabCallGraphIcon(sz));
-            // Index 4 – Flame Graph
+            // Index 5 – Flame Graph
             il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
-            // Index 5 – Timeline
+            // Index 6 – Timeline
             il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
-            // Index 6 – AI Assistant
+            // Index 7 – AI Assistant
             il.Images.Add("ai",         IconGenerator.CreateTabAiIcon(sz));
-            // Index 7 – generic fallback (Dependency / future tabs)
+            // Index 8 – generic fallback
             il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
 
             // Dispose the old ImageList before replacing it
@@ -1924,12 +2040,13 @@ namespace Cad3PLogBrowser
             oldIl?.Dispose();
 
             // Assign by key so order-independence is guaranteed
-            logTab.ImageKey        = "log";
+            logTab.ImageKey         = "log";
+            rawTab.ImageKey         = "raw";
             performanceTab.ImageKey = "perf";
-            logDetailTab.ImageKey  = "details";
-            callGraphTab.ImageKey  = "callgraph";
-            flameGraphTab.ImageKey = "flame";
-            timelineTab.ImageKey   = "timeline";
+            logDetailTab.ImageKey   = "details";
+            callGraphTab.ImageKey   = "callgraph";
+            flameGraphTab.ImageKey  = "flame";
+            timelineTab.ImageKey    = "timeline";
 
             // Dynamic tabs added at runtime
             if (_aiTab != null) _aiTab.ImageKey = "ai";
@@ -2032,63 +2149,58 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        private async void saveAsMenuItem_Click(object sender, EventArgs e)
+        private void saveAsMenuItem_Click(object sender, EventArgs e)
         {
-            if (_virtualLines.Count == 0) return;
-            if (saveLogFileDialog.ShowDialog() != DialogResult.OK) return;
-
-            var lines = new List<string>();
-            if (logListView.SelectedIndices.Count > 0)
+            // Save the ENTER→EXIT block for the currently selected tree node.
+            // Default filename: {original-basename}{snippet-suffix}.log
+            TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            if (activeTree?.SelectedNode == null)
             {
-                foreach (int idx in logListView.SelectedIndices)
-                    lines.Add(_virtualLines[idx].Text);
-            }
-            else
-            {
-                foreach (var vl in _virtualLines)
-                    lines.Add(vl.Text);
+                MessageBox.Show("Please select a node in the tree first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
 
-            StartOperation(string.Format(Resources.OPERATION_SAVING_LINES, lines.Count));
+            TreeNode node       = activeTree.SelectedNode;
+            string methodName   = GetMethodNameFromNode(node);
+            int    enterLine    = (node.Tag is int t && t > 0) ? t : -1;
+            List<string> lines  = ExtractBranchLines(enterLine, methodName);
 
-            try
+            if (lines.Count == 0)
             {
-                await Task.Run(() =>
+                MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string baseName    = string.IsNullOrEmpty(_currentFilePath)
+                ? methodName.Replace("::", "_")
+                : Path.GetFileNameWithoutExtension(_currentFilePath);
+            string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH ?? "Save Selected Branch";
+                dlg.Filter           = Resources.FILE_FILTER_LOG_SAVE;
+                dlg.FileName         = defaultName;
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
                 {
-                    var token = _cancellationTokenSource.Token;
-
-                    _logFileService.WriteLines(saveLogFileDialog.FileName, lines, (progress, message) =>
-                    {
-                        token.ThrowIfCancellationRequested();
-
-                        this.Invoke((Action)(() =>
-                        {
-                            FileLoadProgress.Style = ProgressBarStyle.Blocks;
-                            FileLoadProgress.Value = progress;
-                            var msg = string.Format(Resources.PROGRESS_PRESS_ESC_TO_CANCEL, message);
-                            StatusFileName.Text = msg;
-                            _overlay.SetProgress(progress, msg);
-                        }));
-                    });
-                });
-
-                MessageBox.Show(string.Format(Resources.MSG_FILE_SAVED, lines.Count), Resources.TITLE, 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (OperationCanceledException)
-            {
-                StatusFileName.Text = Resources.STATUS_SAVE_CANCELLED;
-                MessageBox.Show(Resources.ERR_SAVE_CANCELLED, Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(string.Format(Resources.MSG_SAVE_ERROR, ex.Message), Resources.TITLE, 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                EndOperation();
+                    File.WriteAllLines(dlg.FileName, lines);
+                    MessageBox.Show(
+                        string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -2207,65 +2319,104 @@ namespace Cad3PLogBrowser
         // ── Feature I1: Export Filtered Logs ──────────────────────────────────
         private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
         {
-            if (_virtualLines.Count == 0)
+            // Export the Performance tab statistics to a SpreadsheetML (.xls) file.
+            if (_apiPerfStats == null || _apiPerfStats.Count == 0)
             {
-                MessageBox.Show(Resources.ERR_NO_DATA_TO_EXPORT, Resources.TITLE,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No performance data to export. Load a log file first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
+            string baseName = string.IsNullOrEmpty(_currentFilePath)
+                ? "performance"
+                : Path.GetFileNameWithoutExtension(_currentFilePath);
+
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Title = Resources.DIALOG_TITLE_SAVE_BRANCH;
-                dlg.Filter = Resources.FILE_FILTER_LOG_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath ?? "filtered") + Resources.FILENAME_SUFFIX_FILTERED;
-
-                if (!string.IsNullOrEmpty(_currentFilePath))
-                    dlg.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+                dlg.Title  = "Export Performance to XLS";
+                dlg.Filter = "Excel Workbook (*.xls)|*.xls|All files (*.*)|*.*";
+                dlg.FileName = baseName + "_performance.xls";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : Path.GetDirectoryName(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                FileLoadProgress.Visible = true;
-                FileLoadProgress.Value = 0;
-                StatusFileName.Text = Resources.STATUS_EXPORTING_LOGS;
-
                 try
                 {
-                    var lines = new List<string>();
-                    foreach (var vl in _virtualLines)
-                        lines.Add(vl.Text);
-
-                    // Save with progress callback
-                    _logFileService.WriteLines(dlg.FileName, lines, (progress, message) =>
-                    {
-                        this.Invoke((Action)(() =>
-                        {
-                            FileLoadProgress.Value = progress;
-                            StatusFileName.Text = message;
-                        }));
-                    });
-
-                    FileLoadProgress.Visible = false;
-                    UpdateStatusBar();
-
-                    string filterInfo = string.IsNullOrEmpty(_activeFilterText) 
-                        ? Resources.EXPORT_FILTER_INFO_ALL_LINES 
-                        : string.Format(Resources.EXPORT_FILTER_INFO_FILTERED, _activeFilterText);
-
+                    WritePerformanceXls(dlg.FileName, _apiPerfStats);
                     MessageBox.Show(
-                        string.Format(Resources.MSG_EXPORT_FILTERED_SUCCESSFUL,
-                            lines.Count, filterInfo, dlg.FileName),
+                        $"Performance data exported to:\n{dlg.FileName}\n\n{_apiPerfStats.Count} rows written.",
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    FileLoadProgress.Visible = false;
-                    UpdateStatusBar();
-                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_FILE_FAILED, ex.Message),
-                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Export failed: {ex.Message}", Resources.TITLE,
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
+
+        /// <summary>
+        /// Writes performance statistics to a SpreadsheetML XML file readable by Excel 97-2003+.
+        /// No external library required — pure XML.
+        /// </summary>
+        private static void WritePerformanceXls(string path, IList<ApiPerfStats> stats)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<?xml version=\"1.0\"?>");
+            sb.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
+            sb.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
+            sb.AppendLine("  xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">");
+            sb.AppendLine(" <Styles>");
+            sb.AppendLine("  <Style ss:ID=\"Header\"><Font ss:Bold=\"1\"/><Interior ss:Color=\"#17375E\" ss:Pattern=\"Solid\"/><Font ss:Color=\"#FFFFFF\" ss:Bold=\"1\"/></Style>");
+            sb.AppendLine("  <Style ss:ID=\"Red\"><Interior ss:Color=\"#FFCCCC\" ss:Pattern=\"Solid\"/></Style>");
+            sb.AppendLine("  <Style ss:ID=\"Amber\"><Interior ss:Color=\"#FFF3CC\" ss:Pattern=\"Solid\"/></Style>");
+            sb.AppendLine(" </Styles>");
+            sb.AppendLine(" <Worksheet ss:Name=\"Performance\">");
+            sb.AppendLine("  <Table>");
+
+            // Header row
+            sb.AppendLine("   <Row>");
+            foreach (string h in new[] { "API Name", "Calls", "Total (ms)", "Avg (ms)", "Min (ms)", "Max (ms)", "Self (ms)", "Source File" })
+            {
+                sb.AppendLine($"    <Cell ss:StyleID=\"Header\"><Data ss:Type=\"String\">{XmlEsc(h)}</Data></Cell>");
+            }
+            sb.AppendLine("   </Row>");
+
+            // Data rows
+            foreach (var s in stats)
+            {
+                string style = s.TotalDurationMs >= 1000 ? "Red" :
+                               s.TotalDurationMs >= 100  ? "Amber" : "";
+                string sAttr = string.IsNullOrEmpty(style) ? "" : $" ss:StyleID=\"{style}\"";
+                sb.AppendLine("   <Row>");
+                Cell(sb, "String",  s.ApiName,                    sAttr);
+                Cell(sb, "Number",  s.CallCount.ToString(),        sAttr);
+                Cell(sb, "Number",  s.TotalDurationMs.ToString(),  sAttr);
+                Cell(sb, "Number",  s.AvgDurationMs.ToString(),    sAttr);
+                Cell(sb, "Number",  (s.MinDurationMs < 0 ? 0 : s.MinDurationMs).ToString(), sAttr);
+                Cell(sb, "Number",  s.MaxDurationMs.ToString(),    sAttr);
+                Cell(sb, "Number",  s.SelfDurationMs.ToString(),   sAttr);
+                Cell(sb, "String",  s.SourceFile ?? "",            sAttr);
+                sb.AppendLine("   </Row>");
+            }
+
+            sb.AppendLine("  </Table>");
+            sb.AppendLine(" </Worksheet>");
+            sb.AppendLine("</Workbook>");
+
+            File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8);
+        }
+
+        private static void Cell(System.Text.StringBuilder sb, string type, string value, string styleAttr)
+        {
+            sb.AppendLine($"    <Cell{styleAttr}><Data ss:Type=\"{type}\">{XmlEsc(value)}</Data></Cell>");
+        }
+
+        private static string XmlEsc(string s) =>
+            string.IsNullOrEmpty(s) ? "" :
+            s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
         // MOVED: CopyButton_Click is now in Feature 1 section below
 
@@ -2572,6 +2723,10 @@ namespace Cad3PLogBrowser
                     ThemeToggleButton_Click(this, EventArgs.Empty);
                     return true;
 
+                case Keys.F12:                                   // Inspect selected line
+                    InspectSelectedLine();
+                    return true;
+
                 case Keys.F8:                                    // Next Error
                     NavigateToNextError();
                     return true;
@@ -2722,7 +2877,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToPreviousError()
@@ -2741,7 +2895,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToNextWarning()
@@ -2759,7 +2912,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         public void NavigateToPreviousWarning()
@@ -2778,7 +2930,6 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(lineIdx);
             logListView.Focus();
-            ShowLogDetail(lineIdx);
         }
 
         // Feature B10: Toolbar button click handlers
@@ -2976,6 +3127,15 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+                    // AI tab is a dynamic TabPage — toggle directly
+                    if (_aiTab != null && mainTabControl != null)
+                    {
+                        bool showAi = _appSettings.ShowAiTab;
+                        if (showAi && !mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Add(_aiTab);
+                        else if (!showAi && mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Remove(_aiTab);
+                    }
                     ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
@@ -3280,10 +3440,11 @@ namespace Cad3PLogBrowser
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
-            logTab.Text        = Resources.TAB_LOG;
-            performanceTab.Text  = Resources.TAB_PERFORMANCE;
-            logDetailTab.Text    = Resources.TAB_LOG_DETAILS;
-            callGraphTab.Text    = Resources.TAB_CALL_GRAPH;
+            logTab.Text         = Resources.TAB_LOG;
+            rawTab.Text         = Resources.TAB_RAW;
+            performanceTab.Text = Resources.TAB_PERFORMANCE;
+            logDetailTab.Text   = Resources.TAB_LOG_DETAILS;
+            callGraphTab.Text   = Resources.TAB_CALL_GRAPH;
 
             ApplyTabIcons();
 
@@ -3443,6 +3604,8 @@ namespace Cad3PLogBrowser
 
                 // ═══ NAVIGATION (Call Tree only - ENTER/EXIT matching) ═══
                 contextMenu.Items.Add(Resources.MENU_JUMP_TO_MATCHING, null, (s, ev) => JumpToMatchingPair());
+                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
 
                 contextMenu.Items.Add(new ToolStripSeparator());
 
@@ -3524,9 +3687,75 @@ namespace Cad3PLogBrowser
             int paren = text.IndexOf(" (");
             if (paren > 0) return text.Substring(0, paren).Trim();
             // Strip line number suffix like " — Ln 123"
-            int dash = text.IndexOf(" — ");
+            int dash = text.IndexOf(" \u2014 ");
             if (dash > 0) return text.Substring(0, dash).Trim();
             return text.Trim();
+        }
+
+        // ── Branch extraction helpers ─────────────────────────────────────────
+        // Log format: ...: Area: State\tModule\tSourceFile\tApiName\tENTER\tEpochMs
+        // ENTER/EXIT are tab-delimited fields, NOT [ENTER]/[EXIT] in brackets.
+
+        private static bool IsApiEnterLine(string line) =>
+            line.Contains("\tENTER\t") || line.TrimEnd().EndsWith("\tENTER");
+
+        private static bool IsApiExitLine(string line) =>
+            line.Contains("\tEXIT\t") || line.TrimEnd().EndsWith("\tEXIT");
+
+        /// <summary>
+        /// Extracts the log lines from an ENTER to its matching EXIT (inclusive),
+        /// correctly handling nested calls of the same method.
+        /// Scans _allLines (not filtered) so active filters cannot hide the ENTER/EXIT.
+        /// </summary>
+        /// <param name="enterLine1Based">
+        ///   1-based line number of the ENTER line (from the node's Tag).
+        ///   Pass -1 to fall back to searching by methodName.
+        /// </param>
+        private List<string> ExtractBranchLines(int enterLine1Based, string methodName)
+        {
+            var lines = new List<string>();
+            if (_allLines == null || _allLines.Count == 0) return lines;
+
+            // Determine the 0-based start index.
+            int startIdx = -1;
+            if (enterLine1Based > 0 && enterLine1Based <= _allLines.Count)
+            {
+                // Use the exact line the parser recorded for this call
+                startIdx = enterLine1Based - 1;
+            }
+            else if (!string.IsNullOrEmpty(methodName))
+            {
+                // Fall back: scan for first ENTER line that contains the method name
+                for (int i = 0; i < _allLines.Count; i++)
+                {
+                    string t = _allLines[i];
+                    if (IsApiEnterLine(t) && t.Contains(methodName))
+                    {
+                        startIdx = i;
+                        break;
+                    }
+                }
+            }
+
+            if (startIdx < 0) return lines;
+
+            int depth = 0;
+            for (int i = startIdx; i < _allLines.Count; i++)
+            {
+                string t = _allLines[i];
+                lines.Add(t);
+
+                if (IsApiEnterLine(t)) depth++;
+                if (IsApiExitLine(t))
+                {
+                    depth--;
+                    if (depth <= 0) break;
+                }
+            }
+
+            // If we hit end-of-file before the matching EXIT, still return what we have
+            // (unmatched ENTER) rather than showing an error for incomplete traces.
+            return lines;
         }
 
         // J3: Search in Grok
@@ -3842,39 +4071,12 @@ namespace Cad3PLogBrowser
             TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
             if (activeTree?.SelectedNode == null) return;
 
-            TreeNode selectedNode = activeTree.SelectedNode;
-            string methodName = GetMethodNameFromNode(selectedNode);
+            TreeNode node      = activeTree.SelectedNode;
+            string methodName  = GetMethodNameFromNode(node);
+            int    enterLine   = (node.Tag is int t && t > 0) ? t : -1;
+            List<string> lines = ExtractBranchLines(enterLine, methodName);
 
-            // Find the ENTER and EXIT lines for this method
-            var branchLines = new List<string>();
-            bool inBranch = false;
-            int depth = 0;
-
-            foreach (var line in _virtualLines)
-            {
-                string lineText = line.Text;
-
-                if (lineText.Contains("[ENTER]") && lineText.Contains(methodName))
-                {
-                    inBranch = true;
-                    depth = 1;
-                    branchLines.Add(lineText);
-                }
-                else if (inBranch)
-                {
-                    branchLines.Add(lineText);
-
-                    if (lineText.Contains("[ENTER]")) depth++;
-                    if (lineText.Contains("[EXIT]"))
-                    {
-                        depth--;
-                        if (depth == 0)
-                            break;
-                    }
-                }
-            }
-
-            if (branchLines.Count == 0)
+            if (lines.Count == 0)
             {
                 MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -3893,8 +4095,8 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    File.WriteAllLines(dialog.FileName, branchLines);
-                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, branchLines.Count, dialog.FileName),
+                    File.WriteAllLines(dialog.FileName, lines);
+                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dialog.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)

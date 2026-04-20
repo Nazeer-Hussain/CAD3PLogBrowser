@@ -914,6 +914,12 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("MENU_SHOW_IN_API_TREE", resourceCulture);
             }
         }
+
+        internal static string MENU_INSPECT_LINE {
+            get {
+                return ResourceManager.GetString("MENU_INSPECT_LINE", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Show in Call Tree.
@@ -1526,10 +1532,13 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("TAB_LOG", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Log Details.
-        /// </summary>
+
+        internal static string TAB_RAW {
+            get {
+                return ResourceManager.GetString("TAB_RAW", resourceCulture);
+            }
+        }
+
         internal static string TAB_LOG_DETAILS {
             get {
                 return ResourceManager.GetString("TAB_LOG_DETAILS", resourceCulture);
