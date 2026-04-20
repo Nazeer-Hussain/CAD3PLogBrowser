@@ -1672,7 +1672,164 @@ namespace Cad3PLogBrowser
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            if (files != null && files.Length > 0) LoadFileAsync(files[0]);
+            if (files == null || files.Length == 0) return;
+
+            string droppedFile = files[0];
+
+            // If no file is currently open, just open the dropped file directly
+            if (string.IsNullOrEmpty(_currentFilePath) || _allLines.Count == 0)
+            {
+                LoadFileAsync(droppedFile);
+                return;
+            }
+
+            // A file is already open — ask the user what to do
+            using (var dlg = new Form())
+            {
+                dlg.Text            = "Open Dropped File";
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition   = FormStartPosition.CenterParent;
+                dlg.MinimizeBox     = false;
+                dlg.MaximizeBox     = false;
+                dlg.ClientSize      = new Size(360, 130);
+
+                var lbl = new Label
+                {
+                    Text      = string.Format("A file is already open.\nWhat would you like to do with:\n{0}",
+                                    Path.GetFileName(droppedFile)),
+                    AutoSize  = false,
+                    Size      = new Size(340, 55),
+                    Location  = new Point(10, 10)
+                };
+
+                var btnMerge = new Button
+                {
+                    Text     = "Merge",
+                    Size     = new Size(100, 30),
+                    Location = new Point(30, 80),
+                    DialogResult = DialogResult.Yes
+                };
+
+                var btnOpen = new Button
+                {
+                    Text     = "Open Independently",
+                    Size     = new Size(140, 30),
+                    Location = new Point(145, 80),
+                    DialogResult = DialogResult.No
+                };
+
+                var btnCancel = new Button
+                {
+                    Text     = "Cancel",
+                    Size     = new Size(70, 30),
+                    Location = new Point(295, 80),
+                    DialogResult = DialogResult.Cancel
+                };
+
+                dlg.Controls.AddRange(new Control[] { lbl, btnMerge, btnOpen, btnCancel });
+                dlg.AcceptButton = btnMerge;
+                dlg.CancelButton = btnCancel;
+
+                var result = dlg.ShowDialog(this);
+
+                if (result == DialogResult.No)
+                {
+                    // Open independently
+                    LoadFileAsync(droppedFile);
+                }
+                else if (result == DialogResult.Yes)
+                {
+                    // Merge dropped file into the already-open file
+                    MergeDroppedFileAsync(droppedFile);
+                }
+                // Cancel: do nothing
+            }
+        }
+
+        private async void MergeDroppedFileAsync(string droppedFile)
+        {
+            // Collect the current source file(s) and the new dropped file
+            var filesToMerge = new List<string>();
+
+            // If the current "file" is already a merge, we cannot re-read it from disk.
+            // In that case, fall back to just merging using the in-memory lines + new file.
+            bool currentIsMerge = _currentFilePath.StartsWith("[Merged:");
+
+            if (!currentIsMerge && File.Exists(_currentFilePath))
+            {
+                filesToMerge.Add(_currentFilePath);
+            }
+            else if (currentIsMerge)
+            {
+                // Write current in-memory lines to a temp file so MergeAsync can read them
+                string tempPath = Path.GetTempFileName();
+                File.WriteAllLines(tempPath, _allLines);
+                filesToMerge.Add(tempPath);
+            }
+            else
+            {
+                // Current file path not resolvable — just open independently
+                LoadFileAsync(droppedFile);
+                return;
+            }
+
+            filesToMerge.Add(droppedFile);
+
+            StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, filesToMerge.Count));
+
+            try
+            {
+                var merged = await _mergeLogService.MergeAsync(filesToMerge);
+
+                // Clean up temp file if we created one
+                if (currentIsMerge && File.Exists(filesToMerge[0]))
+                    try { File.Delete(filesToMerge[0]); } catch { }
+
+                _currentFilePath = "[Merged: " + string.Join(", ",
+                    new[] { Path.GetFileName(_currentFilePath.TrimStart('[').TrimEnd(']').Replace("Merged: ", "")),
+                            Path.GetFileName(droppedFile) }) + "]";
+
+                _allLines = merged;
+                _searchService.Reset();
+                ClearHighlighting();
+
+                StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
+                FileLoadProgress.Value = 33;
+                await Task.Delay(10);
+
+                PopulateVirtualListView(_allLines);
+                FileLoadProgress.Value = 50;
+                StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
+                await Task.Delay(10);
+
+                var mergeEntries = await Task.Run(() => _parserService.Parse(_allLines));
+                var mApiTask     = Task.Run(() => _parserService.BuildApiList(mergeEntries));
+                var mCallTask    = Task.Run(() => _parserService.BuildCallTree(mergeEntries));
+                await Task.WhenAll(mApiTask, mCallTask);
+                var mCallTree    = mCallTask.Result;
+                var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStats(mCallTree));
+                var mGraph       = await Task.Run(() => _callGraphService.Build(mergeEntries));
+                PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph);
+                FileLoadProgress.Value = 100;
+
+                SetDocumentLoaded(true);
+                FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                UpdateStatusBar();
+
+                MessageBox.Show(
+                    string.Format(Resources.MSG_MERGE_SUCCESSFUL, filesToMerge.Count, merged.Count),
+                    Resources.DIALOG_TITLE_MERGE_COMPLETE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    string.Format(Resources.MSG_MERGE_FAILED, ex.Message),
+                    Resources.DIALOG_TITLE_MERGE_LOGS, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                EndOperation();
+            }
         }
 
         // ── File loading ──────────────────────────────────────────────────────

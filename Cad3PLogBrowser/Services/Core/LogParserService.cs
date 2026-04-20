@@ -50,6 +50,13 @@ namespace Cad3PLogBrowser.Services
             return entries;
         }
 
+        // ── Format detection ──────────────────────────────────────────────────
+        // Format A (CADAPP):  2026-03-31T07:48:00.304Z: D: P6c24: T5aa4: uwgmapp: UWGM_ADAPTER: {tab-payload}
+        // Format B (FILESYNC):  04/16/2026 17:29:11 [Thread:40056]: {tab-payload or plain text}
+        //   Detected by: raw starts with MM/DD/ pattern — digit, digit, '/'
+        private static bool IsFileSyncFormat(string raw) =>
+            raw.Length > 10 && char.IsDigit(raw[0]) && char.IsDigit(raw[1]) && raw[2] == '/';
+
         private static LogEntry ParseLine(string raw, int lineNumber)
         {
             var entry = new LogEntry
@@ -61,50 +68,70 @@ namespace Cad3PLogBrowser.Services
             if (string.IsNullOrEmpty(raw))
                 return entry;
 
-            // Walk colon-separated fields without allocating a string array.
-            // Format: {DateTime}: {Level}: {PID}: {TID}: {App}: {Area}: {payload}
-            // We need fields at indices 1 (Level), 3 (TID), 4 (App), 5 (Area), 6+ (payload).
-            const string sep = ": ";
-            int pos = 0;
-            int fieldIndex = 0;
-            int payloadStart = -1;
+            string payload;
 
-            while (pos < raw.Length)
+            if (IsFileSyncFormat(raw))
             {
-                int next = raw.IndexOf(sep, pos, StringComparison.Ordinal);
-                if (next < 0 || fieldIndex >= 6)
+                // ── Format B: MM/DD/YYYY HH:MM:SS [Thread:NNN]: {payload} ──────
+                // Find ]: to locate the end of the thread prefix.
+                const string threadEnd = "]: ";
+                int threadEndIdx = raw.IndexOf(threadEnd, StringComparison.Ordinal);
+                if (threadEndIdx < 0)
+                    return entry;
+
+                // Extract thread ID from [Thread:NNN]
+                const string threadTag = "[Thread:";
+                int threadTagIdx = raw.LastIndexOf(threadTag, threadEndIdx, StringComparison.Ordinal);
+                if (threadTagIdx >= 0)
+                    entry.ThreadId = raw.Substring(threadTagIdx + threadTag.Length,
+                        threadEndIdx - (threadTagIdx + threadTag.Length));
+
+                payload = raw.Substring(threadEndIdx + threadEnd.Length);
+                entry.Level = "D"; // INV logs carry no explicit level — treat as Debug
+            }
+            else
+            {
+                // ── Format A: ISO colon-separated prefix ──────────────────────
+                // Walk colon-separated fields without allocating a string array.
+                // Format: {DateTime}: {Level}: {PID}: {TID}: {App}: {Area}: {payload}
+                const string sep = ": ";
+                int pos = 0;
+                int fieldIndex = 0;
+                int payloadStart = -1;
+
+                while (pos < raw.Length)
                 {
-                    // fieldIndex 6 = rest of string is the tab-delimited payload
-                    if (fieldIndex == 6) payloadStart = pos;
-                    break;
+                    int next = raw.IndexOf(sep, pos, StringComparison.Ordinal);
+                    if (next < 0 || fieldIndex >= 6)
+                    {
+                        if (fieldIndex == 6) payloadStart = pos;
+                        break;
+                    }
+
+                    string field = raw.Substring(pos, next - pos);
+
+                    switch (fieldIndex)
+                    {
+                        case ColonFieldLevel:  entry.Level    = field; break;
+                        case ColonFieldTid:    entry.ThreadId = field; break;
+                        case ColonFieldApp:    entry.App      = field; break;
+                        case ColonFieldArea:   entry.Area     = field; break;
+                    }
+
+                    fieldIndex++;
+                    pos = next + sep.Length;
                 }
 
-                string field = raw.Substring(pos, next - pos);
+                if (fieldIndex == 6) payloadStart = pos;
 
-                switch (fieldIndex)
-                {
-                    case ColonFieldLevel:  entry.Level    = field; break;
-                    case ColonFieldTid:    entry.ThreadId = field; break;
-                    case ColonFieldApp:    entry.App      = field; break;
-                    case ColonFieldArea:   entry.Area     = field; break;
-                }
+                if (payloadStart < 0 || payloadStart >= raw.Length)
+                    return entry;
 
-                fieldIndex++;
-                pos = next + sep.Length;
+                payload = raw.Substring(payloadStart);
             }
 
-            // pos now points at field 6 (the payload) if we exited normally
-            if (fieldIndex == 6) payloadStart = pos;
-
-            if (payloadStart < 0 || payloadStart >= raw.Length)
-                return entry;
-
-            // Parse tab-delimited payload fields without Split.
+            // ── Shared tab-payload parsing ─────────────────────────────────────
             // Fields by index: 0=State  1=Module  2=SourceFile  3=ApiName  4=EntryType  5=EpochMs
-            // tabPos[N] = start offset of field N inside payload.
-            // tabPos[0] = 0 (always); tabPos[N>0] = position right after the (N)th tab.
-            // tabCount  = number of tabs found = highest field index that has a start recorded.
-            string payload = raw.Substring(payloadStart);
             int[] tabPos = new int[7];
             int tabCount = 0;
             tabPos[0] = 0;
@@ -118,8 +145,6 @@ namespace Cad3PLogBrowser.Services
             if (tabCount < TabFieldEntryType)
                 return entry;
 
-            // Helper: end offset of field N (exclusive) = start of next field minus the tab, or end of string
-            // End of field N = tabPos[N+1] - 1  when N+1 <= tabCount, else payload.Length
             int FieldEnd(int n) => (n + 1 <= tabCount) ? tabPos[n + 1] - 1 : payload.Length;
 
             // Field 4: EntryType ("ENTER" or "EXIT")

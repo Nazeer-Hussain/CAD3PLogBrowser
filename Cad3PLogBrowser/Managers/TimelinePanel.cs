@@ -35,7 +35,7 @@ namespace Cad3PLogBrowser.Managers
         private const float ROW_HEIGHT  = 28f;
         private const float BAR_RADIUS  = 4f;
         private const float MIN_ZOOM    = 0.1f;
-        private const float MAX_ZOOM    = 10.0f;
+        private const float MAX_ZOOM    = 100.0f;
         private const int   LEFT_MARGIN = 155;
         private const int   TOP_MARGIN  = 42;
 
