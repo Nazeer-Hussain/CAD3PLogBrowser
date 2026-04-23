@@ -586,7 +586,15 @@ namespace Cad3PLogBrowser.Services
             if (selected) textBrush = _treeSelTextBrush;
             else if (hasNodeColor) textBrush = tempBrush = new SolidBrush(e.Node.ForeColor);
             else textBrush = _treeTextBrush;
-            e.Graphics.DrawString(e.Node.Text, tv.Font, textBrush, e.Bounds, _treeSf);
+
+            var textBounds = new RectangleF(
+                e.Bounds.X,
+                e.Bounds.Y,
+                Math.Max(1, tv.ClientSize.Width - e.Bounds.X - 2),
+                e.Bounds.Height);
+            var nodeFont = e.Node.NodeFont ?? tv.Font;
+
+            e.Graphics.DrawString(e.Node.Text, nodeFont, textBrush, textBounds, _treeSf);
             tempBrush?.Dispose();
         }
 

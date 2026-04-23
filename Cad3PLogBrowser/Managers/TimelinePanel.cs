@@ -53,6 +53,7 @@ namespace Cad3PLogBrowser.Managers
         private VisualizationToolbar _toolbar;
         private VisualizationStatusBar _statusBar;
         private Panel _contentPanel;
+        private HScrollBar _hScrollBar;
         private ToolTip _tooltip;
 
         // ======================================================================
@@ -119,6 +120,21 @@ namespace Cad3PLogBrowser.Managers
             _statusBar = new VisualizationStatusBar();
             _statusBar.Dock = DockStyle.Bottom;
 
+            _hScrollBar = new HScrollBar
+            {
+                Dock = DockStyle.Bottom,
+                SmallChange = 24,
+                LargeChange = 240,
+                Minimum = 0,
+                Maximum = 0,
+                Visible = false
+            };
+            _hScrollBar.ValueChanged += (s, e) =>
+            {
+                _panOffset.X = -_hScrollBar.Value;
+                _contentPanel.Invalidate();
+            };
+
             // Create welcome panel
             _welcomePanel = new VisualizationWelcomePanel(
                 "Timeline View",
@@ -160,6 +176,7 @@ namespace Cad3PLogBrowser.Managers
             this.Controls.Add(_contentPanel);
             this.Controls.Add(_welcomePanel);
             this.Controls.Add(_toolbar);
+            this.Controls.Add(_hScrollBar);
             this.Controls.Add(_statusBar);
         }
 
@@ -225,8 +242,25 @@ namespace Cad3PLogBrowser.Managers
                 g.FillRectangle(bgBrush, 0, y0, _contentPanel.Width, H);
             using (var sep = new Pen(AxisColor))
                 g.DrawLine(sep, 0, y0, _contentPanel.Width, y0);
-            string txt = $"  {_entries.Count} calls  •  {_totalDurationMs}ms total" +
-                         $"  •  Zoom {_zoom*100:F0}%  •  Scroll=Zoom  Drag=Pan  Click=Jump";
+            var center = new Point(_contentPanel.ClientSize.Width / 2, _contentPanel.ClientSize.Height / 2);
+            ZoomByAt(factor, center);
+        }
+
+        private void ZoomByAt(float factor, Point anchorPoint)
+        {
+            float oldZoom = _zoom;
+            float newZoom = oldZoom * factor;
+
+                // Keep the point under the cursor/anchor fixed while zooming.
+                float oldLayoutX = anchorPoint.X - _panOffset.X;
+                float scale = newZoom / oldZoom;
+                float newLayoutX = LEFT_MARGIN + ((oldLayoutX - LEFT_MARGIN) * scale);
+                _panOffset.X = anchorPoint.X - newLayoutX;
+
+                UpdateHorizontalScrollBar();
+            UpdateHorizontalScrollBar();
+            UpdateHorizontalScrollBar();
+                         $"  Â•  Zoom {_zoom*100:F0}%  Â•  Scroll=Zoom  Drag=Pan  Click=Jump";
             using (var f = new Font("Segoe UI", 7.5f))
             using (var b = new SolidBrush(Color.FromArgb(140, Dark ? 185 : 65, Dark ? 192 : 72, Dark ? 215 : 105)))
                 g.DrawString(txt, f, b, 0, y0 + 4);
@@ -374,6 +408,7 @@ namespace Cad3PLogBrowser.Managers
                 _zoom = oldZoom;
                 _panOffset = oldPan;
                 CalculateLayout();
+                UpdateHorizontalScrollBar();
             }
             return bitmap;
         }
@@ -418,12 +453,43 @@ namespace Cad3PLogBrowser.Managers
 
         private Color GetColorForDuration(long durationMs)
         {
-            if (durationMs <= 0)   return Color.FromArgb( 75, 190, 165);  // teal  – no data
-            if (durationMs <  50)  return Color.FromArgb( 60, 195, 130);  // emerald – very fast
-            if (durationMs <  200) return Color.FromArgb(100, 185, 225);  // sky blue – fast
-            if (durationMs <  500) return Color.FromArgb(240, 185,  55);  // amber – medium
-            if (durationMs < 1000) return Color.FromArgb(240, 130,  60);  // orange – slow
-            return                        Color.FromArgb(225,  65,  60);  // red – very slow
+            if (durationMs <= 0)   return Color.FromArgb( 75, 190, 165);  // teal  Â– no data
+            if (durationMs <  50)  return Color.FromArgb( 60, 195, 130);  // emerald Â– very fast
+            if (durationMs <  200) return Color.FromArgb(100, 185, 225);  // sky blue Â– fast
+            if (durationMs <  500) return Color.FromArgb(240, 185,  55);  // amber Â– medium
+
+            UpdateHorizontalScrollBar();
+        }
+
+        private void UpdateHorizontalScrollBar()
+        {
+            if (_contentPanel == null) return;
+
+            float baseWidth = Math.Max(1, _contentPanel.ClientSize.Width - LEFT_MARGIN - 20);
+            float totalTimelineWidth = baseWidth * _zoom;
+            int overflow = (int)Math.Ceiling(Math.Max(0f, totalTimelineWidth - baseWidth));
+
+            _hScrollBar.Visible = overflow > 0;
+            if (!_hScrollBar.Visible)
+            {
+                _panOffset.X = 0;
+                _hScrollBar.Value = 0;
+                return;
+            }
+
+            _hScrollBar.LargeChange = Math.Max(20, _contentPanel.ClientSize.Width / 2);
+            _hScrollBar.SmallChange = Math.Max(8, _contentPanel.ClientSize.Width / 40);
+            _hScrollBar.Maximum = overflow + _hScrollBar.LargeChange - 1;
+
+            int desired = (int)Math.Round(Math.Max(0f, Math.Min(overflow, -_panOffset.X)));
+            int safeMaxValue = Math.Max(0, _hScrollBar.Maximum - _hScrollBar.LargeChange + 1);
+            desired = Math.Min(desired, safeMaxValue);
+            if (_hScrollBar.Value != desired)
+                _hScrollBar.Value = desired;
+
+            _panOffset.X = -_hScrollBar.Value;
+            if (durationMs < 1000) return Color.FromArgb(240, 130,  60);  // orange Â– slow
+            return                        Color.FromArgb(225,  65,  60);  // red Â– very slow
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -646,7 +712,7 @@ namespace Cad3PLogBrowser.Managers
         private void TimelinePanel_MouseWheel(object sender, MouseEventArgs e)
         {
             float delta = e.Delta > 0 ? 1.2f : 0.8f;
-            ZoomBy(delta);
+            ZoomByAt(delta, e.Location);
         }
 
         private void TimelinePanel_MouseDown(object sender, MouseEventArgs e)
@@ -667,6 +733,7 @@ namespace Cad3PLogBrowser.Managers
                 _panOffset.X += e.X - _lastMousePos.X;
                 _panOffset.Y += e.Y - _lastMousePos.Y;
                 _lastMousePos = e.Location;
+                UpdateHorizontalScrollBar();
                 _contentPanel.Invalidate();
             }
             else
