@@ -57,6 +57,20 @@ namespace Cad3PLogBrowser.Services
         private static bool IsFileSyncFormat(string raw) =>
             raw.Length > 10 && char.IsDigit(raw[0]) && char.IsDigit(raw[1]) && raw[2] == '/';
 
+        // Merged logs are prefixed like: [filename.log] original-line
+        // Strip that transient prefix so normal format detection/parsing still works.
+        private static string StripMergedFilePrefix(string raw)
+        {
+            if (string.IsNullOrEmpty(raw) || raw[0] != '[')
+                return raw;
+
+            int close = raw.IndexOf("] ", StringComparison.Ordinal);
+            if (close <= 1)
+                return raw;
+
+            return raw.Substring(close + 2);
+        }
+
         private static LogEntry ParseLine(string raw, int lineNumber)
         {
             var entry = new LogEntry
@@ -67,6 +81,9 @@ namespace Cad3PLogBrowser.Services
 
             if (string.IsNullOrEmpty(raw))
                 return entry;
+
+            raw = StripMergedFilePrefix(raw);
+            entry.RawText = raw;
 
             string payload;
 
