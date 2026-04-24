@@ -126,7 +126,10 @@ namespace Cad3PLogBrowser.Managers
                 if (_queryBox.ForeColor == Color.Gray && _queryBox.Text == "Ask a question or type a chat message...")
                 {
                     _queryBox.Text = "";
-                    _queryBox.ForeColor = Color.FromArgb(210, 220, 235);
+                    // Use theme-aware active text color so text is readable in both dark and light themes
+                    _queryBox.ForeColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                        ? Color.FromArgb(210, 220, 235)
+                        : Color.Black;
                 }
             };
             _queryBox.LostFocus += (s, e) =>
@@ -167,20 +170,8 @@ namespace Cad3PLogBrowser.Managers
                 BackColor   = Color.FromArgb(22, 24, 30),
                 ForeColor   = Color.FromArgb(200, 215, 235),
                 BorderStyle = BorderStyle.None,
-                ScrollBars  = RichTextBoxScrollBars.Vertical,
-                Text        = "Welcome to AI Assistant\n\n" +
-                              "Quick Actions (top buttons):\n" +
-                              "  Summarize    — overall health and session overview\n" +
-                              "  Anomalies    — statistical outliers and unusual patterns\n" +
-                              "  Root Cause   — likely causes of errors and warnings\n" +
-                              "  Bug Report   — structured bug report from log data\n" +
-                              "  Performance  — top time consumers and call metrics\n" +
-                              "  Patterns     — repeated errors, escalation, hotspots\n\n" +
-                              "Chat / Ask:\n" +
-                              "  Type a question and press Ask or Chat (multi-turn)\n" +
-                              "  e.g. \"What caused the errors?\"\n" +
-                              "       \"Which APIs are the slowest?\"\n\n" +
-                              "Tip: Enable Claude API in Settings > AI for enhanced answers.\n"
+                ScrollBars  = RichTextBoxScrollBars.Vertical
+                // Welcome text is set in UpdateTheme() so it picks up the correct ForeColor
             };
 
             // Add in reverse Dock order (Fill goes first)
@@ -370,6 +361,9 @@ namespace Cad3PLogBrowser.Managers
 
                 _responseBox.BackColor = Color.FromArgb(22, 24, 30);
                 _responseBox.ForeColor = Color.FromArgb(200, 215, 235);
+                // Refresh welcome text with the now-correct ForeColor
+                if (string.IsNullOrWhiteSpace(_responseBox.Text))
+                    _responseBox.Text = "Welcome to AI Assistant\n\nQuick Actions (top buttons):\n  Summarize    — overall health and session overview\n  Anomalies    — statistical outliers and unusual patterns\n  Root Cause   — likely causes of errors and warnings\n  Bug Report   — structured bug report from log data\n  Performance  — top time consumers and call metrics\n  Patterns     — repeated errors, escalation, hotspots\n\nChat / Ask:\n  Type a question and press Ask or Chat (multi-turn)\n  e.g. \"What caused the errors?\"\n       \"Which APIs are the slowest?\"\n\nTip: Enable Claude API in Settings > AI for enhanced answers.\n";
 
                 this.BackColor = Color.FromArgb(28, 30, 38);
             }
@@ -416,6 +410,9 @@ namespace Cad3PLogBrowser.Managers
 
                 _responseBox.BackColor = Color.White;
                 _responseBox.ForeColor = Color.Black;
+                // Refresh welcome text with the now-correct ForeColor
+                if (string.IsNullOrWhiteSpace(_responseBox.Text))
+                    _responseBox.Text = "Welcome to AI Assistant\n\nQuick Actions (top buttons):\n  Summarize    — overall health and session overview\n  Anomalies    — statistical outliers and unusual patterns\n  Root Cause   — likely causes of errors and warnings\n  Bug Report   — structured bug report from log data\n  Performance  — top time consumers and call metrics\n  Patterns     — repeated errors, escalation, hotspots\n\nChat / Ask:\n  Type a question and press Ask or Chat (multi-turn)\n  e.g. \"What caused the errors?\"\n       \"Which APIs are the slowest?\"\n\nTip: Enable Claude API in Settings > AI for enhanced answers.\n";
 
                 this.BackColor = Color.FromArgb(235, 240, 250);
             }
