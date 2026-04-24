@@ -235,23 +235,48 @@ namespace Cad3PLogBrowser.Managers
                                         _bugReportBtn, _perfBtn, _patternsBtn, _askBtn, _chatBtn })
                 btn.Enabled = e;
             _queryBox.Enabled = e;
-            if (thinking) AppendText("\n[Analysing...]\n", Color.FromArgb(140, 160, 200));
+            // Use theme-aware muted color for the "thinking" indicator
+            if (thinking) AppendText("\n[Analysing...]\n", ThinkingColor);
         }
 
-        public void ShowResponse(string response) => AppendText("\n" + response + "\n", Color.FromArgb(200, 215, 235));
-        public void ShowError(string error)        => AppendText("\nERROR: " + error + "\n", Color.FromArgb(255, 100, 100));
+        public void ShowResponse(string response) => AppendText("\n" + response + "\n", ResponseColor);
+        public void ShowError(string error)        => AppendText("\nERROR: " + error + "\n", ErrorColor);
         public void ShowAnalysis(string text)      => ShowResponse(text);
 
         public void AppendChatTurn(string role, string text)
         {
             _chatHistory.Add((role, text));
-            Color color = role == "user" ? Color.FromArgb(130, 180, 255) : Color.FromArgb(120, 220, 150);
+            // Label colors that are readable in both dark and light themes
+            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            Color labelColor = role == "user"
+                ? (isDark ? Color.FromArgb(100, 160, 255) : Color.FromArgb( 30,  90, 200))
+                : (isDark ? Color.FromArgb( 80, 200, 120) : Color.FromArgb( 20, 130,  60));
             string label = role == "user" ? "You" : "Claude";
-            AppendText($"\n[{label}] ", color);
-            AppendText(text + "\n", Color.FromArgb(200, 215, 235));
+            AppendText($"\n[{label}] ", labelColor);
+            AppendText(text + "\n", ResponseColor);
         }
 
         public void ClearResponse() { _responseBox.Clear(); _chatHistory.Clear(); }
+
+        // ── Theme-aware color helpers ─────────────────────────────────────────
+
+        /// <summary>Body / response text color — readable on both dark and light backgrounds.</summary>
+        private Color ResponseColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(200, 215, 235)   // soft white-blue on dark bg
+                : Color.FromArgb( 30,  40,  60);  // near-black on white bg
+
+        /// <summary>Error text color — visible in both themes.</summary>
+        private Color ErrorColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(255, 100, 100)   // bright red on dark bg
+                : Color.FromArgb(180,  20,  20);  // deep red on white bg
+
+        /// <summary>Muted "thinking / analysing" indicator color.</summary>
+        private Color ThinkingColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(140, 160, 200)   // muted blue-grey on dark bg
+                : Color.FromArgb( 80, 100, 150);  // slate on white bg
 
         // ── Rendering helpers ─────────────────────────────────────────────────
         private void AppendText(string text, Color color)
@@ -261,6 +286,7 @@ namespace Cad3PLogBrowser.Managers
             _responseBox.SelectionLength = 0;
             _responseBox.SelectionColor  = color;
             _responseBox.AppendText(text);
+            // Reset to the response box's current ForeColor so un-styled text inherits the theme
             _responseBox.SelectionColor  = _responseBox.ForeColor;
             _responseBox.ScrollToCaret();
         }
