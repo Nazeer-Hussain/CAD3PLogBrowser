@@ -9,6 +9,7 @@ namespace Cad3PLogBrowser.Managers
     using System.Windows.Forms;
     using Cad3PLogBrowser.Models;
     using Cad3PLogBrowser.Utilities;
+    using Services = Cad3PLogBrowser.Services;
 
     /// <summary>
     /// Manages the Call Tree and API Tree views.
@@ -70,21 +71,104 @@ namespace Cad3PLogBrowser.Managers
         /// <summary>
         /// Configures both tree views with optimal settings.
         /// </summary>
-        /// <remarks>
-        /// Common settings applied:
-        /// - ImageList for icons
-        /// - ShowNodeToolTips for hover information
-        /// - HideSelection = false to keep selection visible when focus is lost
-        /// - FullRowSelect for easier clicking
-        /// </remarks>
         private void ConfigureTreeViews()
         {
             foreach (var tree in new[] { _callTreeView, _apiTreeView })
             {
-                tree.ImageList = _nodeIconList;
+                tree.ImageList       = _nodeIconList;
                 tree.ShowNodeToolTips = true;
-                tree.HideSelection = false; // Keep selection visible when not focused
-                tree.FullRowSelect = false; // Don't highlight entire row
+                tree.HideSelection   = false;  // keep selection visible when unfocused
+                // Issue 4 Fix: FullRowSelect + owner-draw prevents text clipping in dark theme
+                tree.FullRowSelect   = true;
+                tree.DrawMode        = TreeViewDrawMode.OwnerDrawText;
+                tree.DrawNode       += TreeView_DrawNode;
+            }
+        }
+
+        /// <summary>
+        /// Issue 4 Fix: Custom draw ensures text is never truncated and always
+        /// uses the correct foreground color regardless of system highlight color.
+        /// </summary>
+        private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
+        {
+            if (e.Node == null) return;
+
+            bool isDark    = Services.ThemeManager.CurrentTheme == Services.ThemeManager.Theme.Dark;
+            bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
+
+            // ── Background ────────────────────────────────────────────────────
+            Color backColor;
+            if (isSelected)
+            {
+                backColor = isDark
+                    ? Color.FromArgb(50, 90, 150)     // dark-mode selection: blue tint
+                    : SystemColors.Highlight;
+            }
+            else
+            {
+                backColor = e.Node.BackColor != Color.Empty
+                    ? e.Node.BackColor
+                    : (isDark ? Color.FromArgb(28, 30, 38) : SystemColors.Window);
+            }
+
+            using (var bgBrush = new System.Drawing.SolidBrush(backColor))
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+
+            // ── Focus rectangle ───────────────────────────────────────────────
+            if ((e.State & TreeNodeStates.Focused) != 0)
+                ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
+                    isDark ? Color.White : SystemColors.ControlText, backColor);
+
+            // ── Foreground text ───────────────────────────────────────────────
+            Color foreColor;
+            if (isSelected)
+            {
+                foreColor = isDark ? Color.White : SystemColors.HighlightText;
+            }
+            else
+            {
+                // Respect per-node color (duration coding) but fall back to theme color
+                foreColor = e.Node.ForeColor != Color.Empty && e.Node.ForeColor != Color.Black
+                    ? e.Node.ForeColor
+                    : (isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText);
+            }
+
+            Font font = e.Node.NodeFont ?? (sender as TreeView)?.Font ?? SystemFonts.DefaultFont;
+
+            // Measure text to ensure it never clips
+            var textRect = new Rectangle(
+                e.Bounds.X + 2,
+                e.Bounds.Y,
+                e.Bounds.Width - 2,
+                e.Bounds.Height);
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                e.Node.Text,
+                font,
+                textRect,
+                foreColor,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+        }
+
+        /// <summary>
+        /// Applies theme-aware colors to both tree views.
+        /// Call this whenever the application theme changes.
+        /// </summary>
+        public void ApplyTheme()
+        {
+            bool isDark = Services.ThemeManager.CurrentTheme == Services.ThemeManager.Theme.Dark;
+
+            Color back = isDark ? Color.FromArgb(28, 30, 38)    : SystemColors.Window;
+            Color fore = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
+            Color line = isDark ? Color.FromArgb(60, 65, 80)    : SystemColors.GrayText;
+
+            foreach (var tree in new[] { _callTreeView, _apiTreeView })
+            {
+                tree.BackColor  = back;
+                tree.ForeColor  = fore;
+                tree.LineColor  = line;
+                tree.Invalidate();
             }
         }
 
