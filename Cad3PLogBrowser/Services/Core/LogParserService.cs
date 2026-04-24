@@ -68,25 +68,36 @@ namespace Cad3PLogBrowser.Services
             if (string.IsNullOrEmpty(raw))
                 return entry;
 
+            // ── Issue 3 Fix: strip [filename] prefix added by MergeLogService ──────
+            // Merged lines look like: "[log1.txt] 2026-03-31T07:48:00.304Z: D: ..."
+            // The prefix must be stripped so the colon/tab-field parser sees the real line.
+            string line = raw;
+            if (line.Length > 2 && line[0] == '[')
+            {
+                int closingBracket = line.IndexOf("] ", StringComparison.Ordinal);
+                if (closingBracket > 0)
+                    line = line.Substring(closingBracket + 2);
+            }
+
             string payload;
 
-            if (IsFileSyncFormat(raw))
+            if (IsFileSyncFormat(line))
             {
                 // ── Format B: MM/DD/YYYY HH:MM:SS [Thread:NNN]: {payload} ──────
                 // Find ]: to locate the end of the thread prefix.
                 const string threadEnd = "]: ";
-                int threadEndIdx = raw.IndexOf(threadEnd, StringComparison.Ordinal);
+                int threadEndIdx = line.IndexOf(threadEnd, StringComparison.Ordinal);
                 if (threadEndIdx < 0)
                     return entry;
 
                 // Extract thread ID from [Thread:NNN]
                 const string threadTag = "[Thread:";
-                int threadTagIdx = raw.LastIndexOf(threadTag, threadEndIdx, StringComparison.Ordinal);
+                int threadTagIdx = line.LastIndexOf(threadTag, threadEndIdx, StringComparison.Ordinal);
                 if (threadTagIdx >= 0)
-                    entry.ThreadId = raw.Substring(threadTagIdx + threadTag.Length,
+                    entry.ThreadId = line.Substring(threadTagIdx + threadTag.Length,
                         threadEndIdx - (threadTagIdx + threadTag.Length));
 
-                payload = raw.Substring(threadEndIdx + threadEnd.Length);
+                payload = line.Substring(threadEndIdx + threadEnd.Length);
                 entry.Level = "D"; // INV logs carry no explicit level — treat as Debug
             }
             else
@@ -99,16 +110,16 @@ namespace Cad3PLogBrowser.Services
                 int fieldIndex = 0;
                 int payloadStart = -1;
 
-                while (pos < raw.Length)
+                while (pos < line.Length)
                 {
-                    int next = raw.IndexOf(sep, pos, StringComparison.Ordinal);
+                    int next = line.IndexOf(sep, pos, StringComparison.Ordinal);
                     if (next < 0 || fieldIndex >= 6)
                     {
                         if (fieldIndex == 6) payloadStart = pos;
                         break;
                     }
 
-                    string field = raw.Substring(pos, next - pos);
+                    string field = line.Substring(pos, next - pos);
 
                     switch (fieldIndex)
                     {
@@ -124,10 +135,10 @@ namespace Cad3PLogBrowser.Services
 
                 if (fieldIndex == 6) payloadStart = pos;
 
-                if (payloadStart < 0 || payloadStart >= raw.Length)
+                if (payloadStart < 0 || payloadStart >= line.Length)
                     return entry;
 
-                payload = raw.Substring(payloadStart);
+                payload = line.Substring(payloadStart);
             }
 
             // ── Shared tab-payload parsing ─────────────────────────────────────

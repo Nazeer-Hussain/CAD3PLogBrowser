@@ -32,6 +32,9 @@ namespace Cad3PLogBrowser.Managers
         private Point _lastMousePos;
         private bool _isDragging = false;
 
+        // Stores the last mouse position for zoom-centering (Issue 2)
+        private Point _lastMouseForZoom = new Point(0, 0);
+
         private const float ROW_HEIGHT  = 28f;
         private const float BAR_RADIUS  = 4f;
         private const float MIN_ZOOM    = 0.1f;
@@ -91,14 +94,24 @@ namespace Cad3PLogBrowser.Managers
             this.BackColor = ThemeManager.BackgroundColor;
 
             // Create content panel for the actual timeline
+            // Issue 1 Fix: AutoScroll = true so horizontal/vertical scrollbars appear when zoomed in
             _contentPanel = new Panel
             {
-                Dock = DockStyle.Fill,
-                BackColor = ThemeManager.BackgroundColor
+                Dock      = DockStyle.Fill,
+                BackColor = ThemeManager.BackgroundColor,
+                AutoScroll = true
             };
             typeof(Panel).GetProperty("DoubleBuffered", 
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 .SetValue(_contentPanel, true, null);
+
+            // Issue 1 Fix: when the user scrolls via scrollbars, update pan offset and redraw
+            _contentPanel.Scroll += (s, e) =>
+            {
+                _panOffset.X = -_contentPanel.HorizontalScroll.Value;
+                _panOffset.Y = -_contentPanel.VerticalScroll.Value;
+                _contentPanel.Invalidate();
+            };
 
             _contentPanel.Paint += ContentPanel_Paint;
             _contentPanel.MouseWheel += TimelinePanel_MouseWheel;
@@ -111,8 +124,8 @@ namespace Cad3PLogBrowser.Managers
             _toolbar = new VisualizationToolbar();
             _toolbar.Dock = DockStyle.Top;
             _toolbar.ResetClicked += (s, e) => ResetView();
-            _toolbar.ZoomInClicked += (s, e) => ZoomBy(1.2f);
-            _toolbar.ZoomOutClicked += (s, e) => ZoomBy(0.8f);
+            _toolbar.ZoomInClicked  += (s, e) => ZoomBy(1.2f, new Point(_contentPanel.ClientSize.Width / 2, _contentPanel.ClientSize.Height / 2));
+            _toolbar.ZoomOutClicked += (s, e) => ZoomBy(0.8f, new Point(_contentPanel.ClientSize.Width / 2, _contentPanel.ClientSize.Height / 2));
             _toolbar.FitToWindowClicked += (s, e) => FitToWindow();
 
             // Create status bar
@@ -149,8 +162,8 @@ namespace Cad3PLogBrowser.Managers
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add("Reset View", null, (s, e) => ResetView());
             contextMenu.Items.Add(new ToolStripSeparator());
-            contextMenu.Items.Add("Zoom In", null, (s, e) => ZoomBy(1.2f));
-            contextMenu.Items.Add("Zoom Out", null, (s, e) => ZoomBy(0.8f));
+            contextMenu.Items.Add("Zoom In",  null, (s, e) => ZoomBy(1.2f, new Point(_contentPanel.ClientSize.Width / 2, _contentPanel.ClientSize.Height / 2)));
+            contextMenu.Items.Add("Zoom Out", null, (s, e) => ZoomBy(0.8f, new Point(_contentPanel.ClientSize.Width / 2, _contentPanel.ClientSize.Height / 2)));
             contextMenu.Items.Add("Fit to Window", null, (s, e) => FitToWindow());
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add("Export as Image...", null, (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty));
@@ -232,17 +245,49 @@ namespace Cad3PLogBrowser.Managers
                 g.DrawString(txt, f, b, 0, y0 + 4);
         }
 
-        private void ZoomBy(float factor)
+        private void ZoomBy(float factor, Point? mousePos = null)
         {
+            float oldZoom = _zoom;
             float newZoom = _zoom * factor;
-            if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM)
-            {
-                _zoom = newZoom;
-                _toolbar.UpdateZoomLevel(_zoom);
-                _statusBar.UpdateZoom(_zoom);
-                CalculateLayout();
-                _contentPanel.Invalidate();
-            }
+            if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM) return;
+
+            // Issue 2 Fix: preserve the content coordinate under the mouse pointer
+            // so the view zooms into/out of the mouse location, not the origin.
+            Point pivot = mousePos ?? _lastMouseForZoom;
+
+            // Content-space X/Y under the pivot before zoom
+            float contentX = pivot.X - _panOffset.X;
+            float contentY = pivot.Y - _panOffset.Y;
+
+            _zoom = newZoom;
+            _toolbar.UpdateZoomLevel(_zoom);
+            _statusBar.UpdateZoom(_zoom);
+            CalculateLayout();
+
+            // Shift pan so the same content point stays under the pivot
+            float scale = newZoom / oldZoom;
+            _panOffset.X = pivot.X - contentX * scale;
+            _panOffset.Y = pivot.Y - contentY * scale;
+
+            // Issue 1 Fix: update scrollable region to match new zoom width
+            UpdateScrollableSize();
+
+            _contentPanel.Invalidate();
+        }
+
+        /// <summary>
+        /// Issue 1 Fix: sets AutoScrollMinSize so WinForms shows scrollbars
+        /// whenever the zoomed content is wider/taller than the visible panel.
+        /// </summary>
+        private void UpdateScrollableSize()
+        {
+            if (_entries.Count == 0) return;
+            float zoomedWidth  = LEFT_MARGIN + (_contentPanel.ClientSize.Width - LEFT_MARGIN - 20) * _zoom + 40;
+            int   maxDepth     = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
+            float zoomedHeight = TOP_MARGIN + (maxDepth + 1) * ROW_HEIGHT + 40;
+            _contentPanel.AutoScrollMinSize = new Size(
+                (int)Math.Max(0, zoomedWidth),
+                (int)Math.Max(0, zoomedHeight));
         }
 
         private void FitToWindow()
@@ -252,6 +297,8 @@ namespace Cad3PLogBrowser.Managers
             _toolbar.UpdateZoomLevel(_zoom);
             _statusBar.UpdateZoom(_zoom);
             CalculateLayout();
+            UpdateScrollableSize();
+            _contentPanel.AutoScrollPosition = new Point(0, 0);
             _contentPanel.Invalidate();
         }
 
@@ -264,6 +311,8 @@ namespace Cad3PLogBrowser.Managers
             _statusBar.UpdateZoom(_zoom);
             _statusBar.UpdateSelectedNode(null, 0);
             CalculateLayout();
+            UpdateScrollableSize();
+            _contentPanel.AutoScrollPosition = new Point(0, 0);
             _contentPanel.Invalidate();
         }
 
@@ -309,6 +358,7 @@ namespace Cad3PLogBrowser.Managers
 
             // Calculate layout
             CalculateLayout();
+            UpdateScrollableSize();
 
             // Update status bar
             _statusBar.UpdateNodeCount(_entries.Count);
@@ -645,8 +695,10 @@ namespace Cad3PLogBrowser.Managers
 
         private void TimelinePanel_MouseWheel(object sender, MouseEventArgs e)
         {
+            // Issue 2 Fix: pass the current mouse location so ZoomBy can center on it
+            _lastMouseForZoom = e.Location;
             float delta = e.Delta > 0 ? 1.2f : 0.8f;
-            ZoomBy(delta);
+            ZoomBy(delta, e.Location);
         }
 
         private void TimelinePanel_MouseDown(object sender, MouseEventArgs e)
@@ -661,6 +713,9 @@ namespace Cad3PLogBrowser.Managers
 
         private void TimelinePanel_MouseMove(object sender, MouseEventArgs e)
         {
+            // Track mouse for zoom centering (Issue 2)
+            _lastMouseForZoom = e.Location;
+
             if (_isDragging)
             {
                 // Pan

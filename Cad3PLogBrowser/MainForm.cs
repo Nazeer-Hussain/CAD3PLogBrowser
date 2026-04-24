@@ -472,6 +472,19 @@ namespace Cad3PLogBrowser
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
 
+                // Issue 4 Fix: apply dark/light theme colors to the tree views to prevent text truncation
+                bool isDarkTheme = _appSettings.Theme == "Dark";
+                Color treeBack = isDarkTheme ? Color.FromArgb(28, 30, 38)    : SystemColors.Window;
+                Color treeFore = isDarkTheme ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
+                Color treeLine = isDarkTheme ? Color.FromArgb(60, 65, 80)    : SystemColors.GrayText;
+                foreach (var tv in new[] { ApiTree, CallTree })
+                {
+                    tv.BackColor = treeBack;
+                    tv.ForeColor = treeFore;
+                    tv.LineColor = treeLine;
+                    tv.Invalidate();
+                }
+
                 // Apply icon size
                 ApplyIconSize();
 
@@ -745,19 +758,77 @@ namespace Cad3PLogBrowser
 
             ApiTree.ShowLines = ApiTree.ShowPlusMinus = true;
             ApiTree.HideSelection = false;
-            ApiTree.ShowNodeToolTips = true; // Same as CallTree
+            ApiTree.ShowNodeToolTips = true;
             CallTree.ShowLines = CallTree.ShowPlusMinus = true;
             CallTree.ShowNodeToolTips = true;
             CallTree.HideSelection = false;
 
-            CallTreeButton.CheckedChanged       += (s, e) => SyncTreeVisibility();
-            ApiTreeButton.CheckedChanged        += (s, e) => SyncTreeVisibility();
+            // Issue 4 Fix: FullRowSelect + owner-draw prevents text truncation in dark theme
+            ApiTree.FullRowSelect  = true;
+            CallTree.FullRowSelect = true;
+            ApiTree.DrawMode  = TreeViewDrawMode.OwnerDrawText;
+            CallTree.DrawMode = TreeViewDrawMode.OwnerDrawText;
+            ApiTree.DrawNode  += TreeView_DrawNode;
+            CallTree.DrawNode += TreeView_DrawNode;
+
+            CallTreeButton.CheckedChanged += (s, e) => SyncTreeVisibility();
+            ApiTreeButton.CheckedChanged  += (s, e) => SyncTreeVisibility();
 
             // Add context menu handlers for both trees
-            ApiTree.MouseUp += ApiTree_MouseUpForSorting;
+            ApiTree.MouseUp  += ApiTree_MouseUpForSorting;
             CallTree.MouseUp += CallTree_MouseUp;
 
             SyncTreeVisibility();
+        }
+
+        /// <summary>
+        /// Issue 4 Fix: owner-draw handler that ensures tree text is never clipped
+        /// and always uses the correct colors in both light and dark theme.
+        /// </summary>
+        private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
+        {
+            if (e.Node == null) return;
+
+            bool isDark     = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
+
+            // Background
+            Color backColor = isSelected
+                ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
+                : (isDark ? Color.FromArgb(28, 30, 38) : SystemColors.Window);
+
+            using (var bgBrush = new System.Drawing.SolidBrush(backColor))
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+
+            // Focus rectangle
+            if ((e.State & TreeNodeStates.Focused) != 0)
+                ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
+                    isDark ? Color.White : SystemColors.ControlText, backColor);
+
+            // Text color: selected uses highlight text; unselected uses per-node or theme color
+            Color foreColor;
+            if (isSelected)
+            {
+                foreColor = isDark ? Color.White : SystemColors.HighlightText;
+            }
+            else if (e.Node.ForeColor != Color.Empty && e.Node.ForeColor != Color.Black && e.Node.ForeColor != SystemColors.WindowText)
+            {
+                foreColor = e.Node.ForeColor; // duration-coded color
+            }
+            else
+            {
+                foreColor = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
+            }
+
+            Font font = e.Node.NodeFont ?? (sender as TreeView)?.Font ?? SystemFonts.DefaultFont;
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                e.Node.Text,
+                font,
+                new Rectangle(e.Bounds.X + 2, e.Bounds.Y, e.Bounds.Width - 2, e.Bounds.Height),
+                foreColor,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
         }
 
         private void ApiTree_MouseUpForSorting(object sender, MouseEventArgs e)

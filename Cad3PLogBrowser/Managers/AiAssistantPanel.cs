@@ -31,6 +31,7 @@ namespace Cad3PLogBrowser.Managers
         private Label      _statusLabel;
         private Label      _apiModeLabel;
         private Panel      _buttonPanel;
+        private Panel      _inputPanel;   // Issue 5 Fix: store as field so UpdateTheme can reach it
         private Button     _summarizeBtn, _anomalyBtn, _perfBtn,
                            _patternsBtn, _rootCauseBtn, _bugReportBtn;
         private TextBox    _queryBox;
@@ -102,7 +103,7 @@ namespace Cad3PLogBrowser.Managers
                 { _summarizeBtn, _anomalyBtn, _rootCauseBtn, _bugReportBtn, _perfBtn, _patternsBtn });
 
             // ── Chat / query input ─────────────────────────────────────────
-            var inputPanel = new Panel
+            _inputPanel = new Panel
             {
                 Height    = 36,
                 Dock      = DockStyle.Bottom,
@@ -152,10 +153,10 @@ namespace Cad3PLogBrowser.Managers
             _clearBtn.BackColor = Color.FromArgb(60, 40, 40);
             _clearBtn.Click += (s, e) => { _responseBox.Clear(); _chatHistory.Clear(); };
 
-            inputPanel.Controls.Add(_queryBox);
-            inputPanel.Controls.Add(_askBtn);
-            inputPanel.Controls.Add(_chatBtn);
-            inputPanel.Controls.Add(_clearBtn);
+            _inputPanel.Controls.Add(_queryBox);
+            _inputPanel.Controls.Add(_askBtn);
+            _inputPanel.Controls.Add(_chatBtn);
+            _inputPanel.Controls.Add(_clearBtn);
 
             // ── Response area ──────────────────────────────────────────────
             _responseBox = new RichTextBox
@@ -184,12 +185,16 @@ namespace Cad3PLogBrowser.Managers
 
             // Add in reverse Dock order (Fill goes first)
             Controls.Add(_responseBox);
-            Controls.Add(inputPanel);
+            Controls.Add(_inputPanel);
             Controls.Add(_buttonPanel);
             Controls.Add(_apiModeLabel);
             Controls.Add(_statusLabel);
 
             ResumeLayout();
+
+            // Issue 5 Fix: apply correct theme colors immediately on creation,
+            // so light-mode start-up doesn't show dark hardcoded colors.
+            UpdateTheme();
         }
 
         // ── Submit helpers ────────────────────────────────────────────────────
@@ -308,12 +313,25 @@ namespace Cad3PLogBrowser.Managers
                 _statusLabel.ForeColor = Color.FromArgb(200, 215, 240);
 
                 _buttonPanel.BackColor = Color.FromArgb(35, 38, 48);
-
                 foreach (Control ctrl in _buttonPanel.Controls)
                 {
                     if (ctrl is Button btn)
                     {
                         btn.BackColor = Color.FromArgb(50, 60, 85);
+                        btn.ForeColor = Color.FromArgb(200, 215, 240);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(70, 90, 130);
+                    }
+                }
+
+                // Issue 5 Fix: style input panel and its buttons
+                _inputPanel.BackColor = Color.FromArgb(35, 38, 48);
+                foreach (Control ctrl in _inputPanel.Controls)
+                {
+                    if (ctrl is Button btn)
+                    {
+                        btn.BackColor = btn == _clearBtn
+                            ? Color.FromArgb(60, 40, 40)
+                            : Color.FromArgb(50, 60, 85);
                         btn.ForeColor = Color.FromArgb(200, 215, 240);
                         btn.FlatAppearance.BorderColor = Color.FromArgb(70, 90, 130);
                     }
@@ -327,13 +345,7 @@ namespace Cad3PLogBrowser.Managers
                 _responseBox.BackColor = Color.FromArgb(22, 24, 30);
                 _responseBox.ForeColor = Color.FromArgb(200, 215, 235);
 
-                foreach (Control ctrl in Controls)
-                {
-                    if (ctrl is Panel panel && panel != _buttonPanel)
-                        panel.BackColor = Color.FromArgb(35, 38, 48);
-                }
-
-                _clearBtn.BackColor = Color.FromArgb(60, 40, 40);
+                this.BackColor = Color.FromArgb(28, 30, 38);
             }
             else
             {
@@ -347,12 +359,25 @@ namespace Cad3PLogBrowser.Managers
                 _statusLabel.ForeColor = Color.FromArgb(40, 50, 80);
 
                 _buttonPanel.BackColor = Color.FromArgb(235, 240, 250);
-
                 foreach (Control ctrl in _buttonPanel.Controls)
                 {
                     if (ctrl is Button btn)
                     {
                         btn.BackColor = Color.FromArgb(200, 210, 230);
+                        btn.ForeColor = Color.FromArgb(40, 50, 70);
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
+                    }
+                }
+
+                // Issue 5 Fix: style input panel and its buttons
+                _inputPanel.BackColor = Color.FromArgb(235, 240, 250);
+                foreach (Control ctrl in _inputPanel.Controls)
+                {
+                    if (ctrl is Button btn)
+                    {
+                        btn.BackColor = btn == _clearBtn
+                            ? Color.FromArgb(220, 200, 200)
+                            : Color.FromArgb(200, 210, 230);
                         btn.ForeColor = Color.FromArgb(40, 50, 70);
                         btn.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
                     }
@@ -366,13 +391,7 @@ namespace Cad3PLogBrowser.Managers
                 _responseBox.BackColor = Color.White;
                 _responseBox.ForeColor = Color.Black;
 
-                foreach (Control ctrl in Controls)
-                {
-                    if (ctrl is Panel panel && panel != _buttonPanel)
-                        panel.BackColor = Color.FromArgb(235, 240, 250);
-                }
-
-                _clearBtn.BackColor = Color.FromArgb(220, 200, 200);
+                this.BackColor = Color.FromArgb(235, 240, 250);
             }
 
             Invalidate(true);
