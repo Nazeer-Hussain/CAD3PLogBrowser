@@ -70,13 +70,18 @@ namespace Cad3PLogBrowser.Services
 
             // ── Issue 3 Fix: strip [filename] prefix added by MergeLogService ──────
             // Merged lines look like: "[log1.txt] 2026-03-31T07:48:00.304Z: D: ..."
-            // The prefix must be stripped so the colon/tab-field parser sees the real line.
+            // Only strip if the bracket content looks like a filename (contains a '.')
+            // to avoid false-positives on FileSync lines that start with "[Thread:NNN]".
             string line = raw;
             if (line.Length > 2 && line[0] == '[')
             {
                 int closingBracket = line.IndexOf("] ", StringComparison.Ordinal);
-                if (closingBracket > 0)
-                    line = line.Substring(closingBracket + 2);
+                if (closingBracket > 1)
+                {
+                    string bracketContent = line.Substring(1, closingBracket - 1);
+                    if (bracketContent.IndexOf('.') >= 0) // looks like a filename
+                        line = line.Substring(closingBracket + 2);
+                }
             }
 
             string payload;
