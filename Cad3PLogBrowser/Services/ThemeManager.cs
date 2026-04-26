@@ -1,9 +1,26 @@
 ﻿using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace Cad3PLogBrowser.Services
 {
+    // Performance: suppress WM_PAINT during bulk theme changes
+    internal static class NativeMethods
+    {
+        private const int WM_SETREDRAW = 11;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, bool wParam, int lParam);
+
+        internal static void SuppressRedraw(Control c)  => SendMessage(c.Handle, WM_SETREDRAW, false, 0);
+        internal static void ResumeRedraw(Control c)
+        {
+            SendMessage(c.Handle, WM_SETREDRAW, true, 0);
+            c.Refresh();
+        }
+    }
+
     /// <summary>
     /// Manages application theming (Light/Dark mode).
     /// Applies consistent colors across all forms and controls.
@@ -78,16 +95,28 @@ namespace Cad3PLogBrowser.Services
         {
             if (form == null) return;
 
-            form.BackColor = BackgroundColor;
-            form.ForeColor = ForegroundColor;
+            // Suppress all repaints for the form window while we restyle every control.
+            // This eliminates the cascade of incremental Paint events that made theme
+            // switching feel slow (each BackColor assignment previously triggered a repaint).
+            NativeMethods.SuppressRedraw(form);
+            try
+            {
+                form.BackColor = BackgroundColor;
+                form.ForeColor = ForegroundColor;
 
-            ApplyThemeToControls(form.Controls);
+                ApplyThemeToControls(form.Controls);
 
-            // Walk ALL controls recursively to find every MenuStrip / ToolStrip / StatusStrip
-            ApplyThemeToStrips(form.Controls);
+                // Walk ALL controls recursively to find every MenuStrip / ToolStrip / StatusStrip
+                ApplyThemeToStrips(form.Controls);
 
-            // Apply renderer to every ContextMenuStrip attached to controls on this form
-            ApplyThemeToContextMenus(form);
+                // Apply renderer to every ContextMenuStrip attached to controls on this form
+                ApplyThemeToContextMenus(form);
+            }
+            finally
+            {
+                // Re-enable painting and do a single full repaint.
+                NativeMethods.ResumeRedraw(form);
+            }
         }
 
         /// <summary>
