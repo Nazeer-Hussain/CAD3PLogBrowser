@@ -606,16 +606,39 @@ namespace Cad3PLogBrowser.Services
             var tv = (TreeView)sender;
             if (e.Bounds.Width <= 0 || e.Bounds.Height <= 0) return;
             EnsureTreeGdiObjects();
+
             bool selected = (e.State & TreeNodeStates.Selected) != 0 || (e.State & TreeNodeStates.Focused) != 0;
-            bool hot = (e.State & TreeNodeStates.Hot) != 0;
+            bool hot      = (e.State & TreeNodeStates.Hot) != 0;
+
+            // Fill the full row so the background behind the glyph/icon area matches the
+            // theme — otherwise Windows leaves a white strip to the left of the label.
             SolidBrush bg = selected ? _treeSelBrush : hot ? _treeHotBrush : _treeBackBrush;
             e.Graphics.FillRectangle(bg, e.Bounds);
+
+            // e.Node.Bounds is the LABEL rectangle (after indent + glyph + icon).
+            // e.Bounds is the full row width starting at X=0.
+            // Drawing text at e.Bounds.X (=0) overlaps the expand glyph and icon, pushing
+            // the text left so its right edge is clipped — the truncation symptom.
+            // Using e.Node.Bounds gives the correct label origin.
+            Rectangle labelRect = e.Node.Bounds;
+            if (labelRect.Width <= 0)
+            {
+                // Node.Bounds can be empty when the node is not yet rendered (e.g. first paint).
+                // Fall back to a small left-pad so text is at least readable.
+                labelRect = new Rectangle(e.Bounds.X + 2, e.Bounds.Y, e.Bounds.Width - 2, e.Bounds.Height);
+            }
+
+            // Extend label rect to the right edge of the row so long names are not clipped.
+            labelRect = new Rectangle(labelRect.X, e.Bounds.Y,
+                                      e.Bounds.Right - labelRect.X, e.Bounds.Height);
+
             bool hasNodeColor = e.Node.ForeColor != Color.Empty && e.Node.ForeColor != tv.ForeColor;
             SolidBrush textBrush; SolidBrush tempBrush = null;
-            if (selected) textBrush = _treeSelTextBrush;
+            if (selected)          textBrush = _treeSelTextBrush;
             else if (hasNodeColor) textBrush = tempBrush = new SolidBrush(e.Node.ForeColor);
-            else textBrush = _treeTextBrush;
-            e.Graphics.DrawString(e.Node.Text, tv.Font, textBrush, e.Bounds, _treeSf);
+            else                   textBrush = _treeTextBrush;
+
+            e.Graphics.DrawString(e.Node.Text, tv.Font, textBrush, labelRect, _treeSf);
             tempBrush?.Dispose();
         }
 
