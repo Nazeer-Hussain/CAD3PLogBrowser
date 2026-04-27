@@ -392,21 +392,16 @@ namespace Cad3PLogBrowser.Managers
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Expand on UI thread
-                if (_callTreeView.InvokeRequired)
-                {
-                    _callTreeView.Invoke((Action)(() => node.Expand()));
-                }
+                // Expand on UI thread — use the node's own TreeView for the InvokeRequired check
+                var tv = node.TreeView ?? _callTreeView;
+                if (tv.InvokeRequired)
+                    tv.Invoke((Action)(() => node.Expand()));
                 else
-                {
                     node.Expand();
-                }
 
                 // Recursively expand children
                 if (node.Nodes.Count > 0)
-                {
                     ExpandTreeRecursive(node.Nodes, cancellationToken);
-                }
             }
         }
 

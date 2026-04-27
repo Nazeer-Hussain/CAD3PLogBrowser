@@ -514,34 +514,53 @@ namespace Cad3PLogBrowser.Managers
             using (var sep = new Pen(AxisColor, 1f))
                 g.DrawLine(sep, LEFT_MARGIN, TOP_MARGIN - 1, _contentPanel.Width, TOP_MARGIN - 1);
 
+            if (_totalDurationMs <= 0) return;
+
             float baseWidth    = _contentPanel.ClientSize.Width - LEFT_MARGIN - 20;
             float availableWidth = baseWidth * _zoom;
-            int   intervals    = 10;
-            float intervalWidth = availableWidth / intervals;
-            long  intervalMs   = _totalDurationMs / intervals;
 
-            using (var tickPen = new Pen(AxisColor, 1f))
-            using (var font    = new Font("Segoe UI", 7f))
-            using (var brush   = new SolidBrush(LabelColor))
+            // ── Adaptive intervals: target ~80px between major ticks ──────────
+            // Calculate how many pixels each ms occupies, then pick a round
+            // interval (1, 2, 5, 10, 20, 50 … ms) so ticks stay readable.
+            float pxPerMs      = availableWidth / _totalDurationMs;
+            float targetPxGap  = 80f;                         // desired pixels between ticks
+            float rawIntervalMs = targetPxGap / pxPerMs;
+            // Round up to a "nice" step
+            long intervalMs = NiceInterval(rawIntervalMs);
+            if (intervalMs <= 0) intervalMs = Math.Max(1, _totalDurationMs / 10);
+            float intervalWidth = intervalMs * pxPerMs;
+
+            // Only draw ticks that are within the visible area (with 40px margin)
+            float visibleLeft  = LEFT_MARGIN;
+            float visibleRight = LEFT_MARGIN + _contentPanel.ClientSize.Width;
+
+            using (var tickPen  = new Pen(AxisColor, 1f))
+            using (var font     = new Font("Segoe UI", 7f))
+            using (var brush    = new SolidBrush(LabelColor))
             {
-                for (int i = 0; i <= intervals; i++)
+                // Start from the first tick that could be visible
+                long firstTick = (long)((-_panOffset.X) / pxPerMs / intervalMs) * intervalMs;
+                if (firstTick < 0) firstTick = 0;
+
+                for (long tick = firstTick; tick <= _totalDurationMs + intervalMs; tick += intervalMs)
                 {
-                    float x = LEFT_MARGIN + _panOffset.X + (i * intervalWidth);
-                    if (x < LEFT_MARGIN - 40 || x > _contentPanel.Width + 40) continue;
+                    float x = LEFT_MARGIN + _panOffset.X + tick * pxPerMs;
+                    if (x < visibleLeft - 40) continue;
+                    if (x > visibleRight + 40) break;
 
                     // Major tick
                     g.DrawLine(tickPen, x, TOP_MARGIN - 8, x, TOP_MARGIN);
-                    // Minor tick halfway
-                    if (i < intervals)
-                    {
-                        float mx = x + intervalWidth / 2;
-                        if (mx > LEFT_MARGIN && mx < _contentPanel.Width)
-                            g.DrawLine(tickPen, mx, TOP_MARGIN - 4, mx, TOP_MARGIN);
-                    }
 
-                    string lbl = $"{i * intervalMs}ms";
+                    // Minor tick halfway between majors
+                    float mx = x + intervalWidth / 2;
+                    if (mx > visibleLeft && mx < visibleRight)
+                        g.DrawLine(tickPen, mx, TOP_MARGIN - 4, mx, TOP_MARGIN);
+
+                    // Label
+                    string lbl = FormatMs(tick);
                     var    sz  = g.MeasureString(lbl, font);
-                    g.DrawString(lbl, font, brush, x - sz.Width / 2, TOP_MARGIN - 20);
+                    if (x - sz.Width / 2 > visibleLeft - 4)
+                        g.DrawString(lbl, font, brush, x - sz.Width / 2, TOP_MARGIN - 20);
                 }
 
                 // Baseline
@@ -550,6 +569,25 @@ namespace Cad3PLogBrowser.Managers
                 using (var basePen = new Pen(AxisColor, 1.5f))
                     g.DrawLine(basePen, x0, TOP_MARGIN, x1, TOP_MARGIN);
             }
+        }
+
+        /// <summary>Rounds a raw millisecond interval up to the nearest "nice" value.</summary>
+        private static long NiceInterval(float rawMs)
+        {
+            if (rawMs <= 0) return 1;
+            // Nice steps: 1, 2, 5 per decade
+            double magnitude = Math.Pow(10, Math.Floor(Math.Log10(rawMs)));
+            double normalized = rawMs / magnitude;
+            double nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+            return (long)Math.Max(1, nice * magnitude);
+        }
+
+        /// <summary>Formats a millisecond value as a short human-readable label.</summary>
+        private static string FormatMs(long ms)
+        {
+            if (ms >= 60_000) return $"{ms / 60_000}m {(ms % 60_000) / 1000}s";
+            if (ms >= 1_000)  return $"{ms / 1_000.0:G4}s";
+            return $"{ms}ms";
         }
 
         private void DrawDepthLabels(Graphics g)
