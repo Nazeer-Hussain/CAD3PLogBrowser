@@ -308,6 +308,9 @@ namespace Cad3PLogBrowser
         private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
         // O(1) lookup: 1-based line number → virtual list index
         private Dictionary<int, int> _lineIndexMap = new Dictionary<int, int>();
+        // Tracks whether the performance tab needs a colour refresh after a theme change
+        // while it was not visible (avoids a full ListView rebuild on every toggle).
+        private bool _performanceViewNeedsRefresh = false;
 
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
@@ -372,6 +375,19 @@ namespace Cad3PLogBrowser
                 timelinePanel.ExportImageRequested += (s, ev) => exportTimelineMenuItem_Click(s, ev);
             if (flameGraphPanel != null)
                 flameGraphPanel.ExportImageRequested += (s, ev) => exportFlameGraphMenuItem_Click(s, ev);
+
+            // PERFORMANCE: lazily re-render the performance tab when it becomes visible,
+            // so ApplyTheme() can skip it when it is not in the foreground.
+            mainTabControl.SelectedIndexChanged += (s, ev) =>
+            {
+                if (mainTabControl.SelectedTab == performanceTab
+                    && _apiPerfStats != null && _apiPerfStats.Count > 0
+                    && _performanceViewNeedsRefresh)
+                {
+                    _performanceViewNeedsRefresh = false;
+                    RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+                }
+            };
         }
 
         protected override void OnShown(EventArgs e)
@@ -453,7 +469,9 @@ namespace Cad3PLogBrowser
 
         public void ApplyTheme()
         {
-            // EMERGENCY FIX: Suspend layout during theme change to prevent freeze
+            // PERFORMANCE: Suppress redraws on the form-level handle while we restyle.
+            // NativeMethods.SuppressRedraw is also called inside ThemeManager.ApplyTheme,
+            // but doing it here too blocks any paint triggered by SuspendLayout itself.
             this.SuspendLayout();
 
             try
@@ -462,7 +480,7 @@ namespace Cad3PLogBrowser
                 var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
                 ThemeManager.SetTheme(theme);
 
-                // Apply to main form
+                // Apply to main form (WM_SETREDRAW suppressed inside ApplyTheme)
                 ThemeManager.ApplyTheme(this);
 
                 // Manually update visualization panels (they handle their own child controls)
@@ -491,10 +509,11 @@ namespace Cad3PLogBrowser
                 // Refresh tree layout after theme/icon change
                 LayoutTrees();
 
-                // Update log-level colors based on theme
-                UpdateLogColors();
-
-                // Refresh the log view to apply new colors
+                // PERFORMANCE: UpdateLogColors() used to iterate every row in _virtualLines
+                // to recompute BackColour. With a virtual ListView the colours are only
+                // needed at draw time (RetrieveVirtualItem), so we simply invalidate
+                // the ListView and let the draw handler pick the correct theme colour
+                // on-demand.  This turns an O(N) loop on 100k+ rows into O(0).
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
                 {
                     logListView.Invalidate();
@@ -515,9 +534,20 @@ namespace Cad3PLogBrowser
                 }
 
                 // Refresh the performance view with theme-aware colors
+                // PERFORMANCE: only re-render if the perf tab is actually visible to avoid
+                // rebuilding the full ListView on every theme toggle when user is elsewhere.
                 if (_apiPerfStats != null && _apiPerfStats.Count > 0)
                 {
-                    RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+                    if (performanceView.Visible)
+                    {
+                        _performanceViewNeedsRefresh = false;
+                        RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+                    }
+                    else
+                    {
+                        // Mark dirty so the tab's SelectedIndexChanged handler re-renders lazily.
+                        _performanceViewNeedsRefresh = true;
+                    }
                 }
             }
             finally
@@ -1717,7 +1747,20 @@ namespace Cad3PLogBrowser
             var vl   = _virtualLines[e.ItemIndex];
             var item = new ListViewItem(vl.LineNumber.ToString());
             item.SubItems.Add(vl.Text);
-            item.BackColor = vl.BackColour;
+
+            // PERFORMANCE: Compute row colour on-demand here instead of pre-baking it in
+            // UpdateLogColors() across every row on every theme switch.  Because this handler
+            // is only called for the ~20–50 rows that are actually visible, there is no
+            // per-row O(N) cost at theme-switch time.
+            string text = vl.Text;
+            if (text.Contains("ERROR") || text.Contains("EXCEPTION"))
+                item.BackColor = ThemeManager.ErrorBackgroundColor;
+            else if (text.Contains("WARNING") || text.Contains("WARN"))
+                item.BackColor = ThemeManager.WarningBackgroundColor;
+            else
+                item.BackColor = ThemeManager.BackgroundColor;
+
+            item.ForeColor = ThemeManager.ForegroundColor;
             e.Item = item;
         }
 
