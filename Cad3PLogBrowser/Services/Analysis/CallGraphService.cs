@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Cad3PLogBrowser.Services
 {
@@ -47,6 +49,41 @@ namespace Cad3PLogBrowser.Services
             }
 
             return graph;
+        }
+
+        /// <summary>
+        /// Builds one independent <see cref="CallGraph"/> per source log file.
+        /// Entries are grouped by <see cref="LogEntry.SourceLogFile"/> so that
+        /// cross-file caller→callee edges are never created.
+        /// Falls back to a single-entry list wrapping <see cref="Build"/> when all
+        /// entries share the same (or empty) source file tag.
+        /// </summary>
+        /// <returns>
+        /// Ordered list of (fileName, graph) pairs; the fileName is the tag
+        /// added by <see cref="MergeLogService"/> (e.g. "log1.txt").
+        /// </returns>
+        public List<(string FileName, CallGraph Graph)> BuildGroupedByFile(List<LogEntry> entries)
+        {
+            var fileOrder  = new List<string>();
+            var fileGroups = new Dictionary<string, List<LogEntry>>(StringComparer.Ordinal);
+
+            foreach (var entry in entries)
+            {
+                string key = string.IsNullOrEmpty(entry.SourceLogFile) ? string.Empty : entry.SourceLogFile;
+                if (!fileGroups.TryGetValue(key, out var group))
+                {
+                    group = new List<LogEntry>();
+                    fileGroups[key] = group;
+                    fileOrder.Add(key);
+                }
+                group.Add(entry);
+            }
+
+            var result = new List<(string, CallGraph)>(fileOrder.Count);
+            foreach (var fileName in fileOrder)
+                result.Add((fileName, Build(fileGroups[fileName])));
+
+            return result;
         }
     }
 

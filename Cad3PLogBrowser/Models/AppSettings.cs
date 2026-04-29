@@ -37,6 +37,7 @@ namespace Cad3PLogBrowser.Services
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;
+        public bool    ShowStatusBar        { get; set; } = true;
 
         // ── Font settings (Feature H5) ────────────────────────────────────────
         public string     LogFontFamily     { get; set; } = "Consolas";

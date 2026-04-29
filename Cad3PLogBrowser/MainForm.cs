@@ -37,6 +37,12 @@ namespace Cad3PLogBrowser
         private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<Services.LogEntry>  _lastEntries      = new List<Services.LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
+        /// <summary>
+        /// Tracks the real on-disk paths of every file that has been merged into the current session.
+        /// Populated on every merge so that subsequent drop-merges can re-merge from disk instead of
+        /// writing in-memory tagged lines to a temp file (which would overwrite the original tags).
+        /// </summary>
+        private List<string>      _mergedSourcePaths = new List<string>();
 
         // Feature C2: Lazy loading for large trees
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
@@ -357,6 +363,10 @@ namespace Cad3PLogBrowser
             // Apply toolbar visibility from settings
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
             mainToolStrip.Visible = _appSettings.ShowToolbar;
+
+            // Apply status bar visibility from settings
+            showStatusBarMenuItem.Checked = _appSettings.ShowStatusBar;
+            mainStatusStrip.Visible = _appSettings.ShowStatusBar;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -580,6 +590,8 @@ namespace Cad3PLogBrowser
         {
             mainToolStrip.Visible = _appSettings.ShowToolbar;
             showToolbarMenuItem.Checked = _appSettings.ShowToolbar;
+            mainStatusStrip.Visible = _appSettings.ShowStatusBar;
+            showStatusBarMenuItem.Checked = _appSettings.ShowStatusBar;
         }
 
         public void ApplyFontSettings()
@@ -733,14 +745,32 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            // Feature G5: Enhanced status bar with file info
-            // Feature B10: Include error/warning counts
-            string fileInfo = string.Format("{0}  |  {1:N0} lines", 
-                Path.GetFileName(_currentFilePath), _allLines.Count);
+            // Build the file portion of the status text.
+            // For merged sessions _currentFilePath looks like "[Merged: a.txt, b.txt]".
+            // Show every contributing filename so the user always knows what is loaded.
+            string filePart;
+            if (_currentFilePath.StartsWith("[Merged:"))
+            {
+                // Extract the comma-separated names from "[Merged: a.txt, b.txt]"
+                string inner = _currentFilePath
+                    .TrimStart('[')
+                    .TrimEnd(']')
+                    .Substring("Merged:".Length)
+                    .Trim();
+                // inner is already "a.txt, b.txt, ..." — just label it clearly
+                filePart = "Merged: " + inner;
+            }
+            else
+            {
+                // Single file — show the full path so the user can see the directory too
+                filePart = _currentFilePath;
+            }
+
+            string fileInfo = string.Format("{0}  |  {1:N0} lines", filePart, _allLines.Count);
 
             if (_errorLines.Count > 0 || _warningLines.Count > 0)
             {
-                fileInfo += string.Format("  |  {0} errors, {1} warnings", 
+                fileInfo += string.Format("  |  {0} errors, {1} warnings",
                     _errorLines.Count, _warningLines.Count);
             }
 
@@ -1012,6 +1042,17 @@ namespace Cad3PLogBrowser
             List<ApiPerfStats>          perfStats,
             Services.CallGraph          graph)
         {
+            PopulateTreesFromData(entries, apiNodes, callTree, perfStats, graph, null);
+        }
+
+        private void PopulateTreesFromData(
+            List<Services.LogEntry>                        entries,
+            List<ApiCallNode>                              apiNodes,
+            List<CallStackNode>                            callTree,
+            List<ApiPerfStats>                             perfStats,
+            Services.CallGraph                             graph,
+            List<(string FileName, Services.CallGraph Graph)> fileGraphs)
+        {
             _lastEntries  = entries;
             _apiNodes     = apiNodes;
 
@@ -1021,7 +1062,12 @@ namespace Cad3PLogBrowser
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, _allLines.Count);
-            callGraphPanel.LoadGraph(graph);
+
+            // Load call graph: per-file when available, otherwise single merged graph
+            if (fileGraphs != null && fileGraphs.Count > 1)
+                callGraphPanel.LoadGraphs(fileGraphs);
+            else
+                callGraphPanel.LoadGraph(graph);
 
             // Load flame graph and timeline
             if (flameGraphPanel != null)
@@ -1329,7 +1375,9 @@ namespace Cad3PLogBrowser
         private ApiSortMode _apiSortMode = ApiSortMode.ByName;
 
         // ── Performance tab sort state ────────────────────────────────────────
-        private int  _perfSortColumn    = 2; // default: Total ms
+        // Column indices (with Log File column at position 1):
+        //   0=API Name  1=Log File  2=Calls  3=Total  4=Avg  5=Min  6=Max  7=Self  8=Source File
+        private int  _perfSortColumn    = 3; // default: Total ms
         private bool _perfSortAscending = false;
 
         private void PopulatePerformanceTab(List<ApiPerfStats> stats, int totalLines)
@@ -1356,30 +1404,32 @@ namespace Cad3PLogBrowser
             else
             {
                 _perfSortColumn    = e.Column;
-                _perfSortAscending = e.Column == 0; // API name sorts ascending by default
+                // Name and Log File default to ascending; timing columns default to descending
+                _perfSortAscending = (e.Column == 0 || e.Column == 1);
             }
             RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
         }
 
         private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines)
         {
-            _apiPerfStats  = stats;
+            _apiPerfStats   = stats;
             _lastTotalLines = totalLines;
 
-            // Sort a copy
+            // Sort all rows by the selected column (flat — no grouping headers)
             var sorted = new List<ApiPerfStats>(stats);
             sorted.Sort((a, b) =>
             {
                 int cmp;
                 switch (_perfSortColumn)
                 {
-                    case 0:  cmp = string.Compare(a.ApiName, b.ApiName, StringComparison.OrdinalIgnoreCase); break;
-                    case 1:  cmp = a.CallCount.CompareTo(b.CallCount);        break;
-                    case 2:  cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
-                    case 3:  cmp = a.AvgDurationMs.CompareTo(b.AvgDurationMs); break;
-                    case 4:  cmp = a.MinDurationMs.CompareTo(b.MinDurationMs); break;
-                    case 5:  cmp = a.MaxDurationMs.CompareTo(b.MaxDurationMs); break;
-                    case 6:  cmp = a.SelfDurationMs.CompareTo(b.SelfDurationMs); break;
+                    case 0:  cmp = string.Compare(a.ApiName,      b.ApiName,      StringComparison.OrdinalIgnoreCase); break;
+                    case 1:  cmp = string.Compare(a.SourceLogFile ?? "", b.SourceLogFile ?? "", StringComparison.OrdinalIgnoreCase); break;
+                    case 2:  cmp = a.CallCount.CompareTo(b.CallCount);             break;
+                    case 3:  cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
+                    case 4:  cmp = a.AvgDurationMs.CompareTo(b.AvgDurationMs);     break;
+                    case 5:  cmp = a.MinDurationMs.CompareTo(b.MinDurationMs);     break;
+                    case 6:  cmp = a.MaxDurationMs.CompareTo(b.MaxDurationMs);     break;
+                    case 7:  cmp = a.SelfDurationMs.CompareTo(b.SelfDurationMs);   break;
                     default: cmp = a.TotalDurationMs.CompareTo(b.TotalDurationMs); break;
                 }
                 return _perfSortAscending ? cmp : -cmp;
@@ -1388,18 +1438,18 @@ namespace Cad3PLogBrowser
             performanceView.BeginUpdate();
             performanceView.Items.Clear();
 
-            // Summary row - use theme-aware color
+            // Summary row (spans all columns)
             long sumTotal = 0; int sumCalls = 0;
             foreach (var s in stats) { sumTotal += s.TotalDurationMs; sumCalls += s.TimedCallCount; }
 
             var summary = new ListViewItem(Resources.PERF_SUMMARY_ROW_LABEL);
-            summary.SubItems.Add(sumCalls.ToString());
-            summary.SubItems.Add(sumTotal.ToString());
+            summary.SubItems.Add(string.Empty);                                                       // Log File
+            summary.SubItems.Add(sumCalls.ToString());                                                // Calls
+            summary.SubItems.Add(sumTotal.ToString());                                                // Total
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
             summary.SubItems.Add("-"); summary.SubItems.Add("-");
-            summary.SubItems.Add(string.Format(Resources.PERF_SUMMARY_STATS, stats.Count, totalLines));
+            summary.SubItems.Add(string.Format(Resources.PERF_SUMMARY_STATS, stats.Count, totalLines)); // Self / summary
 
-            // Theme-aware summary row color
             if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
             {
                 summary.BackColor = Color.FromArgb(50, 70, 90);
@@ -1415,35 +1465,40 @@ namespace Cad3PLogBrowser
 
             long threshold = _appSettings?.SlowCallThresholdMs ?? 1000;
             foreach (var s in sorted)
-            {
-                var item = new ListViewItem(s.ApiName);
-                item.SubItems.Add(s.CallCount.ToString());
-                item.SubItems.Add(s.TotalDurationMs > 0 ? s.TotalDurationMs.ToString() : "-");
-                item.SubItems.Add(s.AvgDurationMs   > 0 ? s.AvgDurationMs.ToString()   : "-");
-                item.SubItems.Add(s.MinDurationMs   >= 0 ? s.MinDurationMs.ToString()   : "-");
-                item.SubItems.Add(s.MaxDurationMs   > 0 ? s.MaxDurationMs.ToString()    : "-");
-                item.SubItems.Add(s.SelfDurationMs  > 0 ? s.SelfDurationMs.ToString()   : "-");
+                performanceView.Items.Add(BuildPerfRow(s, threshold));
 
-                if (s.TotalDurationMs >= threshold)
-                {
-                    item.BackColor = ThemeManager.ErrorBackgroundColor;
-                    item.ForeColor = ThemeManager.ForegroundColor;
-                }
-                else if (s.TotalDurationMs >= threshold / 10)
-                {
-                    item.BackColor = ThemeManager.WarningBackgroundColor;
-                    item.ForeColor = ThemeManager.ForegroundColor;
-                }
-                else
-                {
-                    // Use default theme background for normal items
-                    item.BackColor = ThemeManager.BackgroundColor;
-                    item.ForeColor = ThemeManager.ForegroundColor;
-                }
-
-                performanceView.Items.Add(item);
-            }
             performanceView.EndUpdate();
+        }
+
+        private ListViewItem BuildPerfRow(ApiPerfStats s, long threshold)
+        {
+            // Column order: Name(0), LogFile(1), Calls(2), Total(3), Avg(4), Min(5), Max(6), Self(7), Source(8)
+            var item = new ListViewItem(s.ApiName);
+            item.SubItems.Add(s.SourceLogFile ?? string.Empty);
+            item.SubItems.Add(s.CallCount.ToString());
+            item.SubItems.Add(s.TotalDurationMs > 0 ? s.TotalDurationMs.ToString() : "-");
+            item.SubItems.Add(s.AvgDurationMs   > 0 ? s.AvgDurationMs.ToString()   : "-");
+            item.SubItems.Add(s.MinDurationMs   >= 0 ? s.MinDurationMs.ToString()  : "-");
+            item.SubItems.Add(s.MaxDurationMs   > 0 ? s.MaxDurationMs.ToString()   : "-");
+            item.SubItems.Add(s.SelfDurationMs  > 0 ? s.SelfDurationMs.ToString()  : "-");
+            item.SubItems.Add(s.SourceFile      ?? string.Empty);
+
+            if (s.TotalDurationMs >= threshold)
+            {
+                item.BackColor = ThemeManager.ErrorBackgroundColor;
+                item.ForeColor = ThemeManager.ForegroundColor;
+            }
+            else if (s.TotalDurationMs >= threshold / 10)
+            {
+                item.BackColor = ThemeManager.WarningBackgroundColor;
+                item.ForeColor = ThemeManager.ForegroundColor;
+            }
+            else
+            {
+                item.BackColor = ThemeManager.BackgroundColor;
+                item.ForeColor = ThemeManager.ForegroundColor;
+            }
+            return item;
         }
 
         // ── Tree visibility ───────────────────────────────────────────────────
@@ -1862,46 +1917,42 @@ namespace Cad3PLogBrowser
 
         private async void MergeDroppedFileAsync(string droppedFile)
         {
-            // Collect the current source file(s) and the new dropped file
-            var filesToMerge = new List<string>();
-
-            // If the current "file" is already a merge, we cannot re-read it from disk.
-            // In that case, fall back to just merging using the in-memory lines + new file.
-            bool currentIsMerge = _currentFilePath.StartsWith("[Merged:");
-
-            if (!currentIsMerge && File.Exists(_currentFilePath))
-            {
-                filesToMerge.Add(_currentFilePath);
-            }
-            else if (currentIsMerge)
-            {
-                // Write current in-memory lines to a temp file so MergeAsync can read them
-                string tempPath = Path.GetTempFileName();
-                File.WriteAllLines(tempPath, _allLines);
-                filesToMerge.Add(tempPath);
-            }
-            else
-            {
-                // Current file path not resolvable — just open independently
-                LoadFileAsync(droppedFile);
-                return;
-            }
-
-            filesToMerge.Add(droppedFile);
-
-            StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, filesToMerge.Count));
+            StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, 2));
 
             try
             {
-                var merged = await _mergeLogService.MergeAsync(filesToMerge);
+                List<string> merged;
 
-                // Clean up temp file if we created one
-                if (currentIsMerge && File.Exists(filesToMerge[0]))
-                    try { File.Delete(filesToMerge[0]); } catch { }
+                bool currentIsMerge = _currentFilePath.StartsWith("[Merged:");
 
+                if (!currentIsMerge && File.Exists(_currentFilePath))
+                {
+                    // Simple case: current session is a single file still on disk
+                    merged = await _mergeLogService.MergeAsync(new[] { _currentFilePath, droppedFile });
+                    _mergedSourcePaths = new List<string> { _currentFilePath, droppedFile };
+                }
+                else if (currentIsMerge && _mergedSourcePaths.Count > 0
+                         && _mergedSourcePaths.TrueForAll(File.Exists))
+                {
+                    // All original source files still exist on disk — re-merge cleanly
+                    // so original [filename] tags are preserved and no temp file is needed.
+                    var allPaths = new List<string>(_mergedSourcePaths) { droppedFile };
+                    merged = await _mergeLogService.MergeAsync(allPaths);
+                    _mergedSourcePaths = allPaths;
+                }
+                else
+                {
+                    // Original files are no longer accessible (e.g. already-merged from memory).
+                    // Merge the new file into the existing tagged in-memory lines without
+                    // re-tagging them, so original [filename] prefixes are preserved.
+                    merged = await _mergeLogService.MergeTaggedWithNewFilesAsync(
+                        _allLines, new[] { droppedFile });
+                    _mergedSourcePaths.Add(droppedFile);
+                }
+
+                // Build the display name from the real file names we know about
                 _currentFilePath = "[Merged: " + string.Join(", ",
-                    new[] { Path.GetFileName(_currentFilePath.TrimStart('[').TrimEnd(']').Replace("Merged: ", "")),
-                            Path.GetFileName(droppedFile) }) + "]";
+                    _mergedSourcePaths.ConvertAll(Path.GetFileName)) + "]";
 
                 _allLines = merged;
                 _searchService.Reset();
@@ -1918,12 +1969,13 @@ namespace Cad3PLogBrowser
 
                 var mergeEntries = await Task.Run(() => _parserService.Parse(_allLines));
                 var mApiTask     = Task.Run(() => _parserService.BuildApiList(mergeEntries));
-                var mCallTask    = Task.Run(() => _parserService.BuildCallTree(mergeEntries));
+                var mCallTask    = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                 await Task.WhenAll(mApiTask, mCallTask);
                 var mCallTree    = mCallTask.Result;
-                var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStats(mCallTree));
-                var mGraph       = await Task.Run(() => _callGraphService.Build(mergeEntries));
-                PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph);
+                var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+                var mFileGraphs  = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
+                var mGraph       = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+                PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
                 FileLoadProgress.Value = 100;
 
                 SetDocumentLoaded(true);
@@ -1931,7 +1983,7 @@ namespace Cad3PLogBrowser
                 UpdateStatusBar();
 
                 MessageBox.Show(
-                    string.Format(Resources.MSG_MERGE_SUCCESSFUL, filesToMerge.Count, merged.Count),
+                    string.Format(Resources.MSG_MERGE_SUCCESSFUL, _mergedSourcePaths.Count, merged.Count),
                     Resources.DIALOG_TITLE_MERGE_COMPLETE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
@@ -2534,6 +2586,8 @@ namespace Cad3PLogBrowser
                     _currentFilePath = "[Merged: " + string.Join(", ",
                         System.Array.ConvertAll(dlg.FileNames,
                             p => System.IO.Path.GetFileName(p))) + "]";
+                    // Track real paths so subsequent drop-merges can re-merge from disk
+                    _mergedSourcePaths = new List<string>(dlg.FileNames);
 
                     _allLines = merged;
                     _searchService.Reset();
@@ -2552,12 +2606,13 @@ namespace Cad3PLogBrowser
                     // Parse and build all tree data in parallel on background threads
                     var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
                     var mApiTask      = Task.Run(() => _parserService.BuildApiList(mergeEntries));
-                    var mCallTask     = Task.Run(() => _parserService.BuildCallTree(mergeEntries));
+                    var mCallTask     = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                     await Task.WhenAll(mApiTask, mCallTask);
                     var mCallTree     = mCallTask.Result;
-                    var mPerfStats    = await Task.Run(() => _parserService.BuildPerformanceStats(mCallTree));
-                    var mGraph        = await Task.Run(() => _callGraphService.Build(mergeEntries));
-                    PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph);
+                    var mPerfStats    = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+                    var mFileGraphs   = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
+                    var mGraph        = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+                    PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
                     FileLoadProgress.Value = 100;
 
                     SetDocumentLoaded(true);
@@ -4383,6 +4438,12 @@ namespace Cad3PLogBrowser
         {
             mainToolStrip.Visible = showToolbarMenuItem.Checked;
             _appSettings.ShowToolbar = showToolbarMenuItem.Checked;
+        }
+
+        private void showStatusBarMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            mainStatusStrip.Visible = showStatusBarMenuItem.Checked;
+            _appSettings.ShowStatusBar = showStatusBarMenuItem.Checked;
         }
 
         // ── Feature B7: Find All Results Window ──────────────────────────────
