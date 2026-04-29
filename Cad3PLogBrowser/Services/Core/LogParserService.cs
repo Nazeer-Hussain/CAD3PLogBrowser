@@ -80,7 +80,10 @@ namespace Cad3PLogBrowser.Services
                 {
                     string bracketContent = line.Substring(1, closingBracket - 1);
                     if (bracketContent.IndexOf('.') >= 0) // looks like a filename
+                    {
+                        entry.SourceLogFile = bracketContent;
                         line = line.Substring(closingBracket + 2);
+                    }
                 }
             }
 
@@ -316,6 +319,62 @@ namespace Cad3PLogBrowser.Services
             return roots;
         }
 
+        // ── Per-file call tree (for merged logs) ───────────────────────────────
+        /// <summary>
+        /// Builds one independent call tree per source log file.
+        /// When multiple files are merged, this prevents ENTER/EXIT pairs from
+        /// different files cross-matching and producing a single interleaved tree.
+        /// Each file's tree is returned as a synthetic root <see cref="CallStackNode"/>
+        /// labelled with the filename. Falls back to <see cref="BuildCallTree"/> when
+        /// all entries share the same (or empty) <see cref="LogEntry.SourceLogFile"/>.
+        /// </summary>
+        public List<CallStackNode> BuildCallTreeGroupedByFile(List<LogEntry> entries)
+        {
+            // Collect distinct, non-empty source file tags while preserving order
+            var fileOrder = new List<string>();
+            var fileGroups = new Dictionary<string, List<LogEntry>>(StringComparer.Ordinal);
+
+            foreach (var entry in entries)
+            {
+                string key = string.IsNullOrEmpty(entry.SourceLogFile) ? string.Empty : entry.SourceLogFile;
+                if (!fileGroups.TryGetValue(key, out var group))
+                {
+                    group = new List<LogEntry>();
+                    fileGroups[key] = group;
+                    fileOrder.Add(key);
+                }
+                group.Add(entry);
+            }
+
+            // Single file (or no tag) — normal tree, no synthetic wrapper
+            if (fileOrder.Count <= 1)
+                return BuildCallTree(entries);
+
+            // Multiple files — build an independent tree per file
+            var result = new List<CallStackNode>();
+            foreach (var fileName in fileOrder)
+            {
+                var fileEntries = fileGroups[fileName];
+                var fileRoots   = BuildCallTree(fileEntries);
+
+                // Wrap the per-file roots under a labelled synthetic node
+                var fileRoot = new CallStackNode
+                {
+                    Label           = string.IsNullOrEmpty(fileName) ? "(unknown file)" : fileName,
+                    LineNumber      = fileRoots.Count > 0 ? fileRoots[0].LineNumber : 0,
+                    Depth           = 0,
+                    IsFileGroupRoot = true
+                };
+                foreach (var root in fileRoots)
+                {
+                    root.Depth++;
+                    fileRoot.Children.Add(root);
+                }
+                result.Add(fileRoot);
+            }
+            return result;
+        }
+
         // ── Performance statistics ────────────────────────────────────────────
         /// <summary>
         /// Walks the entire call tree and aggregates per-API timing statistics.
@@ -333,11 +392,11 @@ namespace Cad3PLogBrowser.Services
             return list;
         }
 
-        private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map)
+        private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map, string sourceLogFile = null)
         {
             if (!map.TryGetValue(node.Label, out var stats))
             {
-                stats = new ApiPerfStats { ApiName = node.Label, SourceFile = node.SourceFile };
+                stats = new ApiPerfStats { ApiName = node.Label, SourceFile = node.SourceFile, SourceLogFile = sourceLogFile };
                 map[node.Label] = stats;
             }
 
@@ -361,7 +420,56 @@ namespace Cad3PLogBrowser.Services
             }
 
             foreach (var child in node.Children)
-                CollectStats(child, map);
+                CollectStats(child, map, sourceLogFile);
+        }
+
+        // ── Per-file performance statistics (for merged logs) ─────────────────
+        /// <summary>
+        /// Builds aggregated performance statistics independently for each source log file.
+        /// When multiple files are merged each file's stats are calculated in isolation so
+        /// timings are not contaminated by cross-file call pairing.
+        /// Each returned <see cref="ApiPerfStats"/> is tagged with its <see cref="ApiPerfStats.SourceLogFile"/>.
+        /// Falls back to <see cref="BuildPerformanceStats"/> for single-file (or untagged) data.
+        /// </summary>
+        public List<ApiPerfStats> BuildPerformanceStatsGroupedByFile(List<LogEntry> entries)
+        {
+            // Group entries by source log file
+            var fileOrder  = new List<string>();
+            var fileGroups = new Dictionary<string, List<LogEntry>>(StringComparer.Ordinal);
+
+            foreach (var entry in entries)
+            {
+                string key = string.IsNullOrEmpty(entry.SourceLogFile) ? string.Empty : entry.SourceLogFile;
+                if (!fileGroups.TryGetValue(key, out var group))
+                {
+                    group = new List<LogEntry>();
+                    fileGroups[key] = group;
+                    fileOrder.Add(key);
+                }
+                group.Add(entry);
+            }
+
+            // Single file — fall back to normal (untagged) stats
+            if (fileOrder.Count <= 1)
+                return BuildPerformanceStats(BuildCallTree(entries));
+
+            var result = new List<ApiPerfStats>();
+
+            foreach (var fileName in fileOrder)
+            {
+                var fileEntries = fileGroups[fileName];
+                var fileRoots   = BuildCallTree(fileEntries);
+
+                var map = new Dictionary<string, ApiPerfStats>(StringComparer.Ordinal);
+                foreach (var root in fileRoots)
+                    CollectStats(root, map, fileName);
+
+                var fileStats = new List<ApiPerfStats>(map.Values);
+                fileStats.Sort((a, b) => b.TotalDurationMs.CompareTo(a.TotalDurationMs));
+                result.AddRange(fileStats);
+            }
+
+            return result;
         }
     }
 
@@ -385,6 +493,8 @@ namespace Cad3PLogBrowser.Services
         public string SourceFile   { get; set; }
         public string Module       { get; set; }
         public long   EpochMs      { get; set; }
+        /// <summary>Source log filename tag added by MergeLogService. Empty for single-file loads.</summary>
+        public string SourceLogFile { get; set; }
     }
 
     /// <summary>One unique API name with all line numbers it appears on.</summary>
@@ -408,6 +518,12 @@ namespace Cad3PLogBrowser.Services
         public int                 LineNumber      { get; set; }
         public int                 ExitLineNumber  { get; set; }
         public int                 Depth           { get; set; }
+        /// <summary>
+        /// True for synthetic root nodes created by <see cref="LogParserService.BuildCallTreeGroupedByFile"/>
+        /// to represent a source log file. These nodes carry no timing data of their own;
+        /// their children are the actual top-level calls from that file.
+        /// </summary>
+        public bool                IsFileGroupRoot { get; set; }
         public string              SourceFile      { get; set; }
         public string              Module          { get; set; }
         public long                EpochMs         { get; set; }
@@ -426,6 +542,8 @@ namespace Cad3PLogBrowser.Services
     {
         public string ApiName         { get; set; }
         public string SourceFile      { get; set; }
+        /// <summary>Source log filename (from MergeLogService tag). Empty for single-file loads.</summary>
+        public string SourceLogFile   { get; set; }
         public int    CallCount       { get; set; }       // total ENTER lines
         public int    TimedCallCount  { get; set; }       // calls with a matching EXIT
         public long   TotalDurationMs { get; set; }

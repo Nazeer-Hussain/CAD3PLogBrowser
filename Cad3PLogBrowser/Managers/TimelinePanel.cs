@@ -342,13 +342,25 @@ namespace Cad3PLogBrowser.Managers
 
             _welcomePanel.Visible = false;
 
+            // For merged logs the call tree has synthetic file-group root nodes.
+            // Flatten past them so the timeline shows a single chronological view
+            // of all calls across files without file-label placeholder bars.
+            var effectiveRoots = new List<CallStackNode>();
+            foreach (var node in callStack)
+            {
+                if (node.IsFileGroupRoot)
+                    effectiveRoots.AddRange(node.Children);
+                else
+                    effectiveRoots.Add(node);
+            }
+
             // Convert to timeline entries
             _startTime = DateTime.Now;
             _endTime = DateTime.Now;
 
             DateTime currentTime = DateTime.Now;
 
-            foreach (var node in callStack)
+            foreach (var node in effectiveRoots)
             {
                 ConvertToTimelineRecursive(node, 0, ref currentTime);
             }

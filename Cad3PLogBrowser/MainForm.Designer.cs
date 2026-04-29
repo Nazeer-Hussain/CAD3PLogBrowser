@@ -78,6 +78,7 @@
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showRawTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -539,7 +540,8 @@
             this.tabsMenuItem,
             this.viewSeparator1,
             this.selectFontMenuItem,
-            this.showToolbarMenuItem});
+            this.showToolbarMenuItem,
+            this.showStatusBarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
             this.viewMenuItem.Text = "&View";
@@ -660,6 +662,15 @@
             this.showToolbarMenuItem.Text = "Show &Toolbar";
             this.showToolbarMenuItem.CheckedChanged += new System.EventHandler(this.showToolbarMenuItem_CheckedChanged);
             // 
+            // showStatusBarMenuItem
+            // 
+            this.showStatusBarMenuItem.Checked = true;
+            this.showStatusBarMenuItem.CheckOnClick = true;
+            this.showStatusBarMenuItem.Name = "showStatusBarMenuItem";
+            this.showStatusBarMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.showStatusBarMenuItem.Text = "Show &Status Bar";
+            this.showStatusBarMenuItem.CheckedChanged += new System.EventHandler(this.showStatusBarMenuItem_CheckedChanged);
+            // 
             // helpMenuItem
             // 
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -725,6 +736,7 @@
             this.StatusSelection,
             this.FileLoadProgress});
             this.mainStatusStrip.Name = "mainStatusStrip";
+            this.mainStatusStrip.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.mainStatusStrip.TabIndex = 1;
             this.mainStatusStrip.Text = "mainStatusStrip";
             // 
@@ -854,7 +866,6 @@
             // logTab
             // 
             this.logTab.Controls.Add(this.logListView);
-            this.logTab.Controls.Add(this.mainStatusStrip);
             this.logTab.Location = new System.Drawing.Point(4, 25);
             this.logTab.Name = "logTab";
             this.logTab.Padding = new System.Windows.Forms.Padding(3);
@@ -936,13 +947,17 @@
             this.perfColMax = new System.Windows.Forms.ColumnHeader();
             this.perfColSource = new System.Windows.Forms.ColumnHeader();
             this.perfColSelf = new System.Windows.Forms.ColumnHeader();
+            this.perfColLogFile = new System.Windows.Forms.ColumnHeader();
             this.performanceView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-                this.perfColName, this.perfColCalls, this.perfColTotal,
+                this.perfColName, this.perfColLogFile, this.perfColCalls, this.perfColTotal,
                 this.perfColAvg, this.perfColMin, this.perfColMax, this.perfColSelf, this.perfColSource });
             this.performanceView.FullRowSelect = true;
             this.performanceView.GridLines = true;
+            this.performanceView.AllowColumnReorder = true;
             this.perfColName.Text = "API Name";
             this.perfColName.Width = 260;
+            this.perfColLogFile.Text = "Log File";
+            this.perfColLogFile.Width = 140;
             this.perfColCalls.Text = "Calls";
             this.perfColCalls.Width = 55;
             this.perfColTotal.Text = "Total (ms)";
@@ -1530,6 +1545,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(987, 574);
             this.Controls.Add(this.mainSplitContainer);
+            this.Controls.Add(this.mainStatusStrip);
             this.Controls.Add(this.mainToolStrip);
             this.Controls.Add(this.mainMenuStrip);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -1612,6 +1628,7 @@
         private System.Windows.Forms.ColumnHeader perfColMax;
         private System.Windows.Forms.ColumnHeader perfColSelf;
         private System.Windows.Forms.ColumnHeader perfColSource;
+        private System.Windows.Forms.ColumnHeader perfColLogFile;
         private System.Windows.Forms.ImageList treeIconList;
         private System.Windows.Forms.RichTextBox logDetailBox;
         private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
@@ -1663,6 +1680,7 @@
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showRawTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;

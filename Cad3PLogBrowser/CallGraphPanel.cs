@@ -19,7 +19,7 @@ namespace Cad3PLogBrowser
     /// </summary>
     public class CallGraphPanel : Panel
     {
-        // ?? State ?????????????????????????????????????????????????????????????
+        // ?? State ??????????????????????????????????????????????????????????????
         private CallGraph _graph;
         private float     _zoom      = 1.0f;
         private PointF    _pan       = new PointF(0, 0);
@@ -28,7 +28,11 @@ namespace Cad3PLogBrowser
         private string    _hoveredNode;
         private bool      _structuralView = false;
 
-        // ?? Layout constants ??????????????????????????????????????????????????
+        // Per-file graphs (populated only for merged logs)
+        private List<(string FileName, CallGraph Graph)> _fileGraphs;
+        private ComboBox _fileSelector;
+
+        // ?? Layout constants ???????????????????????????????????????????????????
         private const float NW      = 140f;
         private const float NH      = 34f;
         private const float NR      = NH / 2f;
@@ -84,14 +88,85 @@ namespace Cad3PLogBrowser
             Controls.Add(_welcomePanel);
         }
 
-        // ?? Public API ????????????????????????????????????????????????????????
+        // ?? Public API ?????????????????????????????????????????????????????????
         public void LoadGraph(CallGraph graph)
         {
+            HideFileSelector();
+            _fileGraphs = null;
             _graph = graph;
             bool hasData = graph != null && graph.Nodes.Count > 0;
             _welcomePanel.Visible = !hasData;
             if (hasData) { LayoutNodes(); FitToWindow(); }
             Invalidate();
+        }
+
+        /// <summary>
+        /// Loads one call graph per source log file.
+        /// When multiple files are present a drop-down appears at the top of the
+        /// panel so the user can switch between per-file views.
+        /// Falls back to <see cref="LoadGraph"/> when the list contains a single entry.
+        /// </summary>
+        public void LoadGraphs(List<(string FileName, CallGraph Graph)> fileGraphs)
+        {
+            if (fileGraphs == null || fileGraphs.Count == 0)
+            {
+                LoadGraph(null);
+                return;
+            }
+
+            if (fileGraphs.Count == 1)
+            {
+                LoadGraph(fileGraphs[0].Graph);
+                return;
+            }
+
+            _fileGraphs = fileGraphs;
+            EnsureFileSelector();
+
+            _fileSelector.Items.Clear();
+            foreach (var fg in _fileGraphs)
+                _fileSelector.Items.Add(string.IsNullOrEmpty(fg.FileName) ? "(unknown file)" : fg.FileName);
+
+            _fileSelector.SelectedIndex = 0; // triggers SelectedIndexChanged ? LoadGraph
+        }
+
+        private void EnsureFileSelector()
+        {
+            if (_fileSelector != null) { _fileSelector.Visible = true; return; }
+
+            _fileSelector = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font          = new System.Drawing.Font("Segoe UI", 9f),
+                Anchor        = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Left          = 8,
+                Top           = 8,
+                Height        = 24,
+                Width         = Width - 16
+            };
+            _fileSelector.SizeChanged += (s, e) => { };
+            Resize += (s, e) => { if (_fileSelector != null) _fileSelector.Width = Width - 16; };
+
+            _fileSelector.SelectedIndexChanged += (s, e) =>
+            {
+                int idx = _fileSelector.SelectedIndex;
+                if (_fileGraphs != null && idx >= 0 && idx < _fileGraphs.Count)
+                {
+                    _graph = _fileGraphs[idx].Graph;
+                    bool hasData = _graph != null && _graph.Nodes.Count > 0;
+                    _welcomePanel.Visible = !hasData;
+                    if (hasData) { LayoutNodes(); FitToWindow(); }
+                    Invalidate();
+                }
+            };
+
+            Controls.Add(_fileSelector);
+            _fileSelector.BringToFront();
+        }
+
+        private void HideFileSelector()
+        {
+            if (_fileSelector != null) _fileSelector.Visible = false;
         }
 
         public void ResetView() { FitToWindow(); Invalidate(); }

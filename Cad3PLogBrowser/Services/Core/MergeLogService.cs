@@ -98,5 +98,57 @@ namespace Cad3PLogBrowser.Services.Core
 
             return 0;
         }
+
+        /// <summary>
+        /// Merges already-tagged in-memory lines (lines that already carry a
+        /// <c>[filename]</c> prefix added by a previous merge) with one or more
+        /// additional files, without re-tagging the existing lines.
+        /// Use this when the original source files are no longer available on disk.
+        /// </summary>
+        public Task<List<string>> MergeTaggedWithNewFilesAsync(
+            IList<string> existingTaggedLines,
+            IEnumerable<string> newFilePaths)
+        {
+            return Task.Run(() =>
+            {
+                var buckets = new List<(long ts, string line)>(existingTaggedLines.Count + 512);
+
+                // Existing lines already carry correct [filename] tags — keep as-is
+                foreach (var line in existingTaggedLines)
+                    buckets.Add((ExtractTimestamp(line), line));
+
+                // New files: tag and add
+                foreach (var path in newFilePaths)
+                {
+                    if (!File.Exists(path)) continue;
+                    string tag = Path.GetFileName(path);
+                    using (var stream = new FileStream(path, FileMode.Open,
+                        FileAccess.Read, FileShare.ReadWrite))
+                    using (var reader = new StreamReader(stream, Encoding.UTF8,
+                        detectEncodingFromByteOrderMarks: true))
+                    {
+                        string raw;
+                        while ((raw = reader.ReadLine()) != null)
+                        {
+                            long ts = ExtractTimestamp(raw);
+                            buckets.Add((ts, string.Format("[{0}] {1}", tag, raw)));
+                        }
+                    }
+                }
+
+                buckets.Sort((a, b) =>
+                {
+                    if (a.ts == 0 && b.ts == 0) return 0;
+                    if (a.ts == 0) return 1;
+                    if (b.ts == 0) return -1;
+                    return a.ts.CompareTo(b.ts);
+                });
+
+                var result = new List<string>(buckets.Count);
+                foreach (var (_, line) in buckets)
+                    result.Add(line);
+                return result;
+            });
+        }
     }
 }
