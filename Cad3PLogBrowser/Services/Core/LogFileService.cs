@@ -76,6 +76,7 @@ namespace Cad3PLogBrowser.Services
         // ── Write ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Writes <paramref name="lines"/> to <paramref name="filePath"/> as UTF-8 text.
+        /// Lines are streamed directly to disk to avoid loading the entire content into memory.
         /// </summary>
         /// <param name="filePath">Path to save the file</param>
         /// <param name="lines">Lines to write</param>
@@ -87,28 +88,27 @@ namespace Cad3PLogBrowser.Services
             int linesWritten = 0;
             int lastReportedProgress = 0;
 
-            var sb = new StringBuilder();
-            foreach (var line in linesList)
+            // Stream lines directly to disk — avoids allocating a single large StringBuilder
+            // that can cause memory pressure or OOM on large log files.
+            using (var writer = new StreamWriter(filePath, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
             {
-                sb.AppendLine(line);
-                linesWritten++;
-
-                // Report progress every ~10%
-                if (progressCallback != null && totalLines > 1000)
+                foreach (var line in linesList)
                 {
-                    int progress = (linesWritten * 90) / totalLines; // Reserve 10% for disk write
-                    if (progress > lastReportedProgress + 10 || linesWritten == totalLines)
+                    writer.WriteLine(line);
+                    linesWritten++;
+
+                    // Report progress every ~10%
+                    if (progressCallback != null && totalLines > 1000)
                     {
-                        lastReportedProgress = progress;
-                        progressCallback(progress, $"Writing: {linesWritten:N0}/{totalLines:N0} lines");
+                        int progress = (linesWritten * 100) / totalLines;
+                        if (progress > lastReportedProgress + 10 || linesWritten == totalLines)
+                        {
+                            lastReportedProgress = progress;
+                            progressCallback(progress, $"Writing: {linesWritten:N0}/{totalLines:N0} lines");
+                        }
                     }
                 }
             }
-
-            if (progressCallback != null)
-                progressCallback(95, "Saving to disk...");
-
-            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
 
             if (progressCallback != null)
                 progressCallback(100, "Complete");
