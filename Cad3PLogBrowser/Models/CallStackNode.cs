@@ -125,6 +125,13 @@ namespace Cad3PLogBrowser.Models
         public CallStackNode Parent { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether this ENTER call had no matching EXIT
+        /// (e.g. log was truncated or the API exited abnormally).
+        /// When true the node is still surfaced in the tree but marked as unclosed.
+        /// </summary>
+        public bool IsUnclosed { get; set; }
+
+        /// <summary>
         /// Gets a value indicating whether this call has a matching ENTER/EXIT pair.
         /// True if ExitLineNumber > 0.
         /// </summary>
@@ -208,7 +215,9 @@ namespace Cad3PLogBrowser.Models
         /// </returns>
         public string GetDisplayText()
         {
-            if (!IsMatched)
+            if (IsUnclosed)
+                return $"{Label}  [unclosed]";
+            else if (!IsMatched)
                 return $"{Label}  [? ms]";
             else if (DurationMs == 0)
                 return $"{Label}  [<1 ms]";

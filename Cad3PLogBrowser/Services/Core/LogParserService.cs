@@ -200,6 +200,19 @@ namespace Cad3PLogBrowser.Services
                 }
             }
 
+            // Drain any ENTER nodes left on the stack (log truncated / abnormal exit).
+            // Mark them as unclosed so the UI can flag them, and promote true root-level
+            // orphans so they appear in the tree instead of being silently lost.
+            while (stack.Count > 0)
+            {
+                var orphan = stack.Pop();
+                orphan.IsUnclosed = true;
+
+                // Only add to roots if the node has no parent already linking it
+                if (orphan.Depth == 0 && !roots.Contains(orphan))
+                    roots.Add(orphan);
+            }
+
             return roots;
         }
 
@@ -297,6 +310,12 @@ namespace Cad3PLogBrowser.Services
         public long                ExitEpochMs     { get; set; }
         public long                DurationMs      { get; set; }
         public List<CallStackNode> Children        { get; } = new List<CallStackNode>();
+
+        /// <summary>
+        /// True when the ENTER had no matching EXIT (e.g. log was truncated or the
+        /// API exited abnormally). The node is still surfaced in the tree but flagged.
+        /// </summary>
+        public bool IsUnclosed { get; set; }
 
         public override string ToString() =>
             DurationMs > 0
