@@ -15,12 +15,19 @@ namespace Cad3PLogBrowser.Services
         private string _lastSearchTerm = string.Empty;
         private StringComparison _lastComparison = StringComparison.OrdinalIgnoreCase;
 
+        // ── Cached compiled regex (avoids re-compilation on every FindNext call) ──
+        private Regex _cachedRegex;
+        private string _cachedRegexPattern = string.Empty;
+        private RegexOptions _cachedRegexOptions = RegexOptions.None;
+
         // ── Reset ─────────────────────────────────────────────────────────────
         /// <summary>Call this whenever a new file is loaded to clear search position.</summary>
         public void Reset()
         {
             _lastFoundIndex = -1;
             _lastSearchTerm = string.Empty;
+            _cachedRegex = null;
+            _cachedRegexPattern = string.Empty;
         }
 
         // ── Find ──────────────────────────────────────────────────────────────
@@ -54,12 +61,21 @@ namespace Cad3PLogBrowser.Services
                 try
                 {
                     var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
-                    var regex = new Regex(searchTerm, options);
+
+                    // Re-use the compiled Regex when pattern and options have not changed.
+                    if (_cachedRegex == null ||
+                        _cachedRegexPattern != searchTerm ||
+                        _cachedRegexOptions != options)
+                    {
+                        _cachedRegex = new Regex(searchTerm, options | RegexOptions.Compiled);
+                        _cachedRegexPattern = searchTerm;
+                        _cachedRegexOptions = options;
+                    }
 
                     for (int i = 0; i < lines.Count; i++)
                     {
                         int idx = (start + i) % lines.Count;
-                        if (regex.IsMatch(lines[idx]))
+                        if (_cachedRegex.IsMatch(lines[idx]))
                         {
                             _lastFoundIndex = idx;
                             return idx;
@@ -68,6 +84,7 @@ namespace Cad3PLogBrowser.Services
                 }
                 catch (ArgumentException) // RegexException derives from ArgumentException
                 {
+                    _cachedRegex = null; // discard invalid cached pattern
                     return -1; // Invalid regex pattern
                 }
             }
