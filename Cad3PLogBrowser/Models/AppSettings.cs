@@ -75,18 +75,38 @@ namespace Cad3PLogBrowser.Services
 
         public static AppSettings Load()
         {
+            string path = SettingsFilePath;
+            if (!File.Exists(path)) return new AppSettings();
+
             try
             {
-                string path = SettingsFilePath;
-                if (!File.Exists(path)) return new AppSettings();
-
                 var bytes = File.ReadAllBytes(path);
                 var ser   = new DataContractJsonSerializer(typeof(AppSettings));
                 using (var ms = new MemoryStream(bytes))
                     return (AppSettings)ser.ReadObject(ms);
             }
-            catch
+            catch (Exception ex)
             {
+                // The settings file is corrupt or unreadable.
+                // Rename it so it is preserved for diagnostics, then start fresh.
+                try
+                {
+                    string backup = path + ".corrupt_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    File.Move(path, backup);
+                }
+                catch { /* Best-effort backup — ignore secondary failure */ }
+
+                // Surface the failure non-fatally through the Windows event log
+                // so developers can diagnose the issue without bothering the user.
+                try
+                {
+                    System.Diagnostics.Trace.TraceWarning(
+                        "[AppSettings.Load] Could not deserialize settings file '{0}': {1}. " +
+                        "A fresh default settings file will be created.",
+                        path, ex.Message);
+                }
+                catch { /* Tracing itself must never throw */ }
+
                 return new AppSettings();
             }
         }
