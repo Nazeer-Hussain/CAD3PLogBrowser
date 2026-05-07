@@ -759,13 +759,16 @@ namespace Cad3PLogBrowser
         }
 
         // C2: Count total nodes in call tree
-        private int CountTotalNodes(List<CallStackNode> nodes)
+        private const int MAX_TREE_DEPTH = 500; // Guard against StackOverflowException
+
+        private int CountTotalNodes(List<CallStackNode> nodes, int depth = 0)
         {
+            if (depth >= MAX_TREE_DEPTH) return 0; // Stop counting at max depth
             int count = 0;
             foreach (var node in nodes)
             {
-                count++; // Count this node
-                count += CountTotalNodes(node.Children); // Count children recursively
+                count++;
+                count += CountTotalNodes(node.Children, depth + 1);
             }
             return count;
         }
@@ -803,7 +806,7 @@ namespace Cad3PLogBrowser
         }
 
         // C2: Build tree node with optional lazy loading
-        private TreeNode BuildTreeNode(CallStackNode csNode, bool useLazyLoading)
+        private TreeNode BuildTreeNode(CallStackNode csNode, bool useLazyLoading, int depth = 0)
         {
             bool matched = csNode.ExitLineNumber > 0;
 
@@ -868,8 +871,16 @@ namespace Cad3PLogBrowser
                 else
                 {
                     // Normal loading - add all children immediately
-                    foreach (var child in csNode.Children)
-                        tn.Nodes.Add(BuildTreeNode(child, useLazyLoading));
+                    if (depth < MAX_TREE_DEPTH)
+                    {
+                        foreach (var child in csNode.Children)
+                            tn.Nodes.Add(BuildTreeNode(child, useLazyLoading, depth + 1));
+                    }
+                    else
+                    {
+                        // Depth limit reached - show a placeholder so the user knows
+                        tn.Nodes.Add(new TreeNode("[max depth reached]") { ForeColor = Color.Gray });
+                    }
                 }
             }
 
