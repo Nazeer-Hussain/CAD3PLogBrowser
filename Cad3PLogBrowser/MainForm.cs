@@ -104,16 +104,38 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // Canonical tab order used to re-insert tabs at the correct position.
+        private TabPage[] _tabOrder;
+
         private void SetTabVisible(TabPage tab, bool visible)
         {
             if (tab == null) return;
+
+            // Capture canonical order once (after form load when all tabs exist).
+            if (_tabOrder == null && mainTabControl.TabPages.Count > 0)
+                _tabOrder = new TabPage[mainTabControl.TabPages.Count];
 
             bool currentlyVisible = mainTabControl.TabPages.Contains(tab);
             if (visible == currentlyVisible) return;
 
             if (visible)
             {
-                mainTabControl.TabPages.Add(tab);
+                // Re-insert at the original position so tab order is preserved.
+                if (_tabOrder != null)
+                {
+                    int insertAt = 0;
+                    for (int ti = 0; ti < _tabOrder.Length; ti++)
+                    {
+                        if (ReferenceEquals(_tabOrder[ti], tab)) break;
+                        if (mainTabControl.TabPages.Contains(_tabOrder[ti]))
+                            insertAt = mainTabControl.TabPages.IndexOf(_tabOrder[ti]) + 1;
+                    }
+                    mainTabControl.TabPages.Insert(insertAt, tab);
+                }
+                else
+                {
+                    mainTabControl.TabPages.Add(tab);
+                }
                 return;
             }
 
@@ -2724,6 +2746,12 @@ namespace Cad3PLogBrowser
         {
             SetDocumentLoaded(false);
             LayoutTrees();
+
+            // Capture the canonical tab order before any tabs are hidden,
+            // so SetTabVisible can re-insert at the correct position.
+            _tabOrder = new TabPage[mainTabControl.TabPages.Count];
+            for (int ti = 0; ti < mainTabControl.TabPages.Count; ti++)
+                _tabOrder[ti] = mainTabControl.TabPages[ti];
 
             // Feature 2a: Set default splitter to 30% only on first run (no saved value)
             // Check if this is the first run (no saved splitter distance)
