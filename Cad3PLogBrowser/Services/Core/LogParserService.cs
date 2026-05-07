@@ -61,9 +61,19 @@ namespace Cad3PLogBrowser.Services
             if (string.IsNullOrEmpty(raw))
                 return entry;
 
+            // Merged log lines produced by MergeLogService start with "[filename] ".
+            // Strip that prefix before parsing so the field positions are correct.
+            string parseable = raw;
+            if (raw.Length > 0 && raw[0] == '[')
+            {
+                int closeBracket = raw.IndexOf("] ", StringComparison.Ordinal);
+                if (closeBracket > 0 && closeBracket < raw.Length - 2)
+                    parseable = raw.Substring(closeBracket + 2);
+            }
+
             // Split on ": " to get the colon-separated header fields.
             // Maximum 7 splits — the 7th token is the full tab-delimited payload.
-            string[] colonParts = raw.Split(new[] { ": " }, 7, StringSplitOptions.None);
+            string[] colonParts = parseable.Split(new[] { ": " }, 7, StringSplitOptions.None);
 
             if (colonParts.Length >= 2)
                 entry.Level = colonParts[ColonFieldLevel].Trim();
