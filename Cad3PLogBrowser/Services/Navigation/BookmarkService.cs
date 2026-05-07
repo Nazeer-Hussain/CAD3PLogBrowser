@@ -18,7 +18,6 @@ namespace Cad3PLogBrowser.Services.Navigation
 
         private HashSet<int> _bookmarkedLines = new HashSet<int>();
         private string _currentFilePath = string.Empty;
-        private int _currentBookmarkIndex = -1;
 
         // ??????????????????????????????????????????????????????????????????????
         // Properties
@@ -83,7 +82,6 @@ namespace Cad3PLogBrowser.Services.Navigation
         public void ClearAllBookmarks()
         {
             _bookmarkedLines.Clear();
-            _currentBookmarkIndex = -1;
         }
 
         /// <summary>
@@ -139,7 +137,6 @@ namespace Cad3PLogBrowser.Services.Navigation
         {
             _currentFilePath = filePath;
             _bookmarkedLines.Clear();
-            _currentBookmarkIndex = -1;
 
             if (string.IsNullOrEmpty(filePath))
                 return;
@@ -201,8 +198,12 @@ namespace Cad3PLogBrowser.Services.Navigation
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "CAD3PLogBrowser", "Bookmarks");
 
-            // Create a safe filename from the log file path
-            string safeFileName = Path.GetFileName(logFilePath) + ".bookmarks";
+            // Use a hash of the FULL path (not just the filename) so that two files
+            // with the same name in different directories never share a bookmark file.
+            string fullPath = Path.GetFullPath(logFilePath);
+            int hash = fullPath.GetHashCode();
+            string safeFileName = string.Format("{0}_{1:X8}.bookmarks",
+                Path.GetFileName(logFilePath), (uint)hash);
 
             return Path.Combine(appDataDir, safeFileName);
         }

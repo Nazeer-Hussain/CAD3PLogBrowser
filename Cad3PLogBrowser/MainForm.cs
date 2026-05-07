@@ -1288,6 +1288,9 @@ namespace Cad3PLogBrowser
 
                 try
                 {
+                    // Persist bookmarks for the previous file before loading a new one.
+                    _bookmarkService.SaveBookmarks();
+
                     // Read file with progress updates
                     var lines = await _logFileService.ReadLinesAsync(filePath, (progress, message) =>
                     {
@@ -2734,6 +2737,13 @@ namespace Cad3PLogBrowser
             try
             {
                 SaveSearchHistory();
+            }
+            catch { /* Non-fatal */ }
+
+            // Persist bookmarks for the current file before closing
+            try
+            {
+                _bookmarkService.SaveBookmarks();
             }
             catch { /* Non-fatal */ }
 
