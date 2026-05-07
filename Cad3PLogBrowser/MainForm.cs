@@ -1244,59 +1244,63 @@ namespace Cad3PLogBrowser
         }
 
         // ── File loading ──────────────────────────────────────────────────────
-        private async void LoadFileAsync(string filePath)
+        private async void LoadFileAsync(string filePath, int scrollToIndex = 0)
         {
             if (_isLoading) return;
-            _isLoading = true;
-            SetDocumentLoaded(false);
-            FileStatus.Image = Resources.yellow;
-            FileLoadProgress.Visible = true;
-            FileLoadProgress.Value = 0;
-            StatusFileName.Text = "Loading...";
-
-            try
-            {
-                // Read file with progress updates
-                var lines = await _logFileService.ReadLinesAsync(filePath, (progress, message) =>
-                {
-                    // Update UI on UI thread
-                    this.Invoke((Action)(() =>
-                    {
-                        FileLoadProgress.Value = progress;
-                        StatusFileName.Text = message;
-                    }));
-                });
-
-                _allLines        = lines;
-                _currentFilePath = filePath;
-                _searchService.Reset();
-                ClearHighlighting(); // Clear any previous search highlights
-
-                // Load bookmarks for this file
-                _bookmarkService.LoadBookmarks(filePath);
-
-                // Show processing message
-                StatusFileName.Text = "Processing log data...";
+                _isLoading = true;
+                SetDocumentLoaded(false);
+                FileStatus.Image = Resources.yellow;
+                FileLoadProgress.Visible = true;
                 FileLoadProgress.Value = 0;
+                StatusFileName.Text = "Loading...";
 
-                // Give UI a chance to update
-                await Task.Delay(10);
+                try
+                {
+                    // Read file with progress updates
+                    var lines = await _logFileService.ReadLinesAsync(filePath, (progress, message) =>
+                    {
+                        // Update UI on UI thread
+                        this.Invoke((Action)(() =>
+                        {
+                            FileLoadProgress.Value = progress;
+                            StatusFileName.Text = message;
+                        }));
+                    });
 
-                // Populate views with progress
-                PopulateVirtualListView(_allLines);
-                FileLoadProgress.Value = 33;
-                StatusFileName.Text = "Building call tree...";
-                await Task.Delay(10);
+                    _allLines        = lines;
+                    _currentFilePath = filePath;
+                    _searchService.Reset();
+                    ClearHighlighting(); // Clear any previous search highlights
 
-                PopulateTrees(_allLines);
-                FileLoadProgress.Value = 100;
+                    // Load bookmarks for this file
+                    _bookmarkService.LoadBookmarks(filePath);
 
-                SetDocumentLoaded(true);
-                FileStatus.Image = Resources.green_ball;
-                _logFileService.WatchFile(filePath);
-                UpdateStatusBar();
-                _appSettings.AddRecentFile(filePath);
-                BuildMruMenu();
+                    // Show processing message
+                    StatusFileName.Text = "Processing log data...";
+                    FileLoadProgress.Value = 0;
+
+                    // Give UI a chance to update
+                    await Task.Delay(10);
+
+                    // Populate views with progress
+                    PopulateVirtualListView(_allLines);
+                    FileLoadProgress.Value = 33;
+                    StatusFileName.Text = "Building call tree...";
+                    await Task.Delay(10);
+
+                    PopulateTrees(_allLines);
+                    FileLoadProgress.Value = 100;
+
+                    SetDocumentLoaded(true);
+                    FileStatus.Image = Resources.green_ball;
+                    _logFileService.WatchFile(filePath);
+                    UpdateStatusBar();
+                    _appSettings.AddRecentFile(filePath);
+                    BuildMruMenu();
+
+                    // Restore scroll position AFTER all data is loaded (fixes BeginInvoke race).
+                    if (scrollToIndex > 0 && scrollToIndex < logListView.VirtualListSize)
+                        logListView.EnsureVisible(scrollToIndex);
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, "Access denied", ex.Message); }
             catch (IOException ex)                 { ShowLoadError(filePath, "File read error", ex.Message); }
@@ -1588,12 +1592,7 @@ namespace Cad3PLogBrowser
         {
             if (string.IsNullOrEmpty(_currentFilePath)) return;
             int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
-            LoadFileAsync(_currentFilePath);
-            BeginInvoke((Action)(() =>
-            {
-                if (topIndex < logListView.VirtualListSize)
-                    logListView.EnsureVisible(topIndex);
-            }));
+            LoadFileAsync(_currentFilePath, topIndex);
         }
 
         private void RefreshButton_Click(object sender, EventArgs e) =>
