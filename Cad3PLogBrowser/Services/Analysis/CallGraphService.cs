@@ -39,8 +39,18 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (entry.IsCallExit)
                 {
-                    if (callStack.Count > 0 && callStack.Peek() == entry.ApiName)
-                        callStack.Pop();
+                    // Walk the stack to find the matching ENTER (mirrors LogParserService).
+                    // A simple Peek-and-pop fails when an inner ENTER had no matching EXIT.
+                    var temp = new Stack<string>();
+                    while (callStack.Count > 0)
+                    {
+                        string top = callStack.Pop();
+                        if (top == entry.ApiName)
+                            break;          // found the match — leave it popped
+                        temp.Push(top);     // not a match — restore later
+                    }
+                    // Restore any intermediary frames that weren't the target
+                    while (temp.Count > 0) callStack.Push(temp.Pop());
                 }
             }
 
