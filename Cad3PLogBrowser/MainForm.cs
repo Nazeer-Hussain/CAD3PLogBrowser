@@ -3139,36 +3139,58 @@ namespace Cad3PLogBrowser
             if (activeTree?.SelectedNode == null) return;
 
             TreeNode selectedNode = activeTree.SelectedNode;
+            if (!(selectedNode.Tag is int enterLineNum) || enterLineNum < 0) return;
+
             string methodName = GetMethodNameFromNode(selectedNode);
 
-            // Find the ENTER and EXIT lines for this method
-            var branchLines = new List<string>();
-            bool inBranch = false;
+            // Use the already-parsed Services.LogEntry list to find the ENTER/EXIT boundaries.
+            // Raw log lines contain tab-separated ENTER/EXIT (no brackets), so text search
+            // for "[ENTER]"/["EXIT"] never matched.  Using _lastEntries is correct and robust.
+            int exitLineNum = -1;
+            bool foundEnter = false;
             int depth = 0;
 
-            foreach (var line in _virtualLines)
+            foreach (var entry in _lastEntries)
             {
-                string lineText = line.Text;
+                if (!entry.IsApiCall) continue;
 
-                if (lineText.Contains("[ENTER]") && lineText.Contains(methodName))
+                if (!foundEnter)
                 {
-                    inBranch = true;
-                    depth = 1;
-                    branchLines.Add(lineText);
-                }
-                else if (inBranch)
-                {
-                    branchLines.Add(lineText);
-
-                    if (lineText.Contains("[ENTER]")) depth++;
-                    if (lineText.Contains("[EXIT]"))
+                    if (entry.IsCallEnter && entry.LineNumber == enterLineNum)
                     {
-                        depth--;
-                        if (depth == 0)
-                            break;
+                        foundEnter = true;
+                        depth = 1;
+                    }
+                    continue;
+                }
+
+                // Track depth of ALL API calls so nested calls are captured correctly.
+                if (entry.IsCallEnter)
+                    depth++;
+                else if (entry.IsCallExit)
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        exitLineNum = entry.LineNumber;
+                        break;
                     }
                 }
             }
+
+            if (!foundEnter)
+            {
+                MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Extract from _allLines (unfiltered) so no branch lines are missing.
+            int startIdx = enterLineNum - 1;  // 0-based
+            int endIdx   = exitLineNum > 0 ? exitLineNum - 1 : _allLines.Count - 1; // 0-based
+            var branchLines = new List<string>();
+            for (int i = startIdx; i <= endIdx && i < _allLines.Count; i++)
+                branchLines.Add(_allLines[i]);
 
             if (branchLines.Count == 0)
             {
