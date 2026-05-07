@@ -190,11 +190,20 @@ namespace Cad3PLogBrowser
 
         private void BuildMruMenu()
         {
-            // Remove existing Recent Files menu if present
+            // Remove and DISPOSE existing Recent Files menu items to prevent memory/event leaks.
             if (_recentFilesMenuItem != null)
             {
                 fileMenuItem.DropDownItems.Remove(_recentFilesMenuItem);
                 fileMenuItem.DropDownItems.Remove(_recentFilesSeparator);
+
+                // Unhook event handlers and dispose child items before disposing the parent.
+                foreach (ToolStripItem child in _recentFilesMenuItem.DropDownItems)
+                    child.Click -= RecentFileMenuItem_Click;
+                _recentFilesMenuItem.DropDownItems.Clear();
+                _recentFilesMenuItem.Dispose();
+                _recentFilesSeparator.Dispose();
+                _recentFilesMenuItem = null;
+                _recentFilesSeparator = null;
             }
 
             // Only show if there are recent files
