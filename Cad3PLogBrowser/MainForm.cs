@@ -728,7 +728,9 @@ namespace Cad3PLogBrowser
 
             CallTree.EndUpdate();
 
-            // Wire up before expand event for lazy loading
+            // Wire up before expand event for lazy loading.
+            // Always unsubscribe first to prevent duplicate handlers when the same file (or another) is reloaded.
+            CallTree.BeforeExpand -= CallTree_BeforeExpand;
             if (useLazyLoading)
             {
                 CallTree.BeforeExpand += CallTree_BeforeExpand;
@@ -3047,7 +3049,7 @@ namespace Cad3PLogBrowser
                         // Write data (skip summary row if present)
                         foreach (ListViewItem item in performanceView.Items)
                         {
-                            if (item.Text == "──── TOTAL ────") continue;
+                            if (item.Text == "── Summary ──") continue;
 
                             var values = new string[8];
                             values[0] = EscapeCsv(item.Text);
@@ -3103,7 +3105,6 @@ namespace Cad3PLogBrowser
                     logListView.EnsureVisible(index);
                     logListView.SelectedIndices.Clear();
                     logListView.SelectedIndices.Add(index);
-                    logListView.FocusedItem = logListView.Items[index];
                 }
                 else
                 {
@@ -3248,7 +3249,6 @@ namespace Cad3PLogBrowser
             logListView.EnsureVisible(index);
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(index);
-            logListView.FocusedItem = logListView.Items[index];
             Focus();
         }
 
