@@ -332,22 +332,33 @@ namespace Cad3PLogBrowser
 
         private void UpdateLogColors()
         {
-            // Update the virtual lines with theme-appropriate colors
+            // Update the virtual lines with theme-appropriate colors.
+            // Bookmarked lines keep their bookmark highlight; only un-bookmarked
+            // lines fall through to the error/warning/normal colour.
             for (int i = 0; i < _virtualLines.Count; i++)
             {
                 var line = _virtualLines[i];
-                string text = line.Text;
 
-                if (text.Contains("ERROR") || text.Contains("EXCEPTION"))
-                    line.BackColour = ThemeManager.ErrorBackgroundColor;
-                else if (text.Contains("WARNING") || text.Contains("WARN"))
-                    line.BackColour = ThemeManager.WarningBackgroundColor;
+                if (int.TryParse(line.LineNumber, out int lineNum) &&
+                    _bookmarkService.IsBookmarked(lineNum))
+                {
+                    // Keep bookmark colour (refreshed to theme-appropriate value)
+                    line.BackColour = BookmarkColor;
+                }
                 else
-                    line.BackColour = ThemeManager.BackgroundColor;
+                {
+                    line.BackColour = GetLineColour(line.Text);
+                }
 
                 _virtualLines[i] = line;
             }
         }
+
+        /// <summary>Theme-aware bookmark highlight colour.</summary>
+        private static Color BookmarkColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(30, 80, 140)    // dark-theme: dark blue
+                : Color.FromArgb(200, 230, 255);  // light-theme: light blue
 
         // ── Settings ──────────────────────────────────────────────────────────
         private void RestoreSettings()
@@ -1369,10 +1380,10 @@ namespace Cad3PLogBrowser
                 int lineNumber = i + 1;
                 Color backColor = GetLineColour(lines[i]);
 
-                // Check if bookmarked - override color
+                // Check if bookmarked - use theme-aware colour
                 if (_bookmarkService.IsBookmarked(lineNumber))
                 {
-                    backColor = Color.FromArgb(200, 230, 255); // Light blue for bookmarks
+                    backColor = BookmarkColor;
                 }
 
                 _virtualLines.Add(new VirtualLogLine
@@ -3963,21 +3974,22 @@ namespace Cad3PLogBrowser
 
                 if (_bookmarkService.IsBookmarked(lineNum))
                 {
-                    // Mark with blue background
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
-                        Text = vl.Text,
-                        BackColour = Color.FromArgb(200, 230, 255) // Light blue
+                        Text       = vl.Text,
+                        BackColour = BookmarkColor   // theme-aware
                     };
                 }
-                else if (vl.BackColour == Color.FromArgb(200, 230, 255))
+                else if (vl.BackColour == BookmarkColor ||
+                         vl.BackColour == Color.FromArgb(200, 230, 255) ||
+                         vl.BackColour == Color.FromArgb(30, 80, 140))
                 {
-                    // Remove bookmark color
+                    // Remove stale bookmark colour
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
-                        Text = vl.Text,
+                        Text       = vl.Text,
                         BackColour = GetLineColour(vl.Text)
                     };
                 }
