@@ -253,7 +253,7 @@ namespace Cad3PLogBrowser.Utilities
             /// Regex pattern for matching timestamps in log lines.
             /// Matches: YYYY-MM-DD HH:MM:SS (with optional milliseconds)
             /// </summary>
-            public const string TimestampRegexPattern = @"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d{3})?)";
+            public const string TimestampRegexPattern = @"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?Z?)";
 
             /// <summary>
             /// Regex pattern for matching duration in log lines.
