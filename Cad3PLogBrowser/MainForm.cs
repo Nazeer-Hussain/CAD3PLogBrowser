@@ -42,6 +42,10 @@ namespace Cad3PLogBrowser
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
         private const string LAZY_LOAD_PLACEHOLDER = "   (click to load children...)";
 
+        // Bug #11 fix: pre-computed set of API names with mismatched ENTER/EXIT counts.
+        // Built once per file load in O(N) — avoids the previous O(N*M) approach.
+        private HashSet<string> _unmatchedApiNames = new HashSet<string>(StringComparer.Ordinal);
+
         // Feature F4: Dependency graph tab and panel
         private TabPage _dependencyGraphTab;
         private Managers.DependencyGraphPanel _dependencyGraphPanel;
@@ -569,6 +573,10 @@ namespace Cad3PLogBrowser
         {
             var entries   = _parserService.Parse(lines);
             _lastEntries  = entries;  // store for ENTER/EXIT jump feature
+
+            // Precompute match status ONCE in O(N) before populating the API tree.
+            ComputeApiMatchStatus(entries);
+
             _apiNodes     = _parserService.BuildApiList(entries);
             var callTree  = _parserService.BuildCallTree(entries);
             var perfStats = _parserService.BuildPerformanceStats(callTree);
@@ -686,18 +694,31 @@ namespace Cad3PLogBrowser
             ApiTree.EndUpdate();
         }
 
-        private bool AreAllApiCallsMatched(string apiName)
+        /// <summary>Builds _unmatchedApiNames in a single O(N) pass over all log entries.</summary>
+        private void ComputeApiMatchStatus(List<LogEntry> entries)
         {
-            if (_lastEntries == null) return true;
-            int enters = 0, exits = 0;
-            foreach (var e in _lastEntries)
+            _unmatchedApiNames.Clear();
+            var enters = new Dictionary<string, int>(StringComparer.Ordinal);
+            var exits  = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            foreach (var e in entries)
             {
-                if (!e.IsApiCall || e.ApiName != apiName) continue;
-                if (e.IsCallEnter) enters++;
-                else if (e.IsCallExit) exits++;
+                if (!e.IsApiCall) continue;
+                if (e.IsCallEnter) { enters.TryGetValue(e.ApiName, out int c); enters[e.ApiName] = c + 1; }
+                else if (e.IsCallExit)  { exits.TryGetValue(e.ApiName,  out int c); exits[e.ApiName]  = c + 1; }
             }
-            return enters == exits;
+
+            foreach (var kvp in enters)
+            {
+                exits.TryGetValue(kvp.Key, out int exitCount);
+                if (exitCount != kvp.Value) _unmatchedApiNames.Add(kvp.Key);
+            }
+            foreach (var name in exits.Keys)
+                if (!enters.ContainsKey(name)) _unmatchedApiNames.Add(name);
         }
+
+        private bool AreAllApiCallsMatched(string apiName)
+            => !_unmatchedApiNames.Contains(apiName);
 
         private void PopulateCallTree(List<CallStackNode> roots)
         {
