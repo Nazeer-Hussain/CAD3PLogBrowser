@@ -2288,23 +2288,31 @@ namespace Cad3PLogBrowser
 
             try
             {
-                // Parse all lines to LogEntry objects for proper filtering
+                // Parse all lines to LogEntry objects for proper filtering,
+                // including Timestamp and ThreadId which are needed for those filters.
                 var logEntries = new List<Models.LogEntry>();
                 for (int i = 0; i < _allLines.Count; i++)
                 {
                     logEntries.Add(new Models.LogEntry
                     {
-                        LineNumber = i + 1,
-                        Text = _allLines[i],
-                        // Parse level from line if possible
-                        Level = ParseLogLevel(_allLines[i])
+                        LineNumber  = i + 1,
+                        Text        = _allLines[i],
+                        Level       = ParseLogLevel(_allLines[i]),
+                        Timestamp   = ParseTimestamp(_allLines[i]),
+                        ThreadId    = ParseThreadId(_allLines[i])
                     });
                 }
+
+                // Pre-compute which ENTER-line numbers qualify for the duration filter.
+                // Raw log lines never contain [XX ms] patterns; duration must be derived
+                // from EpochMs pairs in the already-parsed Services.LogEntry list.
+                HashSet<int> durationQualified = criteria.MinimumDurationMs.HasValue
+                    ? BuildDurationQualifyingLines(criteria.MinimumDurationMs.Value)
+                    : null;
 
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
-                    var filterService = new Services.Search.FilterService();
                     var filteredEntries = new List<Models.LogEntry>();
 
                     for (int i = 0; i < logEntries.Count; i++)
@@ -2325,8 +2333,7 @@ namespace Cad3PLogBrowser
 
                         var entry = logEntries[i];
 
-                        // Use FilterService for comprehensive filtering
-                        if (MatchesFilter(entry, criteria))
+                        if (MatchesFilter(entry, criteria, durationQualified))
                         {
                             filteredEntries.Add(entry);
                         }
@@ -2365,9 +2372,10 @@ namespace Cad3PLogBrowser
 
         /// <summary>
         /// Checks if a log entry matches the filter criteria.
-        /// Uses FilterService for comprehensive filtering.
+        /// durationQualified may be null when no duration filter is active.
         /// </summary>
-        private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria)
+        private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria,
+            HashSet<int> durationQualified)
         {
             // Text filter
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
@@ -2377,21 +2385,26 @@ namespace Cad3PLogBrowser
                     return false;
             }
 
-            // Duration filter
-            if (criteria.MinimumDurationMs.HasValue)
+            // Duration filter — uses pre-computed set built from ENTER/EXIT EpochMs pairs
+            if (durationQualified != null)
             {
-                if (!CheckDurationFilter(entry.Text, criteria.MinimumDurationMs.Value))
+                if (!durationQualified.Contains(entry.LineNumber))
                     return false;
             }
 
-            // Time range filter
+            // Time range filter — uses Timestamp parsed from the ISO 8601 log line header
             if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
             {
-                if (!CheckTimeRangeFilter(entry.Text, criteria.FromTime, criteria.ToTime))
+                if (!entry.Timestamp.HasValue)
+                    return false;
+                var timeOnly = entry.Timestamp.Value.TimeOfDay;
+                if (criteria.FromTime.HasValue && timeOnly < criteria.FromTime.Value.TimeOfDay)
+                    return false;
+                if (criteria.ToTime.HasValue && timeOnly > criteria.ToTime.Value.TimeOfDay)
                     return false;
             }
 
-            // Thread ID filter
+            // Thread ID filter — uses ThreadId parsed from the log line header
             if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
             {
                 if (string.IsNullOrWhiteSpace(entry.ThreadId) ||
@@ -3300,39 +3313,77 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // ── Feature B5: Duration Threshold Filter ────────────────────────────
-        private bool CheckDurationFilter(string line, int minDurationMs)
+        // ── Feature B5: Duration filter helpers ───────────────────────────────
+        /// <summary>
+        /// Builds the set of ENTER-line numbers whose matched ENTER/EXIT duration
+        /// is at least <paramref name="minDurationMs"/> milliseconds.
+        /// Duration is derived from EpochMs in the already-parsed Services.LogEntry list.
+        /// </summary>
+        private HashSet<int> BuildDurationQualifyingLines(long minDurationMs)
         {
-            // Look for duration pattern: [XX ms] or similar
-            var match = System.Text.RegularExpressions.Regex.Match(line, @"\[(\d+)\s*ms\]");
-            if (match.Success && int.TryParse(match.Groups[1].Value, out int duration))
+            var result = new HashSet<int>();
+            var stack = new Stack<LogEntry>(); // Services.LogEntry (unqualified in this file)
+
+            foreach (var entry in _lastEntries)
             {
-                return duration >= minDurationMs;
+                if (!entry.IsApiCall) continue;
+
+                if (entry.IsCallEnter)
+                {
+                    stack.Push(entry);
+                }
+                else if (entry.IsCallExit)
+                {
+                    // Mirror the parser's stack-walk to match the correct ENTER
+                    var temp = new Stack<LogEntry>();
+                    while (stack.Count > 0)
+                    {
+                        var top = stack.Pop();
+                        if (top.ApiName == entry.ApiName)
+                        {
+                            if (top.EpochMs > 0 && entry.EpochMs > 0)
+                            {
+                                long duration = entry.EpochMs - top.EpochMs;
+                                if (duration >= minDurationMs)
+                                    result.Add(top.LineNumber);
+                            }
+                            break;
+                        }
+                        temp.Push(top);
+                    }
+                    while (temp.Count > 0) stack.Push(temp.Pop());
+                }
             }
-            return false; // No duration found, exclude from filter
+
+            return result;
         }
 
-        // ── Feature B4: Time Range Filter ────────────────────────────────────
-        private bool CheckTimeRangeFilter(string line, DateTime? fromTime, DateTime? toTime)
+        // ── Feature B4: Timestamp parsing helpers ─────────────────────────────
+        /// <summary>
+        /// Parses an ISO 8601 timestamp from a raw log line header.
+        /// Handles both space and T separators and optional Z suffix.
+        /// </summary>
+        private static DateTime? ParseTimestamp(string line)
         {
-            // Parse timestamp from log line (assumes format: YYYY-MM-DD HH:MM:SS)
-            var match = System.Text.RegularExpressions.Regex.Match(line, @"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})");
-            if (!match.Success) return false;
+            if (string.IsNullOrEmpty(line)) return null;
+            var match = System.Text.RegularExpressions.Regex.Match(
+                line, @"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?Z?)");
+            if (match.Success &&
+                DateTime.TryParse(match.Groups[1].Value, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out DateTime dt))
+                return dt;
+            return null;
+        }
 
-            if (DateTime.TryParse(match.Groups[1].Value, out DateTime lineTime))
-            {
-                var timeOnly = lineTime.TimeOfDay;
-
-                if (fromTime.HasValue && timeOnly < fromTime.Value.TimeOfDay)
-                    return false;
-
-                if (toTime.HasValue && timeOnly > toTime.Value.TimeOfDay)
-                    return false;
-
-                return true;
-            }
-
-            return false;
+        /// <summary>
+        /// Extracts the Thread ID from the 4th colon-separated field of a log line.
+        /// Format: {datetime}: {Level}: {PID}: {TID}: ...
+        /// </summary>
+        private static string ParseThreadId(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return null;
+            var parts = line.Split(new[] { ": " }, 5, StringSplitOptions.None);
+            return parts.Length >= 4 ? parts[3].Trim() : null;
         }
 
         // ═══════════════════════════════════════════════════════════════════════
