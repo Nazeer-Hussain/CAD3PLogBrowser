@@ -2136,20 +2136,20 @@ namespace Cad3PLogBrowser
 
             try
             {
-                await Task.Run(() =>
-                {
-                    var token = _cancellationTokenSource.Token;
+                // All WinForms tree operations MUST happen on the UI thread.
+                // We expand in batches and yield between them so the UI stays responsive
+                // and the ESC-cancellation key can be processed.
+                var token = _cancellationTokenSource.Token;
 
-                    this.Invoke((Action)(() => CallTree.BeginUpdate()));
-                    ExpandNodeRecursive(CallTree.Nodes, token);
-                    this.Invoke((Action)(() => CallTree.EndUpdate()));
+                CallTree.BeginUpdate();
+                await ExpandNodeRecursiveAsync(CallTree.Nodes, token);
+                CallTree.EndUpdate();
 
-                    token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
-                    this.Invoke((Action)(() => ApiTree.BeginUpdate()));
-                    ExpandNodeRecursive(ApiTree.Nodes, token);
-                    this.Invoke((Action)(() => ApiTree.EndUpdate()));
-                });
+                ApiTree.BeginUpdate();
+                await ExpandNodeRecursiveAsync(ApiTree.Nodes, token);
+                ApiTree.EndUpdate();
             }
             catch (OperationCanceledException)
             {
@@ -2161,18 +2161,25 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private void ExpandNodeRecursive(TreeNodeCollection nodes, CancellationToken token)
+        /// <summary>
+        /// Recursively expands tree nodes on the UI thread, yielding every 200 nodes
+        /// so the message pump (and ESC cancellation) can process events.
+        /// </summary>
+        private async System.Threading.Tasks.Task ExpandNodeRecursiveAsync(
+            TreeNodeCollection nodes, System.Threading.CancellationToken token, int depth = 0)
         {
+            int count = 0;
             foreach (TreeNode node in nodes)
             {
                 token.ThrowIfCancellationRequested();
+                node.Expand();
 
-                this.Invoke((Action)(() => node.Expand()));
+                if (node.Nodes.Count > 0 && depth < MAX_TREE_DEPTH)
+                    await ExpandNodeRecursiveAsync(node.Nodes, token, depth + 1);
 
-                if (node.Nodes.Count > 0)
-                {
-                    ExpandNodeRecursive(node.Nodes, token);
-                }
+                // Yield to the message pump every 200 nodes so ESC is responsive.
+                if (++count % 200 == 0)
+                    await System.Threading.Tasks.Task.Yield();
             }
         }
 
@@ -2182,30 +2189,20 @@ namespace Cad3PLogBrowser
 
             try
             {
-                await Task.Run(() =>
-                {
-                    var token = _cancellationTokenSource.Token;
+                var token = _cancellationTokenSource.Token;
 
-                    this.Invoke((Action)(() =>
-                    {
-                        CallTree.BeginUpdate();
-                        CallTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in CallTree.Nodes) n.Expand();
-                        CallTree.EndUpdate();
-                    }));
+                CallTree.BeginUpdate();
+                CallTree.CollapseAll();
+                foreach (TreeNode n in CallTree.Nodes) n.Expand(); // keep roots expanded
+                CallTree.EndUpdate();
 
-                    token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
+                await System.Threading.Tasks.Task.Yield(); // allow ESC to be processed
 
-                    this.Invoke((Action)(() =>
-                    {
-                        ApiTree.BeginUpdate();
-                        ApiTree.CollapseAll();
-                        // Keep root nodes expanded
-                        foreach (TreeNode n in ApiTree.Nodes) n.Expand();
-                        ApiTree.EndUpdate();
-                    }));
-                });
+                ApiTree.BeginUpdate();
+                ApiTree.CollapseAll();
+                foreach (TreeNode n in ApiTree.Nodes) n.Expand();
+                ApiTree.EndUpdate();
             }
             catch (OperationCanceledException)
             {
