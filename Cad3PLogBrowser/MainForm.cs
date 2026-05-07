@@ -2411,12 +2411,32 @@ namespace Cad3PLogBrowser
         private bool MatchesFilter(Models.LogEntry entry, Models.FilterCriteria criteria,
             HashSet<int> durationQualified)
         {
-            // Text filter
+            // Text filter — honours UseRegex and IsCaseSensitive
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
-                var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                if (entry.Text.IndexOf(criteria.SearchText, comparison) < 0)
-                    return false;
+                if (criteria.UseRegex)
+                {
+                    try
+                    {
+                        var regexOptions = criteria.IsCaseSensitive
+                            ? System.Text.RegularExpressions.RegexOptions.None
+                            : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                        if (!System.Text.RegularExpressions.Regex.IsMatch(entry.Text, criteria.SearchText, regexOptions))
+                            return false;
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false; // Invalid regex pattern — exclude the entry
+                    }
+                }
+                else
+                {
+                    var comparison = criteria.IsCaseSensitive
+                        ? StringComparison.Ordinal
+                        : StringComparison.OrdinalIgnoreCase;
+                    if (entry.Text.IndexOf(criteria.SearchText, comparison) < 0)
+                        return false;
+                }
             }
 
             // Duration filter — uses pre-computed set built from ENTER/EXIT EpochMs pairs
