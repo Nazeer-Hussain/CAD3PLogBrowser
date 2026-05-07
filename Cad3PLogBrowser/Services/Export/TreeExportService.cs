@@ -42,7 +42,10 @@ namespace Cad3PLogBrowser.Services.Export
             File.WriteAllText(filePath, sb.ToString());
         }
 
-        private void ExportNodeToJson(CallStackNode node, StringBuilder sb, int indent)
+        // Maximum recursion depth to prevent StackOverflowException on deep call trees.
+        private const int MAX_EXPORT_DEPTH = 500;
+
+        private void ExportNodeToJson(CallStackNode node, StringBuilder sb, int indent, int depth = 0)
         {
             string indentStr = new string(' ', indent);
 
@@ -55,13 +58,13 @@ namespace Cad3PLogBrowser.Services.Export
             if (!string.IsNullOrEmpty(node.SourceFile))
                 sb.AppendLine($"{indentStr}  \"sourceFile\": \"{EscapeJson(node.SourceFile)}\",");
 
-            if (node.Children.Count > 0)
+            if (node.Children.Count > 0 && depth < MAX_EXPORT_DEPTH)
             {
                 sb.AppendLine($"{indentStr}  \"children\": [");
 
                 for (int i = 0; i < node.Children.Count; i++)
                 {
-                    ExportNodeToJson(node.Children[i], sb, indent + 4);
+                    ExportNodeToJson(node.Children[i], sb, indent + 4, depth + 1);
                     if (i < node.Children.Count - 1)
                         sb.AppendLine(",");
                 }
@@ -108,7 +111,7 @@ namespace Cad3PLogBrowser.Services.Export
             }
         }
 
-        private void ExportNodeToXml(CallStackNode node, XmlWriter writer)
+        private void ExportNodeToXml(CallStackNode node, XmlWriter writer, int depth = 0)
         {
             writer.WriteStartElement("Call");
 
@@ -120,10 +123,11 @@ namespace Cad3PLogBrowser.Services.Export
             if (!string.IsNullOrEmpty(node.SourceFile))
                 writer.WriteAttributeString("sourceFile", node.SourceFile);
 
-            // Write children
-            foreach (var child in node.Children)
+            // Write children up to MAX_EXPORT_DEPTH
+            if (depth < MAX_EXPORT_DEPTH)
             {
-                ExportNodeToXml(child, writer);
+                foreach (var child in node.Children)
+                    ExportNodeToXml(child, writer, depth + 1);
             }
 
             writer.WriteEndElement();
@@ -163,9 +167,10 @@ namespace Cad3PLogBrowser.Services.Export
 
             lines.Add(line);
 
-            foreach (var child in node.Children)
+            if (depth < MAX_EXPORT_DEPTH)
             {
-                ExportNodeToCsv(child, depth + 1, lines);
+                foreach (var child in node.Children)
+                    ExportNodeToCsv(child, depth + 1, lines);
             }
         }
 
