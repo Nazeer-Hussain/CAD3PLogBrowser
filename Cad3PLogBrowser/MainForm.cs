@@ -4514,7 +4514,7 @@ namespace Cad3PLogBrowser
                     logListView.EnsureVisible(index);
                     logListView.SelectedIndices.Clear();
                     logListView.SelectedIndices.Add(index);
-                    logListView.FocusedItem = logListView.Items[index];
+                    // Do NOT call logListView.Items[index] — it returns null in virtual mode.
                 }
                 else
                 {
@@ -4637,7 +4637,8 @@ namespace Cad3PLogBrowser
             logListView.EnsureVisible(index);
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(index);
-            logListView.FocusedItem = logListView.Items[index];
+            // NOTE: logListView.Items[index] returns null in virtual mode — do NOT set
+            // FocusedItem; selecting via SelectedIndices is sufficient for virtual lists.
             Focus();
         }
 
