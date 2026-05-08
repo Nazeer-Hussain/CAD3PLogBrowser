@@ -2167,6 +2167,14 @@ namespace Cad3PLogBrowser
         {
             _virtualLines = new List<VirtualLogLine>(filtered.Count);
             _lineIndexMap = new Dictionary<int, int>(filtered.Count);
+
+            // Rebuild error/warning navigation indices for the filtered view so that
+            // F8 / Ctrl+F8 navigation jumps to the correct rows after a filter is applied.
+            _errorLines.Clear();
+            _warningLines.Clear();
+            _currentErrorIndex   = -1;
+            _currentWarningIndex = -1;
+
             for (int i = 0; i < filtered.Count; i++)
             {
                 var fl = filtered[i];
@@ -2177,6 +2185,18 @@ namespace Cad3PLogBrowser
                     BackColour = GetLineColour(fl.Text)
                 });
                 _lineIndexMap[fl.LineNumber] = i;
+
+                // Index error and warning rows in the filtered view.
+                if (!string.IsNullOrEmpty(fl.Text))
+                {
+                    int first = fl.Text.IndexOf(": ", StringComparison.Ordinal);
+                    if (first >= 0 && first + 3 < fl.Text.Length)
+                    {
+                        char level = fl.Text[first + 2];
+                        if (level == 'E') _errorLines.Add(i);
+                        else if (level == 'W') _warningLines.Add(i);
+                    }
+                }
             }
 
             // Safety check: ensure logListView is initialized
