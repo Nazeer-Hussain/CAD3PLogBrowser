@@ -1221,6 +1221,10 @@ namespace Cad3PLogBrowser
             CallTree.Nodes.Clear();
             _lazyChildrenMap.Clear(); // Clear lazy load cache
 
+            // Always unsubscribe first so we never accumulate duplicate handlers
+            // across file reloads (each reload would otherwise add another subscription).
+            CallTree.BeforeExpand -= CallTree_BeforeExpand;
+
             // Root node: "Call Tree"
             var rootNode = new TreeNode(Resources.TREE_LABEL_CALL_TREE) { Tag = -1 };
             rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
@@ -1244,7 +1248,7 @@ namespace Cad3PLogBrowser
 
             CallTree.EndUpdate();
 
-            // Wire up before expand event for lazy loading
+            // Wire up before expand event for lazy loading — exactly once (unsubscribed above).
             if (useLazyLoading)
             {
                 CallTree.BeforeExpand += CallTree_BeforeExpand;
