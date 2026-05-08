@@ -842,53 +842,77 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
-        /// Issue 4 Fix: owner-draw handler that ensures tree text is never clipped
-        /// and always uses the correct colors in both light and dark theme.
+        /// Owner-draw handler for both tree views.
+        /// In OwnerDrawText mode Windows only hands us the text-label rectangle
+        /// (e.Bounds), which is pre-measured by the TreeView and is often narrower
+        /// than the actual label string — causing visible truncation in dark theme.
+        ///
+        /// Fix: extend both the background fill and the text rectangle to the full
+        /// client width of the tree so labels are never clipped.
         /// </summary>
         private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
             if (e.Node == null) return;
 
-            bool isDark     = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
+            var  tv      = sender as TreeView;
+            bool isDark  = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            bool isSel   = (e.State & TreeNodeStates.Selected) != 0;
 
-            // Background
-            Color backColor = isSelected
+            // ── Background ────────────────────────────────────────────────────
+            // Fill from e.Bounds.X to the full right edge of the client area so
+            // selected/hover highlights never leave a un-painted strip on the right.
+            Color backColor = isSel
                 ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
-                : (isDark ? Color.FromArgb(28, 30, 38) : SystemColors.Window);
+                : (isDark ? Color.FromArgb(28, 30, 38)  : SystemColors.Window);
 
-            using (var bgBrush = new System.Drawing.SolidBrush(backColor))
-                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+            int clientRight = tv != null ? tv.ClientSize.Width : e.Bounds.Right;
+            var fillRect    = new Rectangle(
+                e.Bounds.X, e.Bounds.Y,
+                Math.Max(clientRight - e.Bounds.X, e.Bounds.Width),
+                e.Bounds.Height);
 
-            // Focus rectangle
+            using (var brush = new System.Drawing.SolidBrush(backColor))
+                e.Graphics.FillRectangle(brush, fillRect);
+
+            // ── Focus rectangle ───────────────────────────────────────────────
             if ((e.State & TreeNodeStates.Focused) != 0)
                 ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
                     isDark ? Color.White : SystemColors.ControlText, backColor);
 
-            // Text color: selected uses highlight text; unselected uses per-node or theme color
+            // ── Foreground colour ─────────────────────────────────────────────
             Color foreColor;
-            if (isSelected)
+            if (isSel)
             {
                 foreColor = isDark ? Color.White : SystemColors.HighlightText;
             }
-            else if (e.Node.ForeColor != Color.Empty && e.Node.ForeColor != Color.Black && e.Node.ForeColor != SystemColors.WindowText)
+            else if (e.Node.ForeColor != Color.Empty
+                  && e.Node.ForeColor != Color.Black
+                  && e.Node.ForeColor != SystemColors.WindowText)
             {
-                foreColor = e.Node.ForeColor; // duration-coded color
+                foreColor = e.Node.ForeColor; // duration-coded colour set by BuildTreeNode
             }
             else
             {
                 foreColor = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
             }
 
-            Font font = e.Node.NodeFont ?? (sender as TreeView)?.Font ?? SystemFonts.DefaultFont;
+            // ── Text ──────────────────────────────────────────────────────────
+            // Extend the text rectangle to the right edge of the tree so that
+            // long labels are never cut short.  NoClip lets the string paint
+            // beyond the pre-measured bounds without the EndEllipsis artefact.
+            Font font     = e.Node.NodeFont ?? tv?.Font ?? SystemFonts.DefaultFont;
+            var  textRect = new Rectangle(
+                e.Bounds.X + 2, e.Bounds.Y,
+                Math.Max(clientRight - e.Bounds.X - 2, e.Bounds.Width - 2),
+                e.Bounds.Height);
 
             TextRenderer.DrawText(
                 e.Graphics,
                 e.Node.Text,
                 font,
-                new Rectangle(e.Bounds.X + 2, e.Bounds.Y, e.Bounds.Width - 2, e.Bounds.Height),
+                textRect,
                 foreColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.NoClipping);
         }
 
         private void ApiTree_MouseUpForSorting(object sender, MouseEventArgs e)
