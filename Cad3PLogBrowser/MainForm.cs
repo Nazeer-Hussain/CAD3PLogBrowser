@@ -3368,34 +3368,45 @@ namespace Cad3PLogBrowser
 
         private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria)
         {
-            // Text filter
+            // ── Text filter — honours UseRegex and IsCaseSensitive ────────────
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
-                var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                if (line.IndexOf(criteria.SearchText, comparison) < 0)
-                    return false;
+                if (criteria.UseRegex)
+                {
+                    try
+                    {
+                        var opts = criteria.IsCaseSensitive
+                            ? System.Text.RegularExpressions.RegexOptions.None
+                            : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                        if (!System.Text.RegularExpressions.Regex.IsMatch(line, criteria.SearchText, opts))
+                            return false;
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false; // invalid regex pattern → exclude
+                    }
+                }
+                else
+                {
+                    var comparison = criteria.IsCaseSensitive
+                        ? StringComparison.Ordinal
+                        : StringComparison.OrdinalIgnoreCase;
+                    if (line.IndexOf(criteria.SearchText, comparison) < 0)
+                        return false;
+                }
             }
 
-            // Duration filter
-            if (criteria.MinimumDurationMs.HasValue)
+            // ── ThreadId filter ───────────────────────────────────────────────
+            // Log format (field 3, 0-based, split on ": "):
+            //   {datetime}: {Level}: {PID}: {TID}: {App}: {Area}: {payload}
+            if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
             {
-                var m = _filterDurationRegex.Match(line);
-                if (!m.Success || !int.TryParse(m.Groups[1].Value, out int dur) || dur < criteria.MinimumDurationMs.Value)
+                string tid = ParseRawThreadId(line);
+                if (!string.Equals(tid, criteria.ThreadId.Trim(), StringComparison.OrdinalIgnoreCase))
                     return false;
             }
 
-            // Time range filter
-            if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
-            {
-                var m = _filterTimeRegex.Match(line);
-                if (!m.Success || !DateTime.TryParse(m.Groups[1].Value, out DateTime lineTime))
-                    return false;
-                var t = lineTime.TimeOfDay;
-                if (criteria.FromTime.HasValue && t < criteria.FromTime.Value.TimeOfDay) return false;
-                if (criteria.ToTime.HasValue   && t > criteria.ToTime.Value.TimeOfDay)   return false;
-            }
-
-            // Log level filter
+            // ── Log level filter ──────────────────────────────────────────────
             if (criteria.Level.HasValue)
             {
                 if (ParseLogLevel(line) != criteria.Level.Value)
@@ -3403,6 +3414,32 @@ namespace Cad3PLogBrowser
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Extracts the Thread-ID from the 4th colon-separated field of a raw log line.
+        /// Handles merged log lines that start with "[filename] ".
+        /// </summary>
+        private static string ParseRawThreadId(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return null;
+
+            // Strip merged-log prefix "[filename] " so field positions are correct.
+            string parseable = line;
+            if (line.Length > 2 && line[0] == '[')
+            {
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 0)
+                {
+                    string tag = line.Substring(1, cb - 1);
+                    if (tag.IndexOf('.') >= 0) // looks like a filename
+                        parseable = line.Substring(cb + 2);
+                }
+            }
+
+            // Split on ": " — TID is field[3]
+            var parts = parseable.Split(new[] { ": " }, 5, StringSplitOptions.None);
+            return parts.Length >= 4 ? parts[3].Trim() : null;
         }
 
         /// <summary>
