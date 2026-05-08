@@ -846,19 +846,23 @@ namespace Cad3PLogBrowser
         /// Owner-draw handler for both tree views.
         ///
         /// Root cause of dark-theme truncation:
-        ///   Windows sets TWO independent clip regions before calling this handler:
-        ///   1. The GDI+ clip  (respected by FillRectangle, GDI+ ops)
-        ///   2. The Win32 DC clip (respected by TextRenderer / GDI ops)
-        ///   Both are set to the pre-measured text-label bounds, which is often
-        ///   narrower than the actual label string.  In Light theme the default
-        ///   white background hides this; in Dark theme the un-painted strip on
-        ///   the right is visually obvious.
+        ///   Windows pre-sets two independent clip regions before calling this handler
+        ///   (GDI+ clip for FillRectangle; Win32 DC clip for TextRenderer), both
+        ///   narrowed to the pre-measured text-label bounds.  In Light theme the
+        ///   default white background hides this; in Dark theme the un-painted strip
+        ///   on the right is visually obvious.
         ///
         /// Fix:
-        ///   - e.Graphics.SetClip(wideRect)   → widens the GDI+ clip before FillRectangle
-        ///   - TextFormatFlags.NoClipping      → passes DT_NOCLIP to Win32 DrawText,
-        ///                                       ignoring the DC clip for text rendering
-        ///   Both are required; either alone leaves half the problem in place.
+        ///   - e.Graphics.ResetClip()          → removes the GDI+ clip (allocation-free)
+        ///   - TextFormatFlags.NoClipping       → DT_NOCLIP: tells Win32 DrawText to
+        ///                                         ignore the DC clip for text rendering
+        ///
+        /// Performance note:
+        ///   ResetClip() is chosen over SetClip(rect) because SetClip allocates a
+        ///   GDI+ Region object on every call; this handler fires for every visible
+        ///   node on every repaint (scroll, expand, theme change).
+        ///   SystemBrushes.* are used for Light theme because they are cached by
+        ///   Windows — no allocation occurs.
         /// </summary>
         private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
@@ -871,25 +875,41 @@ namespace Cad3PLogBrowser
             int clientRight = tv != null ? tv.ClientSize.Width : e.Bounds.Right;
             int wideWidth   = Math.Max(clientRight - e.Bounds.X, e.Bounds.Width);
 
-            // ── Step 1: widen the GDI+ clip ───────────────────────────────────
-            // Without this, Graphics.FillRectangle is still clipped to the narrow
-            // pre-measured text bounds even though we pass a wider rectangle.
-            // CombineMode.Replace (the default) overrides the existing clip.
-            e.Graphics.SetClip(new Rectangle(e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height));
+            // ── Step 1: remove the narrow GDI+ clip (allocation-free) ─────────
+            // ResetClip() resets to "infinite" without creating a Region object.
+            // FillRectangle below is still bounded by the explicit rect we pass.
+            e.Graphics.ResetClip();
 
-            // ── Step 2: background fill to the full row width ─────────────────
-            Color backColor = isSel
-                ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
-                : (isDark ? Color.FromArgb(28, 30, 38)  : SystemColors.Window);
-
-            using (var brush = new System.Drawing.SolidBrush(backColor))
-                e.Graphics.FillRectangle(brush,
-                    new Rectangle(e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height));
+            // ── Step 2: background fill ───────────────────────────────────────
+            // Light theme: SystemBrushes are cached by Windows — zero allocation.
+            // Dark theme: we must allocate; dispose immediately after the fill.
+            if (isDark)
+            {
+                Color darkBack = isSel
+                    ? Color.FromArgb(50, 90, 150)
+                    : Color.FromArgb(28, 30, 38);
+                using (var brush = new System.Drawing.SolidBrush(darkBack))
+                    e.Graphics.FillRectangle(brush,
+                        e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height);
+            }
+            else
+            {
+                System.Drawing.Brush sysBrush = isSel
+                    ? SystemBrushes.Highlight
+                    : SystemBrushes.Window;
+                e.Graphics.FillRectangle(sysBrush,
+                    e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height);
+            }
 
             // ── Step 3: focus rectangle ───────────────────────────────────────
             if ((e.State & TreeNodeStates.Focused) != 0)
+            {
+                Color back = isSel
+                    ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
+                    : (isDark ? Color.FromArgb(28, 30, 38)  : SystemColors.Window);
                 ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
-                    isDark ? Color.White : SystemColors.ControlText, backColor);
+                    isDark ? Color.White : SystemColors.ControlText, back);
+            }
 
             // ── Step 4: text colour ───────────────────────────────────────────
             Color foreColor;
@@ -901,7 +921,7 @@ namespace Cad3PLogBrowser
                   && e.Node.ForeColor != Color.Black
                   && e.Node.ForeColor != SystemColors.WindowText)
             {
-                foreColor = e.Node.ForeColor; // duration-coded colour set by BuildTreeNode
+                foreColor = e.Node.ForeColor; // duration-coded colour (green/amber/red)
             }
             else
             {
@@ -911,7 +931,7 @@ namespace Cad3PLogBrowser
             // ── Step 5: draw text ─────────────────────────────────────────────
             // Text rectangle extends to the full client width.
             // NoClipping (DT_NOCLIP) tells Win32 DrawText to ignore the DC clip,
-            // so the text paints freely even if the GDI clip region is still narrow.
+            // so the label paints freely even if the HDC clip region is still narrow.
             Font font     = e.Node.NodeFont ?? tv?.Font ?? SystemFonts.DefaultFont;
             var  textRect = new Rectangle(
                 e.Bounds.X + 2, e.Bounds.Y,
@@ -919,11 +939,7 @@ namespace Cad3PLogBrowser
                 e.Bounds.Height);
 
             TextRenderer.DrawText(
-                e.Graphics,
-                e.Node.Text,
-                font,
-                textRect,
-                foreColor,
+                e.Graphics, e.Node.Text, font, textRect, foreColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.NoClipping);
         }
 
