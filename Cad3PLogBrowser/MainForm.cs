@@ -842,44 +842,56 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
+        /// <summary>
         /// Owner-draw handler for both tree views.
-        /// In OwnerDrawText mode Windows only hands us the text-label rectangle
-        /// (e.Bounds), which is pre-measured by the TreeView and is often narrower
-        /// than the actual label string — causing visible truncation in dark theme.
         ///
-        /// Fix: extend both the background fill and the text rectangle to the full
-        /// client width of the tree so labels are never clipped.
+        /// Root cause of dark-theme truncation:
+        ///   Windows sets TWO independent clip regions before calling this handler:
+        ///   1. The GDI+ clip  (respected by FillRectangle, GDI+ ops)
+        ///   2. The Win32 DC clip (respected by TextRenderer / GDI ops)
+        ///   Both are set to the pre-measured text-label bounds, which is often
+        ///   narrower than the actual label string.  In Light theme the default
+        ///   white background hides this; in Dark theme the un-painted strip on
+        ///   the right is visually obvious.
+        ///
+        /// Fix:
+        ///   - e.Graphics.SetClip(wideRect)   → widens the GDI+ clip before FillRectangle
+        ///   - TextFormatFlags.NoClipping      → passes DT_NOCLIP to Win32 DrawText,
+        ///                                       ignoring the DC clip for text rendering
+        ///   Both are required; either alone leaves half the problem in place.
         /// </summary>
         private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
             if (e.Node == null) return;
 
-            var  tv      = sender as TreeView;
-            bool isDark  = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            bool isSel   = (e.State & TreeNodeStates.Selected) != 0;
+            var  tv     = sender as TreeView;
+            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            bool isSel  = (e.State & TreeNodeStates.Selected) != 0;
 
-            // ── Background ────────────────────────────────────────────────────
-            // Fill from e.Bounds.X to the full right edge of the client area so
-            // selected/hover highlights never leave a un-painted strip on the right.
+            int clientRight = tv != null ? tv.ClientSize.Width : e.Bounds.Right;
+            int wideWidth   = Math.Max(clientRight - e.Bounds.X, e.Bounds.Width);
+
+            // ── Step 1: widen the GDI+ clip ───────────────────────────────────
+            // Without this, Graphics.FillRectangle is still clipped to the narrow
+            // pre-measured text bounds even though we pass a wider rectangle.
+            // CombineMode.Replace (the default) overrides the existing clip.
+            e.Graphics.SetClip(new Rectangle(e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height));
+
+            // ── Step 2: background fill to the full row width ─────────────────
             Color backColor = isSel
                 ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
                 : (isDark ? Color.FromArgb(28, 30, 38)  : SystemColors.Window);
 
-            int clientRight = tv != null ? tv.ClientSize.Width : e.Bounds.Right;
-            var fillRect    = new Rectangle(
-                e.Bounds.X, e.Bounds.Y,
-                Math.Max(clientRight - e.Bounds.X, e.Bounds.Width),
-                e.Bounds.Height);
-
             using (var brush = new System.Drawing.SolidBrush(backColor))
-                e.Graphics.FillRectangle(brush, fillRect);
+                e.Graphics.FillRectangle(brush,
+                    new Rectangle(e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height));
 
-            // ── Focus rectangle ───────────────────────────────────────────────
+            // ── Step 3: focus rectangle ───────────────────────────────────────
             if ((e.State & TreeNodeStates.Focused) != 0)
                 ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
                     isDark ? Color.White : SystemColors.ControlText, backColor);
 
-            // ── Foreground colour ─────────────────────────────────────────────
+            // ── Step 4: text colour ───────────────────────────────────────────
             Color foreColor;
             if (isSel)
             {
@@ -896,10 +908,10 @@ namespace Cad3PLogBrowser
                 foreColor = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
             }
 
-            // ── Text ──────────────────────────────────────────────────────────
-            // Extend the text rectangle to the right edge of the tree so that
-            // long labels are never cut short.  NoClip lets the string paint
-            // beyond the pre-measured bounds without the EndEllipsis artefact.
+            // ── Step 5: draw text ─────────────────────────────────────────────
+            // Text rectangle extends to the full client width.
+            // NoClipping (DT_NOCLIP) tells Win32 DrawText to ignore the DC clip,
+            // so the text paints freely even if the GDI clip region is still narrow.
             Font font     = e.Node.NodeFont ?? tv?.Font ?? SystemFonts.DefaultFont;
             var  textRect = new Rectangle(
                 e.Bounds.X + 2, e.Bounds.Y,
