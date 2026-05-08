@@ -55,6 +55,9 @@ namespace Cad3PLogBrowser
             BuildUi();
             LoadCurrentSettings();
             ThemeManager.ApplyTheme(this);
+            // UpdateColourPreview must be called AFTER ApplyTheme because the theme
+            // walk overwrites every Panel's BackColor, including panelColorPreview.
+            UpdateColourPreview();
         }
 
         // ── UI Construction ───────────────────────────────────────────────────
