@@ -823,13 +823,13 @@ namespace Cad3PLogBrowser
             CallTree.ShowNodeToolTips = true;
             CallTree.HideSelection = false;
 
-            // Issue 4 Fix: FullRowSelect + owner-draw prevents text truncation in dark theme
+            // FullRowSelect ensures the selection highlight spans the full row width
+            // so there is no narrow-highlight artefact in dark theme.
+            // DrawMode stays Normal: Windows owns all per-node rendering, which is
+            // fast, clip-correct, and honours individual TreeNode.ForeColor /
+            // NodeFont settings without any managed per-node callback overhead.
             ApiTree.FullRowSelect  = true;
             CallTree.FullRowSelect = true;
-            ApiTree.DrawMode  = TreeViewDrawMode.OwnerDrawText;
-            CallTree.DrawMode = TreeViewDrawMode.OwnerDrawText;
-            ApiTree.DrawNode  += TreeView_DrawNode;
-            CallTree.DrawNode += TreeView_DrawNode;
 
             CallTreeButton.CheckedChanged += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged  += (s, e) => SyncTreeVisibility();
@@ -839,108 +839,6 @@ namespace Cad3PLogBrowser
             CallTree.MouseUp += CallTree_MouseUp;
 
             SyncTreeVisibility();
-        }
-
-        /// <summary>
-        /// <summary>
-        /// Owner-draw handler for both tree views.
-        ///
-        /// Root cause of dark-theme truncation:
-        ///   Windows pre-sets two independent clip regions before calling this handler
-        ///   (GDI+ clip for FillRectangle; Win32 DC clip for TextRenderer), both
-        ///   narrowed to the pre-measured text-label bounds.  In Light theme the
-        ///   default white background hides this; in Dark theme the un-painted strip
-        ///   on the right is visually obvious.
-        ///
-        /// Fix:
-        ///   - e.Graphics.ResetClip()          → removes the GDI+ clip (allocation-free)
-        ///   - TextFormatFlags.NoClipping       → DT_NOCLIP: tells Win32 DrawText to
-        ///                                         ignore the DC clip for text rendering
-        ///
-        /// Performance note:
-        ///   ResetClip() is chosen over SetClip(rect) because SetClip allocates a
-        ///   GDI+ Region object on every call; this handler fires for every visible
-        ///   node on every repaint (scroll, expand, theme change).
-        ///   SystemBrushes.* are used for Light theme because they are cached by
-        ///   Windows — no allocation occurs.
-        /// </summary>
-        private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
-        {
-            if (e.Node == null) return;
-
-            var  tv     = sender as TreeView;
-            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            bool isSel  = (e.State & TreeNodeStates.Selected) != 0;
-
-            int clientRight = tv != null ? tv.ClientSize.Width : e.Bounds.Right;
-            int wideWidth   = Math.Max(clientRight - e.Bounds.X, e.Bounds.Width);
-
-            // ── Step 1: remove the narrow GDI+ clip (allocation-free) ─────────
-            // ResetClip() resets to "infinite" without creating a Region object.
-            // FillRectangle below is still bounded by the explicit rect we pass.
-            e.Graphics.ResetClip();
-
-            // ── Step 2: background fill ───────────────────────────────────────
-            // Light theme: SystemBrushes are cached by Windows — zero allocation.
-            // Dark theme: we must allocate; dispose immediately after the fill.
-            if (isDark)
-            {
-                Color darkBack = isSel
-                    ? Color.FromArgb(50, 90, 150)
-                    : Color.FromArgb(28, 30, 38);
-                using (var brush = new System.Drawing.SolidBrush(darkBack))
-                    e.Graphics.FillRectangle(brush,
-                        e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height);
-            }
-            else
-            {
-                System.Drawing.Brush sysBrush = isSel
-                    ? SystemBrushes.Highlight
-                    : SystemBrushes.Window;
-                e.Graphics.FillRectangle(sysBrush,
-                    e.Bounds.X, e.Bounds.Y, wideWidth, e.Bounds.Height);
-            }
-
-            // ── Step 3: focus rectangle ───────────────────────────────────────
-            if ((e.State & TreeNodeStates.Focused) != 0)
-            {
-                Color back = isSel
-                    ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
-                    : (isDark ? Color.FromArgb(28, 30, 38)  : SystemColors.Window);
-                ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
-                    isDark ? Color.White : SystemColors.ControlText, back);
-            }
-
-            // ── Step 4: text colour ───────────────────────────────────────────
-            Color foreColor;
-            if (isSel)
-            {
-                foreColor = isDark ? Color.White : SystemColors.HighlightText;
-            }
-            else if (e.Node.ForeColor != Color.Empty
-                  && e.Node.ForeColor != Color.Black
-                  && e.Node.ForeColor != SystemColors.WindowText)
-            {
-                foreColor = e.Node.ForeColor; // duration-coded colour (green/amber/red)
-            }
-            else
-            {
-                foreColor = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
-            }
-
-            // ── Step 5: draw text ─────────────────────────────────────────────
-            // Text rectangle extends to the full client width.
-            // NoClipping (DT_NOCLIP) tells Win32 DrawText to ignore the DC clip,
-            // so the label paints freely even if the HDC clip region is still narrow.
-            Font font     = e.Node.NodeFont ?? tv?.Font ?? SystemFonts.DefaultFont;
-            var  textRect = new Rectangle(
-                e.Bounds.X + 2, e.Bounds.Y,
-                Math.Max(clientRight - e.Bounds.X - 2, e.Bounds.Width - 2),
-                e.Bounds.Height);
-
-            TextRenderer.DrawText(
-                e.Graphics, e.Node.Text, font, textRect, foreColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.NoClipping);
         }
 
         private void ApiTree_MouseUpForSorting(object sender, MouseEventArgs e)
