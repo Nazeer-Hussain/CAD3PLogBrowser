@@ -3303,6 +3303,12 @@ namespace Cad3PLogBrowser
             {
                 var allLinesCopy = _allLines; // capture reference; immutable during filter
 
+                // Duration filter: compute on the UI thread (uses _lastEntries which is
+                // only written on the UI thread) before handing off to Task.Run.
+                HashSet<int> durationQualifiedLines = criteria.MinimumDurationMs.HasValue
+                    ? BuildDurationQualifiedLines(criteria.MinimumDurationMs.Value)
+                    : null;
+
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
@@ -3326,7 +3332,7 @@ namespace Cad3PLogBrowser
                         }
 
                         string line = allLinesCopy[i];
-                        if (MatchesFilterRaw(line, criteria))
+                        if (MatchesFilterRaw(line, criteria, durationQualifiedLines, i + 1))
                             result.Add(new FilteredLine(i + 1, line));
                     }
                     return result;
@@ -3358,15 +3364,14 @@ namespace Cad3PLogBrowser
             ClearHighlighting(); // Clear search highlights when filter is cleared
         }
 
-        // Pre-compiled regex instances reused across filter calls
-        private System.Text.RegularExpressions.Regex _filterDurationRegex =
-            new System.Text.RegularExpressions.Regex(@"\[(\d+)\s*ms\]",
-                System.Text.RegularExpressions.RegexOptions.Compiled);
-        private System.Text.RegularExpressions.Regex _filterTimeRegex =
-            new System.Text.RegularExpressions.Regex(@"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})",
+        // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──
+        private static readonly System.Text.RegularExpressions.Regex _filterTimeRegex =
+            new System.Text.RegularExpressions.Regex(
+                @"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?Z?)",
                 System.Text.RegularExpressions.RegexOptions.Compiled);
 
-        private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria)
+        private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria,
+            HashSet<int> durationQualifiedLines, int lineNumber1Based)
         {
             // ── Text filter — honours UseRegex and IsCaseSensitive ────────────
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
@@ -3394,6 +3399,26 @@ namespace Cad3PLogBrowser
                     if (line.IndexOf(criteria.SearchText, comparison) < 0)
                         return false;
                 }
+            }
+
+            // ── Duration filter — evaluated via pre-computed ENTER/EXIT pairs ─
+            if (durationQualifiedLines != null)
+            {
+                if (!durationQualifiedLines.Contains(lineNumber1Based))
+                    return false;
+            }
+
+            // ── Time-range filter — uses ISO 8601 timestamp in line header ────
+            if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
+            {
+                var m = _filterTimeRegex.Match(line);
+                if (!m.Success) return false;
+                if (!DateTime.TryParse(m.Groups[1].Value, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out DateTime lineTime))
+                    return false;
+                var t = lineTime.TimeOfDay;
+                if (criteria.FromTime.HasValue && t < criteria.FromTime.Value.TimeOfDay) return false;
+                if (criteria.ToTime.HasValue   && t > criteria.ToTime.Value.TimeOfDay)   return false;
             }
 
             // ── ThreadId filter ───────────────────────────────────────────────
@@ -3465,6 +3490,56 @@ namespace Cad3PLogBrowser
             }
 
             return Models.LogLevel.Info;
+        }
+
+        /// <summary>
+        /// Walks the already-parsed <see cref="_lastEntries"/> list and returns a set of
+        /// 1-based line numbers for ENTER lines whose matched call duration is at or above
+        /// <paramref name="minDurationMs"/>.  Must be called on the UI thread.
+        /// </summary>
+        private HashSet<int> BuildDurationQualifiedLines(long minDurationMs)
+        {
+            var result = new HashSet<int>();
+            if (_lastEntries == null || _lastEntries.Count == 0) return result;
+
+            var stack = new Stack<Services.LogEntry>();
+            foreach (var entry in _lastEntries)
+            {
+                if (!entry.IsApiCall) continue;
+
+                if (entry.IsCallEnter)
+                {
+                    stack.Push(entry);
+                }
+                else if (entry.IsCallExit && stack.Count > 0)
+                {
+                    // Walk the stack to find the matching ENTER (handles unmatched pairs).
+                    var temp = new Stack<Services.LogEntry>();
+                    bool found = false;
+                    while (stack.Count > 0 && !found)
+                    {
+                        var top = stack.Pop();
+                        if (top.ApiName == entry.ApiName)
+                        {
+                            // Compute duration from EpochMs timestamps.
+                            if (top.EpochMs > 0 && entry.EpochMs >= top.EpochMs)
+                            {
+                                long durationMs = entry.EpochMs - top.EpochMs;
+                                if (durationMs >= minDurationMs)
+                                    result.Add(top.LineNumber);
+                            }
+                            found = true;
+                        }
+                        else
+                        {
+                            temp.Push(top);
+                        }
+                    }
+                    // Restore non-matching frames.
+                    while (temp.Count > 0) stack.Push(temp.Pop());
+                }
+            }
+            return result;
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
