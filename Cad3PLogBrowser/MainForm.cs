@@ -2010,6 +2010,9 @@ namespace Cad3PLogBrowser
             StatusFileName.Text = Resources.STATUS_LOADING;
             _overlay.Show(Resources.STATUS_LOADING);
 
+            // Persist bookmarks for the previous file before we discard its context.
+            try { _bookmarkService.SaveBookmarks(); } catch { /* non-fatal */ }
+
             try
             {
                 // Read file with progress updates
@@ -3811,6 +3814,9 @@ namespace Cad3PLogBrowser
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Persist bookmarks for the current file before closing.
+            try { _bookmarkService.SaveBookmarks(); } catch { /* non-fatal */ }
+
             // Save search history before closing
             try
             {
