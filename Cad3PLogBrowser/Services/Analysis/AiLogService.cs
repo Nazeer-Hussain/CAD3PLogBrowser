@@ -9,21 +9,16 @@ namespace Cad3PLogBrowser.Services.Analysis
 {
     /// <summary>
     /// L1-L6 - AI Features for intelligent log analysis.
-    /// Provides offline analysis based on log statistics and patterns.
-    /// No external API calls required - works entirely offline.
+    /// Provides offline, heuristic-based analysis of log statistics and patterns.
+    /// No external API calls are made — all analysis runs entirely offline.
     /// </summary>
     public class AiLogService
     {
-        private readonly string _apiKey;
-        private bool _isConfigured;
-
-        public AiLogService(string apiKey = "")
-        {
-            _apiKey = apiKey ?? string.Empty;
-            _isConfigured = !string.IsNullOrWhiteSpace(_apiKey);
-        }
-
-        public bool IsConfigured => _isConfigured;
+        /// <summary>
+        /// Always false: this service performs offline heuristic analysis only.
+        /// No external AI API is called regardless of any configured API key.
+        /// </summary>
+        public bool IsConfigured => false;
 
         // ?? L1: AI Log Summarizer ????????????????????????????????????????????
         public Task<string> SummarizeAsync(AggregateStats stats, List<ApiPerfStats> perfStats)

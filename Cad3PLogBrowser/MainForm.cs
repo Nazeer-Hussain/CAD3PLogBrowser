@@ -3656,7 +3656,6 @@ namespace Cad3PLogBrowser
         // FEATURE 2: Search History Persistence (B6)
         // ═══════════════════════════════════════════════════════════════════════
 
-        private const string SEARCH_HISTORY_FILE = "search_history.json";
         private const int MAX_SEARCH_HISTORY = 20;
 
         /// <summary>
