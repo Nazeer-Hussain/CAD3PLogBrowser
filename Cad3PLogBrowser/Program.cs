@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows.Forms;
 
 namespace Cad3PLogBrowser
@@ -8,6 +9,13 @@ namespace Cad3PLogBrowser
         [STAThread]
         static void Main(string[] args)
         {
+            // Wire global handlers BEFORE anything else so no exception ever
+            // silently terminates the process. Covers async void, background
+            // threads, and WinForms message-pump exceptions.
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            Application.ThreadException                        += OnThreadException;
+            AppDomain.CurrentDomain.UnhandledException        += OnUnhandledException;
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -18,5 +26,43 @@ namespace Cad3PLogBrowser
 
             Application.Run(mainForm);
         }
+
+        // ?? Unhandled exception sinks ?????????????????????????????????????????
+
+        private static void OnThreadException(object sender,
+            System.Threading.ThreadExceptionEventArgs e) =>
+            HandleFatalException(e.Exception);
+
+        private static void OnUnhandledException(object sender,
+            UnhandledExceptionEventArgs e) =>
+            HandleFatalException(e.ExceptionObject as Exception);
+
+        private static void HandleFatalException(Exception ex)
+        {
+            try
+            {
+                // Write details to a temp crash log so the user can attach it to a bug report.
+                string logPath = Path.Combine(Path.GetTempPath(), "Cad3PLogBrowser.err");
+                File.AppendAllText(logPath,
+                    string.Format("[{0}] Unhandled exception:{1}{2}{1}{1}",
+                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        Environment.NewLine,
+                        ex != null ? ex.ToString() : "(null exception)"));
+
+                MessageBox.Show(
+                    string.Format(
+                        "An unexpected error occurred:\n\n{0}\n\nDetails have been written to:\n{1}\n\nThe application will continue running.",
+                        ex != null ? ex.Message : "Unknown error",
+                        logPath),
+                    "Unexpected Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            catch
+            {
+                // Last resort – swallow if even the error handler fails.
+            }
+        }
     }
 }
+

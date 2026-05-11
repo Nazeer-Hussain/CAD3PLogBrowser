@@ -823,13 +823,13 @@ namespace Cad3PLogBrowser
             CallTree.ShowNodeToolTips = true;
             CallTree.HideSelection = false;
 
-            // Issue 4 Fix: FullRowSelect + owner-draw prevents text truncation in dark theme
+            // FullRowSelect ensures the selection highlight spans the full row width
+            // so there is no narrow-highlight artefact in dark theme.
+            // DrawMode stays Normal: Windows owns all per-node rendering, which is
+            // fast, clip-correct, and honours individual TreeNode.ForeColor /
+            // NodeFont settings without any managed per-node callback overhead.
             ApiTree.FullRowSelect  = true;
             CallTree.FullRowSelect = true;
-            ApiTree.DrawMode  = TreeViewDrawMode.OwnerDrawText;
-            CallTree.DrawMode = TreeViewDrawMode.OwnerDrawText;
-            ApiTree.DrawNode  += TreeView_DrawNode;
-            CallTree.DrawNode += TreeView_DrawNode;
 
             CallTreeButton.CheckedChanged += (s, e) => SyncTreeVisibility();
             ApiTreeButton.CheckedChanged  += (s, e) => SyncTreeVisibility();
@@ -839,56 +839,6 @@ namespace Cad3PLogBrowser
             CallTree.MouseUp += CallTree_MouseUp;
 
             SyncTreeVisibility();
-        }
-
-        /// <summary>
-        /// Issue 4 Fix: owner-draw handler that ensures tree text is never clipped
-        /// and always uses the correct colors in both light and dark theme.
-        /// </summary>
-        private void TreeView_DrawNode(object sender, DrawTreeNodeEventArgs e)
-        {
-            if (e.Node == null) return;
-
-            bool isDark     = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            bool isSelected = (e.State & TreeNodeStates.Selected) != 0;
-
-            // Background
-            Color backColor = isSelected
-                ? (isDark ? Color.FromArgb(50, 90, 150) : SystemColors.Highlight)
-                : (isDark ? Color.FromArgb(28, 30, 38) : SystemColors.Window);
-
-            using (var bgBrush = new System.Drawing.SolidBrush(backColor))
-                e.Graphics.FillRectangle(bgBrush, e.Bounds);
-
-            // Focus rectangle
-            if ((e.State & TreeNodeStates.Focused) != 0)
-                ControlPaint.DrawFocusRectangle(e.Graphics, e.Bounds,
-                    isDark ? Color.White : SystemColors.ControlText, backColor);
-
-            // Text color: selected uses highlight text; unselected uses per-node or theme color
-            Color foreColor;
-            if (isSelected)
-            {
-                foreColor = isDark ? Color.White : SystemColors.HighlightText;
-            }
-            else if (e.Node.ForeColor != Color.Empty && e.Node.ForeColor != Color.Black && e.Node.ForeColor != SystemColors.WindowText)
-            {
-                foreColor = e.Node.ForeColor; // duration-coded color
-            }
-            else
-            {
-                foreColor = isDark ? Color.FromArgb(210, 215, 230) : SystemColors.WindowText;
-            }
-
-            Font font = e.Node.NodeFont ?? (sender as TreeView)?.Font ?? SystemFonts.DefaultFont;
-
-            TextRenderer.DrawText(
-                e.Graphics,
-                e.Node.Text,
-                font,
-                new Rectangle(e.Bounds.X + 2, e.Bounds.Y, e.Bounds.Width - 2, e.Bounds.Height),
-                foreColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
         }
 
         private void ApiTree_MouseUpForSorting(object sender, MouseEventArgs e)
@@ -1221,6 +1171,10 @@ namespace Cad3PLogBrowser
             CallTree.Nodes.Clear();
             _lazyChildrenMap.Clear(); // Clear lazy load cache
 
+            // Always unsubscribe first so we never accumulate duplicate handlers
+            // across file reloads (each reload would otherwise add another subscription).
+            CallTree.BeforeExpand -= CallTree_BeforeExpand;
+
             // Root node: "Call Tree"
             var rootNode = new TreeNode(Resources.TREE_LABEL_CALL_TREE) { Tag = -1 };
             rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
@@ -1244,7 +1198,7 @@ namespace Cad3PLogBrowser
 
             CallTree.EndUpdate();
 
-            // Wire up before expand event for lazy loading
+            // Wire up before expand event for lazy loading — exactly once (unsubscribed above).
             if (useLazyLoading)
             {
                 CallTree.BeforeExpand += CallTree_BeforeExpand;
@@ -2010,6 +1964,9 @@ namespace Cad3PLogBrowser
             StatusFileName.Text = Resources.STATUS_LOADING;
             _overlay.Show(Resources.STATUS_LOADING);
 
+            // Persist bookmarks for the previous file before we discard its context.
+            try { _bookmarkService.SaveBookmarks(); } catch { /* non-fatal */ }
+
             try
             {
                 // Read file with progress updates
@@ -2164,6 +2121,14 @@ namespace Cad3PLogBrowser
         {
             _virtualLines = new List<VirtualLogLine>(filtered.Count);
             _lineIndexMap = new Dictionary<int, int>(filtered.Count);
+
+            // Rebuild error/warning navigation indices for the filtered view so that
+            // F8 / Ctrl+F8 navigation jumps to the correct rows after a filter is applied.
+            _errorLines.Clear();
+            _warningLines.Clear();
+            _currentErrorIndex   = -1;
+            _currentWarningIndex = -1;
+
             for (int i = 0; i < filtered.Count; i++)
             {
                 var fl = filtered[i];
@@ -2174,6 +2139,18 @@ namespace Cad3PLogBrowser
                     BackColour = GetLineColour(fl.Text)
                 });
                 _lineIndexMap[fl.LineNumber] = i;
+
+                // Index error and warning rows in the filtered view.
+                if (!string.IsNullOrEmpty(fl.Text))
+                {
+                    int first = fl.Text.IndexOf(": ", StringComparison.Ordinal);
+                    if (first >= 0 && first + 3 < fl.Text.Length)
+                    {
+                        char level = fl.Text[first + 2];
+                        if (level == 'E') _errorLines.Add(i);
+                        else if (level == 'W') _warningLines.Add(i);
+                    }
+                }
             }
 
             // Safety check: ensure logListView is initialized
@@ -3300,6 +3277,12 @@ namespace Cad3PLogBrowser
             {
                 var allLinesCopy = _allLines; // capture reference; immutable during filter
 
+                // Duration filter: compute on the UI thread (uses _lastEntries which is
+                // only written on the UI thread) before handing off to Task.Run.
+                HashSet<int> durationQualifiedLines = criteria.MinimumDurationMs.HasValue
+                    ? BuildDurationQualifiedLines(criteria.MinimumDurationMs.Value)
+                    : null;
+
                 var filtered = await Task.Run(() =>
                 {
                     var token = _cancellationTokenSource.Token;
@@ -3323,7 +3306,7 @@ namespace Cad3PLogBrowser
                         }
 
                         string line = allLinesCopy[i];
-                        if (MatchesFilterRaw(line, criteria))
+                        if (MatchesFilterRaw(line, criteria, durationQualifiedLines, i + 1))
                             result.Add(new FilteredLine(i + 1, line));
                     }
                     return result;
@@ -3355,44 +3338,74 @@ namespace Cad3PLogBrowser
             ClearHighlighting(); // Clear search highlights when filter is cleared
         }
 
-        // Pre-compiled regex instances reused across filter calls
-        private System.Text.RegularExpressions.Regex _filterDurationRegex =
-            new System.Text.RegularExpressions.Regex(@"\[(\d+)\s*ms\]",
-                System.Text.RegularExpressions.RegexOptions.Compiled);
-        private System.Text.RegularExpressions.Regex _filterTimeRegex =
-            new System.Text.RegularExpressions.Regex(@"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})",
+        // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──
+        private static readonly System.Text.RegularExpressions.Regex _filterTimeRegex =
+            new System.Text.RegularExpressions.Regex(
+                @"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?Z?)",
                 System.Text.RegularExpressions.RegexOptions.Compiled);
 
-        private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria)
+        private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria,
+            HashSet<int> durationQualifiedLines, int lineNumber1Based)
         {
-            // Text filter
+            // ── Text filter — honours UseRegex and IsCaseSensitive ────────────
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
-                var comparison = criteria.IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                if (line.IndexOf(criteria.SearchText, comparison) < 0)
-                    return false;
+                if (criteria.UseRegex)
+                {
+                    try
+                    {
+                        var opts = criteria.IsCaseSensitive
+                            ? System.Text.RegularExpressions.RegexOptions.None
+                            : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                        if (!System.Text.RegularExpressions.Regex.IsMatch(line, criteria.SearchText, opts))
+                            return false;
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false; // invalid regex pattern → exclude
+                    }
+                }
+                else
+                {
+                    var comparison = criteria.IsCaseSensitive
+                        ? StringComparison.Ordinal
+                        : StringComparison.OrdinalIgnoreCase;
+                    if (line.IndexOf(criteria.SearchText, comparison) < 0)
+                        return false;
+                }
             }
 
-            // Duration filter
-            if (criteria.MinimumDurationMs.HasValue)
+            // ── Duration filter — evaluated via pre-computed ENTER/EXIT pairs ─
+            if (durationQualifiedLines != null)
             {
-                var m = _filterDurationRegex.Match(line);
-                if (!m.Success || !int.TryParse(m.Groups[1].Value, out int dur) || dur < criteria.MinimumDurationMs.Value)
+                if (!durationQualifiedLines.Contains(lineNumber1Based))
                     return false;
             }
 
-            // Time range filter
+            // ── Time-range filter — uses ISO 8601 timestamp in line header ────
             if (criteria.FromTime.HasValue || criteria.ToTime.HasValue)
             {
                 var m = _filterTimeRegex.Match(line);
-                if (!m.Success || !DateTime.TryParse(m.Groups[1].Value, out DateTime lineTime))
+                if (!m.Success) return false;
+                if (!DateTime.TryParse(m.Groups[1].Value, null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out DateTime lineTime))
                     return false;
                 var t = lineTime.TimeOfDay;
                 if (criteria.FromTime.HasValue && t < criteria.FromTime.Value.TimeOfDay) return false;
                 if (criteria.ToTime.HasValue   && t > criteria.ToTime.Value.TimeOfDay)   return false;
             }
 
-            // Log level filter
+            // ── ThreadId filter ───────────────────────────────────────────────
+            // Log format (field 3, 0-based, split on ": "):
+            //   {datetime}: {Level}: {PID}: {TID}: {App}: {Area}: {payload}
+            if (!string.IsNullOrWhiteSpace(criteria.ThreadId))
+            {
+                string tid = ParseRawThreadId(line);
+                if (!string.Equals(tid, criteria.ThreadId.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            // ── Log level filter ──────────────────────────────────────────────
             if (criteria.Level.HasValue)
             {
                 if (ParseLogLevel(line) != criteria.Level.Value)
@@ -3400,6 +3413,32 @@ namespace Cad3PLogBrowser
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Extracts the Thread-ID from the 4th colon-separated field of a raw log line.
+        /// Handles merged log lines that start with "[filename] ".
+        /// </summary>
+        private static string ParseRawThreadId(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return null;
+
+            // Strip merged-log prefix "[filename] " so field positions are correct.
+            string parseable = line;
+            if (line.Length > 2 && line[0] == '[')
+            {
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 0)
+                {
+                    string tag = line.Substring(1, cb - 1);
+                    if (tag.IndexOf('.') >= 0) // looks like a filename
+                        parseable = line.Substring(cb + 2);
+                }
+            }
+
+            // Split on ": " — TID is field[3]
+            var parts = parseable.Split(new[] { ": " }, 5, StringSplitOptions.None);
+            return parts.Length >= 4 ? parts[3].Trim() : null;
         }
 
         /// <summary>
@@ -3425,6 +3464,56 @@ namespace Cad3PLogBrowser
             }
 
             return Models.LogLevel.Info;
+        }
+
+        /// <summary>
+        /// Walks the already-parsed <see cref="_lastEntries"/> list and returns a set of
+        /// 1-based line numbers for ENTER lines whose matched call duration is at or above
+        /// <paramref name="minDurationMs"/>.  Must be called on the UI thread.
+        /// </summary>
+        private HashSet<int> BuildDurationQualifiedLines(long minDurationMs)
+        {
+            var result = new HashSet<int>();
+            if (_lastEntries == null || _lastEntries.Count == 0) return result;
+
+            var stack = new Stack<Services.LogEntry>();
+            foreach (var entry in _lastEntries)
+            {
+                if (!entry.IsApiCall) continue;
+
+                if (entry.IsCallEnter)
+                {
+                    stack.Push(entry);
+                }
+                else if (entry.IsCallExit && stack.Count > 0)
+                {
+                    // Walk the stack to find the matching ENTER (handles unmatched pairs).
+                    var temp = new Stack<Services.LogEntry>();
+                    bool found = false;
+                    while (stack.Count > 0 && !found)
+                    {
+                        var top = stack.Pop();
+                        if (top.ApiName == entry.ApiName)
+                        {
+                            // Compute duration from EpochMs timestamps.
+                            if (top.EpochMs > 0 && entry.EpochMs >= top.EpochMs)
+                            {
+                                long durationMs = entry.EpochMs - top.EpochMs;
+                                if (durationMs >= minDurationMs)
+                                    result.Add(top.LineNumber);
+                            }
+                            found = true;
+                        }
+                        else
+                        {
+                            temp.Push(top);
+                        }
+                    }
+                    // Restore non-matching frames.
+                    while (temp.Count > 0) stack.Push(temp.Pop());
+                }
+            }
+            return result;
         }
 
         private void filterMenuItem_Click(object sender, EventArgs e)
@@ -3811,6 +3900,9 @@ namespace Cad3PLogBrowser
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Persist bookmarks for the current file before closing.
+            try { _bookmarkService.SaveBookmarks(); } catch { /* non-fatal */ }
+
             // Save search history before closing
             try
             {
@@ -4376,7 +4468,7 @@ namespace Cad3PLogBrowser
                     logListView.EnsureVisible(index);
                     logListView.SelectedIndices.Clear();
                     logListView.SelectedIndices.Add(index);
-                    logListView.FocusedItem = logListView.Items[index];
+                    // Do NOT call logListView.Items[index] — it returns null in virtual mode.
                 }
                 else
                 {
@@ -4499,7 +4591,8 @@ namespace Cad3PLogBrowser
             logListView.EnsureVisible(index);
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(index);
-            logListView.FocusedItem = logListView.Items[index];
+            // NOTE: logListView.Items[index] returns null in virtual mode — do NOT set
+            // FocusedItem; selecting via SelectedIndices is sufficient for virtual lists.
             Focus();
         }
 
