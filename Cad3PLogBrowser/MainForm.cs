@@ -34,7 +34,6 @@ namespace Cad3PLogBrowser
         private List<string>      _allLines        = new List<string>();
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
         private AppSettings       _appSettings;
-        private HashSet<int>      _bookmarkedLines  = new HashSet<int>(); // 1-based line numbers
         private List<Services.LogEntry>  _lastEntries      = new List<Services.LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
         /// <summary>
@@ -105,6 +104,13 @@ namespace Cad3PLogBrowser
             }
         }
 
+        /// <summary>Returns the canonical tab order so re-shown tabs land at their original position.</summary>
+        private TabPage[] GetCanonicalTabOrder() => new[]
+        {
+            logTab, rawTab, performanceTab, logDetailTab,
+            callGraphTab, flameGraphTab, timelineTab, _aiTab
+        };
+
         private void SetTabVisible(TabPage tab, bool visible)
         {
             if (tab == null) return;
@@ -114,7 +120,18 @@ namespace Cad3PLogBrowser
 
             if (visible)
             {
-                mainTabControl.TabPages.Add(tab);
+                // Bug #14: insert at the canonical position so tab order is stable.
+                int insertAt = 0;
+                foreach (TabPage canonical in GetCanonicalTabOrder())
+                {
+                    if (ReferenceEquals(canonical, tab)) break;
+                    if (mainTabControl.TabPages.Contains(canonical)) insertAt++;
+                }
+
+                if (insertAt >= mainTabControl.TabPages.Count)
+                    mainTabControl.TabPages.Add(tab);
+                else
+                    mainTabControl.TabPages.Insert(insertAt, tab);
                 return;
             }
 
@@ -229,14 +246,24 @@ namespace Cad3PLogBrowser
 
         private void BuildMruMenu()
         {
-            // Remove existing Recent Files menu if present
+            // Dispose and remove the old submenu so its items and event handlers
+            // are released (Bug #13: previously they were only removed, never disposed).
             if (_recentFilesMenuItem != null)
             {
+                foreach (ToolStripItem old in _recentFilesMenuItem.DropDownItems)
+                    old.Dispose();
+                _recentFilesMenuItem.DropDownItems.Clear();
                 fileMenuItem.DropDownItems.Remove(_recentFilesMenuItem);
+                _recentFilesMenuItem.Dispose();
+                _recentFilesMenuItem = null;
+            }
+            if (_recentFilesSeparator != null)
+            {
                 fileMenuItem.DropDownItems.Remove(_recentFilesSeparator);
+                _recentFilesSeparator.Dispose();
+                _recentFilesSeparator = null;
             }
 
-            // Only show if there are recent files
             if (_appSettings.RecentFiles.Count == 0) return;
 
             // Create separator and Recent Files submenu
@@ -1205,14 +1232,15 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // C2: Count total nodes in call tree
-        private int CountTotalNodes(List<CallStackNode> nodes)
+        // C2: Count total nodes in call tree (depth-capped to avoid StackOverflow)
+        private int CountTotalNodes(List<CallStackNode> nodes, int depth = 0)
         {
+            if (depth > 500) return 0; // guard against pathologically deep trees
             int count = 0;
             foreach (var node in nodes)
             {
-                count++; // Count this node
-                count += CountTotalNodes(node.Children); // Count children recursively
+                count++;
+                count += CountTotalNodes(node.Children, depth + 1);
             }
             return count;
         }
@@ -2785,62 +2813,50 @@ namespace Cad3PLogBrowser
         // Feature B8: Highlight all search results in the log view
         private void HighlightSearchResults(string searchTerm, bool matchCase, bool useRegex = false)
         {
-            if (string.IsNullOrEmpty(searchTerm))
-            {
-                ClearHighlighting();
-                return;
-            }
-
-            // Safety check: ensure _virtualLines is initialized
-            if (_virtualLines == null || _virtualLines.Count == 0)
-                return;
+            if (string.IsNullOrEmpty(searchTerm)) { ClearHighlighting(); return; }
+            if (_virtualLines == null || _virtualLines.Count == 0) return;
 
             try
             {
+                // Pre-compile regex once outside the loop (Bug #11 fix).
+                System.Text.RegularExpressions.Regex rx = null;
+                StringComparison comparison = matchCase
+                    ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
                 if (useRegex)
                 {
-                    // Regex matching
-                    var options = matchCase ? System.Text.RegularExpressions.RegexOptions.None 
+                    var opts = matchCase
+                        ? System.Text.RegularExpressions.RegexOptions.None
                         : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
-                    var regex = new System.Text.RegularExpressions.Regex(searchTerm, options);
-
-                    for (int i = 0; i < _virtualLines.Count; i++)
-                    {
-                        var vl = _virtualLines[i];
-                        if (regex.IsMatch(vl.Text))
-                        {
-                            _virtualLines[i] = new VirtualLogLine
-                            {
-                                LineNumber = vl.LineNumber,
-                                Text = vl.Text,
-                                BackColour = _appSettings.HighlightColor
-                            };
-                        }
-                    }
+                    rx = new System.Text.RegularExpressions.Regex(searchTerm, opts);
                 }
-                else
-                {
-                    // Standard string matching
-                    var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
-                    for (int i = 0; i < _virtualLines.Count; i++)
+                Color highlight = _appSettings.HighlightColor;
+
+                for (int i = 0; i < _virtualLines.Count; i++)
+                {
+                    var vl = _virtualLines[i];
+
+                    bool matches = rx != null
+                        ? rx.IsMatch(vl.Text)
+                        : vl.Text.IndexOf(searchTerm, comparison) >= 0;
+
+                    // Bug #10: only overwrite the background when the line actually
+                    // matches — leave bookmarked (blue) and level-coloured lines alone.
+                    if (matches)
                     {
-                        var vl = _virtualLines[i];
-                        if (vl.Text.IndexOf(searchTerm, comparison) >= 0)
+                        _virtualLines[i] = new VirtualLogLine
                         {
-                            _virtualLines[i] = new VirtualLogLine
-                            {
-                                LineNumber = vl.LineNumber,
-                                Text = vl.Text,
-                                BackColour = _appSettings.HighlightColor
-                            };
-                        }
+                            LineNumber = vl.LineNumber,
+                            Text       = vl.Text,
+                            BackColour = highlight
+                        };
                     }
                 }
 
                 logListView.Invalidate();
             }
-            catch (ArgumentException ex) // Regex exception
+            catch (ArgumentException ex)
             {
                 MessageBox.Show(string.Format(Resources.ERR_INVALID_REGEX, ex.Message),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -2849,28 +2865,35 @@ namespace Cad3PLogBrowser
 
         private void ClearHighlighting()
         {
-            // Safety check: ensure _virtualLines is initialized
             if (_virtualLines == null || _virtualLines.Count == 0)
             {
                 _lastHighlightTerm = "";
                 return;
             }
 
-            // Restore original colors based on log level
+            // Bug #10: restore each line to either its bookmark colour or its level colour
+            // so that bookmarked lines keep their highlight after a search is cleared.
+            Color bookmarkColour = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(0, 70, 130)
+                : Color.FromArgb(200, 230, 255);
+
             for (int i = 0; i < _virtualLines.Count; i++)
             {
                 var vl = _virtualLines[i];
+                Color back = _bookmarkService.IsBookmarked(vl.LineNumber)
+                    ? bookmarkColour
+                    : GetLineColour(vl.Text);
+
                 _virtualLines[i] = new VirtualLogLine
                 {
                     LineNumber = vl.LineNumber,
-                    Text = vl.Text,
-                    BackColour = GetLineColour(vl.Text)
+                    Text       = vl.Text,
+                    BackColour = back
                 };
             }
 
             _lastHighlightTerm = "";
-            if (logListView != null)
-                logListView.Invalidate();
+            if (logListView != null) logListView.Invalidate();
         }
 
         private void findNextMenuItem_Click(object sender, EventArgs e)
@@ -4224,6 +4247,7 @@ namespace Cad3PLogBrowser
 
         private void AppendSubtreeText(TreeNode node, System.Text.StringBuilder sb, int depth)
         {
+            if (depth > 500) return; // guard against StackOverflow
             sb.AppendLine(new string(' ', depth * 2) + node.Text);
             foreach (TreeNode child in node.Nodes)
                 AppendSubtreeText(child, sb, depth + 1);
@@ -4254,14 +4278,14 @@ namespace Cad3PLogBrowser
 
         private void CollectBranchCsvRows(TreeNode node, List<string> rows, int depth)
         {
+            if (depth > 500) return; // guard against StackOverflow
             string name = GetMethodNameFromNode(node);
-            // Extract duration from text like "MethodName [142 ms]"
             string duration = "";
             int b1 = node.Text.IndexOf('[');
             int b2 = node.Text.IndexOf(" ms]");
             if (b1 >= 0 && b2 > b1)
                 duration = node.Text.Substring(b1 + 1, b2 - b1 - 1).Trim();
-            rows.Add($"\"{name}\",{depth},{duration}");
+            rows.Add(string.Format("\"{0}\",{1},{2}", name, depth, duration));
             foreach (TreeNode child in node.Nodes)
                 CollectBranchCsvRows(child, rows, depth + 1);
         }
@@ -4776,13 +4800,15 @@ namespace Cad3PLogBrowser
 
                     StatusFileName.Text = message;
 
-                    // Clear status after 3 seconds
+                    // Clear status after 3 seconds — guard against form disposal
+                    // before the tick fires (Bug #17).
                     var timer = new System.Windows.Forms.Timer { Interval = 3000 };
                     timer.Tick += (s, args) =>
                     {
-                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
                         timer.Stop();
                         timer.Dispose();
+                        if (!IsDisposed && !Disposing)
+                            StatusFileName.Text = Path.GetFileName(_currentFilePath);
                     };
                     timer.Start();
                 }
@@ -4800,7 +4826,6 @@ namespace Cad3PLogBrowser
         // FEATURE 2: Search History Persistence (B6)
         // ═══════════════════════════════════════════════════════════════════════
 
-        private const string SEARCH_HISTORY_FILE = "search_history.json";
         private const int MAX_SEARCH_HISTORY = 20;
 
         /// <summary>
