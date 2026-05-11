@@ -47,6 +47,13 @@ namespace Cad3PLogBrowser
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
 
+        // D-18: cached context menus — built once, reused on every right-click to avoid
+        // allocating ~15 GDI objects per click (previous code created a new ContextMenuStrip
+        // and all its ToolStripMenuItems on every mouse-up event).
+        private ContextMenuStrip     _callTreeContextMenu;
+        private ToolStripSeparator   _callTreeGrokSep;
+        private ToolStripMenuItem    _callTreeGrokItem;
+
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
         private string _currentOperation = string.Empty;
@@ -366,7 +373,8 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _mergeLogService  = new Services.Core.MergeLogService();
-            _aiService        = new Services.Analysis.AiLogService();
+            _aiService        = new Services.Analysis.AiLogService(
+                _appSettings.ClaudeApiKey, _appSettings.UseClaudeApi, _appSettings.ClaudeModel);
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
@@ -1981,7 +1989,7 @@ namespace Cad3PLogBrowser
         }
 
         // ── File loading ──────────────────────────────────────────────────────
-        private async void LoadFileAsync(string filePath)
+        private async void LoadFileAsync(string filePath, int restoreTopIndex = -1)
         {
             if (_isLoading) return;
             _isLoading = true;
@@ -2026,6 +2034,9 @@ namespace Cad3PLogBrowser
 
                 // Populate views with progress
                 PopulateVirtualListView(_allLines);
+                // D-01: restore scroll position now that VirtualListSize is set.
+                if (restoreTopIndex > 0 && restoreTopIndex < _virtualLines.Count)
+                    logListView.EnsureVisible(restoreTopIndex);
                 PopulateRawView(_allLines);
                 FileLoadProgress.Value = 33;
                 StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
@@ -2107,10 +2118,13 @@ namespace Cad3PLogBrowser
                 int lineNumber = i + 1;
                 Color backColor = GetLineColour(lines[i]);
 
-                // Check if bookmarked - override color
+                // D-04: apply a theme-aware tint for bookmarked lines so the
+                // colour reads correctly in both Light and Dark themes.
                 if (_bookmarkService.IsBookmarked(lineNumber))
                 {
-                    backColor = Color.FromArgb(200, 230, 255); // Light blue for bookmarks
+                    backColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                        ? Color.FromArgb(0, 70, 130)    // dark-blue tint for dark theme
+                        : Color.FromArgb(200, 230, 255); // light-blue tint for light theme
                 }
 
                 _virtualLines.Add(new VirtualLogLine
@@ -2538,13 +2552,11 @@ namespace Cad3PLogBrowser
         private void refreshMenuItem_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_currentFilePath)) return;
+            // D-01: capture scroll position BEFORE the async load, then restore it
+            // inside LoadFileAsync once PopulateVirtualListView has run — not via
+            // BeginInvoke which fires before the async method completes.
             int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
-            LoadFileAsync(_currentFilePath);
-            BeginInvoke((Action)(() =>
-            {
-                if (topIndex < logListView.VirtualListSize)
-                    logListView.EnsureVisible(topIndex);
-            }));
+            LoadFileAsync(_currentFilePath, restoreTopIndex: topIndex);
         }
 
         private void RefreshButton_Click(object sender, EventArgs e) =>
@@ -3577,6 +3589,9 @@ namespace Cad3PLogBrowser
                     ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
+                    // Propagate updated AI settings (including configurable model) to the service.
+                    _aiService?.UpdateConfig(_appSettings.ClaudeApiKey, _appSettings.UseClaudeApi,
+                                             _appSettings.ClaudeModel);
                 }
                 // Refresh AI service after settings may have changed
                 RefreshAiService();
@@ -4014,85 +4029,97 @@ namespace Cad3PLogBrowser
 
         private void CallTree_MouseUp(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (e.Button != MouseButtons.Right) return;
+
+            var node = CallTree.GetNodeAt(e.Location);
+            if (node != null) CallTree.SelectedNode = node;
+
+            // D-18: build once, reuse on every right-click.
+            if (_callTreeContextMenu == null)
+                _callTreeContextMenu = BuildCallTreeContextMenu();
+
+            // Update the one dynamic item whose visibility depends on settings.
+            bool hasGrok = !string.IsNullOrEmpty(_appSettings?.GrokUrl);
+            _callTreeGrokSep.Visible  = hasGrok;
+            _callTreeGrokItem.Visible = hasGrok;
+
+            ApplyContextMenuTheme(_callTreeContextMenu);
+            _callTreeContextMenu.Show(CallTree, e.Location);
+        }
+
+        /// <summary>
+        /// Builds the Call Tree context menu exactly once.  Lambdas read
+        /// CallTree.SelectedNode at click-time so no stale-capture issue.
+        /// </summary>
+        private ContextMenuStrip BuildCallTreeContextMenu()
+        {
+            var menu = new ContextMenuStrip();
+
+            menu.Items.Add(Resources.MENU_COPY_METHOD_NAME, null, (s, ev) =>
             {
-                // Select node under cursor
-                var node = CallTree.GetNodeAt(e.Location);
-                if (node != null) CallTree.SelectedNode = node;
+                var n = CallTree.SelectedNode;
+                if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
+            });
 
-                // Call Tree specific context menu
-                var contextMenu = new ContextMenuStrip();
-
-                // ═══ COPY ACTIONS ═══
-                contextMenu.Items.Add(Resources.MENU_COPY_METHOD_NAME, null, (s, ev) => 
+            menu.Items.Add(Resources.MENU_COPY_SUBTREE, null, (s, ev) =>
+            {
+                var n = CallTree.SelectedNode;
+                if (n != null)
                 {
-                    var n = CallTree.SelectedNode;
-                    if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
-                });
-
-                contextMenu.Items.Add(Resources.MENU_COPY_SUBTREE, null, (s, ev) => 
-                {
-                    var n = CallTree.SelectedNode;
-                    if (n != null)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        AppendSubtreeText(n, sb, 0);
-                        Clipboard.SetText(sb.ToString());
-                    }
-                });
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ NAVIGATION (Call Tree only - ENTER/EXIT matching) ═══
-                contextMenu.Items.Add(Resources.MENU_JUMP_TO_MATCHING, null, (s, ev) => JumpToMatchingPair());
-                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
-                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ EXPORT (Call Tree only - branch operations) ═══
-                contextMenu.Items.Add(Resources.MENU_SAVE_BRANCH, null, treeContextSaveBranchMenuItem_Click);
-                contextMenu.Items.Add(Resources.MENU_EXPORT_BRANCH_CSV, null, treeContextExportBranchCsvMenuItem_Click);
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ COMMON TREE ACTIONS ═══
-                contextMenu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null, (s, ev) => CallTree.ExpandAll());
-                contextMenu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) => 
-                {
-                    CallTree.CollapseAll();
-                    if (CallTree.Nodes.Count > 0) CallTree.Nodes[0].Expand();
-                });
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ CROSS-REFERENCE ═══
-                contextMenu.Items.Add(Resources.MENU_SHOW_IN_API_TREE, null, (s, ev) => 
-                {
-                    var n = CallTree.SelectedNode;
-                    if (n != null)
-                    {
-                        ShowApiTree();
-                        FindAndSelectApiTreeNode(GetMethodNameFromNode(n));
-                    }
-                });
-
-                // ═══ SEARCH IN GROK (if configured) ═══
-                if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
-                {
-                    contextMenu.Items.Add(new ToolStripSeparator());
-                    contextMenu.Items.Add(Resources.MENU_SEARCH_IN_GROK, null, treeContextSearchInGrokMenuItem_Click);
+                    var sb = new System.Text.StringBuilder();
+                    AppendSubtreeText(n, sb, 0);
+                    Clipboard.SetText(sb.ToString());
                 }
+            });
 
-                // Apply dark theme if needed
-                if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
-                {
-                    contextMenu.Renderer = new ToolStripProfessionalRenderer(new DarkContextMenuColorTable());
-                    contextMenu.BackColor = Color.FromArgb(45, 45, 48);
-                    contextMenu.ForeColor = Color.FromArgb(241, 241, 241);
-                }
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_JUMP_TO_MATCHING, null, (s, ev) => JumpToMatchingPair());
+            menu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+            ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
 
-                contextMenu.Show(CallTree, e.Location);
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_SAVE_BRANCH, null, treeContextSaveBranchMenuItem_Click);
+            menu.Items.Add(Resources.MENU_EXPORT_BRANCH_CSV, null, treeContextExportBranchCsvMenuItem_Click);
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null, (s, ev) => CallTree.ExpandAll());
+            menu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) =>
+            {
+                CallTree.CollapseAll();
+                if (CallTree.Nodes.Count > 0) CallTree.Nodes[0].Expand();
+            });
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_SHOW_IN_API_TREE, null, (s, ev) =>
+            {
+                var n = CallTree.SelectedNode;
+                if (n != null) { ShowApiTree(); FindAndSelectApiTreeNode(GetMethodNameFromNode(n)); }
+            });
+
+            // Grok item — always present, Visible toggled on each show.
+            _callTreeGrokSep  = new ToolStripSeparator { Visible = false };
+            _callTreeGrokItem = new ToolStripMenuItem(Resources.MENU_SEARCH_IN_GROK) { Visible = false };
+            _callTreeGrokItem.Click += treeContextSearchInGrokMenuItem_Click;
+            menu.Items.Add(_callTreeGrokSep);
+            menu.Items.Add(_callTreeGrokItem);
+
+            return menu;
+        }
+
+        /// <summary>Applies dark/light theme colours to a context menu in-place.</summary>
+        private static void ApplyContextMenuTheme(ContextMenuStrip menu)
+        {
+            if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
+            {
+                menu.Renderer  = new ToolStripProfessionalRenderer(new DarkContextMenuColorTable());
+                menu.BackColor = Color.FromArgb(45, 45, 48);
+                menu.ForeColor = Color.FromArgb(241, 241, 241);
+            }
+            else
+            {
+                menu.Renderer  = new ToolStripProfessionalRenderer();
+                menu.BackColor = SystemColors.Menu;
+                menu.ForeColor = SystemColors.MenuText;
             }
         }
 

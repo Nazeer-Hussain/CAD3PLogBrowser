@@ -184,6 +184,8 @@ namespace Cad3PLogBrowser.Services.Navigation
 
         /// <summary>
         /// Gets the bookmark file path for a given log file.
+        /// D-11: uses a hash of the full path, not just the filename, so two files
+        /// named "debug.log" in different directories never share the same store.
         /// </summary>
         private string GetBookmarkFilePath(string logFilePath)
         {
@@ -191,8 +193,16 @@ namespace Cad3PLogBrowser.Services.Navigation
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "CAD3PLogBrowser", "Bookmarks");
 
-            // Create a safe filename from the log file path
-            string safeFileName = Path.GetFileName(logFilePath) + ".bookmarks";
+            // Build a collision-free filename: originalName_XXXXXXXX.bookmarks
+            // where XXXXXXXX is an 8-char hex hash of the normalised full path.
+            string normalised = Path.GetFullPath(logFilePath).ToUpperInvariant();
+            int hash = 0;
+            unchecked
+            {
+                foreach (char c in normalised) hash = hash * 31 + c;
+            }
+            string safeFileName = string.Format("{0}_{1:X8}.bookmarks",
+                Path.GetFileName(logFilePath), (uint)hash);
 
             return Path.Combine(appDataDir, safeFileName);
         }

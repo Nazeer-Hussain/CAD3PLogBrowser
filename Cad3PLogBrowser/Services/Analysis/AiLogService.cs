@@ -24,24 +24,29 @@ namespace Cad3PLogBrowser.Services.Analysis
         // ── Configuration ─────────────────────────────────────────────────────
         private string _apiKey;
         private bool   _useApi;
+        // D-10: model name is user-configurable so the app does not hard-break
+        // when Anthropic deprecates the previously baked-in version string.
+        private string _model;
 
-        private const string ApiUrl = "https://api.anthropic.com/v1/messages";
-        private const string Model  = "claude-sonnet-4-20250514";
+        private const string ApiUrl        = "https://api.anthropic.com/v1/messages";
+        private const string DefaultModel  = "claude-sonnet-4-20250514";
 
         public bool IsApiEnabled => _useApi && !string.IsNullOrWhiteSpace(_apiKey);
         public bool IsConfigured => true; // offline always works
 
-        public AiLogService(string apiKey = "", bool useClaudeApi = false)
+        public AiLogService(string apiKey = "", bool useClaudeApi = false, string model = null)
         {
             _apiKey = apiKey ?? string.Empty;
             _useApi = useClaudeApi;
+            _model  = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
         }
 
         /// <summary>Call after user changes settings so the running instance picks up new values.</summary>
-        public void UpdateConfig(string apiKey, bool useClaudeApi)
+        public void UpdateConfig(string apiKey, bool useClaudeApi, string model = null)
         {
             _apiKey = apiKey ?? string.Empty;
             _useApi = useClaudeApi;
+            _model  = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
         }
 
         // ── L1: Summarize ─────────────────────────────────────────────────────
@@ -428,7 +433,7 @@ namespace Cad3PLogBrowser.Services.Analysis
                 if (messagesJson == null)
                     messagesJson = $"[{{\"role\":\"user\",\"content\":\"{EscJson(userPrompt)}\"}}]";
 
-                string body = $"{{\"model\":\"{Model}\",\"max_tokens\":1000,\"system\":\"{EscJson(system)}\",\"messages\":{messagesJson}}}";
+                string body = $"{{\"model\":\"{_model}\",\"max_tokens\":1000,\"system\":\"{EscJson(system)}\",\"messages\":{messagesJson}}}";
 
                 // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
                 using (var client = new WebClient())
