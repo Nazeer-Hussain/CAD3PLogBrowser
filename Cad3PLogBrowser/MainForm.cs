@@ -253,13 +253,16 @@ namespace Cad3PLogBrowser
 
         private void BuildMruMenu()
         {
-            // Dispose and remove the old submenu so its items and event handlers
-            // are released (Bug #13: previously they were only removed, never disposed).
             if (_recentFilesMenuItem != null)
             {
-                foreach (ToolStripItem old in _recentFilesMenuItem.DropDownItems)
-                    old.Dispose();
-                _recentFilesMenuItem.DropDownItems.Clear();
+                // Snapshot into an array before disposing: ToolStripItem.Dispose() removes
+                // the item from its parent collection as a side-effect, which would mutate
+                // DropDownItems mid-foreach and throw InvalidOperationException.
+                var children = new ToolStripItem[_recentFilesMenuItem.DropDownItems.Count];
+                _recentFilesMenuItem.DropDownItems.CopyTo(children, 0);
+                foreach (var child in children)
+                    child.Dispose();
+
                 fileMenuItem.DropDownItems.Remove(_recentFilesMenuItem);
                 _recentFilesMenuItem.Dispose();
                 _recentFilesMenuItem = null;
