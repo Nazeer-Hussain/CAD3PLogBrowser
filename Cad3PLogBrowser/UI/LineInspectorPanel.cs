@@ -49,6 +49,12 @@ namespace Cad3PLogBrowser.UI
         private readonly Label _divider1;
         private readonly Label _divider2;
 
+        // Last Inspect state — replayed by ApplyTheme so the context RichTextBox
+        // is recoloured correctly when the theme changes (RTF formatting is baked
+        // in at write-time and does not respond to BackColor/ForeColor changes).
+        private IList<InspectorLine> _lastLines;
+        private int                  _lastSelectedIndex = -1;
+
         // ??????????????????????????????????????????????????????????????????????
         public LineInspectorPanel()
         {
@@ -184,6 +190,10 @@ namespace Cad3PLogBrowser.UI
 
             var line  = lines[selectedIndex];
             var entry = FindEntry(entries, line.LineNumber);
+
+            // Persist state so ApplyTheme can replay the context colours on theme switch.
+            _lastLines         = lines;
+            _lastSelectedIndex = selectedIndex;
 
             PopulateFields(line.LineNumber, line.Text ?? string.Empty, entry);
             PopulatePair(entry, entries);
@@ -445,8 +455,15 @@ namespace Cad3PLogBrowser.UI
 
         private void RecolourContextBox()
         {
-            // Just clear — caller should re-Inspect to get proper colours
-            // (avoids needing to store state here)
+            // Replay the last PopulateContext call with the new theme colours.
+            // RTF character formatting (SelectionBackColor, SelectionColor) is
+            // baked in at write-time, so simply changing _ctxBox.BackColor has
+            // no effect on already-written text — we must rewrite it.
+            if (_lastLines != null && _lastSelectedIndex >= 0
+                                   && _lastSelectedIndex < _lastLines.Count)
+            {
+                PopulateContext(_lastLines, _lastSelectedIndex);
+            }
         }
 
         // ?? ENTER/EXIT matching (mirrors JumpToMatchingPair logic) ????????????

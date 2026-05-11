@@ -190,25 +190,14 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (control is TreeView treeView)
                 {
+                    // DrawMode stays Normal. BackColor/ForeColor + FullRowSelect=true is
+                    // sufficient for dark theme. OwnerDrawText was removed because the
+                    // shared DrawNode DC caused overlapping text and per-node overhead.
                     treeView.BackColor = BackgroundColor;
                     treeView.ForeColor = ForegroundColor;
                     treeView.LineColor = BorderColor;
                     treeView.BorderStyle = _currentTheme == Theme.Dark
                         ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
-
-                    var wantedMode = _currentTheme == Theme.Dark
-                        ? TreeViewDrawMode.OwnerDrawText
-                        : TreeViewDrawMode.Normal;
-
-                    // Only re-subscribe / change DrawMode when actually switching modes —
-                    // avoids the double-unsubscribe/subscribe cost on every theme refresh.
-                    if (treeView.DrawMode != wantedMode)
-                    {
-                        treeView.DrawNode -= TreeView_DrawNode;
-                        if (wantedMode == TreeViewDrawMode.OwnerDrawText)
-                            treeView.DrawNode += TreeView_DrawNode;
-                        treeView.DrawMode = wantedMode;
-                    }
                 }
                 else if (control is TabControl tabControl)
                 {
