@@ -3398,7 +3398,7 @@ namespace Cad3PLogBrowser
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
+                StatusOperationLabel.Text = Resources.STATUS_COLLAPSE_CANCELLED;
             }
             finally
             {

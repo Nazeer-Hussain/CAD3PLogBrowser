@@ -753,7 +753,7 @@
             // 
             this.FileLoadProgress.AutoSize = false;
             this.FileLoadProgress.Name = "FileLoadProgress";
-            this.FileLoadProgress.Size = new System.Drawing.Size(180, 16);
+            this.FileLoadProgress.Size = new System.Drawing.Size(180, 20);
             this.FileLoadProgress.Visible = false;
             this.FileLoadProgress.Minimum = 0;
             this.FileLoadProgress.Maximum = 100;
