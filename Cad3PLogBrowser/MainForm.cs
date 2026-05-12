@@ -3132,6 +3132,11 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void UpdateStatusProgress(int percent, string message)
         {
+            // Ensure the bar is visible — callers that bypass StartOperation
+            // (e.g. the save-branch path) need this guard.
+            if (!FileLoadProgress.Visible)
+                FileLoadProgress.Visible = true;
+
             if (FileLoadProgress.Style != ProgressBarStyle.Blocks)
                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
 

@@ -731,10 +731,10 @@
             // 
             this.mainStatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileStatus,
+            this.FileLoadProgress,
             this.StatusFileName,
             this.StatusLineCount,
-            this.StatusSelection,
-            this.FileLoadProgress});
+            this.StatusSelection});
             this.mainStatusStrip.Name = "mainStatusStrip";
             this.mainStatusStrip.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.mainStatusStrip.TabIndex = 1;
@@ -751,8 +751,11 @@
             // 
             this.FileLoadProgress.AutoSize = false;
             this.FileLoadProgress.Name = "FileLoadProgress";
-            this.FileLoadProgress.Size = new System.Drawing.Size(200, 17);
+            this.FileLoadProgress.Size = new System.Drawing.Size(220, 16);
             this.FileLoadProgress.Visible = false;
+            this.FileLoadProgress.Minimum = 0;
+            this.FileLoadProgress.Maximum = 100;
+            this.FileLoadProgress.Alignment = System.Windows.Forms.ToolStripItemAlignment.Left;
             // 
             // StatusFileName
             // 
