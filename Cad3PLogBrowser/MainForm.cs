@@ -775,7 +775,7 @@ namespace Cad3PLogBrowser
                 _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
 
                 if (!string.IsNullOrEmpty(_currentFilePath))
-                    _appSettings.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+                    _appSettings.InitialDirectory = GetSafeDirectory(_currentFilePath);
 
                 // Feature 1a/1b: Save window state
                 if (this.WindowState == FormWindowState.Normal)
@@ -2569,6 +2569,39 @@ namespace Cad3PLogBrowser
         }
 
         // ── File menu ─────────────────────────────────────────────────────────
+
+        // ── Path helpers (PathTooLongException guard) ─────────────────────────
+        // _currentFilePath can be a synthetic display string such as
+        //   "[Merged: file1.log, file2.log, ...]"
+        // which is not a real filesystem path and can exceed 260 characters.
+        // Calling Path.GetDirectoryName / GetFileName on it throws
+        // PathTooLongException on .NET Framework 4.8.  All three helpers below
+        // return a safe fallback whenever the path is virtual or too long.
+
+        private static string GetSafeDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            if (path.StartsWith("[") || path.Length >= 260) return null;
+            try { return Path.GetDirectoryName(path); }
+            catch { return null; }
+        }
+
+        private static string GetSafeBaseName(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "log";
+            if (path.StartsWith("[") || path.Length >= 260) return "merged";
+            try { return Path.GetFileNameWithoutExtension(path); }
+            catch { return "log"; }
+        }
+
+        private static string GetSafeFileName(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "log";
+            if (path.StartsWith("[") || path.Length >= 260) return "merged";
+            try { return Path.GetFileName(path); }
+            catch { return "log"; }
+        }
+
         private void openMenuItem_Click(object sender, EventArgs e)
         {
             if (openLogFileDialog.ShowDialog() == DialogResult.OK)
@@ -2604,7 +2637,7 @@ namespace Cad3PLogBrowser
 
             string baseName    = string.IsNullOrEmpty(_currentFilePath)
                 ? methodName.Replace("::", "_")
-                : Path.GetFileNameWithoutExtension(_currentFilePath);
+                : GetSafeBaseName(_currentFilePath);
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
 
             using (var dlg = new SaveFileDialog())
@@ -2614,7 +2647,7 @@ namespace Cad3PLogBrowser
                 dlg.FileName         = defaultName;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -2779,7 +2812,7 @@ namespace Cad3PLogBrowser
 
             string baseName = string.IsNullOrEmpty(_currentFilePath)
                 ? "performance"
-                : Path.GetFileNameWithoutExtension(_currentFilePath);
+                : GetSafeBaseName(_currentFilePath);
 
             using (var dlg = new SaveFileDialog())
             {
@@ -2788,7 +2821,7 @@ namespace Cad3PLogBrowser
                 dlg.FileName = baseName + "_performance.xls";
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -4570,10 +4603,10 @@ namespace Cad3PLogBrowser
             using (var dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.FILE_FILTER_CSV_FILES;
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_PERFORMANCE_CSV;
+                dialog.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_PERFORMANCE_CSV;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath) 
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4682,7 +4715,7 @@ namespace Cad3PLogBrowser
                 dialog.FileName = methodName.Replace("::", "_") + _appSettings.SaveSnippetSuffix + ".log";
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4779,10 +4812,10 @@ namespace Cad3PLogBrowser
             using (var dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
+                dialog.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4959,7 +4992,7 @@ namespace Cad3PLogBrowser
                         timer.Stop();
                         timer.Dispose();
                         if (!IsDisposed && !Disposing)
-                            StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                            StatusFileName.Text = GetSafeFileName(_currentFilePath);
                     };
                     timer.Start();
                 }
@@ -5427,10 +5460,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_JSON_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_JSON;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_JSON;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5466,10 +5499,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_XML_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_XML;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_XML;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5505,10 +5538,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5554,10 +5587,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5719,7 +5752,7 @@ namespace Cad3PLogBrowser
                     timer.Interval = 3000;
                     timer.Tick += (s, args) =>
                     {
-                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        StatusFileName.Text = GetSafeFileName(_currentFilePath);
                         timer.Stop();
                         timer.Dispose();
                     };
