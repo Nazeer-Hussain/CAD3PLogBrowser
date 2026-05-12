@@ -758,7 +758,6 @@
             // 
             // StatusFileName
             // 
-            this.StatusFileName.AutoSize = false;
             this.StatusFileName.Name = "StatusFileName";
             this.StatusFileName.Size = new System.Drawing.Size(300, 17);
             this.StatusFileName.Spring = true;
