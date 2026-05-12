@@ -2072,8 +2072,9 @@ namespace Cad3PLogBrowser
             FileLoadProgress.Style   = ProgressBarStyle.Marquee;
             FileLoadProgress.Value   = 0;
             FileLoadProgress.Visible = true;
-            mainStatusStrip.Refresh();   // force immediate repaint so bar is visible at once
+            mainStatusStrip.Refresh();
             StatusFileName.Text = Resources.STATUS_LOADING;
+            PositionOverlay();
             _overlay.Show(Resources.STATUS_LOADING);
 
             // Persist bookmarks for the previous file before we discard its context.
@@ -2087,6 +2088,8 @@ namespace Cad3PLogBrowser
                     // Update UI on UI thread
                     this.Invoke((Action)(() =>
                     {
+                        // Animation workaround: step ahead then snap back.
+                        if (progress < 100) { FileLoadProgress.Value = Math.Min(100, progress + 1); }
                         FileLoadProgress.Value = progress;
                         StatusFileName.Text = message;
                         _overlay.SetProgress(progress, message);
@@ -3109,6 +3112,20 @@ namespace Cad3PLogBrowser
         }
 
         // ── Operation Progress and Cancellation Support ───────────────────────
+
+        /// <summary>
+        /// Sizes the centred overlay to fill the form body but leave the status
+        /// strip visible at the bottom.  Must be called before overlay.Show() and
+        /// whenever the form resizes while the overlay is visible.
+        /// </summary>
+        private void PositionOverlay()
+        {
+            if (_overlay == null) return;
+            int statusH = (mainStatusStrip != null && mainStatusStrip.Visible)
+                          ? mainStatusStrip.Height : 0;
+            _overlay.SetBounds(0, 0, ClientSize.Width, ClientSize.Height - statusH);
+        }
+
         private void StartOperation(string operationName)
         {
             _currentOperation = operationName;
@@ -3126,6 +3143,7 @@ namespace Cad3PLogBrowser
 
             // Show centred overlay and flush all pending paint messages so the overlay
             // is physically visible on screen before any synchronous work begins.
+            PositionOverlay();
             _overlay.Show(operationName);
             Application.DoEvents();
         }
@@ -3147,10 +3165,25 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
             }
 
-            FileLoadProgress.Value   = Math.Max(0, Math.Min(100, percent));
+            // Windows Vista+ smooth-fill animation workaround:
+            // The OS animates the fill from old value to new value, so the bar
+            // visually lags behind the actual value and may appear empty during
+            // fast updates.  Briefly setting the value one step higher forces the
+            // OS to repaint the bar at the correct position immediately.
+            int clamped = Math.Max(0, Math.Min(100, percent));
+            if (clamped < 100)
+            {
+                FileLoadProgress.Value = clamped + 1;   // step ahead …
+                FileLoadProgress.Value = clamped;       // … then snap back
+            }
+            else
+            {
+                FileLoadProgress.Value = 100;
+            }
+
             StatusFileName.Text      = message;
             StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
-            mainStatusStrip.Refresh();   // force immediate repaint so % fill is visible
+            mainStatusStrip.Refresh();
 
             _overlay.SetProgress(percent, message);
         }
@@ -4173,7 +4206,12 @@ namespace Cad3PLogBrowser
 
         private void MainForm_ResizeBegin(object sender, EventArgs e) { }
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
-        private void MainForm_Resize(object sender, EventArgs e) { }
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            // Re-position the operation overlay so it always stays above the status strip.
+            if (_overlay != null && _overlay.Visible)
+                PositionOverlay();
+        }
         private void MainForm_SizeChanged(object sender, EventArgs e) { }
         private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
         {
