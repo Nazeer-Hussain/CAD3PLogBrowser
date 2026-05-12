@@ -19,62 +19,65 @@ namespace Cad3PLogBrowser.Services.Export
 
         /// <summary>
         /// Exports call stack tree to JSON format.
+        /// Writes directly to a StreamWriter so the entire document is never
+        /// held in memory — avoids OutOfMemoryException on large call trees.
         /// </summary>
         /// <param name="callStack">Root nodes of the call stack.</param>
         /// <param name="filePath">Output file path.</param>
         public void ExportToJson(List<CallStackNode> callStack, string filePath)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("{");
-            sb.AppendLine("  \"callStack\": [");
-
-            for (int i = 0; i < callStack.Count; i++)
+            using (var writer = new StreamWriter(filePath, false, Encoding.UTF8, 65536))
             {
-                ExportNodeToJson(callStack[i], sb, 2);
-                if (i < callStack.Count - 1)
-                    sb.AppendLine(",");
+                writer.WriteLine("{");
+                writer.WriteLine("  \"callStack\": [");
+
+                for (int i = 0; i < callStack.Count; i++)
+                {
+                    ExportNodeToJson(callStack[i], writer, 2);
+                    if (i < callStack.Count - 1)
+                        writer.WriteLine(",");
+                }
+
+                writer.WriteLine();
+                writer.WriteLine("  ]");
+                writer.WriteLine("}");
             }
-
-            sb.AppendLine();
-            sb.AppendLine("  ]");
-            sb.AppendLine("}");
-
-            File.WriteAllText(filePath, sb.ToString());
         }
 
-        private void ExportNodeToJson(CallStackNode node, StringBuilder sb, int indent)
+        private void ExportNodeToJson(CallStackNode node, StreamWriter writer, int indent)
         {
-            string indentStr = new string(' ', indent);
+            string ind  = new string(' ', indent);
+            string ind2 = new string(' ', indent + 2);
 
-            sb.AppendLine($"{indentStr}{{");
-            sb.AppendLine($"{indentStr}  \"method\": \"{EscapeJson(node.Label)}\",");
-            sb.AppendLine($"{indentStr}  \"lineNumber\": {node.LineNumber},");
-            sb.AppendLine($"{indentStr}  \"duration\": {node.DurationMs},");
-            sb.AppendLine($"{indentStr}  \"exitLine\": {node.ExitLineNumber},");
+            writer.WriteLine(ind  + "{");
+            writer.WriteLine(ind2 + "\"method\": \""     + EscapeJson(node.Label) + "\",");
+            writer.WriteLine(ind2 + "\"lineNumber\": "   + node.LineNumber + ",");
+            writer.WriteLine(ind2 + "\"duration\": "     + node.DurationMs + ",");
+            writer.WriteLine(ind2 + "\"exitLine\": "     + node.ExitLineNumber + ",");
 
             if (!string.IsNullOrEmpty(node.SourceFile))
-                sb.AppendLine($"{indentStr}  \"sourceFile\": \"{EscapeJson(node.SourceFile)}\",");
+                writer.WriteLine(ind2 + "\"sourceFile\": \"" + EscapeJson(node.SourceFile) + "\",");
 
             if (node.Children.Count > 0)
             {
-                sb.AppendLine($"{indentStr}  \"children\": [");
+                writer.WriteLine(ind2 + "\"children\": [");
 
                 for (int i = 0; i < node.Children.Count; i++)
                 {
-                    ExportNodeToJson(node.Children[i], sb, indent + 4);
+                    ExportNodeToJson(node.Children[i], writer, indent + 4);
                     if (i < node.Children.Count - 1)
-                        sb.AppendLine(",");
+                        writer.WriteLine(",");
                 }
 
-                sb.AppendLine();
-                sb.AppendLine($"{indentStr}  ]");
+                writer.WriteLine();
+                writer.WriteLine(ind2 + "]");
             }
             else
             {
-                sb.AppendLine($"{indentStr}  \"children\": []");
+                writer.WriteLine(ind2 + "\"children\": []");
             }
 
-            sb.Append($"{indentStr}}}");
+            writer.Write(ind + "}");
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -135,38 +138,31 @@ namespace Cad3PLogBrowser.Services.Export
 
         /// <summary>
         /// Exports call stack tree to CSV format (flattened hierarchy).
+        /// Streams directly to disk to avoid holding all rows in memory.
         /// </summary>
         public void ExportToCsv(List<CallStackNode> callStack, string filePath)
         {
-            var lines = new List<string>
+            using (var writer = new StreamWriter(filePath, false, Encoding.UTF8, 65536))
             {
-                "Depth,Method,LineNumber,ExitLine,Duration(ms),SourceFile"
-            };
+                writer.WriteLine("Depth,Method,LineNumber,ExitLine,Duration(ms),SourceFile");
 
-            foreach (var node in callStack)
-            {
-                ExportNodeToCsv(node, 0, lines);
+                foreach (var node in callStack)
+                    ExportNodeToCsv(node, 0, writer);
             }
-
-            File.WriteAllLines(filePath, lines);
         }
 
-        private void ExportNodeToCsv(CallStackNode node, int depth, List<string> lines)
+        private void ExportNodeToCsv(CallStackNode node, int depth, StreamWriter writer)
         {
-            string line = string.Format("{0},\"{1}\",{2},{3},{4},\"{5}\"",
+            writer.WriteLine(string.Format("{0},\"{1}\",{2},{3},{4},\"{5}\"",
                 depth,
                 EscapeCsv(node.Label),
                 node.LineNumber,
                 node.ExitLineNumber,
                 node.DurationMs,
-                EscapeCsv(node.SourceFile ?? ""));
-
-            lines.Add(line);
+                EscapeCsv(node.SourceFile ?? "")));
 
             foreach (var child in node.Children)
-            {
-                ExportNodeToCsv(child, depth + 1, lines);
-            }
+                ExportNodeToCsv(child, depth + 1, writer);
         }
 
         // ??????????????????????????????????????????????????????????????????????
