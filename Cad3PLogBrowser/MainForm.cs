@@ -46,6 +46,9 @@ namespace Cad3PLogBrowser
         // Feature C2: Lazy loading for large trees
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
+        // Cached font for lazy-load placeholder nodes — avoids a GDI Font
+        // allocation on every tree node during expand (Issue 1).
+        private Font _lazyPlaceholderFont;
 
         // D-18: cached context menus — built once, reused on every right-click to avoid
         // allocating ~15 GDI objects per click (previous code created a new ContextMenuStrip
@@ -1286,25 +1289,29 @@ namespace Cad3PLogBrowser
         private void CallTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             if (e.Node == null) return;
+            if (!_lazyChildrenMap.ContainsKey(e.Node)) return;
 
-            // Check if this node has lazy-loaded children waiting
-            if (_lazyChildrenMap.ContainsKey(e.Node))
+            var children = _lazyChildrenMap[e.Node];
+
+            // Issue 1: suppress per-node repaints while loading children;
+            // show wait cursor and status text so the user sees feedback.
+            Cursor prev = Cursor.Current;
+            Cursor.Current = Cursors.WaitCursor;
+            StatusFileName.Text = string.Format(Resources.STATUS_LOADED_CHILDREN,
+                children.Count, GetMethodNameFromNode(e.Node));
+
+            CallTree.BeginUpdate();
+            try
             {
-                var children = _lazyChildrenMap[e.Node];
-
-                // Remove placeholder
                 e.Node.Nodes.Clear();
-
-                // Add real children
                 foreach (var child in children)
-                {
                     e.Node.Nodes.Add(BuildTreeNode(child, useLazyLoading: true));
-                }
-
-                // Remove from map - children are now loaded
                 _lazyChildrenMap.Remove(e.Node);
-
-                StatusFileName.Text = string.Format(Resources.STATUS_LOADED_CHILDREN, children.Count, GetMethodNameFromNode(e.Node));
+            }
+            finally
+            {
+                CallTree.EndUpdate();
+                Cursor.Current = prev;
             }
         }
 
@@ -1365,16 +1372,17 @@ namespace Cad3PLogBrowser
             {
                 if (useLazyLoading)
                 {
-                    // Add placeholder node
+                    // Lazily init the placeholder font once (avoids a GDI allocation per node).
+                    if (_lazyPlaceholderFont == null)
+                        _lazyPlaceholderFont = new Font(CallTree.Font, FontStyle.Italic);
+
                     var placeholder = new TreeNode(Resources.TREE_LAZY_LOAD_PLACEHOLDER)
                     {
-                        Tag = -2, // Special tag for placeholder
+                        Tag       = -2,
                         ForeColor = Color.Gray,
-                        NodeFont = new Font(CallTree.Font, FontStyle.Italic)
+                        NodeFont  = _lazyPlaceholderFont
                     };
                     tn.Nodes.Add(placeholder);
-
-                    // Store actual children for later loading
                     _lazyChildrenMap[tn] = csNode.Children;
                 }
                 else
