@@ -3314,39 +3314,63 @@ namespace Cad3PLogBrowser
         }
 
         // ── C1: Expand / Collapse all ─────────────────────────────────────────
-        public void ExpandAllTrees()
+        public async void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
-
             try
             {
                 var token = _cancellationTokenSource.Token;
-                int count = 0;
+
+                var callNodes = CollectAllNodes(CallTree.Nodes);
+                var apiNodes  = CollectAllNodes(ApiTree.Nodes);
+                int total     = callNodes.Count + apiNodes.Count;
+                int done      = 0;
+
+                // Switch from Marquee → Blocks immediately so the user sees a
+                // real filled bar even for very small trees (< 10 nodes).
+                UpdateStatusProgress(1,
+                    string.Format("Expanding 0 / {0} nodes...", total));
+                await System.Threading.Tasks.Task.Yield();
 
                 CallTree.BeginUpdate();
-                foreach (var n in CollectAllNodes(CallTree.Nodes))
+                foreach (var n in callNodes)
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
-                    if (++count % 100 == 0) Application.DoEvents();
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
+                        UpdateStatusProgress(pct,
+                            string.Format("Expanding... {0} / {1} nodes", done, total));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
                 }
                 CallTree.EndUpdate();
 
                 token.ThrowIfCancellationRequested();
 
-                count = 0;
                 ApiTree.BeginUpdate();
-                foreach (var n in CollectAllNodes(ApiTree.Nodes))
+                foreach (var n in apiNodes)
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
-                    if (++count % 100 == 0) Application.DoEvents();
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
+                        UpdateStatusProgress(pct,
+                            string.Format("Expanding... {0} / {1} nodes", done, total));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
                 }
                 ApiTree.EndUpdate();
+
+                UpdateStatusProgress(100, string.Format("Expanded {0} nodes.", total));
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
+                StatusOperationLabel.Text = Resources.STATUS_EXPAND_CANCELLED;
             }
             finally
             {
