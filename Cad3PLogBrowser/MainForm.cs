@@ -2017,25 +2017,28 @@ namespace Cad3PLogBrowser
                 _searchService.Reset();
                 ClearHighlighting();
 
-                StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
-                FileLoadProgress.Value = 33;
+                UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
                 await Task.Delay(10);
-
                 PopulateVirtualListView(_allLines);
-                FileLoadProgress.Value = 50;
-                StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
-                await Task.Delay(10);
 
+                UpdateStatusProgress(50, Resources.STATUS_BUILDING_MERGED_TREE);
+                await Task.Delay(10);
                 var mergeEntries = await Task.Run(() => _parserService.Parse(_allLines));
                 var mApiTask     = Task.Run(() => _parserService.BuildApiList(mergeEntries));
                 var mCallTask    = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                 await Task.WhenAll(mApiTask, mCallTask);
                 var mCallTree    = mCallTask.Result;
+
+                UpdateStatusProgress(75, "Building performance stats...");
                 var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+
+                UpdateStatusProgress(90, "Building call graph...");
                 var mFileGraphs  = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
                 var mGraph       = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+
+                UpdateStatusProgress(98, "Populating views...");
                 PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
-                FileLoadProgress.Value = 100;
+                UpdateStatusProgress(100, "Merge complete.");
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -2094,40 +2097,36 @@ namespace Cad3PLogBrowser
                 // Load bookmarks for this file
                 _bookmarkService.LoadBookmarks(filePath);
 
-                // Show processing message
-                StatusFileName.Text = Resources.STATUS_PROCESSING_LOG_DATA;
-                FileLoadProgress.Value = 0;
-
-                // Give UI a chance to update
+                // Populate views with progress
+                UpdateStatusProgress(20, Resources.STATUS_PROCESSING_LOG_DATA);
                 await Task.Delay(10);
 
-                // Populate views with progress
                 PopulateVirtualListView(_allLines);
                 // D-01: restore scroll position now that VirtualListSize is set.
                 if (restoreTopIndex > 0 && restoreTopIndex < _virtualLines.Count)
                     logListView.EnsureVisible(restoreTopIndex);
                 PopulateRawView(_allLines);
-                FileLoadProgress.Value = 33;
-                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
-                _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
+
+                UpdateStatusProgress(35, Resources.STATUS_BUILDING_CALL_TREE);
                 await Task.Delay(10);
 
                 // Parse and build all tree data in parallel on background threads
-                var entries = await Task.Run(() => _parserService.Parse(_allLines));
-                var apiNodesTask  = Task.Run(() => _parserService.BuildApiList(entries));
-                var callTreeTask  = Task.Run(() => _parserService.BuildCallTree(entries));
+                var entries      = await Task.Run(() => _parserService.Parse(_allLines));
+                var apiNodesTask = Task.Run(() => _parserService.BuildApiList(entries));
+                var callTreeTask = Task.Run(() => _parserService.BuildCallTree(entries));
                 await Task.WhenAll(apiNodesTask, callTreeTask);
+
+                UpdateStatusProgress(65, "Building performance statistics...");
                 var callTree  = callTreeTask.Result;
                 var perfStats = await Task.Run(() => _parserService.BuildPerformanceStats(callTree));
-                var graph     = await Task.Run(() => _callGraphService.Build(entries));
 
-                FileLoadProgress.Value = 66;
-                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
-                _overlay.SetProgress(66, Resources.STATUS_BUILDING_CALL_TREE);
+                UpdateStatusProgress(80, "Building call graph...");
+                var graph = await Task.Run(() => _callGraphService.Build(entries));
 
+                UpdateStatusProgress(95, "Populating views...");
                 // Populate UI with the pre-built data (must be on UI thread)
                 PopulateTreesFromData(entries, apiNodesTask.Result, callTree, perfStats, graph);
-                FileLoadProgress.Value = 100;
+                UpdateStatusProgress(100, "Load complete.");
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -2621,7 +2620,15 @@ namespace Cad3PLogBrowser
 
                 try
                 {
+                    // Show status-bar progress while writing (visible for large branches)
+                    FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+                    FileLoadProgress.Visible = true;
+                    FileLoadProgress.Value   = 0;
+                    StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
+
                     File.WriteAllLines(dlg.FileName, lines);
+
+                    FileLoadProgress.Value = 100;
                     MessageBox.Show(
                         string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2630,6 +2637,12 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    FileLoadProgress.Visible = false;
+                    FileLoadProgress.Value   = 0;
+                    UpdateStatusBar();
                 }
             }
         }
@@ -2684,7 +2697,8 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    // Merge files time-sorted
+                    // Step 1 of 5: Read and sort files (background)
+                    UpdateStatusProgress(5, string.Format("Reading {0} files...", dlg.FileNames.Length));
                     var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
 
                     // Update current file path to show merged state
@@ -2698,27 +2712,32 @@ namespace Cad3PLogBrowser
                     _searchService.Reset();
                     ClearHighlighting();
 
-                    // Load merged data into UI
-                    StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
-                    FileLoadProgress.Value = 33;
+                    // Step 2 of 5: Populate log list
+                    UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
                     await Task.Delay(10);
-
                     PopulateVirtualListView(_allLines);
-                    FileLoadProgress.Value = 50;
-                    StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
-                    await Task.Delay(10);
 
-                    // Parse and build all tree data in parallel on background threads
+                    // Step 3 of 5: Parse log entries
+                    UpdateStatusProgress(40, Resources.STATUS_BUILDING_MERGED_TREE);
+                    await Task.Delay(10);
                     var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
-                    var mApiTask      = Task.Run(() => _parserService.BuildApiList(mergeEntries));
-                    var mCallTask     = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
+
+                    // Step 4 of 5: Build trees and graphs in parallel
+                    UpdateStatusProgress(60, "Building call trees and graphs...");
+                    var mApiTask  = Task.Run(() => _parserService.BuildApiList(mergeEntries));
+                    var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                     await Task.WhenAll(mApiTask, mCallTask);
-                    var mCallTree     = mCallTask.Result;
-                    var mPerfStats    = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
-                    var mFileGraphs   = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
-                    var mGraph        = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+                    var mCallTree  = mCallTask.Result;
+                    var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+
+                    // Step 5 of 5: Build call graph and populate UI
+                    UpdateStatusProgress(80, "Building call graph...");
+                    var mFileGraphs = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
+                    var mGraph      = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+
+                    UpdateStatusProgress(95, "Populating views...");
                     PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
-                    FileLoadProgress.Value = 100;
+                    UpdateStatusProgress(100, "Merge complete.");
 
                     SetDocumentLoaded(true);
                     FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -3073,6 +3092,21 @@ namespace Cad3PLogBrowser
             Application.DoEvents();
         }
 
+        /// <summary>
+        /// Updates the status-bar progress bar with a deterministic percentage and message.
+        /// Switches FileLoadProgress to Blocks mode on the first call so the user sees
+        /// actual progress instead of a marquee stripe.
+        /// </summary>
+        private void UpdateStatusProgress(int percent, string message)
+        {
+            if (FileLoadProgress.Style != ProgressBarStyle.Blocks)
+                FileLoadProgress.Style = ProgressBarStyle.Blocks;
+
+            FileLoadProgress.Value = Math.Max(0, Math.Min(100, percent));
+            StatusFileName.Text    = message;
+            _overlay.SetProgress(percent, message);
+        }
+
         private void EndOperation()
         {
             FileLoadProgress.Visible = false;
@@ -3244,27 +3278,30 @@ namespace Cad3PLogBrowser
             }
         }
 
-        public void CollapseAllTrees()
+        public async void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
-
             try
             {
                 var token = _cancellationTokenSource.Token;
 
+                UpdateStatusProgress(10, "Collapsing Call Tree...");
                 CallTree.BeginUpdate();
                 CallTree.CollapseAll();
                 foreach (TreeNode n in CallTree.Nodes) n.Expand();
                 CallTree.EndUpdate();
-                Application.DoEvents();
 
+                await System.Threading.Tasks.Task.Yield(); // let status bar repaint
                 token.ThrowIfCancellationRequested();
 
+                UpdateStatusProgress(60, "Collapsing API Tree...");
                 ApiTree.BeginUpdate();
                 ApiTree.CollapseAll();
                 foreach (TreeNode n in ApiTree.Nodes) n.Expand();
                 ApiTree.EndUpdate();
-                Application.DoEvents();
+
+                await System.Threading.Tasks.Task.Yield();
+                UpdateStatusProgress(100, "Collapsed.");
             }
             catch (OperationCanceledException)
             {
