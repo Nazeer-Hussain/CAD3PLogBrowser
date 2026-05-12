@@ -115,7 +115,6 @@
     <Compile Include="Services\IconGenerator.cs" />
     <Compile Include="Services\Navigation\BookmarkService.cs" />
     <Compile Include="Services\Navigation\LogNavigationService.cs" />
-    <Compile Include="Services\SearchService.cs" />
     <Compile Include="Services\Search\FilterService.cs" />
     <Compile Include="Services\ThemeManager.cs" />
     <Compile Include="Services\UI\StatusBarManager.cs" />

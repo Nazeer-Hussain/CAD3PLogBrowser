@@ -62,6 +62,9 @@ namespace Cad3PLogBrowser.Services
         public string  GrokUrl          { get; set; } = "";
         public string  ClaudeApiKey     { get; set; } = "";  // L1-L6: AI features (never log raw content)
         public bool    UseClaudeApi     { get; set; } = false; // Option B: offline by default, real API when enabled
+        // D-10: user-configurable model so the app does not hard-break when
+        // Anthropic deprecates the baked-in version string.
+        public string  ClaudeModel      { get; set; } = "claude-sonnet-4-20250514";
 
         // ── Helpers ───────────────────────────────────────────────────────────
         [System.Runtime.Serialization.IgnoreDataMember]

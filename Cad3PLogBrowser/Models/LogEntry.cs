@@ -128,7 +128,11 @@ namespace Cad3PLogBrowser.Models
         /// <returns>A formatted string showing key properties of this log entry.</returns>
         public override string ToString()
         {
-            return $"Line {LineNumber}: [{Level}] {Text.Substring(0, Math.Min(50, Text.Length))}...";
+            // D-07: guard against null Text before calling Substring.
+            string preview = Text ?? string.Empty;
+            return string.Format("Line {0}: [{1}] {2}...",
+                LineNumber, Level,
+                preview.Length > 50 ? preview.Substring(0, 50) : preview);
         }
     }
 
