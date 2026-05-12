@@ -254,8 +254,16 @@ namespace Cad3PLogBrowser.Services
         /// </summary>
         public List<CallStackNode> BuildCallTree(List<LogEntry> entries)
         {
-            var roots = new List<CallStackNode>();
-            var stack = new Stack<CallStackNode>();
+            var roots     = new List<CallStackNode>();
+            var stack     = new Stack<CallStackNode>();
+
+            // P-05: per-name frame stacks give O(1) EXIT pre-check.
+            // Before: every EXIT popped the whole stack looking for a match, then restored
+            // on failure — O(depth) work per EXIT, O(N×depth) total.
+            // Now: we skip the stack scan entirely when no matching ENTER exists in the
+            // dictionary (common for partial/truncated logs), and for matched EXITs we still
+            // pop down but without any allocations or restores.
+            var nameFrames = new Dictionary<string, Stack<CallStackNode>>(StringComparer.Ordinal);
 
             foreach (var entry in entries)
             {
@@ -273,46 +281,45 @@ namespace Cad3PLogBrowser.Services
                         EpochMs    = entry.EpochMs
                     };
 
-                    if (stack.Count == 0)
-                        roots.Add(node);
-                    else
-                        stack.Peek().Children.Add(node);
+                    if (stack.Count == 0) roots.Add(node);
+                    else                  stack.Peek().Children.Add(node);
 
                     stack.Push(node);
+
+                    // Register in per-name stack for fast EXIT lookup.
+                    if (!nameFrames.TryGetValue(entry.ApiName, out var nf))
+                        nameFrames[entry.ApiName] = nf = new Stack<CallStackNode>();
+                    nf.Push(node);
                 }
                 else if (entry.IsCallExit)
                 {
                     if (stack.Count == 0) continue;
 
-                    // Walk the stack looking for the matching ENTER.
-                    var tempPopped = new Stack<CallStackNode>();
-                    bool matched = false;
+                    // O(1) pre-check: skip entirely if no matching ENTER is on the stack.
+                    if (!nameFrames.TryGetValue(entry.ApiName, out var nf) || nf.Count == 0)
+                        continue;
 
+                    // A match exists — pop the main stack down to it.
+                    // Intermediate nodes are intentionally orphaned (their EXIT was not seen).
                     while (stack.Count > 0)
                     {
                         var top = stack.Pop();
+
+                        // Keep the per-name frame stacks consistent for every popped node.
+                        if (nameFrames.TryGetValue(top.Label, out var topNf)
+                            && topNf.Count > 0
+                            && ReferenceEquals(topNf.Peek(), top))
+                            topNf.Pop();
+
                         if (top.Label == entry.ApiName)
                         {
-                            // Found the match — record timing
                             top.ExitLineNumber = entry.LineNumber;
                             top.ExitEpochMs    = entry.EpochMs;
                             if (top.EpochMs > 0 && entry.EpochMs > 0)
                                 top.DurationMs = entry.EpochMs - top.EpochMs;
-                            matched = true;
                             break;
                         }
-                        // Not a match — keep it so we can restore if needed
-                        tempPopped.Push(top);
                     }
-
-                    if (!matched)
-                    {
-                        // No matching ENTER found — restore everything we popped
-                        while (tempPopped.Count > 0)
-                            stack.Push(tempPopped.Pop());
-                    }
-                    // If matched, the mismatched intermediate nodes stay as children
-                    // of whatever is now on top of the stack — correct behaviour.
                 }
             }
 

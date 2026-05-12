@@ -351,9 +351,39 @@ namespace Cad3PLogBrowser
         private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
         // O(1) lookup: 1-based line number → virtual list index
         private Dictionary<int, int> _lineIndexMap = new Dictionary<int, int>();
-        // Tracks whether the performance tab needs a colour refresh after a theme change
-        // while it was not visible (avoids a full ListView rebuild on every toggle).
         private bool _performanceViewNeedsRefresh = false;
+
+        // P-06: thin IList<string> view over _virtualLines so FindNext never
+        // has to allocate and copy a full List<string> on every F3 press.
+        private VirtualLineTextList _virtualLineTexts;
+
+        /// <summary>
+        /// Zero-allocation read-only IList&lt;string&gt; view over the Text fields of
+        /// a List&lt;VirtualLogLine&gt;.  Avoids the O(N) copy in FindNext (P-06).
+        /// </summary>
+        private sealed class VirtualLineTextList : System.Collections.Generic.IList<string>
+        {
+            private readonly List<VirtualLogLine> _src;
+            internal VirtualLineTextList(List<VirtualLogLine> src) { _src = src; }
+            public string this[int i]
+            {
+                get => _src[i].Text;
+                set => throw new NotSupportedException();
+            }
+            public int  Count      => _src.Count;
+            public bool IsReadOnly => true;
+            public bool Contains(string item) { foreach (var v in _src) if (v.Text == item) return true; return false; }
+            public int  IndexOf(string item)  { for (int i = 0; i < _src.Count; i++) if (_src[i].Text == item) return i; return -1; }
+            public void CopyTo(string[] array, int idx) { for (int i = 0; i < _src.Count; i++) array[idx + i] = _src[i].Text; }
+            public System.Collections.Generic.IEnumerator<string> GetEnumerator()
+            { foreach (var v in _src) yield return v.Text; }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            public void Add(string item)            => throw new NotSupportedException();
+            public void Clear()                     => throw new NotSupportedException();
+            public void Insert(int i, string item)  => throw new NotSupportedException();
+            public bool Remove(string item)         => throw new NotSupportedException();
+            public void RemoveAt(int i)             => throw new NotSupportedException();
+        }
 
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
@@ -557,15 +587,11 @@ namespace Cad3PLogBrowser
                 // Refresh tree layout after theme/icon change
                 LayoutTrees();
 
-                // PERFORMANCE: UpdateLogColors() used to iterate every row in _virtualLines
-                // to recompute BackColour. With a virtual ListView the colours are only
-                // needed at draw time (RetrieveVirtualItem), so we simply invalidate
-                // the ListView and let the draw handler pick the correct theme colour
-                // on-demand.  This turns an O(N) loop on 100k+ rows into O(0).
+                // P-08: update pre-stored BackColour values for the new theme, then
+                // invalidate.  This replaces the old on-demand text.Contains() check in
+                // RetrieveVirtualItem and also makes bookmark/highlight colours visible.
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
-                {
-                    logListView.Invalidate();
-                }
+                    RefreshVirtualLineColours();
 
                 // Apply theme to raw text view
                 if (rawTextBox != null)
@@ -1796,20 +1822,52 @@ namespace Cad3PLogBrowser
             var item = new ListViewItem(vl.LineNumber.ToString());
             item.SubItems.Add(vl.Text);
 
-            // PERFORMANCE: Compute row colour on-demand here instead of pre-baking it in
-            // UpdateLogColors() across every row on every theme switch.  Because this handler
-            // is only called for the ~20–50 rows that are actually visible, there is no
-            // per-row O(N) cost at theme-switch time.
-            string text = vl.Text;
-            if (text.Contains("ERROR") || text.Contains("EXCEPTION"))
-                item.BackColor = ThemeManager.ErrorBackgroundColor;
-            else if (text.Contains("WARNING") || text.Contains("WARN"))
-                item.BackColor = ThemeManager.WarningBackgroundColor;
-            else
-                item.BackColor = ThemeManager.BackgroundColor;
-
+            // P-08: use the pre-computed BackColour (bookmark / highlight / level colour).
+            // The previous code re-ran text.Contains("ERROR") etc. on every paint call which
+            // (a) was slower than a struct field read and (b) used the wrong search pattern
+            // causing bookmark and search-highlight colours to be invisible.
+            // After a theme change RefreshVirtualLineColours() updates the stored colours.
+            item.BackColor = vl.BackColour;
             item.ForeColor = ThemeManager.ForegroundColor;
             e.Item = item;
+        }
+
+        /// <summary>
+        /// Updates the BackColour of every virtual line after a theme change.
+        /// Bookmark and search-highlight colours are preserved; only the theme-dependent
+        /// level colours (Error / Warning / Default) are refreshed.
+        /// Called from ApplyThemeWithOverlay so the ListView immediately reflects the
+        /// new theme without an extra full repopulation (P-08).
+        /// </summary>
+        private void RefreshVirtualLineColours()
+        {
+            if (_virtualLines == null || _virtualLines.Count == 0) return;
+
+            int highlightArgb    = _appSettings?.HighlightColor.ToArgb() ?? Color.Yellow.ToArgb();
+            int bookmarkDarkArgb  = Color.FromArgb(0, 70, 130).ToArgb();
+            int bookmarkLightArgb = Color.FromArgb(200, 230, 255).ToArgb();
+
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                int argb = vl.BackColour.ToArgb();
+
+                // Skip user-set colours (bookmarks and search highlights) — these are
+                // theme-independent and should not be overwritten.
+                if (argb == bookmarkDarkArgb || argb == bookmarkLightArgb
+                    || argb == highlightArgb) continue;
+
+                // Re-evaluate the theme-dependent level colour.
+                Color fresh = GetLineColour(vl.Text);
+                if (argb != fresh.ToArgb())
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text       = vl.Text,
+                        BackColour = fresh
+                    };
+            }
+            if (logListView != null) logListView.Invalidate();
         }
 
         // ── #8: Call Graph reset button ───────────────────────────────────────
@@ -2091,18 +2149,29 @@ namespace Cad3PLogBrowser
         private void PopulateRawView(IList<string> lines)
         {
             if (rawTextBox == null) return;
-            // Cap at 50 000 lines to keep the RichTextBox responsive
             const int MaxRawLines = 50_000;
             bool truncated = lines.Count > MaxRawLines;
-            var sb = new System.Text.StringBuilder(Math.Min(lines.Count, MaxRawLines) * 80);
             int count = Math.Min(lines.Count, MaxRawLines);
-            for (int i = 0; i < count; i++)
-            {
-                sb.AppendLine(lines[i]);
-            }
+
+            // P-03: build the text then load into the RTB with WM_SETREDRAW suppressed
+            // and use AppendText instead of .Text= so the control parses the RTF once
+            // rather than re-parsing the whole document on every incremental append.
+            var sb = new System.Text.StringBuilder(count * 80);
+            for (int i = 0; i < count; i++) sb.AppendLine(lines[i]);
             if (truncated)
-                sb.AppendLine($"[... {lines.Count - MaxRawLines:N0} more lines not shown — file exceeds raw view limit ...]");
-            rawTextBox.Text = sb.ToString();
+                sb.AppendLine(string.Format("[... {0:N0} more lines not shown — file exceeds raw view limit ...]",
+                              lines.Count - MaxRawLines));
+
+            Services.NativeMethods.SuppressRedraw(rawTextBox);
+            try
+            {
+                rawTextBox.Clear();
+                rawTextBox.AppendText(sb.ToString());
+            }
+            finally
+            {
+                Services.NativeMethods.ResumeRedraw(rawTextBox);
+            }
         }
 
         private void PopulateVirtualListView(IList<string> lines)
@@ -2159,6 +2228,8 @@ namespace Cad3PLogBrowser
                 MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
+            // Rebuild the zero-alloc text wrapper for FindNext (P-06).
+            _virtualLineTexts = new VirtualLineTextList(_virtualLines);
             UpdateStatusBar();
         }
 
@@ -2208,6 +2279,8 @@ namespace Cad3PLogBrowser
                 MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
+            // Rebuild zero-alloc text wrapper (P-06).
+            _virtualLineTexts = new VirtualLineTextList(_virtualLines);
 
             UpdateStatusBar();
         }
@@ -2428,29 +2501,33 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
-        /// Measures the widest log line in pixels using GDI (TextRenderer), which matches
-        /// how ListView renders text exactly. Samples up to 10 000 lines for accuracy.
-        /// Stores the result in <see cref="_logTextColumnContentWidth"/>.
+        /// Finds the widest log line and stores its pixel width in
+        /// <see cref="_logTextColumnContentWidth"/> so the log column scrollbar is correct.
+        ///
+        /// P-04: previous implementation called TextRenderer.MeasureText up to 10 000 times
+        /// (one GDI call per sample).  The new approach runs a single O(N) pass to find the
+        /// longest line by character count (cheap string-length comparison), then makes
+        /// exactly ONE GDI call to measure that one line.  For monospace fonts (Consolas)
+        /// the longest character-count line is also the widest in pixels.
         /// </summary>
         private void MeasureAndStoreMaxLineWidth()
         {
             _logTextColumnContentWidth = 0;
             if (_virtualLines == null || _virtualLines.Count == 0) return;
 
-            int sampleCount = Math.Min(_virtualLines.Count, 10000);
-            Font font = logListView.Font;
-            int maxWidth = 0;
-
-            for (int i = 0; i < sampleCount; i++)
+            // Find the line with the most characters — O(N), no GDI calls.
+            string widest = null;
+            int maxLen = 0;
+            for (int i = 0; i < _virtualLines.Count; i++)
             {
-                string text = _virtualLines[i].Text;
-                if (string.IsNullOrEmpty(text)) continue;
-                // TextRenderer.MeasureText matches ListView's GDI rendering
-                int w = TextRenderer.MeasureText(text, font).Width + 12; // 12px cell padding
-                if (w > maxWidth) maxWidth = w;
+                string t = _virtualLines[i].Text;
+                if (t != null && t.Length > maxLen) { maxLen = t.Length; widest = t; }
             }
 
-            _logTextColumnContentWidth = maxWidth;
+            if (widest == null) return;
+
+            // Single GDI call for the one widest line.
+            _logTextColumnContentWidth = TextRenderer.MeasureText(widest, logListView.Font).Width + 12;
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -2799,10 +2876,9 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
 
-            var visibleLines = new List<string>(_virtualLines.Count);
-            foreach (var vl in _virtualLines) visibleLines.Add(vl.Text);
-
-            int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase, useRegex);
+            // P-06: use the zero-alloc wrapper instead of copying all text into a new List<string>.
+            if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
+            int idx = _searchService.FindNext(_virtualLineTexts, searchTerm, matchCase, useRegex);
             if (idx >= 0)
             {
                 // Feature B8: Apply highlighting when search term changes

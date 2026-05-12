@@ -347,40 +347,70 @@ namespace Cad3PLogBrowser.Services.Analysis
             var sb = new StringBuilder();
             sb.AppendLine("PATTERN RECOGNITION\n");
             if (entries == null || !entries.Any()) { sb.AppendLine("No log entries to analyze."); return Task.FromResult(sb.ToString()); }
+
+            // P-07: single combined pass instead of 5 separate LINQ scans over the same list.
+            int total        = entries.Count;
+            int firstHalfEnd = total / 2;
+            int errFirst = 0, errSecond = 0;
+            var errorPrefixes  = new Dictionary<string, int>(StringComparer.Ordinal);
+            var apiCallCounts  = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            for (int i = 0; i < total; i++)
+            {
+                var e = entries[i];
+                if (e.Level == "E")
+                {
+                    string key = (e.RawText ?? "").Length > 80
+                        ? e.RawText.Substring(0, 80) : e.RawText ?? "";
+                    errorPrefixes.TryGetValue(key, out int n);
+                    errorPrefixes[key] = n + 1;
+
+                    if (i < firstHalfEnd) errFirst++; else errSecond++;
+                }
+                if (e.IsApiCall && !string.IsNullOrEmpty(e.ApiName))
+                {
+                    apiCallCounts.TryGetValue(e.ApiName, out int n);
+                    apiCallCounts[e.ApiName] = n + 1;
+                }
+            }
+
             bool found = false;
-            var errors = entries.Where(e => e.Level == "E").ToList();
-            if (errors.Any())
+
+            // Repeated errors
+            var repeated = new List<KeyValuePair<string, int>>();
+            foreach (var kv in errorPrefixes)
+                if (kv.Value > 1) repeated.Add(kv);
+            repeated.Sort((a, b) => b.Value.CompareTo(a.Value));
+            if (repeated.Count > 0)
             {
-                var repeated = errors
-                    .GroupBy(e => (e.RawText ?? "").Length > 80 ? e.RawText.Substring(0, 80) : e.RawText ?? "")
-                    .Where(g => g.Count() > 1).OrderByDescending(g => g.Count()).Take(3).ToList();
-                if (repeated.Any())
-                {
-                    sb.AppendLine("REPEATED ERRORS:");
-                    foreach (var g in repeated) sb.AppendLine($"  Occurs {g.Count()}x: {g.Key}...");
-                    found = true;
-                }
+                sb.AppendLine("REPEATED ERRORS:");
+                for (int i = 0; i < Math.Min(3, repeated.Count); i++)
+                    sb.AppendLine(string.Format("  Occurs {0}x: {1}...", repeated[i].Value, repeated[i].Key));
+                found = true;
             }
-            if (entries.Count > 100)
+
+            // Escalating error pattern
+            if (total > 100 && errSecond > errFirst * 2)
             {
-                int firstHalf  = entries.Take(entries.Count / 2).Count(e => e.Level == "E");
-                int secondHalf = entries.Skip(entries.Count / 2).Count(e => e.Level == "E");
-                if (secondHalf > firstHalf * 2)
-                {
-                    sb.AppendLine($"ESCALATING PATTERN: Errors increase over time: {firstHalf} -> {secondHalf}");
-                    sb.AppendLine("  May indicate degrading system state");
-                    found = true;
-                }
+                sb.AppendLine(string.Format("ESCALATING PATTERN: Errors increase over time: {0} -> {1}", errFirst, errSecond));
+                sb.AppendLine("  May indicate degrading system state");
+                found = true;
             }
-            var burst = entries.Where(e => e.IsApiCall).GroupBy(e => e.ApiName)
-                .Where(g => g.Count() > 100).OrderByDescending(g => g.Count()).Take(3).ToList();
-            if (burst.Any())
+
+            // High-frequency API calls
+            var burst = new List<KeyValuePair<string, int>>();
+            foreach (var kv in apiCallCounts)
+                if (kv.Value > 100) burst.Add(kv);
+            burst.Sort((a, b) => b.Value.CompareTo(a.Value));
+            if (burst.Count > 0)
             {
                 sb.AppendLine("HIGH-FREQUENCY CALLS:");
-                foreach (var g in burst) sb.AppendLine($"  {g.Key}: called {g.Count()} times");
+                for (int i = 0; i < Math.Min(3, burst.Count); i++)
+                    sb.AppendLine(string.Format("  {0}: called {1} times", burst[i].Key, burst[i].Value));
                 sb.AppendLine("  May indicate polling, retries, or loops");
                 found = true;
             }
+
             if (!found) sb.AppendLine("No concerning patterns detected. Log activity appears normal.");
             return Task.FromResult(sb.ToString());
         }

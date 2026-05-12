@@ -103,17 +103,17 @@ namespace Cad3PLogBrowser.Services
                 form.BackColor = BackgroundColor;
                 form.ForeColor = ForegroundColor;
 
+                // P-01: single recursive pass — handles all control types AND all strip
+                // types (MenuStrip / StatusStrip / ToolStrip).  The previous implementation
+                // called ApplyThemeToControls AND ApplyThemeToStrips, walking the full
+                // control tree twice.
                 ApplyThemeToControls(form.Controls);
 
-                // Walk ALL controls recursively to find every MenuStrip / ToolStrip / StatusStrip
-                ApplyThemeToStrips(form.Controls);
-
-                // Apply renderer to every ContextMenuStrip attached to controls on this form
+                // ContextMenuStrips live in the component container, not Controls.
                 ApplyThemeToContextMenus(form);
             }
             finally
             {
-                // Re-enable painting and do a single full repaint.
                 NativeMethods.ResumeRedraw(form);
             }
         }
@@ -133,31 +133,40 @@ namespace Cad3PLogBrowser.Services
             }
         }
 
-        private static void ApplyThemeToStrips(Control.ControlCollection controls)
-        {
-            foreach (Control control in controls)
-            {
-                if (control is MenuStrip menuStrip)
-                    ApplyThemeToMenuStrip(menuStrip);
-                else if (control is StatusStrip statusStrip)
-                    ApplyThemeToStatusStrip(statusStrip);
-                else if (control is ToolStrip toolStrip)
-                    ApplyThemeToToolStrip(toolStrip);
-
-                if (control.Controls.Count > 0)
-                    ApplyThemeToStrips(control.Controls);
-            }
-        }
+        // ── Guard helpers (P-02) ──────────────────────────────────────────────
+        // Checking before assigning avoids WinForms InvalidateInternal firing when
+        // the colour has not actually changed (e.g. re-applying the same theme).
+        private static void SetBack(Control c, Color v) { if (c.BackColor != v) c.BackColor = v; }
+        private static void SetFore(Control c, Color v) { if (c.ForeColor != v) c.ForeColor = v; }
 
         private static void ApplyThemeToControls(Control.ControlCollection controls)
         {
             foreach (Control control in controls)
             {
+                // P-01: handle ToolStrip family here so we don't need a second full-tree
+                // walk (the old ApplyThemeToStrips).  MenuStrip / StatusStrip derive from
+                // ToolStrip so they must be tested first (most-derived first).
+                if (control is MenuStrip menuStrip)
+                {
+                    ApplyThemeToMenuStrip(menuStrip);
+                    continue; // items are not in Controls — no further recursion needed
+                }
+                if (control is StatusStrip statusStrip)
+                {
+                    ApplyThemeToStatusStrip(statusStrip);
+                    continue;
+                }
+                if (control is ToolStrip toolStrip)
+                {
+                    ApplyThemeToToolStrip(toolStrip);
+                    continue;
+                }
+
                 // Skip certain control types that manage their own colors
                 if (control is Button button)
                 {
-                    button.ForeColor = ControlForegroundColor;
-                    button.BackColor = ButtonBackgroundColor;
+                    SetFore(button, ControlForegroundColor);
+                    SetBack(button, ButtonBackgroundColor);
                     button.FlatStyle = _currentTheme == Theme.Dark ? FlatStyle.Flat : FlatStyle.Standard;
                     if (_currentTheme == Theme.Dark)
                     {
@@ -167,36 +176,32 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (control is CheckBox || control is RadioButton)
                 {
-                    control.ForeColor = ControlForegroundColor;
+                    SetFore(control, ControlForegroundColor);
                 }
                 else if (control is TextBox textBox)
                 {
-                    textBox.BackColor = InputBackgroundColor;
-                    textBox.ForeColor = ForegroundColor;
+                    SetBack(textBox, InputBackgroundColor);
+                    SetFore(textBox, ForegroundColor);
                     textBox.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
                 }
                 else if (control is RichTextBox richTextBox)
                 {
-                    richTextBox.BackColor = BackgroundColor;
-                    richTextBox.ForeColor = ForegroundColor;
+                    SetBack(richTextBox, BackgroundColor);
+                    SetFore(richTextBox, ForegroundColor);
                     richTextBox.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
                 }
                 else if (control is ListView listView)
                 {
-                    listView.BackColor = BackgroundColor;
-                    listView.ForeColor = ForegroundColor;
+                    SetBack(listView, BackgroundColor);
+                    SetFore(listView, ForegroundColor);
                     listView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
                 }
                 else if (control is TreeView treeView)
                 {
-                    // DrawMode stays Normal. BackColor/ForeColor + FullRowSelect=true is
-                    // sufficient for dark theme. OwnerDrawText was removed because the
-                    // shared DrawNode DC caused overlapping text and per-node overhead.
-                    treeView.BackColor = BackgroundColor;
-                    treeView.ForeColor = ForegroundColor;
-                    treeView.LineColor = BorderColor;
-                    treeView.BorderStyle = _currentTheme == Theme.Dark
-                        ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
+                    SetBack(treeView, BackgroundColor);
+                    SetFore(treeView, ForegroundColor);
+                    treeView.LineColor   = BorderColor;
+                    treeView.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
                 }
                 else if (control is TabControl tabControl)
                 {
@@ -223,75 +228,68 @@ namespace Cad3PLogBrowser.Services
                         tabControl.DrawMode = wantedTabMode;
                     }
 
-                    // Ensure single-row scrollable tabs regardless of theme or DrawMode
                     tabControl.Multiline = false;
                     tabControl.SizeMode  = TabSizeMode.Normal;
 
-                    tabControl.BackColor = ControlBackgroundColor;
-                    tabControl.ForeColor = ControlForegroundColor;
+                    SetBack(tabControl, ControlBackgroundColor);
+                    SetFore(tabControl, ControlForegroundColor);
 
-                    // Apply to tab pages
                     foreach (TabPage tabPage in tabControl.TabPages)
                     {
-                        tabPage.BackColor = BackgroundColor;
-                        tabPage.ForeColor = ControlForegroundColor;
+                        SetBack(tabPage, BackgroundColor);
+                        SetFore(tabPage, ControlForegroundColor);
                         ApplyThemeToControls(tabPage.Controls);
                     }
                 }
                 else if (control is SplitContainer splitContainer)
                 {
-                    splitContainer.BackColor = SplitterColor;
-                    splitContainer.Panel1.BackColor = BackgroundColor;
-                    splitContainer.Panel2.BackColor = BackgroundColor;
+                    SetBack(splitContainer, SplitterColor);
+                    SetBack(splitContainer.Panel1, BackgroundColor);
+                    SetBack(splitContainer.Panel2, BackgroundColor);
                     ApplyThemeToControls(splitContainer.Panel1.Controls);
                     ApplyThemeToControls(splitContainer.Panel2.Controls);
                 }
                 else if (control is GroupBox groupBox)
                 {
-                    groupBox.ForeColor = ControlForegroundColor;
+                    SetFore(groupBox, ControlForegroundColor);
                 }
                 else if (control is Label label)
                 {
-                    label.ForeColor = ControlForegroundColor;
+                    SetFore(label, ControlForegroundColor);
                 }
                 else if (control is Panel panel)
                 {
-                    // Don't override panel background if it's used for color preview or special panels
                     if (panel.Name != "panelColorPreview" && panel.GetType().Name != "CallGraphPanel")
-                    {
-                        panel.BackColor = BackgroundColor;
-                    }
-                    panel.ForeColor = ControlForegroundColor;
+                        SetBack(panel, BackgroundColor);
+                    SetFore(panel, ControlForegroundColor);
                 }
                 else if (control is ComboBox comboBox)
                 {
-                    comboBox.BackColor = InputBackgroundColor;
-                    comboBox.ForeColor = ForegroundColor;
+                    SetBack(comboBox, InputBackgroundColor);
+                    SetFore(comboBox, ForegroundColor);
                     comboBox.FlatStyle = _currentTheme == Theme.Dark ? FlatStyle.Flat : FlatStyle.Standard;
                 }
                 else if (control is NumericUpDown numericUpDown)
                 {
-                    numericUpDown.BackColor = InputBackgroundColor;
-                    numericUpDown.ForeColor = ForegroundColor;
+                    SetBack(numericUpDown, InputBackgroundColor);
+                    SetFore(numericUpDown, ForegroundColor);
                     numericUpDown.BorderStyle = _currentTheme == Theme.Dark ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
                 }
                 else if (control is DateTimePicker dateTimePicker)
                 {
-                    dateTimePicker.BackColor = InputBackgroundColor;
-                    dateTimePicker.ForeColor = ForegroundColor;
+                    SetBack(dateTimePicker, InputBackgroundColor);
+                    SetFore(dateTimePicker, ForegroundColor);
                 }
                 else
                 {
-                    control.BackColor = BackgroundColor;
-                    control.ForeColor = ForegroundColor;
+                    SetBack(control, BackgroundColor);
+                    SetFore(control, ForegroundColor);
                 }
 
-                // Recursively apply to child controls
-                // Skip custom visualization panels that handle their own theming
                 string typeName = control.GetType().Name;
-                if (control.Controls.Count > 0 && 
-                    typeName != "CallGraphPanel" && 
-                    typeName != "FlameGraphPanel" && 
+                if (control.Controls.Count > 0 &&
+                    typeName != "CallGraphPanel" &&
+                    typeName != "FlameGraphPanel" &&
                     typeName != "TimelinePanel")
                 {
                     ApplyThemeToControls(control.Controls);
