@@ -2067,8 +2067,12 @@ namespace Cad3PLogBrowser
             _isLoading = true;
             SetDocumentLoaded(false);
             FileStatus.Image = IconGenerator.CreateStatusLoadingIcon(IconGenerator.IconSize.Small);
+            // Show an animated marquee bar immediately — a Blocks bar at value=0 is
+            // visually indistinguishable from the status-strip background.
+            FileLoadProgress.Style   = ProgressBarStyle.Marquee;
+            FileLoadProgress.Value   = 0;
             FileLoadProgress.Visible = true;
-            FileLoadProgress.Value = 0;
+            mainStatusStrip.Refresh();   // force immediate repaint so bar is visible at once
             StatusFileName.Text = Resources.STATUS_LOADING;
             _overlay.Show(Resources.STATUS_LOADING);
 
@@ -3114,6 +3118,7 @@ namespace Cad3PLogBrowser
             // Show progress bar and update status
             FileLoadProgress.Style = ProgressBarStyle.Marquee;
             FileLoadProgress.Visible = true;
+            mainStatusStrip.Refresh();   // immediate repaint
             StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
             // Disable menu items during operation (must be before DoEvents to block re-entrancy)
@@ -3132,21 +3137,20 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void UpdateStatusProgress(int percent, string message)
         {
-            // Ensure the bar is visible — callers that bypass StartOperation
-            // (e.g. the save-branch path) need this guard.
             if (!FileLoadProgress.Visible)
+            {
+                FileLoadProgress.Style   = ProgressBarStyle.Blocks;
                 FileLoadProgress.Visible = true;
-
-            if (FileLoadProgress.Style != ProgressBarStyle.Blocks)
+            }
+            else if (FileLoadProgress.Style != ProgressBarStyle.Blocks)
+            {
                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
+            }
 
-            FileLoadProgress.Value = Math.Max(0, Math.Min(100, percent));
-
-            // Set text with an explicit foreground colour so it is always readable
-            // regardless of theme (IsLink=true on StatusFileName can produce a faint
-            // blue that is hard to see against both light and dark status-strip backgrounds).
+            FileLoadProgress.Value   = Math.Max(0, Math.Min(100, percent));
             StatusFileName.Text      = message;
             StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            mainStatusStrip.Refresh();   // force immediate repaint so % fill is visible
 
             _overlay.SetProgress(percent, message);
         }
