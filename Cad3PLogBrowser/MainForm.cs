@@ -2069,11 +2069,13 @@ namespace Cad3PLogBrowser
             FileStatus.Image = IconGenerator.CreateStatusLoadingIcon(IconGenerator.IconSize.Small);
             // Show an animated marquee bar immediately — a Blocks bar at value=0 is
             // visually indistinguishable from the status-strip background.
-            FileLoadProgress.Style   = ProgressBarStyle.Marquee;
-            FileLoadProgress.Value   = 0;
-            FileLoadProgress.Visible = true;
+            FileLoadProgress.Style           = ProgressBarStyle.Marquee;
+            FileLoadProgress.Value           = 0;
+            FileLoadProgress.Visible         = true;
+            StatusOperationLabel.Text        = Resources.STATUS_LOADING;
+            StatusOperationLabel.ForeColor   = Services.ThemeManager.ControlForegroundColor;
+            StatusOperationLabel.Visible     = true;
             mainStatusStrip.Refresh();
-            StatusFileName.Text = Resources.STATUS_LOADING;
             PositionOverlay();
             _overlay.Show(Resources.STATUS_LOADING);
 
@@ -2091,7 +2093,7 @@ namespace Cad3PLogBrowser
                         // Animation workaround: step ahead then snap back.
                         if (progress < 100) { FileLoadProgress.Value = Math.Min(100, progress + 1); }
                         FileLoadProgress.Value = progress;
-                        StatusFileName.Text = message;
+                        StatusOperationLabel.Text = string.Format("{0}  ({1}%)", message, progress);
                         _overlay.SetProgress(progress, message);
                     }));
                 });
@@ -2147,8 +2149,10 @@ namespace Cad3PLogBrowser
             catch (Exception ex)                   { ShowLoadError(filePath, Resources.LOAD_ERROR_UNEXPECTED, ex.Message); }
             finally
             {
-                FileLoadProgress.Visible = false;
-                FileLoadProgress.Value = 0;
+                FileLoadProgress.Visible     = false;
+                FileLoadProgress.Value       = 0;
+                StatusOperationLabel.Visible = false;
+                StatusOperationLabel.Text    = string.Empty;
                 _isLoading = false;
                 _overlay.Hide();
             }
@@ -3135,8 +3139,10 @@ namespace Cad3PLogBrowser
             // Show progress bar and update status
             FileLoadProgress.Style = ProgressBarStyle.Marquee;
             FileLoadProgress.Visible = true;
+            StatusOperationLabel.Text      = operationName + "...";
+            StatusOperationLabel.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            StatusOperationLabel.Visible   = true;
             mainStatusStrip.Refresh();   // immediate repaint
-            StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
 
             // Disable menu items during operation (must be before DoEvents to block re-entrancy)
             SetOperationInProgress(true);
@@ -3192,13 +3198,13 @@ namespace Cad3PLogBrowser
 
         private void EndOperation()
         {
-            FileLoadProgress.Visible = false;
-            FileLoadProgress.Style   = ProgressBarStyle.Blocks;
-            FileLoadProgress.Value   = 0;
-            StatusFileName.Text      = string.Empty;
-            // Restore the default link foreground after we forced it to a solid colour
-            // during the operation (UpdateStatusProgress sets it explicitly for readability).
-            StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            FileLoadProgress.Visible          = false;
+            FileLoadProgress.Style            = ProgressBarStyle.Blocks;
+            FileLoadProgress.Value            = 0;
+            StatusOperationLabel.Visible      = false;
+            StatusOperationLabel.Text         = string.Empty;
+            StatusFileName.Text               = string.Empty;
+            StatusFileName.ForeColor          = Services.ThemeManager.ControlForegroundColor;
             _currentOperation = string.Empty;
 
             // Hide centred overlay
