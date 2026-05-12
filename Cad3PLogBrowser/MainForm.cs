@@ -3402,13 +3402,17 @@ namespace Cad3PLogBrowser
             {
                 var token = _cancellationTokenSource.Token;
 
+                // Switch from Marquee → Blocks immediately (mirrors ExpandAllTrees).
+                UpdateStatusProgress(1, "Collapsing trees...");
+                await System.Threading.Tasks.Task.Yield();
+
                 UpdateStatusProgress(10, "Collapsing Call Tree...");
                 CallTree.BeginUpdate();
                 CallTree.CollapseAll();
                 foreach (TreeNode n in CallTree.Nodes) n.Expand();
                 CallTree.EndUpdate();
 
-                await System.Threading.Tasks.Task.Yield(); // let status bar repaint
+                await System.Threading.Tasks.Task.Yield();
                 token.ThrowIfCancellationRequested();
 
                 UpdateStatusProgress(60, "Collapsing API Tree...");
