@@ -3141,15 +3141,25 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Style = ProgressBarStyle.Blocks;
 
             FileLoadProgress.Value = Math.Max(0, Math.Min(100, percent));
-            StatusFileName.Text    = message;
+
+            // Set text with an explicit foreground colour so it is always readable
+            // regardless of theme (IsLink=true on StatusFileName can produce a faint
+            // blue that is hard to see against both light and dark status-strip backgrounds).
+            StatusFileName.Text      = message;
+            StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+
             _overlay.SetProgress(percent, message);
         }
 
         private void EndOperation()
         {
             FileLoadProgress.Visible = false;
-            FileLoadProgress.Style = ProgressBarStyle.Blocks;
-            StatusFileName.Text = string.Empty;
+            FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+            FileLoadProgress.Value   = 0;
+            StatusFileName.Text      = string.Empty;
+            // Restore the default link foreground after we forced it to a solid colour
+            // during the operation (UpdateStatusProgress sets it explicitly for readability).
+            StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
             _currentOperation = string.Empty;
 
             // Hide centred overlay
