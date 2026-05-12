@@ -97,6 +97,7 @@
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.FileLoadProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.StatusFileName = new System.Windows.Forms.ToolStripStatusLabel();
+            this.StatusOperationLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.StatusLineCount = new System.Windows.Forms.ToolStripStatusLabel();
             this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
             this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
@@ -731,10 +732,11 @@
             // 
             this.mainStatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileStatus,
+            this.FileLoadProgress,
+            this.StatusOperationLabel,
             this.StatusFileName,
             this.StatusLineCount,
-            this.StatusSelection,
-            this.FileLoadProgress});
+            this.StatusSelection});
             this.mainStatusStrip.Name = "mainStatusStrip";
             this.mainStatusStrip.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.mainStatusStrip.TabIndex = 1;
@@ -751,8 +753,20 @@
             // 
             this.FileLoadProgress.AutoSize = false;
             this.FileLoadProgress.Name = "FileLoadProgress";
-            this.FileLoadProgress.Size = new System.Drawing.Size(200, 17);
+            this.FileLoadProgress.Size = new System.Drawing.Size(180, 20);
             this.FileLoadProgress.Visible = false;
+            this.FileLoadProgress.Minimum = 0;
+            this.FileLoadProgress.Maximum = 100;
+            // 
+            // StatusOperationLabel — shows operation text + % during long operations.
+            // AutoSize=true so it takes exactly as much space as the text needs,
+            // sitting immediately to the right of the progress bar.
+            // 
+            this.StatusOperationLabel.Name = "StatusOperationLabel";
+            this.StatusOperationLabel.AutoSize = true;
+            this.StatusOperationLabel.Text = "";
+            this.StatusOperationLabel.Visible = false;
+            this.StatusOperationLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // StatusFileName
             // 
@@ -1632,6 +1646,7 @@
         private System.Windows.Forms.ImageList treeIconList;
         private System.Windows.Forms.RichTextBox logDetailBox;
         private System.Windows.Forms.ToolStripStatusLabel StatusFileName;
+        private System.Windows.Forms.ToolStripStatusLabel StatusOperationLabel;
         private System.Windows.Forms.ToolStripStatusLabel StatusLineCount;
         private System.Windows.Forms.ToolStripStatusLabel StatusSelection;
         private System.Windows.Forms.ToolStripMenuItem editMenuItem;

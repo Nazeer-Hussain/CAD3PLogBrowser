@@ -125,7 +125,7 @@
     <value>{0} line(s) saved.</value>
   </data>
   <data name="MSG_SAVE_ERROR" xml:space="preserve">
-    <value>Could not save file:\n{0}</value>
+    <value>Could not save file:&#10;{0}</value>
   </data>
   <data name="MSG_NOT_API_CALL" xml:space="preserve">
     <value>Selected line is not an API call line.</value>
@@ -140,7 +140,7 @@
     <value>No warnings found in this log file.</value>
   </data>
   <data name="MSG_GROK_NOT_CONFIGURED" xml:space="preserve">
-    <value>Please configure the Grok URL in Options &gt; Settings first.\n\nExample: https://grok.example.com/search?q=</value>
+    <value>Please configure the Grok URL in Options &gt; Settings first.&#10;&#10;Example: https://grok.example.com/search?q=</value>
   </data>
   <data name="ERR_SAVE_CANCELLED" xml:space="preserve">
     <value>Save operation was cancelled.</value>
@@ -155,58 +155,58 @@
     <value>Invalid line number.</value>
   </data>
   <data name="ERR_NO_BOOKMARKS" xml:space="preserve">
-    <value>No bookmarks set.\n\nPress Ctrl+B to bookmark the current line.</value>
+    <value>No bookmarks set.&#10;&#10;Press Ctrl+B to bookmark the current line.</value>
   </data>
   <data name="ERR_NO_PERFORMANCE_DATA" xml:space="preserve">
-    <value>No performance data to export.\nLoad a log file first.</value>
+    <value>No performance data to export.&#10;Load a log file first.</value>
   </data>
   <data name="ERR_NO_CALL_TREE_DATA" xml:space="preserve">
-    <value>No call tree data to export.\nLoad a log file first.</value>
+    <value>No call tree data to export.&#10;Load a log file first.</value>
   </data>
   <data name="ERR_NO_TIMELINE_DATA" xml:space="preserve">
-    <value>No timeline data to export.\nLoad a log file and view the Timeline tab first.</value>
+    <value>No timeline data to export.&#10;Load a log file and view the Timeline tab first.</value>
   </data>
   <data name="ERR_NO_FLAME_GRAPH_DATA" xml:space="preserve">
-    <value>No flame graph data to export.\nLoad a log file and view the Flame Graph tab first.</value>
+    <value>No flame graph data to export.&#10;Load a log file and view the Flame Graph tab first.</value>
   </data>
   <data name="MSG_RESULTS_EXPORTED" xml:space="preserve">
-    <value>Results exported to:\n{0}</value>
+    <value>Results exported to:&#10;{0}</value>
   </data>
   <data name="MSG_CALL_TREE_EXPORTED_JSON" xml:space="preserve">
-    <value>Call tree exported to:\n{0}</value>
+    <value>Call tree exported to:&#10;{0}</value>
   </data>
   <data name="MSG_CALL_TREE_EXPORTED_XML" xml:space="preserve">
-    <value>Call tree exported to:\n{0}</value>
+    <value>Call tree exported to:&#10;{0}</value>
   </data>
   <data name="MSG_TIMELINE_EXPORTED" xml:space="preserve">
-    <value>Timeline exported to:\n{0}</value>
+    <value>Timeline exported to:&#10;{0}</value>
   </data>
   <data name="MSG_FLAME_GRAPH_EXPORTED" xml:space="preserve">
-    <value> Flame graph exported to:\n{0}</value>
+    <value> Flame graph exported to:&#10;{0}</value>
   </data>
   <data name="ERR_EXPORT_FILE_FAILED" xml:space="preserve">
-    <value>Failed to export file:\n{0}</value>
+    <value>Failed to export file:&#10;{0}</value>
   </data>
   <data name="ERR_NOT_FOUND" xml:space="preserve">
     <value>'{0}' not found.</value>
   </data>
   <data name="ERR_INVALID_REGEX" xml:space="preserve">
-    <value>Invalid regular expression:\n{0}</value>
+    <value>Invalid regular expression:&#10;{0}</value>
   </data>
   <data name="ERR_OPEN_UPDATES_FAILED" xml:space="preserve">
-    <value>Could not open updates page:\n{0}</value>
+    <value>Could not open updates page:&#10;{0}</value>
   </data>
   <data name="ERR_OPEN_ISSUES_FAILED" xml:space="preserve">
-    <value>Could not open issues page:\n{0}</value>
+    <value>Could not open issues page:&#10;{0}</value>
   </data>
   <data name="ERR_OPEN_HELP_FAILED" xml:space="preserve">
-    <value>Could not open help file:\n{0}</value>
+    <value>Could not open help file:&#10;{0}</value>
   </data>
   <data name="ERR_BROWSER_FAILED" xml:space="preserve">
-    <value>Failed to open browser:\n{0}</value>
+    <value>Failed to open browser:&#10;{0}</value>
   </data>
   <data name="ERR_EXPORT_PERFORMANCE_FAILED" xml:space="preserve">
-    <value>Could not export performance data:\n{0}</value>
+    <value>Could not export performance data:&#10;{0}</value>
   </data>
   <data name="ERR_LINE_NUMBER_OUT_OF_RANGE" xml:space="preserve">
     <value>Line number must be between 1 and {0}.</value>
@@ -215,46 +215,46 @@
     <value>Could not find ENTER/EXIT pair for '{0}'.</value>
   </data>
   <data name="ERR_SAVE_BRANCH_FAILED" xml:space="preserve">
-    <value>Could not save branch:\n{0}</value>
+    <value>Could not save branch:&#10;{0}</value>
   </data>
   <data name="ERR_NO_MATCHES_FOUND" xml:space="preserve">
     <value>No matches found for '{0}'.</value>
   </data>
   <data name="ERR_EXPORT_CALL_GRAPH_FAILED" xml:space="preserve">
-    <value>Could not export Call Graph:\n{0}</value>
+    <value>Could not export Call Graph:&#10;{0}</value>
   </data>
   <data name="ERR_COPY_FAILED" xml:space="preserve">
-    <value>Failed to copy to clipboard:\n{0}</value>
+    <value>Failed to copy to clipboard:&#10;{0}</value>
   </data>
   <data name="ERR_EXPORT_TREE_FAILED" xml:space="preserve">
-    <value>Failed to export tree:\n{0}</value>
+    <value>Failed to export tree:&#10;{0}</value>
   </data>
   <data name="ERR_EXPORT_TIMELINE_FAILED" xml:space="preserve">
-    <value>Failed to export timeline:\n{0}</value>
+    <value>Failed to export timeline:&#10;{0}</value>
   </data>
   <data name="ERR_EXPORT_FLAME_GRAPH_FAILED" xml:space="preserve">
-    <value>Failed to export flame graph:\n{0}</value>
+    <value>Failed to export flame graph:&#10;{0}</value>
   </data>
   <data name="ERR_FONT_CHANGE_FAILED" xml:space="preserve">
-    <value>Failed to change font:\n{0}</value>
+    <value>Failed to change font:&#10;{0}</value>
   </data>
   <data name="MSG_BRANCH_EXPORTED_TO" xml:space="preserve">
-    <value>Branch exported to:\n{0}</value>
+    <value>Branch exported to:&#10;{0}</value>
   </data>
   <data name="MSG_PERFORMANCE_EXPORTED_TO" xml:space="preserve">
-    <value>Performance data exported to:\n{0}</value>
+    <value>Performance data exported to:&#10;{0}</value>
   </data>
   <data name="MSG_BRANCH_SAVED_TO" xml:space="preserve">
-    <value>{0} line(s) saved to:\n{1}</value>
+    <value>{0} line(s) saved to:&#10;{1}</value>
   </data>
   <data name="MSG_CALL_GRAPH_EXPORTED_TO" xml:space="preserve">
-    <value>Call Graph exported to:\n{0}</value>
+    <value>Call Graph exported to:&#10;{0}</value>
   </data>
   <data name="DIALOG_TITLE_BOOKMARKS" xml:space="preserve">
     <value>Bookmarks</value>
   </data>
   <data name="MSG_HELP_FILE_NOT_FOUND" xml:space="preserve">
-    <value>Help file (Cad3PLogBrowser.chm) not found.\n\nPress Ctrl+K to view keyboard shortcuts,\nor visit the GitHub repository for documentation.</value>
+    <value>Help file (Cad3PLogBrowser.chm) not found.&#10;&#10;Press Ctrl+K to view keyboard shortcuts,&#10;or visit the GitHub repository for documentation.</value>
   </data>
   <!-- Theme Toggle Button -->
   <data name="TOOLTIP_THEME_TOGGLE_TO_LIGHT" xml:space="preserve">
@@ -415,10 +415,10 @@
     <value>Please select at least 2 files to merge.</value>
   </data>
   <data name="MSG_MERGE_SUCCESSFUL" xml:space="preserve">
-    <value>Successfully merged {0} files.\n\nTotal lines: {1:N0}\n\nEach line is prefixed with [filename] for traceability.</value>
+    <value>Successfully merged {0} files.&#10;&#10;Total lines: {1:N0}&#10;&#10;Each line is prefixed with [filename] for traceability.</value>
   </data>
   <data name="MSG_MERGE_FAILED" xml:space="preserve">
-    <value>Merge failed:\n\n{0}</value>
+    <value>Merge failed:&#10;&#10;{0}</value>
   </data>
   <!-- File Dialog Titles -->
   <data name="FILE_DIALOG_SELECT_LOGS_TO_MERGE" xml:space="preserve">
@@ -472,11 +472,11 @@
   </data>
   <!-- Log Detail Format -->
   <data name="LOG_DETAIL_FORMAT" xml:space="preserve">
-    <value>Line {0}:\r\n\r\n{1}</value>
+    <value>Line {0}:&#10;&#10;{1}</value>
   </data>
   <!-- Tooltip Format -->
   <data name="TREE_NODE_TOOLTIP_FORMAT" xml:space="preserve">
-    <value>API: {0}\r\nSource: {1}\r\nENTER line: {2}\r\nEXIT line: {3}\r\nDuration: {4} ms</value>
+    <value>API: {0}&#10;Source: {1}&#10;ENTER line: {2}&#10;EXIT line: {3}&#10;Duration: {4} ms</value>
   </data>
   <data name="TREE_NODE_EXIT_NOT_FOUND" xml:space="preserve">
     <value>? (no EXIT found)</value>
@@ -493,7 +493,7 @@
   </data>
   <!-- Recent Files -->
   <data name="MSG_FILE_NOT_FOUND_REMOVED" xml:space="preserve">
-    <value>File not found:\n{0}\n\nRemoving from recent files list.</value>
+    <value>File not found:&#10;{0}&#10;&#10;Removing from recent files list.</value>
   </data>
   <!-- Copy Messages -->
   <data name="MSG_COPIED_WITH_HEADERS" xml:space="preserve">
@@ -527,7 +527,7 @@
   </data>
   <!-- Export Messages -->
   <data name="MSG_EXPORT_FILTERED_SUCCESSFUL" xml:space="preserve">
-    <value>{0:N0} {1} exported successfully.\n\nFile: {2}</value>
+    <value>{0:N0} {1} exported successfully.&#10;&#10;File: {2}</value>
   </data>
   <data name="EXPORT_FILTER_INFO_ALL_LINES" xml:space="preserve">
     <value>all lines</value>

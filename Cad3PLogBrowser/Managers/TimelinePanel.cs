@@ -35,6 +35,18 @@ namespace Cad3PLogBrowser.Managers
         // Stores the last mouse position for zoom-centering (Issue 2)
         private Point _lastMouseForZoom = new Point(0, 0);
 
+        // Issues 2/3: cached GDI resources — allocated once and reused across paint
+        // calls instead of being created and disposed for every visible entry.
+        private Font        _entryFont;     // bar label font
+        private Font        _durFont;       // duration sub-label font
+        private Font        _axisFont;      // time-scale / depth-label font
+        private Font        _axisLabelFont; // depth label bold font
+        private SolidBrush  _shadowBrush;   // fixed semi-transparent shadow
+        private SolidBrush  _glossBrush;    // fixed gloss highlight
+        // Cached max depth so DrawDepthLabels / UpdateScrollableSize
+        // don't run O(N) LINQ on every paint call.
+        private int _maxDepth = 0;
+
         private const float ROW_HEIGHT  = 28f;
         private const float BAR_RADIUS  = 4f;
         private const float MIN_ZOOM    = 0.1f;
@@ -92,6 +104,9 @@ namespace Cad3PLogBrowser.Managers
             // Professional panel setup
             this.BorderStyle = BorderStyle.None;
             this.BackColor = ThemeManager.BackgroundColor;
+
+            // Issues 2/3: pre-allocate GDI resources used on every paint call.
+            RebuildGdiCache();
 
             // Create content panel for the actual timeline
             // Issue 1 Fix: AutoScroll = true so horizontal/vertical scrollbars appear when zoomed in
@@ -177,14 +192,47 @@ namespace Cad3PLogBrowser.Managers
         }
 
         /// <summary>
-        /// Updates theme colors for toolbar, status bar, and content.
-        /// Called by ThemeManager when theme changes.
+        /// (Re)builds the cached GDI resources.  Called once on construction and
+        /// again whenever the theme changes so colours stay accurate.
         /// </summary>
+        private void RebuildGdiCache()
+        {
+            _entryFont?.Dispose();
+            _durFont?.Dispose();
+            _axisFont?.Dispose();
+            _axisLabelFont?.Dispose();
+            _shadowBrush?.Dispose();
+            _glossBrush?.Dispose();
+
+            _entryFont     = new Font("Segoe UI", 7.5f, FontStyle.Regular);
+            _durFont       = new Font("Segoe UI", 6.5f);
+            _axisFont      = new Font("Segoe UI", 7f);
+            _axisLabelFont = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+            _shadowBrush   = new SolidBrush(Color.FromArgb(30, 0, 0, 0));
+            _glossBrush    = new SolidBrush(Color.FromArgb(45, 255, 255, 255));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _entryFont?.Dispose();
+                _durFont?.Dispose();
+                _axisFont?.Dispose();
+                _axisLabelFont?.Dispose();
+                _shadowBrush?.Dispose();
+                _glossBrush?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        /// <summary>Updates theme colors for toolbar, status bar, and content.</summary>
         public void UpdateTheme()
         {
-            // EMERGENCY FIX: Add guards to prevent loops
             try
             {
+                RebuildGdiCache(); // refresh theme-sensitive colours in cached GDI objects
+
                 this.BackColor = ThemeManager.BackgroundColor;
 
                 if (_contentPanel != null)
@@ -220,8 +268,26 @@ namespace Cad3PLogBrowser.Managers
             // Translate for pan (zoom is baked into Bounds by CalculateLayout)
             g.TranslateTransform(_panOffset.X, _panOffset.Y);
 
+            // Issues 2/3: Viewport culling — compute the visible rectangle in
+            // layout-space so we skip entries that are completely off-screen.
+            // For a merged log with 10 000 entries this reduces the rendered set
+            // to the ~30–80 entries actually visible, giving 100–300x fewer
+            // DrawTimelineEntry calls per paint event.
+            float visLeft   = -_panOffset.X;
+            float visRight  = visLeft  + _contentPanel.ClientSize.Width;
+            float visTop    = -_panOffset.Y;
+            float visBottom = visTop   + _contentPanel.ClientSize.Height;
+
             foreach (var entry in _entries)
+            {
+                var b = entry.Bounds;
+                // Skip entries completely outside the visible viewport.
+                if (b.Right < visLeft || b.Left > visRight ||
+                    b.Bottom < visTop  || b.Top  > visBottom)
+                    continue;
+
                 DrawTimelineEntry(g, entry);
+            }
 
             g.ResetTransform();
             DrawTimeScale(g);
@@ -283,8 +349,7 @@ namespace Cad3PLogBrowser.Managers
         {
             if (_entries.Count == 0) return;
             float zoomedWidth  = LEFT_MARGIN + (_contentPanel.ClientSize.Width - LEFT_MARGIN - 20) * _zoom + 40;
-            int   maxDepth     = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
-            float zoomedHeight = TOP_MARGIN + (maxDepth + 1) * ROW_HEIGHT + 40;
+            float zoomedHeight = TOP_MARGIN + (_maxDepth + 1) * ROW_HEIGHT + 40;  // cached _maxDepth
             _contentPanel.AutoScrollMinSize = new Size(
                 (int)Math.Max(0, zoomedWidth),
                 (int)Math.Max(0, zoomedHeight));
@@ -354,23 +419,37 @@ namespace Cad3PLogBrowser.Managers
                     effectiveRoots.Add(node);
             }
 
-            // Convert to timeline entries
-            _startTime = DateTime.Now;
-            _endTime = DateTime.Now;
+            // Issue 4: show wait cursor during conversion so the user knows the
+            // application is working, not frozen — especially for merged logs.
+            Cursor prev = Cursor.Current;
+            Cursor.Current = Cursors.WaitCursor;
 
-            DateTime currentTime = DateTime.Now;
-
-            foreach (var node in effectiveRoots)
+            try
             {
-                ConvertToTimelineRecursive(node, 0, ref currentTime);
+                // Convert to timeline entries
+                _startTime = DateTime.Now;
+                _endTime   = DateTime.Now;
+                DateTime currentTime = DateTime.Now;
+
+                foreach (var node in effectiveRoots)
+                    ConvertToTimelineRecursive(node, 0, ref currentTime);
+
+                // Issues 2/3: cache _maxDepth once after loading so paint
+                // handlers don’t run O(N) LINQ on every frame.
+                _maxDepth = 0;
+                foreach (var entry in _entries)
+                    if (entry.Depth > _maxDepth) _maxDepth = entry.Depth;
+
+                _totalDurationMs = (long)(_endTime - _startTime).TotalMilliseconds;
+                if (_totalDurationMs == 0) _totalDurationMs = 1;
+
+                CalculateLayout();
+                UpdateScrollableSize();
             }
-
-            _totalDurationMs = (long)(_endTime - _startTime).TotalMilliseconds;
-            if (_totalDurationMs == 0) _totalDurationMs = 1;
-
-            // Calculate layout
-            CalculateLayout();
-            UpdateScrollableSize();
+            finally
+            {
+                Cursor.Current = prev;
+            }
 
             // Update status bar
             _statusBar.UpdateNodeCount(_entries.Count);
@@ -547,9 +626,9 @@ namespace Cad3PLogBrowser.Managers
             float visibleRight = LEFT_MARGIN + _contentPanel.ClientSize.Width;
 
             using (var tickPen  = new Pen(AxisColor, 1f))
-            using (var font     = new Font("Segoe UI", 7f))
             using (var brush    = new SolidBrush(LabelColor))
             {
+                // use cached _axisFont instead of allocating a new Font each paint
                 // Start from the first tick that could be visible
                 long firstTick = (long)((-_panOffset.X) / pxPerMs / intervalMs) * intervalMs;
                 if (firstTick < 0) firstTick = 0;
@@ -570,9 +649,9 @@ namespace Cad3PLogBrowser.Managers
 
                     // Label
                     string lbl = FormatMs(tick);
-                    var    sz  = g.MeasureString(lbl, font);
+                    var    sz  = g.MeasureString(lbl, _axisFont);
                     if (x - sz.Width / 2 > visibleLeft - 4)
-                        g.DrawString(lbl, font, brush, x - sz.Width / 2, TOP_MARGIN - 20);
+                        g.DrawString(lbl, _axisFont, brush, x - sz.Width / 2, TOP_MARGIN - 20);
                 }
 
                 // Baseline
@@ -604,7 +683,7 @@ namespace Cad3PLogBrowser.Managers
 
         private void DrawDepthLabels(Graphics g)
         {
-            int maxDepth = _entries.Count > 0 ? _entries.Max(e => e.Depth) : 0;
+            int maxDepth = _maxDepth;  // Issues 2/3: use cached value, not O(N) LINQ per paint
 
             // Left-margin band
             Color bandBg = Dark ? Color.FromArgb(28, 30, 40) : Color.FromArgb(238, 241, 252);
@@ -624,16 +703,16 @@ namespace Cad3PLogBrowser.Managers
                         g.FillRectangle(rb, LEFT_MARGIN, rowY, _contentPanel.Width - LEFT_MARGIN, ROW_HEIGHT);
             }
 
-            using (var font  = new Font("Segoe UI", 7.5f, FontStyle.Bold))
             using (var brush = new SolidBrush(LabelColor))
             {
+                // use cached _axisLabelFont (Issues 2/3)
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
                     float y = TOP_MARGIN + _panOffset.Y + depth * ROW_HEIGHT + ROW_HEIGHT / 2f;
                     if (y < TOP_MARGIN || y > _contentPanel.Height) continue;
 
-                    string lbl = $"D{depth}";
-                    var    sz  = g.MeasureString(lbl, font);
+                    string lbl = string.Format("D{0}", depth);
+                    var    sz  = g.MeasureString(lbl, _axisLabelFont);
                     float  lx  = LEFT_MARGIN - sz.Width - 10;
                     float  ly  = y - sz.Height / 2;
 
@@ -643,7 +722,7 @@ namespace Cad3PLogBrowser.Managers
                     using (var pb = new SolidBrush(pillBg))
                         FillRounded(g, pb, pill, 4);
 
-                    g.DrawString(lbl, font, brush, lx, ly);
+                    g.DrawString(lbl, _axisLabelFont, brush, lx, ly);
                 }
             }
         }
@@ -657,18 +736,16 @@ namespace Cad3PLogBrowser.Managers
             Color fillBot = Darken(fill, 0.75f);
             var   r       = entry.Bounds;
 
-            // Shadow
-            using (var sb = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
-            { var sr = r; sr.Offset(1, 2); FillRounded(g, sb, sr, BAR_RADIUS); }
+            // Shadow — cached brush (Issues 2/3)
+            { var sr = r; sr.Offset(1, 2); FillRounded(g, _shadowBrush, sr, BAR_RADIUS); }
 
             // Gradient body
             using (var gb = new LinearGradientBrush(
                 new PointF(r.X, r.Y), new PointF(r.X, r.Bottom), fill, fillBot))
                 FillRounded(g, gb, r, BAR_RADIUS);
 
-            // Gloss strip
-            using (var gloss = new SolidBrush(Color.FromArgb(45, 255, 255, 255)))
-                FillRounded(g, gloss, new RectangleF(r.X + 1, r.Y + 1, r.Width - 2, 7), 3);
+            // Gloss strip — cached brush
+            FillRounded(g, _glossBrush, new RectangleF(r.X + 1, r.Y + 1, r.Width - 2, 7), 3);
 
             // Border
             Color border = isSel ? Color.FromArgb(0, 150, 230) :
@@ -682,11 +759,9 @@ namespace Cad3PLogBrowser.Managers
                 using (var gp = new Pen(Color.FromArgb(100, 0, 150, 230), 1f))
                     StrokeRounded(g, gp, RectangleF.Inflate(r, 2, 2), BAR_RADIUS + 2);
 
-            // Label
+            // Label — use cached fonts (Issues 2/3)
             if (r.Width > 36)
             {
-                using (var font = new Font("Segoe UI", 7.5f, FontStyle.Regular))
-                using (var durFont = new Font("Segoe UI", 6.5f))
                 using (var tb = new SolidBrush(Dark ? Color.FromArgb(238, 240, 248) : Color.FromArgb(20, 28, 55)))
                 {
                     var sf = new StringFormat
@@ -698,20 +773,21 @@ namespace Cad3PLogBrowser.Managers
 
                     if (r.Width > 110)
                     {
-                        string dur   = $"{entry.DurationMs}ms";
-                        var    dSz   = g.MeasureString(dur, durFont);
+                        string dur = string.Format("{0}ms", entry.DurationMs);
+                        var    dSz = g.MeasureString(dur, _durFont);
                         sf.Alignment = StringAlignment.Center;
-                        using (var db = new SolidBrush(Color.FromArgb(160, Dark ? Color.FromArgb(238, 240, 248) : Color.FromArgb(20, 28, 55))))
-                            g.DrawString(dur, durFont, db,
+                        using (var db = new SolidBrush(Color.FromArgb(160,
+                            Dark ? Color.FromArgb(238, 240, 248) : Color.FromArgb(20, 28, 55))))
+                            g.DrawString(dur, _durFont, db,
                                 new RectangleF(r.Right - dSz.Width - 6, r.Y, dSz.Width + 4, r.Height), sf);
                         sf.Alignment = StringAlignment.Near;
-                        g.DrawString(entry.MethodName, font, tb,
+                        g.DrawString(entry.MethodName, _entryFont, tb,
                             new RectangleF(r.X + 5, r.Y, r.Width - dSz.Width - 14, r.Height), sf);
                     }
                     else
                     {
                         sf.Alignment = StringAlignment.Near;
-                        g.DrawString(entry.MethodName, font, tb,
+                        g.DrawString(entry.MethodName, _entryFont, tb,
                             new RectangleF(r.X + 4, r.Y, r.Width - 8, r.Height), sf);
                     }
                 }

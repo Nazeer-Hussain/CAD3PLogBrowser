@@ -46,6 +46,9 @@ namespace Cad3PLogBrowser
         // Feature C2: Lazy loading for large trees
         private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
+        // Cached font for lazy-load placeholder nodes — avoids a GDI Font
+        // allocation on every tree node during expand (Issue 1).
+        private Font _lazyPlaceholderFont;
 
         // D-18: cached context menus — built once, reused on every right-click to avoid
         // allocating ~15 GDI objects per click (previous code created a new ContextMenuStrip
@@ -351,9 +354,39 @@ namespace Cad3PLogBrowser
         private List<VirtualLogLine> _virtualLines = new List<VirtualLogLine>();
         // O(1) lookup: 1-based line number → virtual list index
         private Dictionary<int, int> _lineIndexMap = new Dictionary<int, int>();
-        // Tracks whether the performance tab needs a colour refresh after a theme change
-        // while it was not visible (avoids a full ListView rebuild on every toggle).
         private bool _performanceViewNeedsRefresh = false;
+
+        // P-06: thin IList<string> view over _virtualLines so FindNext never
+        // has to allocate and copy a full List<string> on every F3 press.
+        private VirtualLineTextList _virtualLineTexts;
+
+        /// <summary>
+        /// Zero-allocation read-only IList&lt;string&gt; view over the Text fields of
+        /// a List&lt;VirtualLogLine&gt;.  Avoids the O(N) copy in FindNext (P-06).
+        /// </summary>
+        private sealed class VirtualLineTextList : System.Collections.Generic.IList<string>
+        {
+            private readonly List<VirtualLogLine> _src;
+            internal VirtualLineTextList(List<VirtualLogLine> src) { _src = src; }
+            public string this[int i]
+            {
+                get => _src[i].Text;
+                set => throw new NotSupportedException();
+            }
+            public int  Count      => _src.Count;
+            public bool IsReadOnly => true;
+            public bool Contains(string item) { foreach (var v in _src) if (v.Text == item) return true; return false; }
+            public int  IndexOf(string item)  { for (int i = 0; i < _src.Count; i++) if (_src[i].Text == item) return i; return -1; }
+            public void CopyTo(string[] array, int idx) { for (int i = 0; i < _src.Count; i++) array[idx + i] = _src[i].Text; }
+            public System.Collections.Generic.IEnumerator<string> GetEnumerator()
+            { foreach (var v in _src) yield return v.Text; }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            public void Add(string item)            => throw new NotSupportedException();
+            public void Clear()                     => throw new NotSupportedException();
+            public void Insert(int i, string item)  => throw new NotSupportedException();
+            public bool Remove(string item)         => throw new NotSupportedException();
+            public void RemoveAt(int i)             => throw new NotSupportedException();
+        }
 
         // ── Construction ──────────────────────────────────────────────────────
         public MainForm()
@@ -557,15 +590,11 @@ namespace Cad3PLogBrowser
                 // Refresh tree layout after theme/icon change
                 LayoutTrees();
 
-                // PERFORMANCE: UpdateLogColors() used to iterate every row in _virtualLines
-                // to recompute BackColour. With a virtual ListView the colours are only
-                // needed at draw time (RetrieveVirtualItem), so we simply invalidate
-                // the ListView and let the draw handler pick the correct theme colour
-                // on-demand.  This turns an O(N) loop on 100k+ rows into O(0).
+                // P-08: update pre-stored BackColour values for the new theme, then
+                // invalidate.  This replaces the old on-demand text.Contains() check in
+                // RetrieveVirtualItem and also makes bookmark/highlight colours visible.
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
-                {
-                    logListView.Invalidate();
-                }
+                    RefreshVirtualLineColours();
 
                 // Apply theme to raw text view
                 if (rawTextBox != null)
@@ -746,7 +775,7 @@ namespace Cad3PLogBrowser
                 _appSettings.SplitterDistance = mainSplitContainer.SplitterDistance;
 
                 if (!string.IsNullOrEmpty(_currentFilePath))
-                    _appSettings.InitialDirectory = Path.GetDirectoryName(_currentFilePath);
+                    _appSettings.InitialDirectory = GetSafeDirectory(_currentFilePath);
 
                 // Feature 1a/1b: Save window state
                 if (this.WindowState == FormWindowState.Normal)
@@ -1260,25 +1289,29 @@ namespace Cad3PLogBrowser
         private void CallTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             if (e.Node == null) return;
+            if (!_lazyChildrenMap.ContainsKey(e.Node)) return;
 
-            // Check if this node has lazy-loaded children waiting
-            if (_lazyChildrenMap.ContainsKey(e.Node))
+            var children = _lazyChildrenMap[e.Node];
+
+            // Issue 1: suppress per-node repaints while loading children;
+            // show wait cursor and status text so the user sees feedback.
+            Cursor prev = Cursor.Current;
+            Cursor.Current = Cursors.WaitCursor;
+            StatusFileName.Text = string.Format(Resources.STATUS_LOADED_CHILDREN,
+                children.Count, GetMethodNameFromNode(e.Node));
+
+            CallTree.BeginUpdate();
+            try
             {
-                var children = _lazyChildrenMap[e.Node];
-
-                // Remove placeholder
                 e.Node.Nodes.Clear();
-
-                // Add real children
                 foreach (var child in children)
-                {
                     e.Node.Nodes.Add(BuildTreeNode(child, useLazyLoading: true));
-                }
-
-                // Remove from map - children are now loaded
                 _lazyChildrenMap.Remove(e.Node);
-
-                StatusFileName.Text = string.Format(Resources.STATUS_LOADED_CHILDREN, children.Count, GetMethodNameFromNode(e.Node));
+            }
+            finally
+            {
+                CallTree.EndUpdate();
+                Cursor.Current = prev;
             }
         }
 
@@ -1339,16 +1372,17 @@ namespace Cad3PLogBrowser
             {
                 if (useLazyLoading)
                 {
-                    // Add placeholder node
+                    // Lazily init the placeholder font once (avoids a GDI allocation per node).
+                    if (_lazyPlaceholderFont == null)
+                        _lazyPlaceholderFont = new Font(CallTree.Font, FontStyle.Italic);
+
                     var placeholder = new TreeNode(Resources.TREE_LAZY_LOAD_PLACEHOLDER)
                     {
-                        Tag = -2, // Special tag for placeholder
+                        Tag       = -2,
                         ForeColor = Color.Gray,
-                        NodeFont = new Font(CallTree.Font, FontStyle.Italic)
+                        NodeFont  = _lazyPlaceholderFont
                     };
                     tn.Nodes.Add(placeholder);
-
-                    // Store actual children for later loading
                     _lazyChildrenMap[tn] = csNode.Children;
                 }
                 else
@@ -1796,20 +1830,52 @@ namespace Cad3PLogBrowser
             var item = new ListViewItem(vl.LineNumber.ToString());
             item.SubItems.Add(vl.Text);
 
-            // PERFORMANCE: Compute row colour on-demand here instead of pre-baking it in
-            // UpdateLogColors() across every row on every theme switch.  Because this handler
-            // is only called for the ~20–50 rows that are actually visible, there is no
-            // per-row O(N) cost at theme-switch time.
-            string text = vl.Text;
-            if (text.Contains("ERROR") || text.Contains("EXCEPTION"))
-                item.BackColor = ThemeManager.ErrorBackgroundColor;
-            else if (text.Contains("WARNING") || text.Contains("WARN"))
-                item.BackColor = ThemeManager.WarningBackgroundColor;
-            else
-                item.BackColor = ThemeManager.BackgroundColor;
-
+            // P-08: use the pre-computed BackColour (bookmark / highlight / level colour).
+            // The previous code re-ran text.Contains("ERROR") etc. on every paint call which
+            // (a) was slower than a struct field read and (b) used the wrong search pattern
+            // causing bookmark and search-highlight colours to be invisible.
+            // After a theme change RefreshVirtualLineColours() updates the stored colours.
+            item.BackColor = vl.BackColour;
             item.ForeColor = ThemeManager.ForegroundColor;
             e.Item = item;
+        }
+
+        /// <summary>
+        /// Updates the BackColour of every virtual line after a theme change.
+        /// Bookmark and search-highlight colours are preserved; only the theme-dependent
+        /// level colours (Error / Warning / Default) are refreshed.
+        /// Called from ApplyThemeWithOverlay so the ListView immediately reflects the
+        /// new theme without an extra full repopulation (P-08).
+        /// </summary>
+        private void RefreshVirtualLineColours()
+        {
+            if (_virtualLines == null || _virtualLines.Count == 0) return;
+
+            int highlightArgb    = _appSettings?.HighlightColor.ToArgb() ?? Color.Yellow.ToArgb();
+            int bookmarkDarkArgb  = Color.FromArgb(0, 70, 130).ToArgb();
+            int bookmarkLightArgb = Color.FromArgb(200, 230, 255).ToArgb();
+
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl = _virtualLines[i];
+                int argb = vl.BackColour.ToArgb();
+
+                // Skip user-set colours (bookmarks and search highlights) — these are
+                // theme-independent and should not be overwritten.
+                if (argb == bookmarkDarkArgb || argb == bookmarkLightArgb
+                    || argb == highlightArgb) continue;
+
+                // Re-evaluate the theme-dependent level colour.
+                Color fresh = GetLineColour(vl.Text);
+                if (argb != fresh.ToArgb())
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text       = vl.Text,
+                        BackColour = fresh
+                    };
+            }
+            if (logListView != null) logListView.Invalidate();
         }
 
         // ── #8: Call Graph reset button ───────────────────────────────────────
@@ -1951,25 +2017,28 @@ namespace Cad3PLogBrowser
                 _searchService.Reset();
                 ClearHighlighting();
 
-                StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
-                FileLoadProgress.Value = 33;
+                UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
                 await Task.Delay(10);
-
                 PopulateVirtualListView(_allLines);
-                FileLoadProgress.Value = 50;
-                StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
-                await Task.Delay(10);
 
+                UpdateStatusProgress(50, Resources.STATUS_BUILDING_MERGED_TREE);
+                await Task.Delay(10);
                 var mergeEntries = await Task.Run(() => _parserService.Parse(_allLines));
                 var mApiTask     = Task.Run(() => _parserService.BuildApiList(mergeEntries));
                 var mCallTask    = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                 await Task.WhenAll(mApiTask, mCallTask);
                 var mCallTree    = mCallTask.Result;
+
+                UpdateStatusProgress(75, "Building performance stats...");
                 var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+
+                UpdateStatusProgress(90, "Building call graph...");
                 var mFileGraphs  = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
                 var mGraph       = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+
+                UpdateStatusProgress(98, "Populating views...");
                 PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
-                FileLoadProgress.Value = 100;
+                UpdateStatusProgress(100, "Merge complete.");
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -1998,9 +2067,16 @@ namespace Cad3PLogBrowser
             _isLoading = true;
             SetDocumentLoaded(false);
             FileStatus.Image = IconGenerator.CreateStatusLoadingIcon(IconGenerator.IconSize.Small);
-            FileLoadProgress.Visible = true;
-            FileLoadProgress.Value = 0;
-            StatusFileName.Text = Resources.STATUS_LOADING;
+            // Show an animated marquee bar immediately — a Blocks bar at value=0 is
+            // visually indistinguishable from the status-strip background.
+            FileLoadProgress.Style           = ProgressBarStyle.Marquee;
+            FileLoadProgress.Value           = 0;
+            FileLoadProgress.Visible         = true;
+            StatusOperationLabel.Text        = Resources.STATUS_LOADING;
+            StatusOperationLabel.ForeColor   = Services.ThemeManager.ControlForegroundColor;
+            StatusOperationLabel.Visible     = true;
+            mainStatusStrip.Refresh();
+            PositionOverlay();
             _overlay.Show(Resources.STATUS_LOADING);
 
             // Persist bookmarks for the previous file before we discard its context.
@@ -2014,8 +2090,10 @@ namespace Cad3PLogBrowser
                     // Update UI on UI thread
                     this.Invoke((Action)(() =>
                     {
+                        // Animation workaround: step ahead then snap back.
+                        if (progress < 100) { FileLoadProgress.Value = Math.Min(100, progress + 1); }
                         FileLoadProgress.Value = progress;
-                        StatusFileName.Text = message;
+                        StatusOperationLabel.Text = string.Format("{0}  ({1}%)", message, progress);
                         _overlay.SetProgress(progress, message);
                     }));
                 });
@@ -2028,40 +2106,36 @@ namespace Cad3PLogBrowser
                 // Load bookmarks for this file
                 _bookmarkService.LoadBookmarks(filePath);
 
-                // Show processing message
-                StatusFileName.Text = Resources.STATUS_PROCESSING_LOG_DATA;
-                FileLoadProgress.Value = 0;
-
-                // Give UI a chance to update
+                // Populate views with progress
+                UpdateStatusProgress(20, Resources.STATUS_PROCESSING_LOG_DATA);
                 await Task.Delay(10);
 
-                // Populate views with progress
                 PopulateVirtualListView(_allLines);
                 // D-01: restore scroll position now that VirtualListSize is set.
                 if (restoreTopIndex > 0 && restoreTopIndex < _virtualLines.Count)
                     logListView.EnsureVisible(restoreTopIndex);
                 PopulateRawView(_allLines);
-                FileLoadProgress.Value = 33;
-                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
-                _overlay.SetProgress(33, Resources.STATUS_BUILDING_CALL_TREE);
+
+                UpdateStatusProgress(35, Resources.STATUS_BUILDING_CALL_TREE);
                 await Task.Delay(10);
 
                 // Parse and build all tree data in parallel on background threads
-                var entries = await Task.Run(() => _parserService.Parse(_allLines));
-                var apiNodesTask  = Task.Run(() => _parserService.BuildApiList(entries));
-                var callTreeTask  = Task.Run(() => _parserService.BuildCallTree(entries));
+                var entries      = await Task.Run(() => _parserService.Parse(_allLines));
+                var apiNodesTask = Task.Run(() => _parserService.BuildApiList(entries));
+                var callTreeTask = Task.Run(() => _parserService.BuildCallTree(entries));
                 await Task.WhenAll(apiNodesTask, callTreeTask);
+
+                UpdateStatusProgress(65, "Building performance statistics...");
                 var callTree  = callTreeTask.Result;
                 var perfStats = await Task.Run(() => _parserService.BuildPerformanceStats(callTree));
-                var graph     = await Task.Run(() => _callGraphService.Build(entries));
 
-                FileLoadProgress.Value = 66;
-                StatusFileName.Text = Resources.STATUS_BUILDING_CALL_TREE;
-                _overlay.SetProgress(66, Resources.STATUS_BUILDING_CALL_TREE);
+                UpdateStatusProgress(80, "Building call graph...");
+                var graph = await Task.Run(() => _callGraphService.Build(entries));
 
+                UpdateStatusProgress(95, "Populating views...");
                 // Populate UI with the pre-built data (must be on UI thread)
                 PopulateTreesFromData(entries, apiNodesTask.Result, callTree, perfStats, graph);
-                FileLoadProgress.Value = 100;
+                UpdateStatusProgress(100, "Load complete.");
 
                 SetDocumentLoaded(true);
                 FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -2075,8 +2149,10 @@ namespace Cad3PLogBrowser
             catch (Exception ex)                   { ShowLoadError(filePath, Resources.LOAD_ERROR_UNEXPECTED, ex.Message); }
             finally
             {
-                FileLoadProgress.Visible = false;
-                FileLoadProgress.Value = 0;
+                FileLoadProgress.Visible     = false;
+                FileLoadProgress.Value       = 0;
+                StatusOperationLabel.Visible = false;
+                StatusOperationLabel.Text    = string.Empty;
                 _isLoading = false;
                 _overlay.Hide();
             }
@@ -2091,18 +2167,29 @@ namespace Cad3PLogBrowser
         private void PopulateRawView(IList<string> lines)
         {
             if (rawTextBox == null) return;
-            // Cap at 50 000 lines to keep the RichTextBox responsive
             const int MaxRawLines = 50_000;
             bool truncated = lines.Count > MaxRawLines;
-            var sb = new System.Text.StringBuilder(Math.Min(lines.Count, MaxRawLines) * 80);
             int count = Math.Min(lines.Count, MaxRawLines);
-            for (int i = 0; i < count; i++)
-            {
-                sb.AppendLine(lines[i]);
-            }
+
+            // P-03: build the text then load into the RTB with WM_SETREDRAW suppressed
+            // and use AppendText instead of .Text= so the control parses the RTF once
+            // rather than re-parsing the whole document on every incremental append.
+            var sb = new System.Text.StringBuilder(count * 80);
+            for (int i = 0; i < count; i++) sb.AppendLine(lines[i]);
             if (truncated)
-                sb.AppendLine($"[... {lines.Count - MaxRawLines:N0} more lines not shown — file exceeds raw view limit ...]");
-            rawTextBox.Text = sb.ToString();
+                sb.AppendLine(string.Format("[... {0:N0} more lines not shown — file exceeds raw view limit ...]",
+                              lines.Count - MaxRawLines));
+
+            Services.NativeMethods.SuppressRedraw(rawTextBox);
+            try
+            {
+                rawTextBox.Clear();
+                rawTextBox.AppendText(sb.ToString());
+            }
+            finally
+            {
+                Services.NativeMethods.ResumeRedraw(rawTextBox);
+            }
         }
 
         private void PopulateVirtualListView(IList<string> lines)
@@ -2159,6 +2246,8 @@ namespace Cad3PLogBrowser
                 MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
+            // Rebuild the zero-alloc text wrapper for FindNext (P-06).
+            _virtualLineTexts = new VirtualLineTextList(_virtualLines);
             UpdateStatusBar();
         }
 
@@ -2208,6 +2297,8 @@ namespace Cad3PLogBrowser
                 MeasureAndStoreMaxLineWidth();
                 AutoResizeLogListColumns();
             }
+            // Rebuild zero-alloc text wrapper (P-06).
+            _virtualLineTexts = new VirtualLineTextList(_virtualLines);
 
             UpdateStatusBar();
         }
@@ -2428,29 +2519,33 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
-        /// Measures the widest log line in pixels using GDI (TextRenderer), which matches
-        /// how ListView renders text exactly. Samples up to 10 000 lines for accuracy.
-        /// Stores the result in <see cref="_logTextColumnContentWidth"/>.
+        /// Finds the widest log line and stores its pixel width in
+        /// <see cref="_logTextColumnContentWidth"/> so the log column scrollbar is correct.
+        ///
+        /// P-04: previous implementation called TextRenderer.MeasureText up to 10 000 times
+        /// (one GDI call per sample).  The new approach runs a single O(N) pass to find the
+        /// longest line by character count (cheap string-length comparison), then makes
+        /// exactly ONE GDI call to measure that one line.  For monospace fonts (Consolas)
+        /// the longest character-count line is also the widest in pixels.
         /// </summary>
         private void MeasureAndStoreMaxLineWidth()
         {
             _logTextColumnContentWidth = 0;
             if (_virtualLines == null || _virtualLines.Count == 0) return;
 
-            int sampleCount = Math.Min(_virtualLines.Count, 10000);
-            Font font = logListView.Font;
-            int maxWidth = 0;
-
-            for (int i = 0; i < sampleCount; i++)
+            // Find the line with the most characters — O(N), no GDI calls.
+            string widest = null;
+            int maxLen = 0;
+            for (int i = 0; i < _virtualLines.Count; i++)
             {
-                string text = _virtualLines[i].Text;
-                if (string.IsNullOrEmpty(text)) continue;
-                // TextRenderer.MeasureText matches ListView's GDI rendering
-                int w = TextRenderer.MeasureText(text, font).Width + 12; // 12px cell padding
-                if (w > maxWidth) maxWidth = w;
+                string t = _virtualLines[i].Text;
+                if (t != null && t.Length > maxLen) { maxLen = t.Length; widest = t; }
             }
 
-            _logTextColumnContentWidth = maxWidth;
+            if (widest == null) return;
+
+            // Single GDI call for the one widest line.
+            _logTextColumnContentWidth = TextRenderer.MeasureText(widest, logListView.Font).Width + 12;
         }
 
         private void ShowLoadError(string filePath, string reason, string detail)
@@ -2485,6 +2580,39 @@ namespace Cad3PLogBrowser
         }
 
         // ── File menu ─────────────────────────────────────────────────────────
+
+        // ── Path helpers (PathTooLongException guard) ─────────────────────────
+        // _currentFilePath can be a synthetic display string such as
+        //   "[Merged: file1.log, file2.log, ...]"
+        // which is not a real filesystem path and can exceed 260 characters.
+        // Calling Path.GetDirectoryName / GetFileName on it throws
+        // PathTooLongException on .NET Framework 4.8.  All three helpers below
+        // return a safe fallback whenever the path is virtual or too long.
+
+        private static string GetSafeDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            if (path.StartsWith("[") || path.Length >= 260) return null;
+            try { return Path.GetDirectoryName(path); }
+            catch { return null; }
+        }
+
+        private static string GetSafeBaseName(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "log";
+            if (path.StartsWith("[") || path.Length >= 260) return "merged";
+            try { return Path.GetFileNameWithoutExtension(path); }
+            catch { return "log"; }
+        }
+
+        private static string GetSafeFileName(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "log";
+            if (path.StartsWith("[") || path.Length >= 260) return "merged";
+            try { return Path.GetFileName(path); }
+            catch { return "log"; }
+        }
+
         private void openMenuItem_Click(object sender, EventArgs e)
         {
             if (openLogFileDialog.ShowDialog() == DialogResult.OK)
@@ -2520,7 +2648,7 @@ namespace Cad3PLogBrowser
 
             string baseName    = string.IsNullOrEmpty(_currentFilePath)
                 ? methodName.Replace("::", "_")
-                : Path.GetFileNameWithoutExtension(_currentFilePath);
+                : GetSafeBaseName(_currentFilePath);
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
 
             using (var dlg = new SaveFileDialog())
@@ -2530,13 +2658,21 @@ namespace Cad3PLogBrowser
                 dlg.FileName         = defaultName;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
                 try
                 {
+                    // Show status-bar progress while writing (visible for large branches)
+                    FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+                    FileLoadProgress.Visible = true;
+                    FileLoadProgress.Value   = 0;
+                    StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
+
                     File.WriteAllLines(dlg.FileName, lines);
+
+                    FileLoadProgress.Value = 100;
                     MessageBox.Show(
                         string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -2545,6 +2681,12 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    FileLoadProgress.Visible = false;
+                    FileLoadProgress.Value   = 0;
+                    UpdateStatusBar();
                 }
             }
         }
@@ -2599,7 +2741,8 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    // Merge files time-sorted
+                    // Step 1 of 5: Read and sort files (background)
+                    UpdateStatusProgress(5, string.Format("Reading {0} files...", dlg.FileNames.Length));
                     var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
 
                     // Update current file path to show merged state
@@ -2613,27 +2756,32 @@ namespace Cad3PLogBrowser
                     _searchService.Reset();
                     ClearHighlighting();
 
-                    // Load merged data into UI
-                    StatusFileName.Text = Resources.STATUS_PROCESSING_MERGED_DATA;
-                    FileLoadProgress.Value = 33;
+                    // Step 2 of 5: Populate log list
+                    UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
                     await Task.Delay(10);
-
                     PopulateVirtualListView(_allLines);
-                    FileLoadProgress.Value = 50;
-                    StatusFileName.Text = Resources.STATUS_BUILDING_MERGED_TREE;
-                    await Task.Delay(10);
 
-                    // Parse and build all tree data in parallel on background threads
+                    // Step 3 of 5: Parse log entries
+                    UpdateStatusProgress(40, Resources.STATUS_BUILDING_MERGED_TREE);
+                    await Task.Delay(10);
                     var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
-                    var mApiTask      = Task.Run(() => _parserService.BuildApiList(mergeEntries));
-                    var mCallTask     = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
+
+                    // Step 4 of 5: Build trees and graphs in parallel
+                    UpdateStatusProgress(60, "Building call trees and graphs...");
+                    var mApiTask  = Task.Run(() => _parserService.BuildApiList(mergeEntries));
+                    var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                     await Task.WhenAll(mApiTask, mCallTask);
-                    var mCallTree     = mCallTask.Result;
-                    var mPerfStats    = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
-                    var mFileGraphs   = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
-                    var mGraph        = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+                    var mCallTree  = mCallTask.Result;
+                    var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+
+                    // Step 5 of 5: Build call graph and populate UI
+                    UpdateStatusProgress(80, "Building call graph...");
+                    var mFileGraphs = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
+                    var mGraph      = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+
+                    UpdateStatusProgress(95, "Populating views...");
                     PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
-                    FileLoadProgress.Value = 100;
+                    UpdateStatusProgress(100, "Merge complete.");
 
                     SetDocumentLoaded(true);
                     FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
@@ -2675,7 +2823,7 @@ namespace Cad3PLogBrowser
 
             string baseName = string.IsNullOrEmpty(_currentFilePath)
                 ? "performance"
-                : Path.GetFileNameWithoutExtension(_currentFilePath);
+                : GetSafeBaseName(_currentFilePath);
 
             using (var dlg = new SaveFileDialog())
             {
@@ -2684,7 +2832,7 @@ namespace Cad3PLogBrowser
                 dlg.FileName = baseName + "_performance.xls";
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -2799,10 +2947,9 @@ namespace Cad3PLogBrowser
         {
             if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
 
-            var visibleLines = new List<string>(_virtualLines.Count);
-            foreach (var vl in _virtualLines) visibleLines.Add(vl.Text);
-
-            int idx = _searchService.FindNext(visibleLines, searchTerm, matchCase, useRegex);
+            // P-06: use the zero-alloc wrapper instead of copying all text into a new List<string>.
+            if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
+            int idx = _searchService.FindNext(_virtualLineTexts, searchTerm, matchCase, useRegex);
             if (idx >= 0)
             {
                 // Feature B8: Apply highlighting when search term changes
@@ -2969,6 +3116,20 @@ namespace Cad3PLogBrowser
         }
 
         // ── Operation Progress and Cancellation Support ───────────────────────
+
+        /// <summary>
+        /// Sizes the centred overlay to fill the form body but leave the status
+        /// strip visible at the bottom.  Must be called before overlay.Show() and
+        /// whenever the form resizes while the overlay is visible.
+        /// </summary>
+        private void PositionOverlay()
+        {
+            if (_overlay == null) return;
+            int statusH = (mainStatusStrip != null && mainStatusStrip.Visible)
+                          ? mainStatusStrip.Height : 0;
+            _overlay.SetBounds(0, 0, ClientSize.Width, ClientSize.Height - statusH);
+        }
+
         private void StartOperation(string operationName)
         {
             _currentOperation = operationName;
@@ -2978,22 +3139,72 @@ namespace Cad3PLogBrowser
             // Show progress bar and update status
             FileLoadProgress.Style = ProgressBarStyle.Marquee;
             FileLoadProgress.Visible = true;
-            StatusFileName.Text = string.Format(Resources.STATUS_OPERATION_IN_PROGRESS, operationName);
+            StatusOperationLabel.Text      = operationName + "...";
+            StatusOperationLabel.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            StatusOperationLabel.Visible   = true;
+            mainStatusStrip.Refresh();   // immediate repaint
 
             // Disable menu items during operation (must be before DoEvents to block re-entrancy)
             SetOperationInProgress(true);
 
             // Show centred overlay and flush all pending paint messages so the overlay
             // is physically visible on screen before any synchronous work begins.
+            PositionOverlay();
             _overlay.Show(operationName);
             Application.DoEvents();
         }
 
+        /// <summary>
+        /// Updates the status-bar progress bar with a deterministic percentage and message.
+        /// Switches FileLoadProgress to Blocks mode on the first call so the user sees
+        /// actual progress instead of a marquee stripe.
+        /// </summary>
+        private void UpdateStatusProgress(int percent, string message)
+        {
+            if (!FileLoadProgress.Visible)
+            {
+                FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+                FileLoadProgress.Visible = true;
+            }
+            else if (FileLoadProgress.Style != ProgressBarStyle.Blocks)
+            {
+                FileLoadProgress.Style = ProgressBarStyle.Blocks;
+            }
+
+            // Windows Vista+ smooth-fill animation workaround:
+            // The OS animates the fill from old value to new value, so the bar
+            // visually lags behind the actual value and may appear empty during
+            // fast updates.  Briefly setting the value one step higher forces the
+            // OS to repaint the bar at the correct position immediately.
+            int clamped = Math.Max(0, Math.Min(100, percent));
+            if (clamped < 100)
+            {
+                FileLoadProgress.Value = clamped + 1;   // step ahead …
+                FileLoadProgress.Value = clamped;       // … then snap back
+            }
+            else
+            {
+                FileLoadProgress.Value = 100;
+            }
+
+            // Embed the percentage in the text label too — gives a second indicator
+            // regardless of which part of the status bar the user is looking at.
+            StatusFileName.Text      = string.Format("{0}  ({1}%)", message, clamped);
+            StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            mainStatusStrip.Refresh();
+
+            _overlay.SetProgress(percent, message);
+        }
+
         private void EndOperation()
         {
-            FileLoadProgress.Visible = false;
-            FileLoadProgress.Style = ProgressBarStyle.Blocks;
-            StatusFileName.Text = string.Empty;
+            FileLoadProgress.Visible          = false;
+            FileLoadProgress.Style            = ProgressBarStyle.Blocks;
+            FileLoadProgress.Value            = 0;
+            StatusOperationLabel.Visible      = false;
+            StatusOperationLabel.Text         = string.Empty;
+            StatusFileName.Text               = string.Empty;
+            StatusFileName.ForeColor          = Services.ThemeManager.ControlForegroundColor;
             _currentOperation = string.Empty;
 
             // Hide centred overlay
@@ -3103,39 +3314,63 @@ namespace Cad3PLogBrowser
         }
 
         // ── C1: Expand / Collapse all ─────────────────────────────────────────
-        public void ExpandAllTrees()
+        public async void ExpandAllTrees()
         {
             StartOperation(Resources.OPERATION_EXPANDING_ALL_NODES);
-
             try
             {
                 var token = _cancellationTokenSource.Token;
-                int count = 0;
+
+                var callNodes = CollectAllNodes(CallTree.Nodes);
+                var apiNodes  = CollectAllNodes(ApiTree.Nodes);
+                int total     = callNodes.Count + apiNodes.Count;
+                int done      = 0;
+
+                // Switch from Marquee → Blocks immediately so the user sees a
+                // real filled bar even for very small trees (< 10 nodes).
+                UpdateStatusProgress(1,
+                    string.Format("Expanding 0 / {0} nodes...", total));
+                await System.Threading.Tasks.Task.Yield();
 
                 CallTree.BeginUpdate();
-                foreach (var n in CollectAllNodes(CallTree.Nodes))
+                foreach (var n in callNodes)
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
-                    if (++count % 100 == 0) Application.DoEvents();
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
+                        UpdateStatusProgress(pct,
+                            string.Format("Expanding... {0} / {1} nodes", done, total));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
                 }
                 CallTree.EndUpdate();
 
                 token.ThrowIfCancellationRequested();
 
-                count = 0;
                 ApiTree.BeginUpdate();
-                foreach (var n in CollectAllNodes(ApiTree.Nodes))
+                foreach (var n in apiNodes)
                 {
                     token.ThrowIfCancellationRequested();
                     n.Expand();
-                    if (++count % 100 == 0) Application.DoEvents();
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
+                        UpdateStatusProgress(pct,
+                            string.Format("Expanding... {0} / {1} nodes", done, total));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
                 }
                 ApiTree.EndUpdate();
+
+                UpdateStatusProgress(100, string.Format("Expanded {0} nodes.", total));
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = Resources.STATUS_EXPAND_CANCELLED;
+                StatusOperationLabel.Text = Resources.STATUS_EXPAND_CANCELLED;
             }
             finally
             {
@@ -3160,31 +3395,38 @@ namespace Cad3PLogBrowser
             }
         }
 
-        public void CollapseAllTrees()
+        public async void CollapseAllTrees()
         {
             StartOperation(Resources.OPERATION_COLLAPSING_ALL_NODES);
-
             try
             {
                 var token = _cancellationTokenSource.Token;
 
+                // Switch from Marquee → Blocks immediately (mirrors ExpandAllTrees).
+                UpdateStatusProgress(1, "Collapsing trees...");
+                await System.Threading.Tasks.Task.Yield();
+
+                UpdateStatusProgress(10, "Collapsing Call Tree...");
                 CallTree.BeginUpdate();
                 CallTree.CollapseAll();
                 foreach (TreeNode n in CallTree.Nodes) n.Expand();
                 CallTree.EndUpdate();
-                Application.DoEvents();
 
+                await System.Threading.Tasks.Task.Yield();
                 token.ThrowIfCancellationRequested();
 
+                UpdateStatusProgress(60, "Collapsing API Tree...");
                 ApiTree.BeginUpdate();
                 ApiTree.CollapseAll();
                 foreach (TreeNode n in ApiTree.Nodes) n.Expand();
                 ApiTree.EndUpdate();
-                Application.DoEvents();
+
+                await System.Threading.Tasks.Task.Yield();
+                UpdateStatusProgress(100, "Collapsed.");
             }
             catch (OperationCanceledException)
             {
-                StatusFileName.Text = Resources.STATUS_COLLAPSE_CANCELLED;
+                StatusOperationLabel.Text = Resources.STATUS_COLLAPSE_CANCELLED;
             }
             finally
             {
@@ -4000,7 +4242,12 @@ namespace Cad3PLogBrowser
 
         private void MainForm_ResizeBegin(object sender, EventArgs e) { }
         private void MainForm_ResizeEnd(object sender, EventArgs e) => LayoutTrees();
-        private void MainForm_Resize(object sender, EventArgs e) { }
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            // Re-position the operation overlay so it always stays above the status strip.
+            if (_overlay != null && _overlay.Visible)
+                PositionOverlay();
+        }
         private void MainForm_SizeChanged(object sender, EventArgs e) { }
         private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
         {
@@ -4449,10 +4696,10 @@ namespace Cad3PLogBrowser
             using (var dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.FILE_FILTER_CSV_FILES;
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_PERFORMANCE_CSV;
+                dialog.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_PERFORMANCE_CSV;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath) 
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4561,7 +4808,7 @@ namespace Cad3PLogBrowser
                 dialog.FileName = methodName.Replace("::", "_") + _appSettings.SaveSnippetSuffix + ".log";
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4658,10 +4905,10 @@ namespace Cad3PLogBrowser
             using (var dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dialog.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
+                dialog.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
@@ -4838,7 +5085,7 @@ namespace Cad3PLogBrowser
                         timer.Stop();
                         timer.Dispose();
                         if (!IsDisposed && !Disposing)
-                            StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                            StatusFileName.Text = GetSafeFileName(_currentFilePath);
                     };
                     timer.Start();
                 }
@@ -5306,10 +5553,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_JSON_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_JSON;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_JSON;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5345,10 +5592,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_XML_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_XML;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLTREE_XML;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5384,10 +5631,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5433,10 +5680,10 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = Path.GetFileNameWithoutExtension(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : Path.GetDirectoryName(_currentFilePath);
+                    : GetSafeDirectory(_currentFilePath);
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -5598,7 +5845,7 @@ namespace Cad3PLogBrowser
                     timer.Interval = 3000;
                     timer.Tick += (s, args) =>
                     {
-                        StatusFileName.Text = Path.GetFileName(_currentFilePath);
+                        StatusFileName.Text = GetSafeFileName(_currentFilePath);
                         timer.Stop();
                         timer.Dispose();
                     };
