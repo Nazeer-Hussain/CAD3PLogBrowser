@@ -3181,7 +3181,9 @@ namespace Cad3PLogBrowser
                 FileLoadProgress.Value = 100;
             }
 
-            StatusFileName.Text      = message;
+            // Embed the percentage in the text label too — gives a second indicator
+            // regardless of which part of the status bar the user is looking at.
+            StatusFileName.Text      = string.Format("{0}  ({1}%)", message, clamped);
             StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
             mainStatusStrip.Refresh();
 

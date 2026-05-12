@@ -731,8 +731,8 @@
             // 
             this.mainStatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FileStatus,
-            this.StatusFileName,
             this.FileLoadProgress,
+            this.StatusFileName,
             this.StatusLineCount,
             this.StatusSelection});
             this.mainStatusStrip.Name = "mainStatusStrip";
@@ -751,7 +751,7 @@
             // 
             this.FileLoadProgress.AutoSize = false;
             this.FileLoadProgress.Name = "FileLoadProgress";
-            this.FileLoadProgress.Size = new System.Drawing.Size(200, 16);
+            this.FileLoadProgress.Size = new System.Drawing.Size(180, 16);
             this.FileLoadProgress.Visible = false;
             this.FileLoadProgress.Minimum = 0;
             this.FileLoadProgress.Maximum = 100;
