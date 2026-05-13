@@ -28,6 +28,12 @@ namespace Cad3PLogBrowser
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
 
+        // ── API Details panel (bottom section of logDetailTab) ────────────────
+        private Panel       _apiDetailsPanel;
+        private Label       _apiDetailsDivider;
+        private Label       _apiDetailsHeader;
+        private RichTextBox _apiDetailsBox;
+
         // ── State ─────────────────────────────────────────────────────────────
         private string            _currentFilePath = string.Empty;
         private bool              _isLoading       = false;
@@ -56,6 +62,25 @@ namespace Cad3PLogBrowser
         private ContextMenuStrip     _callTreeContextMenu;
         private ToolStripSeparator   _callTreeGrokSep;
         private ToolStripMenuItem    _callTreeGrokItem;
+        // Context menu item for manual performance filtering (shown when AutoFilter is OFF)
+        private ToolStripSeparator   _callTreePerfSep;
+        private ToolStripMenuItem    _callTreePerfItem;
+        // BUG-14: cached API tree context menu (built once, not per right-click)
+        private ContextMenuStrip     _apiTreeContextMenu;
+
+        // BUG-11: cached call tree — built during load, reused for JSON/XML export
+        private List<CallStackNode>  _lastCallTree = new List<CallStackNode>();
+
+        // BUG-15/16: cached GDI fonts for performance summary row and call-tree root node.
+        private Font _perfSummaryFont;
+        private Font _callTreeRootFont;
+
+        // Performance subtree filter state
+        private bool   _perfFilterActive   = false;
+        private string _perfFilterNodeName = string.Empty;
+        private Panel  _perfFilterBar;
+        private Label  _perfFilterLabel;
+        private Button _perfClearFilterButton;
 
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
@@ -403,7 +428,51 @@ namespace Cad3PLogBrowser
             // Replace logDetailBox with the structured Line Inspector
             _lineInspector = new UI.LineInspectorPanel();
             logDetailTab.Controls.Clear();
-            logDetailTab.Controls.Add(_lineInspector);
+
+            // ── API Details panel — docked to the bottom of logDetailTab ──────
+            // Keeps the LineInspectorPanel (per-line detail) in the upper portion
+            // and shows aggregate API information in the lower portion whenever
+            // the user clicks a node in either tree.
+            _apiDetailsHeader = new Label
+            {
+                Text      = "API Details",
+                Dock      = DockStyle.Top,
+                Height    = 22,
+                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding   = new Padding(6, 0, 0, 0),
+            };
+            _apiDetailsBox = new RichTextBox
+            {
+                Dock        = DockStyle.Fill,
+                ReadOnly    = true,
+                WordWrap    = false,
+                Font        = new Font("Consolas", 9f),
+                BorderStyle = BorderStyle.None,
+                ScrollBars  = RichTextBoxScrollBars.Vertical,
+                Text        = "",
+            };
+            _apiDetailsPanel = new Panel
+            {
+                Dock    = DockStyle.Bottom,
+                Height  = 145,
+                Padding = new Padding(4, 0, 4, 4),
+            };
+            _apiDetailsPanel.Controls.Add(_apiDetailsBox);
+            _apiDetailsPanel.Controls.Add(_apiDetailsHeader);
+
+            // 1-px divider between inspector and API details
+            _apiDetailsDivider = new Label
+            {
+                Dock      = DockStyle.Bottom,
+                Height    = 1,
+                BackColor = SystemColors.ControlDark,
+            };
+
+            // Add in reverse dock order: Fill panel last so it takes all remaining space
+            logDetailTab.Controls.Add(_apiDetailsPanel);
+            logDetailTab.Controls.Add(_apiDetailsDivider);
+            logDetailTab.Controls.Add(_lineInspector);  // Dock=Fill — must be added last
             _settingsService  = new SettingsService(_appSettings);
             _searchService    = new SearchService();
             _parserService    = new LogParserService();
@@ -474,6 +543,7 @@ namespace Cad3PLogBrowser
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
+            InitializePerfFilterBar();
 
             // Force layout again when form is shown to ensure correct positioning
             LayoutTrees();
@@ -571,6 +641,23 @@ namespace Cad3PLogBrowser
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
 
+                // Apply theme to the API Details panel
+                if (_apiDetailsPanel != null)
+                {
+                    bool isDark = _appSettings.Theme == "Dark";
+                    Color apiPanelBg   = isDark ? Color.FromArgb(28, 30, 38)    : SystemColors.Control;
+                    Color apiBoxBg     = isDark ? Color.FromArgb(22, 24, 30)    : SystemColors.Window;
+                    Color apiBoxFg     = isDark ? Color.FromArgb(200, 205, 215) : SystemColors.WindowText;
+                    Color dividerColor = isDark ? Color.FromArgb(60, 65, 80)    : SystemColors.ControlDark;
+
+                    _apiDetailsPanel.BackColor   = apiPanelBg;
+                    _apiDetailsHeader.BackColor  = apiPanelBg;
+                    _apiDetailsHeader.ForeColor  = isDark ? Color.FromArgb(160, 170, 190) : SystemColors.ControlText;
+                    _apiDetailsBox.BackColor     = apiBoxBg;
+                    _apiDetailsBox.ForeColor     = apiBoxFg;
+                    _apiDetailsDivider.BackColor = dividerColor;
+                }
+
                 // Issue 4 Fix: apply dark/light theme colors to the tree views to prevent text truncation
                 bool isDarkTheme = _appSettings.Theme == "Dark";
                 Color treeBack = isDarkTheme ? Color.FromArgb(28, 30, 38)    : SystemColors.Window;
@@ -608,6 +695,22 @@ namespace Cad3PLogBrowser
                 if (callGraphPanel != null)
                 {
                     callGraphPanel.Invalidate();
+                }
+
+                // Apply theme to the performance subtree filter bar.
+                ApplyPerfFilterBarTheme();
+
+                // BUG-14: re-apply placeholder colour to the tree search box so it
+                // matches the new theme (system GrayText is invisible in dark theme).
+                if (treeSearchTextBox != null)
+                {
+                    bool isDarkPlaceholder = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+                    bool showingPlaceholder = treeSearchTextBox.Text == Resources.TREE_SEARCH_PLACEHOLDER
+                                             || treeSearchTextBox.Text == TREE_SEARCH_PLACEHOLDER;
+                    treeSearchTextBox.ForeColor = showingPlaceholder
+                        ? (isDarkPlaceholder ? Color.FromArgb(100, 105, 120) : SystemColors.GrayText)
+                        : ThemeManager.ForegroundColor;
+                    treeSearchTextBox.BackColor = ThemeManager.ControlBackgroundColor;
                 }
 
                 // Refresh the performance view with theme-aware colors
@@ -916,87 +1019,92 @@ namespace Cad3PLogBrowser
                 var node = ApiTree.GetNodeAt(e.Location);
                 if (node != null) ApiTree.SelectedNode = node;
 
-                // API Tree specific context menu
-                var contextMenu = new ContextMenuStrip();
+                // BUG-14: build the API Tree context menu once and cache it.
+                // The previous code created a new ContextMenuStrip and all its
+                // ToolStripMenuItems on every right-click, leaking GDI handles.
+                if (_apiTreeContextMenu == null)
+                    _apiTreeContextMenu = BuildApiTreeContextMenu();
 
-                // ═══ SORTING OPTIONS (API Tree only - PRIMARY FEATURE) ═══
-                var sortByName = new ToolStripMenuItem(Resources.MENU_SORT_BY_NAME);
-                sortByName.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByName);
-                sortByName.Checked = (_apiSortMode == ApiSortMode.ByName);
-                contextMenu.Items.Add(sortByName);
+                // Update sort-check state on each show (sort mode can change)
+                UpdateApiTreeMenuChecks(_apiTreeContextMenu);
 
-                var sortByCount = new ToolStripMenuItem(Resources.MENU_SORT_BY_COUNT);
-                sortByCount.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByCount);
-                sortByCount.Checked = (_apiSortMode == ApiSortMode.ByCount);
-                contextMenu.Items.Add(sortByCount);
+                // Update Grok item visibility
+                bool hasGrokApi = !string.IsNullOrEmpty(_appSettings?.GrokUrl);
+                var grokSepApi  = _apiTreeContextMenu.Tag as ToolStripSeparator;
+                var grokItemApi = _apiTreeContextMenu.Items[_apiTreeContextMenu.Items.Count - 1] as ToolStripMenuItem;
+                if (grokSepApi  != null) grokSepApi.Visible  = hasGrokApi;
+                if (grokItemApi != null) grokItemApi.Visible = hasGrokApi;
 
-                var sortByLine = new ToolStripMenuItem(Resources.MENU_SORT_BY_LINE);
-                sortByLine.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine);
-                sortByLine.Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
-                contextMenu.Items.Add(sortByLine);
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ COPY ACTIONS ═══
-                contextMenu.Items.Add(Resources.MENU_COPY_API_NAME, null, (s, ev) => 
-                {
-                    var n = ApiTree.SelectedNode;
-                    if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
-                });
-                contextMenu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
-                ((ToolStripMenuItem)contextMenu.Items[contextMenu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ COMMON TREE ACTIONS ═══
-                contextMenu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null, (s, ev) => ApiTree.ExpandAll());
-                contextMenu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) => 
-                {
-                    ApiTree.CollapseAll();
-                    if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
-                });
-
-                contextMenu.Items.Add(new ToolStripSeparator());
-
-                // ═══ CROSS-REFERENCE ═══
-                contextMenu.Items.Add(Resources.MENU_SHOW_IN_CALL_TREE, null, (s, ev) => 
-                {
-                    var n = ApiTree.SelectedNode;
-                    if (n != null)
-                    {
-                        ShowCallTree();
-                        FindAndSelectCallTreeNode(GetMethodNameFromNode(n));
-                    }
-                });
-
-                // ═══ SEARCH IN GROK (if configured) ═══
-                if (!string.IsNullOrEmpty(_appSettings?.GrokUrl))
-                {
-                    contextMenu.Items.Add(new ToolStripSeparator());
-                    contextMenu.Items.Add(Resources.MENU_SEARCH_IN_GROK, null, treeContextSearchInGrokMenuItem_Click);
-                }
-
-                // Apply dark theme if needed
-                if (ThemeManager.CurrentTheme == ThemeManager.Theme.Dark)
-                {
-                    contextMenu.Renderer = new ToolStripProfessionalRenderer(new DarkContextMenuColorTable());
-                    contextMenu.BackColor = Color.FromArgb(45, 45, 48);
-                    contextMenu.ForeColor = Color.FromArgb(241, 241, 241);
-                }
-
-                contextMenu.Show(ApiTree, e.Location);
+                ApplyContextMenuTheme(_apiTreeContextMenu);
+                _apiTreeContextMenu.Show(ApiTree, e.Location);
             }
+        }
+
+        /// <summary>Builds the API Tree context menu once.</summary>
+        private ContextMenuStrip BuildApiTreeContextMenu()
+        {
+            var menu = new ContextMenuStrip();
+
+            var sortByName  = new ToolStripMenuItem(Resources.MENU_SORT_BY_NAME);
+            var sortByCount = new ToolStripMenuItem(Resources.MENU_SORT_BY_COUNT);
+            var sortByLine  = new ToolStripMenuItem(Resources.MENU_SORT_BY_LINE);
+            sortByName.Click  += (s, ev) => ChangeApiSorting(ApiSortMode.ByName);
+            sortByCount.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByCount);
+            sortByLine.Click  += (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine);
+            menu.Items.Add(sortByName);
+            menu.Items.Add(sortByCount);
+            menu.Items.Add(sortByLine);
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_COPY_API_NAME, null, (s, ev) =>
+            {
+                var n = ApiTree.SelectedNode;
+                if (n != null) Clipboard.SetText(GetMethodNameFromNode(n));
+            });
+            menu.Items.Add(Resources.MENU_INSPECT_LINE, null, (s, ev) => InspectSelectedLine());
+            ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).ShortcutKeyDisplayString = "F12";
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_EXPAND_ALL_SHORTCUT, null,  (s, ev) => ApiTree.ExpandAll());
+            menu.Items.Add(Resources.MENU_COLLAPSE_ALL_SHORTCUT, null, (s, ev) =>
+            {
+                ApiTree.CollapseAll();
+                if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
+            });
+
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Resources.MENU_SHOW_IN_CALL_TREE, null, (s, ev) =>
+            {
+                var n = ApiTree.SelectedNode;
+                if (n != null) { ShowCallTree(); FindAndSelectCallTreeNode(GetMethodNameFromNode(n)); }
+            });
+
+            // Grok — always present, Visible toggled on each show
+            var grokSep  = new ToolStripSeparator { Visible = false };
+            var grokItem = new ToolStripMenuItem(Resources.MENU_SEARCH_IN_GROK) { Visible = false };
+            grokItem.Click += treeContextSearchInGrokMenuItem_Click;
+            menu.Items.Add(grokSep);
+            menu.Items.Add(grokItem);
+            // Store separator in Tag for easy retrieval in the show handler
+            menu.Tag = grokSep;
+
+            return menu;
+        }
+
+        /// <summary>Updates the sort-checked state on the cached API tree menu.</summary>
+        private void UpdateApiTreeMenuChecks(ContextMenuStrip menu)
+        {
+            if (menu.Items.Count < 3) return;
+            ((ToolStripMenuItem)menu.Items[0]).Checked = (_apiSortMode == ApiSortMode.ByName);
+            ((ToolStripMenuItem)menu.Items[1]).Checked = (_apiSortMode == ApiSortMode.ByCount);
+            ((ToolStripMenuItem)menu.Items[2]).Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
         }
 
         private void ChangeApiSorting(ApiSortMode newMode)
         {
             _apiSortMode = newMode;
-
-            // Refresh API Tree
             if (_apiNodes != null && _apiNodes.Count > 0)
-            {
                 PopulateApiTree(_apiNodes);
-            }
         }
 
         private void BuildTreeIconList()
@@ -1070,6 +1178,10 @@ namespace Cad3PLogBrowser
             Services.CallGraph                             graph,
             List<(string FileName, Services.CallGraph Graph)> fileGraphs)
         {
+            // Clear any stale subtree filter from the previous file.
+            _perfFilterActive   = false;
+            _perfFilterNodeName = string.Empty;
+            if (_perfFilterBar != null) _perfFilterBar.Visible = false;
             _lastEntries  = entries;
             _apiNodes     = apiNodes;
 
@@ -1244,7 +1356,14 @@ namespace Cad3PLogBrowser
 
             // Root node: "Call Tree"
             var rootNode = new TreeNode(Resources.TREE_LABEL_CALL_TREE) { Tag = -1 };
-            rootNode.NodeFont = new System.Drawing.Font(CallTree.Font, System.Drawing.FontStyle.Bold);
+            // BUG-16: cache the bold root font; create only when CallTree.Font changes
+            if (_callTreeRootFont == null || _callTreeRootFont.Size != CallTree.Font.Size
+                || _callTreeRootFont.FontFamily.Name != CallTree.Font.FontFamily.Name)
+            {
+                _callTreeRootFont?.Dispose();
+                _callTreeRootFont = new Font(CallTree.Font, FontStyle.Bold);
+            }
+            rootNode.NodeFont = _callTreeRootFont;
 
             // Feature C2: Check total node count for lazy loading
             int totalNodes = CountTotalNodes(roots);
@@ -1396,6 +1515,135 @@ namespace Cad3PLogBrowser
             return tn;
         }
 
+        // ── Performance subtree filter ────────────────────────────────────────
+
+        private void InitializePerfFilterBar()
+        {
+            if (_perfFilterBar != null || performanceTab == null) return;
+
+            _perfFilterLabel = new Label
+            {
+                AutoSize  = false,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Padding   = new Padding(6, 0, 0, 0),
+            };
+
+            _perfClearFilterButton = new Button
+            {
+                Text      = "Show All",
+                Dock      = DockStyle.Right,
+                Width     = 80,
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+            };
+            _perfClearFilterButton.Click += (s, ev) => ClearPerformanceFilter();
+
+            _perfFilterBar = new Panel
+            {
+                Dock    = DockStyle.Top,
+                Height  = 28,
+                Padding = new Padding(4, 2, 4, 2),
+                Visible = false,
+            };
+            _perfFilterBar.Controls.Add(_perfFilterLabel);
+            _perfFilterBar.Controls.Add(_perfClearFilterButton);
+
+            // Insert at index 0 so it docks above performanceView (Dock=Fill).
+            performanceTab.Controls.Add(_perfFilterBar);
+            performanceTab.Controls.SetChildIndex(_perfFilterBar, 0);
+            ApplyPerfFilterBarTheme();
+        }
+
+        private void ApplyPerfFilterBarTheme()
+        {
+            if (_perfFilterBar == null) return;
+            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            Color barBg = dark ? Color.FromArgb(38, 50, 56)    : Color.FromArgb(232, 244, 253);
+            Color barFg = dark ? Color.FromArgb(180, 210, 255) : Color.FromArgb(0, 80, 160);
+            Color btnBg = dark ? Color.FromArgb(55, 70, 90)    : Color.FromArgb(210, 228, 252);
+            Color btnFg = dark ? Color.FromArgb(200, 215, 235) : SystemColors.ControlText;
+            _perfFilterBar.BackColor                          = barBg;
+            _perfFilterLabel.BackColor                        = barBg;
+            _perfFilterLabel.ForeColor                        = barFg;
+            _perfClearFilterButton.BackColor                  = btnBg;
+            _perfClearFilterButton.ForeColor                  = btnFg;
+            _perfClearFilterButton.FlatAppearance.BorderColor =
+                dark ? Color.FromArgb(70, 90, 120) : Color.FromArgb(170, 200, 240);
+        }
+
+        /// <summary>Recursively finds the CallStackNode whose ENTER line == enterLineNumber.</summary>
+        private static CallStackNode FindCallStackNodeByLine(int enterLineNumber, IList<CallStackNode> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                if (node.LineNumber == enterLineNumber) return node;
+                var found = FindCallStackNodeByLine(enterLineNumber, node.Children);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Filters the Performance tab to only the API calls that occur between the
+        /// selected Call Tree node's ENTER and EXIT lines, then switches to that tab.
+        /// </summary>
+        private void FilterPerformanceToSubtree(CallStackNode csNode)
+        {
+            if (csNode == null || _lastEntries == null || _lastEntries.Count == 0) return;
+
+            int enterLine = csNode.LineNumber;
+            int exitLine  = csNode.ExitLineNumber; // 0 = unmatched
+
+            var subEntries = new List<Services.LogEntry>();
+            foreach (var entry in _lastEntries)
+            {
+                if (entry.LineNumber < enterLine) continue;
+                if (exitLine > 0 && entry.LineNumber > exitLine) break;
+                subEntries.Add(entry);
+            }
+
+            if (subEntries.Count == 0)
+            {
+                StatusFileName.Text = string.Format("No entries found between lines {0} and {1}.",
+                    enterLine, exitLine > 0 ? exitLine.ToString() : "end");
+                return;
+            }
+
+            var subTree  = _parserService.BuildCallTree(subEntries);
+            var subStats = _parserService.BuildPerformanceStats(subTree);
+
+            _perfFilterActive   = true;
+            _perfFilterNodeName = csNode.Label;
+
+            if (_perfFilterBar != null)
+            {
+                string range = exitLine > 0
+                    ? string.Format("Lines {0}\u2013{1}", enterLine, exitLine)
+                    : string.Format("Lines {0}\u2013end", enterLine);
+                _perfFilterLabel.Text  = string.Format("\u25bc  Filtered to: {0}  ({1})", csNode.Label, range);
+                _perfFilterBar.Visible = true;
+            }
+
+            RenderPerformanceRows(subStats, subEntries.Count, updateFullCache: false);
+
+            if (mainTabControl != null && performanceTab != null
+                && mainTabControl.TabPages.Contains(performanceTab))
+                mainTabControl.SelectedTab = performanceTab;
+        }
+
+        /// <summary>Clears the subtree filter and restores full-file performance data.</summary>
+        private void ClearPerformanceFilter()
+        {
+            if (!_perfFilterActive) return;
+            _perfFilterActive   = false;
+            _perfFilterNodeName = string.Empty;
+            if (_perfFilterBar != null) _perfFilterBar.Visible = false;
+            if (_apiPerfStats != null && _apiPerfStats.Count > 0)
+                RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
+        }
+
         // ── Performance tab ───────────────────────────────────────────────────
         // ── API tree sort state (D6) ─────────────────────────────────────────
         private enum ApiSortMode { ByName, ByCount, ByFirstLine }
@@ -1437,10 +1685,17 @@ namespace Cad3PLogBrowser
             RenderPerformanceRows(_apiPerfStats, _lastTotalLines);
         }
 
-        private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines)
+        private void RenderPerformanceRows(List<ApiPerfStats> stats, int totalLines,
+            bool updateFullCache = true)
         {
-            _apiPerfStats   = stats;
-            _lastTotalLines = totalLines;
+            // Guard: only overwrite the full-file cache when this is NOT a filtered
+            // (subtree) render.  FilterPerformanceToSubtree passes updateFullCache=false
+            // so that ClearPerformanceFilter can still restore the original data.
+            if (updateFullCache)
+            {
+                _apiPerfStats   = stats;
+                _lastTotalLines = totalLines;
+            }
 
             // Sort all rows by the selected column (flat — no grouping headers)
             var sorted = new List<ApiPerfStats>(stats);
@@ -1487,7 +1742,14 @@ namespace Cad3PLogBrowser
                 summary.BackColor = Color.FromArgb(210, 225, 255);
                 summary.ForeColor = SystemColors.ControlText;
             }
-            summary.Font = new System.Drawing.Font(performanceView.Font, System.Drawing.FontStyle.Bold);
+            // BUG-15: cache the bold summary font; recreate only when performanceView.Font changes
+            if (_perfSummaryFont == null || _perfSummaryFont.Size != performanceView.Font.Size
+                || _perfSummaryFont.FontFamily.Name != performanceView.Font.FontFamily.Name)
+            {
+                _perfSummaryFont?.Dispose();
+                _perfSummaryFont = new Font(performanceView.Font, FontStyle.Bold);
+            }
+            summary.Font = _perfSummaryFont;
             performanceView.Items.Add(summary);
 
             long threshold = _appSettings?.SlowCallThresholdMs ?? 1000;
@@ -1678,7 +1940,7 @@ namespace Cad3PLogBrowser
         // D3: API Invocation Details Panel
         private void ShowApiDetails(TreeNode node)
         {
-            if (node == null || logDetailBox == null) return;
+            if (node == null || _apiDetailsBox == null) return;
             if (node.Tag == null || (node.Tag is int t && t < 0)) return;
 
             // Find the API name from this node or its parent
@@ -1699,17 +1961,23 @@ namespace Cad3PLogBrowser
                     apiName = lbl.Substring(0, lbl.IndexOf(" — Ln "));
                     break;
                 }
+                // Call Tree nodes always have format "ApiName  [N ms]", "ApiName  [<1 ms]",
+                // or "ApiName  [? ms]" — the "  [" suffix is always present.
+                if (!lbl.Contains("Call Tree") && n.Tag is int)
+                {
+                    apiName = lbl.Split(new[] { "  [" }, StringSplitOptions.None)[0].Trim();
+                    break;
+                }
                 n = n.Parent;
             }
 
             if (string.IsNullOrEmpty(apiName)) return;
 
-            // Find matching API stats from performance data
+            // Build the summary using the same Resources strings as before
             var sb = new System.Text.StringBuilder();
             sb.AppendLine(string.Format(Resources.API_DETAILS_HEADER, apiName));
             sb.AppendLine();
 
-            // Basic invocation info from _apiNodes
             var apiNode = _apiNodes?.Find(a => a.ApiName == apiName);
             if (apiNode != null)
             {
@@ -1720,17 +1988,26 @@ namespace Cad3PLogBrowser
                 foreach (int ln in apiNode.LineNumbers)
                     sb.AppendLine(string.Format(Resources.API_DETAILS_LINE_INDENTED, ln));
             }
+            else
+            {
+                sb.AppendLine("  (No API data found for this method)");
+            }
 
-            // Match/unmatch status
             bool matched = AreAllApiCallsMatched(apiName);
             sb.AppendLine();
-            sb.AppendLine(string.Format(Resources.API_DETAILS_ENTER_EXIT_MATCHED, 
+            sb.AppendLine(string.Format(Resources.API_DETAILS_ENTER_EXIT_MATCHED,
                 matched ? Resources.API_DETAILS_MATCHED_YES : Resources.API_DETAILS_MATCHED_NO));
 
-            if (logDetailBox.InvokeRequired)
-                logDetailBox.Invoke((Action)(() => logDetailBox.Text = sb.ToString()));
+            // Write to the dedicated API Details panel (BUG-04 fix)
+            if (_apiDetailsBox.InvokeRequired)
+                _apiDetailsBox.Invoke((Action)(() => _apiDetailsBox.Text = sb.ToString()));
             else
-                logDetailBox.Text = sb.ToString();
+                _apiDetailsBox.Text = sb.ToString();
+
+            // Switch to Log Details tab so the user can see the result
+            if (mainTabControl != null && logDetailTab != null
+                && mainTabControl.TabPages.Contains(logDetailTab))
+                mainTabControl.SelectedTab = logDetailTab;
         }
 
         private void ApiTree_Click(object sender, EventArgs e) { }
@@ -1745,6 +2022,19 @@ namespace Cad3PLogBrowser
                 && e.Node?.Tag is int ln
                 && _lineIndexMap.TryGetValue(ln, out int idx))
                 ShowLogDetail(idx);
+
+            // D3: Show API details in the bottom panel for the selected call node
+            ShowApiDetails(e.Node);
+
+            // Filter Performance tab to the selected node’s ENTER/EXIT scope
+            // — only when the auto-filter setting is ON.
+            if ((_appSettings?.FilterPerfOnTreeSelect ?? true)
+                && e.Node?.Tag is int enterLn && enterLn > 0 && _lastCallTree != null)
+            {
+                var csNode = FindCallStackNodeByLine(enterLn, _lastCallTree);
+                if (csNode != null && csNode.ExitLineNumber > 0)
+                    FilterPerformanceToSubtree(csNode);
+            }
 
             // D5: Cross-reference - highlight matching node in API Tree if both have data
             if (e.Node != null && ApiTree.Nodes.Count > 0)
@@ -1795,14 +2085,25 @@ namespace Cad3PLogBrowser
         {
             if (idx < 0 || idx >= _virtualLines.Count || _lineInspector == null) return;
 
-            // Convert _virtualLines to the panel's simple InspectorLine type
-            var lines = new List<UI.LineInspectorPanel.InspectorLine>(_virtualLines.Count);
-            foreach (var vl in _virtualLines)
-                lines.Add(new UI.LineInspectorPanel.InspectorLine { LineNumber = vl.LineNumber, Text = vl.Text });
+            // BUG-02: Build only the ±5-line window instead of copying all _virtualLines.
+            // LineInspectorPanel.PopulateContext only reads lines[start..end] where
+            // start = max(0, center-5) and end = min(count-1, center+5).
+            int start  = Math.Max(0, idx - 5);
+            int end    = Math.Min(_virtualLines.Count - 1, idx + 5);
+            int window = end - start + 1;
 
-            _lineInspector.Inspect(lines, idx, _lastEntries);
+            var lines = new UI.LineInspectorPanel.InspectorLine[window];
+            for (int i = 0; i < window; i++)
+            {
+                var vl = _virtualLines[start + i];
+                lines[i] = new UI.LineInspectorPanel.InspectorLine
+                    { LineNumber = vl.LineNumber, Text = vl.Text };
+            }
 
-            // Switch to Log Details tab
+            // The selected index within the window slice
+            int selectedInWindow = idx - start;
+            _lineInspector.Inspect(lines, selectedInWindow, _lastEntries);
+
             if (mainTabControl != null && logDetailTab != null
                 && mainTabControl.TabPages.Contains(logDetailTab))
                 mainTabControl.SelectedTab = logDetailTab;
@@ -2127,6 +2428,7 @@ namespace Cad3PLogBrowser
 
                 UpdateStatusProgress(65, "Building performance statistics...");
                 var callTree  = callTreeTask.Result;
+                _lastCallTree = callTree; // BUG-11: cache for JSON/XML export
                 var perfStats = await Task.Run(() => _parserService.BuildPerformanceStats(callTree));
 
                 UpdateStatusProgress(80, "Building call graph...");
@@ -2939,6 +3241,34 @@ namespace Cad3PLogBrowser
                 _findForm.TriggerFindNext();
         }
 
+        // BUG-09: Find Previous — mirrors FindNext but searches backward via SearchService.FindPrev
+        public void FindPrev(string searchTerm, bool matchCase, bool useRegex = false)
+        {
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+
+            if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
+            int idx = _searchService.FindPrev(_virtualLineTexts, searchTerm, matchCase, useRegex);
+            if (idx >= 0)
+            {
+                if (searchTerm != _lastHighlightTerm || matchCase != _lastHighlightMatchCase)
+                {
+                    HighlightSearchResults(searchTerm, matchCase, useRegex);
+                    _lastHighlightTerm      = searchTerm;
+                    _lastHighlightMatchCase = matchCase;
+                }
+
+                logListView.SelectedIndices.Clear();
+                logListView.SelectedIndices.Add(idx);
+                logListView.EnsureVisible(idx);
+                ShowLogDetail(idx);
+            }
+            else
+            {
+                MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         // Feature B8: Highlight search results
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
@@ -3275,6 +3605,17 @@ namespace Cad3PLogBrowser
                     ThemeToggleButton_Click(this, EventArgs.Empty);
                     return true;
 
+                case Keys.F3:                                    // Find Next (BUG-09)
+                    if (_findForm != null && !_findForm.IsDisposed)
+                        _findForm.TriggerFindNext();
+                    else
+                        findMenuItem_Click(this, EventArgs.Empty);
+                    return true;
+                case Keys.Shift | Keys.F3:                       // Find Previous (BUG-09)
+                    if (_findForm != null && !_findForm.IsDisposed)
+                        _findForm.TriggerFindPrev();
+                    return true;
+
                 case Keys.F12:                                   // Inspect selected line
                     InspectSelectedLine();
                     return true;
@@ -3563,9 +3904,36 @@ namespace Cad3PLogBrowser
                     ? BuildDurationQualifiedLines(criteria.MinimumDurationMs.Value)
                     : null;
 
+                // BUG-05: pre-compile the regex ONCE here on the UI thread, then pass the
+                // compiled instance into MatchesFilterRaw so the background loop never has
+                // to re-parse the pattern (Regex.IsMatch static overload is not cached
+                // reliably and creates a new Regex on every call when the cache is cold).
+                System.Text.RegularExpressions.Regex precompiledRegex = null;
+                if (criteria.UseRegex && !string.IsNullOrWhiteSpace(criteria.SearchText))
+                {
+                    try
+                    {
+                        var rxOpts = criteria.IsCaseSensitive
+                            ? System.Text.RegularExpressions.RegexOptions.Compiled
+                            : System.Text.RegularExpressions.RegexOptions.Compiled
+                              | System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                        precompiledRegex = new System.Text.RegularExpressions.Regex(
+                            criteria.SearchText, rxOpts);
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Invalid regex — EndOperation is called by the finally block below.
+                        // Do NOT call it here; doing so would result in a double call.
+                        MessageBox.Show(
+                            string.Format(Resources.ERR_INVALID_REGEX, criteria.SearchText),
+                            Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
                 var filtered = await Task.Run(() =>
                 {
-                    var token = _cancellationTokenSource.Token;
+                    var token  = _cancellationTokenSource.Token;
                     var result = new List<FilteredLine>();
 
                     for (int i = 0; i < allLinesCopy.Count; i++)
@@ -3574,19 +3942,22 @@ namespace Cad3PLogBrowser
                         {
                             token.ThrowIfCancellationRequested();
                             int progress = (int)((i / (double)allLinesCopy.Count) * 100);
-                            this.Invoke((Action)(() =>
-                            {
-                                FileLoadProgress.Style = ProgressBarStyle.Blocks;
-                                FileLoadProgress.Value = progress;
-                                var msg = string.Format(Resources.STATUS_FILTERING_PROGRESS,
-                                    progress, i, allLinesCopy.Count);
-                                StatusFileName.Text = msg;
-                                _overlay.SetProgress(progress, msg);
-                            }));
+                            // BUG-11: guard against the form being disposed between
+                            // task iterations (rapid reload or close during filter).
+                            if (!IsDisposed && IsHandleCreated)
+                                this.Invoke((Action)(() =>
+                                {
+                                    FileLoadProgress.Style = ProgressBarStyle.Blocks;
+                                    FileLoadProgress.Value = progress;
+                                    var msg = string.Format(Resources.STATUS_FILTERING_PROGRESS,
+                                        progress, i, allLinesCopy.Count);
+                                    StatusFileName.Text = msg;
+                                    _overlay.SetProgress(progress, msg);
+                                }));
                         }
 
                         string line = allLinesCopy[i];
-                        if (MatchesFilterRaw(line, criteria, durationQualifiedLines, i + 1))
+                        if (MatchesFilterRaw(line, criteria, durationQualifiedLines, i + 1, precompiledRegex))
                             result.Add(new FilteredLine(i + 1, line));
                     }
                     return result;
@@ -3625,25 +3996,29 @@ namespace Cad3PLogBrowser
                 System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private bool MatchesFilterRaw(string line, Models.FilterCriteria criteria,
-            HashSet<int> durationQualifiedLines, int lineNumber1Based)
+            HashSet<int> durationQualifiedLines, int lineNumber1Based,
+            System.Text.RegularExpressions.Regex precompiledRegex = null)
         {
             // ── Text filter — honours UseRegex and IsCaseSensitive ────────────
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
                 if (criteria.UseRegex)
                 {
-                    try
+                    // BUG-05: use pre-compiled regex instance when available
+                    var rx = precompiledRegex;
+                    if (rx == null)
                     {
-                        var opts = criteria.IsCaseSensitive
-                            ? System.Text.RegularExpressions.RegexOptions.None
-                            : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
-                        if (!System.Text.RegularExpressions.Regex.IsMatch(line, criteria.SearchText, opts))
-                            return false;
+                        try
+                        {
+                            var opts = criteria.IsCaseSensitive
+                                ? System.Text.RegularExpressions.RegexOptions.Compiled
+                                : System.Text.RegularExpressions.RegexOptions.Compiled
+                                  | System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                            rx = new System.Text.RegularExpressions.Regex(criteria.SearchText, opts);
+                        }
+                        catch (ArgumentException) { return false; }
                     }
-                    catch (ArgumentException)
-                    {
-                        return false; // invalid regex pattern → exclude
-                    }
+                    if (!rx.IsMatch(line)) return false;
                 }
                 else
                 {
@@ -3925,7 +4300,7 @@ namespace Cad3PLogBrowser
         /// </summary>
         private void ShowInlineHelpDialog()
         {
-            var helpForm = new Form
+            using (var helpForm = new Form
             {
                 Text = Resources.DIALOG_TITLE_QUICK_HELP,
                 Size = new Size(700, 600),
@@ -3934,24 +4309,23 @@ namespace Cad3PLogBrowser
                 MinimizeBox = false,
                 MaximizeBox = true,
                 ShowIcon = false
-            };
-
-            var rtb = new RichTextBox
+            })
             {
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                BackColor = Color.White,
-                Font = new Font("Segoe UI", 10f),
-                BorderStyle = BorderStyle.None,
-                Padding = new Padding(20),
-                Text = GetQuickHelpContent()
-            };
+                var rtb = new RichTextBox
+                {
+                    Dock = DockStyle.Fill,
+                    ReadOnly = true,
+                    BackColor = Color.White,
+                    Font = new Font("Segoe UI", 10f),
+                    BorderStyle = BorderStyle.None,
+                    Padding = new Padding(20),
+                    Text = GetQuickHelpContent()
+                };
 
-            // Apply current theme to help dialog
-            ThemeManager.ApplyTheme(helpForm);
-
-            helpForm.Controls.Add(rtb);
-            helpForm.ShowDialog(this);
+                ThemeManager.ApplyTheme(helpForm);
+                helpForm.Controls.Add(rtb);
+                helpForm.ShowDialog(this);
+            }
         }
 
         /// <summary>
@@ -4024,7 +4398,7 @@ namespace Cad3PLogBrowser
 
         private void ShowKeyboardShortcutsDialog()
         {
-            var helpForm = new Form
+            using (var helpForm = new Form
             {
                 Text = Resources.DIALOG_TITLE_KEYBOARD_SHORTCUTS,
                 Size = new System.Drawing.Size(650, 550),
@@ -4032,39 +4406,38 @@ namespace Cad3PLogBrowser
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false, MinimizeBox = false,
                 ShowIcon = false
-            };
-
-            var rtb = new RichTextBox
+            })
             {
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                Font = new System.Drawing.Font("Consolas", 9f),
-                BorderStyle = BorderStyle.None,
-                Padding = new Padding(15),
-                Text = "═══════════════════════════════════════════════════════════════════\r\n" +
-                       "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
-                       "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
-                       GetKeyboardShortcutsContent() + 
-                       "TIPS\r\n" +
-                       "─────────────────────────────────────────────────────────────────\r\n" +
-                       "  •  Drag and drop a log file onto the window to open it\r\n" +
-                       "  •  Click any tree node to jump to that line in the log\r\n" +
-                       "  •  Select lines then Save As to save a trimmed log\r\n" +
-                       "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
-                       "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
-                       "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
-                       "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
-                       "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
-                       "  •  Recent Files: Last 10 opened files in File menu\r\n" +
-                       "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
-                       "═══════════════════════════════════════════════════════════════════\r\n"
-            };
+                var rtb = new RichTextBox
+                {
+                    Dock = DockStyle.Fill,
+                    ReadOnly = true,
+                    Font = new System.Drawing.Font("Consolas", 9f),
+                    BorderStyle = BorderStyle.None,
+                    Padding = new Padding(15),
+                    Text = "═══════════════════════════════════════════════════════════════════\r\n" +
+                           "           CAD 3P LOG BROWSER — KEYBOARD SHORTCUTS\r\n" +
+                           "═══════════════════════════════════════════════════════════════════\r\n\r\n" +
+                           GetKeyboardShortcutsContent() +
+                           "TIPS\r\n" +
+                           "─────────────────────────────────────────────────────────────────\r\n" +
+                           "  •  Drag and drop a log file onto the window to open it\r\n" +
+                           "  •  Click any tree node to jump to that line in the log\r\n" +
+                           "  •  Select lines then Save As to save a trimmed log\r\n" +
+                           "  •  ERROR lines are highlighted red, WARN in amber\r\n" +
+                           "  •  Tree node colors: Green (fast), Amber (medium), Red (slow)\r\n" +
+                           "  •  ✓ icon = matched ENTER/EXIT,  ✗ icon = unmatched\r\n" +
+                           "  •  Duration overlay: [142 ms], [<1 ms], or [? ms] if unmatched\r\n" +
+                           "  •  Virtual mode: handles 500k+ line log files smoothly\r\n" +
+                           "  •  Recent Files: Last 10 opened files in File menu\r\n" +
+                           "  •  Status bar shows: File info | Filter state | Selection preview\r\n\r\n" +
+                           "═══════════════════════════════════════════════════════════════════\r\n"
+                };
 
-            // Apply current theme
-            ThemeManager.ApplyTheme(helpForm);
-
-            helpForm.Controls.Add(rtb);
-            helpForm.ShowDialog(this);
+                ThemeManager.ApplyTheme(helpForm);
+                helpForm.Controls.Add(rtb);
+                helpForm.ShowDialog(this);
+            }
         }
 
         /// <summary>
@@ -4179,10 +4552,22 @@ namespace Cad3PLogBrowser
                 _logFileService?.Dispose();
             }
             catch { /* Non-fatal */ }
+
+            // BUG-07/14: dispose cached context menus
+            try
+            {
+                _callTreeContextMenu?.Dispose();
+                _apiTreeContextMenu?.Dispose();
+            }
+            catch { /* Non-fatal */ }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // BUG-08: cancel any in-progress async load/filter so background tasks
+            // do not Invoke back onto the already-destroyed form handle.
+            try { _cancellationTokenSource?.Cancel(); } catch { /* non-fatal */ }
+
             // Persist bookmarks for the current file before closing.
             try { _bookmarkService.SaveBookmarks(); } catch { /* non-fatal */ }
 
@@ -4293,6 +4678,18 @@ namespace Cad3PLogBrowser
             _callTreeGrokSep.Visible  = hasGrok;
             _callTreeGrokItem.Visible = hasGrok;
 
+            // Show "Show Performance for This Call" only when auto-filter is disabled
+            // AND the selected node has a matched ENTER/EXIT pair.
+            bool autoFilter  = _appSettings?.FilterPerfOnTreeSelect ?? true;
+            bool nodeMatched = false;
+            if (!autoFilter && node?.Tag is int checkLn && checkLn > 0 && _lastCallTree != null)
+            {
+                var checkNode = FindCallStackNodeByLine(checkLn, _lastCallTree);
+                nodeMatched = checkNode != null && checkNode.ExitLineNumber > 0;
+            }
+            _callTreePerfSep.Visible  = !autoFilter && nodeMatched;
+            _callTreePerfItem.Visible = !autoFilter && nodeMatched;
+
             ApplyContextMenuTheme(_callTreeContextMenu);
             _callTreeContextMenu.Show(CallTree, e.Location);
         }
@@ -4352,6 +4749,21 @@ namespace Cad3PLogBrowser
             _callTreeGrokItem.Click += treeContextSearchInGrokMenuItem_Click;
             menu.Items.Add(_callTreeGrokSep);
             menu.Items.Add(_callTreeGrokItem);
+
+            // Performance filter item — visible only when AutoFilter is OFF.
+            _callTreePerfSep  = new ToolStripSeparator { Visible = false };
+            _callTreePerfItem = new ToolStripMenuItem("Show Performance for This Call") { Visible = false };
+            _callTreePerfItem.Click += (s, ev) =>
+            {
+                var n = CallTree.SelectedNode;
+                if (n?.Tag is int ln && ln > 0 && _lastCallTree != null)
+                {
+                    var csn = FindCallStackNodeByLine(ln, _lastCallTree);
+                    if (csn != null) FilterPerformanceToSubtree(csn);
+                }
+            };
+            menu.Items.Add(_callTreePerfSep);
+            menu.Items.Add(_callTreePerfItem);
 
             return menu;
         }
@@ -4624,8 +5036,9 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private bool FindAndHighlightInTree(TreeNodeCollection nodes, string methodName)
+        private bool FindAndHighlightInTree(TreeNodeCollection nodes, string methodName, int depth = 0)
         {
+            if (depth > 500) return false; // BUG-03: guard against deep trees
             foreach (TreeNode n in nodes)
             {
                 if (GetMethodNameFromNode(n).Equals(methodName, StringComparison.OrdinalIgnoreCase))
@@ -4634,7 +5047,7 @@ namespace Cad3PLogBrowser
                     return true;
                 }
                 // Search children recursively (depth-first)
-                if (FindAndHighlightInTree(n.Nodes, methodName))
+                if (FindAndHighlightInTree(n.Nodes, methodName, depth + 1))
                     return true;
             }
             return false;
@@ -4879,21 +5292,30 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            // Show results window
+            // Show results window — non-modal; hook FormClosed so it disposes itself
+            // (BUG-13: Show() means the caller never gets a chance to call Dispose).
             var resultsForm = new FindAllResultsForm(this, results, searchTerm);
+            resultsForm.FormClosed += (s, ev) => resultsForm.Dispose();
             resultsForm.Show(this);
         }
 
         public void JumpToLine(int lineNumber)
         {
-            if (lineNumber < 1 || lineNumber > _virtualLines.Count) return;
+            if (lineNumber < 1) return;
 
-            int index = lineNumber - 1;
+            // BUG-10: when a filter is active, _virtualLines[0] may be line 47, not line 1.
+            // Always use _lineIndexMap which maps 1-based line numbers to virtual-list indices.
+            if (!_lineIndexMap.TryGetValue(lineNumber, out int index))
+            {
+                // Line not in current view (filtered out) — show a hint
+                if (_virtualLines.Count > 0)
+                    StatusFileName.Text = string.Format("Line {0} is not visible in the current view.", lineNumber);
+                return;
+            }
+
             logListView.EnsureVisible(index);
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(index);
-            // NOTE: logListView.Items[index] returns null in virtual mode — do NOT set
-            // FocusedItem; selecting via SelectedIndices is sufficient for virtual lists.
             Focus();
         }
 
@@ -5084,7 +5506,9 @@ namespace Cad3PLogBrowser
                     {
                         timer.Stop();
                         timer.Dispose();
-                        if (!IsDisposed && !Disposing)
+                        // BUG-12: also guard IsHandleCreated to avoid cross-thread
+                        // access if the window is destroyed during the 3-second window.
+                        if (!IsDisposed && !Disposing && IsHandleCreated)
                             StatusFileName.Text = GetSafeFileName(_currentFilePath);
                     };
                     timer.Start();
@@ -5106,36 +5530,20 @@ namespace Cad3PLogBrowser
         private const int MAX_SEARCH_HISTORY = 20;
 
         /// <summary>
-        /// Saves search history to JSON file.
-        /// Call this when FindForm is closing or app is exiting.
+        /// Persists the current search history to disk.
+        /// Call this when FindForm is closing or the app is exiting.
         /// </summary>
         private void SaveSearchHistory()
         {
-            try
-            {
-                var searchHistory = new List<string>();
-
-                // Get search history from app settings if available
-                if (_appSettings != null && _appSettings.SearchHistory != null)
-                {
-                    searchHistory = _appSettings.SearchHistory;
-                }
-
-                // Limit to MAX_SEARCH_HISTORY items
-                if (searchHistory.Count > MAX_SEARCH_HISTORY)
-                    searchHistory = searchHistory.Take(MAX_SEARCH_HISTORY).ToList();
-
-                // Save settings
-                if (_appSettings != null)
-                {
-                    _appSettings.SearchHistory = searchHistory;
-                    _appSettings.Save();
-                }
-            }
+            // BUG-13: the previous implementation read, conditionally trimmed, and
+            // wrote back the same list without any meaningful transformation.
+            // All list mutations are done by AddSearchHistory(); this method's only
+            // job is to flush the in-memory settings to disk.
+            try { _appSettings?.Save(); }
             catch (Exception ex)
             {
-                // Don't show error to user - just log it
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to save search history: {0}", ex.Message));
+                System.Diagnostics.Debug.WriteLine(
+                    string.Format("Failed to save search history: {0}", ex.Message));
             }
         }
 
@@ -5200,8 +5608,9 @@ namespace Cad3PLogBrowser
             {
                 if (textBox.Text == TREE_SEARCH_PLACEHOLDER)
                 {
-                    textBox.Text = "";
-                    textBox.ForeColor = SystemColors.WindowText;
+                    textBox.Text      = "";
+                    // BUG-09: use ThemeManager foreground instead of SystemColors
+                    textBox.ForeColor = ThemeManager.ForegroundColor;
                 }
             }
         }
@@ -5215,8 +5624,12 @@ namespace Cad3PLogBrowser
             {
                 if (string.IsNullOrWhiteSpace(textBox.Text))
                 {
-                    textBox.Text = TREE_SEARCH_PLACEHOLDER;
-                    textBox.ForeColor = SystemColors.GrayText;
+                    textBox.Text      = TREE_SEARCH_PLACEHOLDER;
+                    // BUG-09: use a dimmed theme foreground instead of SystemColors.GrayText
+                    bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+                    textBox.ForeColor = dark
+                        ? Color.FromArgb(100, 105, 120)
+                        : SystemColors.GrayText;
                 }
             }
         }
@@ -5252,35 +5665,34 @@ namespace Cad3PLogBrowser
 
         /// <summary>
         /// Recursively filters tree nodes.
-        /// A node is visible if it or any of its children match the search text.
-        /// _treeSearchText is already lower-case; compare without allocating per-node.
+        /// Matching nodes are highlighted; non-matching nodes are dimmed but NOT collapsed
+        /// so the user's expansion state is preserved (BUG-04).
         /// </summary>
         /// <returns>True if this node or any child matches.</returns>
-        private bool FilterTreeNodeRecursive(TreeNode node)
+        private bool FilterTreeNodeRecursive(TreeNode node, int depth = 0)
         {
-            bool hasMatch = false;
+            if (depth > 500) return false; // BUG-03: guard against deep trees
+            bool hasMatch    = false;
             bool nodeMatches = node.Text.IndexOf(_treeSearchText, StringComparison.OrdinalIgnoreCase) >= 0;
 
-            // Check children first
             foreach (TreeNode child in node.Nodes)
             {
-                if (FilterTreeNodeRecursive(child))
+                if (FilterTreeNodeRecursive(child, depth + 1))
                     hasMatch = true;
             }
 
-            // Show node if it matches or has matching children
             if (nodeMatches || hasMatch)
             {
+                // Highlight matching node; expand ancestors so match is visible
                 node.BackColor = nodeMatches ? Color.Yellow : Color.Transparent;
-                // Expand matching nodes to show context
-                if (hasMatch && !nodeMatches)
+                if (hasMatch && !node.IsExpanded)
                     node.Expand();
                 return true;
             }
             else
             {
+                // Dim non-matching nodes but do NOT collapse them (BUG-04)
                 node.BackColor = Color.Transparent;
-                node.Collapse();
                 return false;
             }
         }
@@ -5291,26 +5703,20 @@ namespace Cad3PLogBrowser
         private void ShowAllTreeNodes(TreeView tree)
         {
             tree.BeginUpdate();
-
             foreach (TreeNode rootNode in tree.Nodes)
-            {
                 ClearTreeNodeFilter(rootNode);
-            }
-
             tree.EndUpdate();
         }
 
         /// <summary>
         /// Recursively clears filter highlighting from nodes.
         /// </summary>
-        private void ClearTreeNodeFilter(TreeNode node)
+        private void ClearTreeNodeFilter(TreeNode node, int depth = 0)
         {
+            if (depth > 500) return; // BUG-03: guard against deep trees
             node.BackColor = Color.Transparent;
-
             foreach (TreeNode child in node.Nodes)
-            {
-                ClearTreeNodeFilter(child);
-            }
+                ClearTreeNodeFilter(child, depth + 1);
         }
 
         /// <summary>
@@ -5321,7 +5727,11 @@ namespace Cad3PLogBrowser
             if (treeSearchTextBox != null)
             {
                 treeSearchTextBox.Text = Resources.TREE_SEARCH_PLACEHOLDER;
-                treeSearchTextBox.ForeColor = SystemColors.GrayText;
+                // BUG-09: use theme-aware placeholder colour
+                bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+                treeSearchTextBox.ForeColor = dark
+                    ? Color.FromArgb(100, 105, 120)
+                    : SystemColors.GrayText;
             }
         }
 
@@ -5451,6 +5861,12 @@ namespace Cad3PLogBrowser
             if (_virtualLines.Count == 0)
                 return;
 
+            // BUG-01: use the same theme-aware colours as PopulateVirtualListView
+            // so the bookmark highlight is correct in both Light and Dark themes.
+            Color bookmarkColour = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(0, 70, 130)       // dark-blue tint for dark theme
+                : Color.FromArgb(200, 230, 255);    // light-blue tint for light theme
+
             for (int i = 0; i < _virtualLines.Count; i++)
             {
                 var vl = _virtualLines[i];
@@ -5458,21 +5874,20 @@ namespace Cad3PLogBrowser
 
                 if (_bookmarkService.IsBookmarked(lineNum))
                 {
-                    // Mark with blue background
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
-                        Text = vl.Text,
-                        BackColour = Color.FromArgb(200, 230, 255) // Light blue
+                        Text       = vl.Text,
+                        BackColour = bookmarkColour
                     };
                 }
-                else if (vl.BackColour == Color.FromArgb(200, 230, 255))
+                else if (vl.BackColour == bookmarkColour)
                 {
-                    // Remove bookmark color
+                    // Remove bookmark colour, restore level colour
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
-                        Text = vl.Text,
+                        Text       = vl.Text,
                         BackColour = GetLineColour(vl.Text)
                     };
                 }
@@ -5500,9 +5915,11 @@ namespace Cad3PLogBrowser
 
             foreach (var lineNum in bookmarks)
             {
-                // Find the line text
-                _lineIndexMap.TryGetValue(lineNum, out int idx);
-                if (idx >= 0 && idx < _virtualLines.Count && _virtualLines[idx].LineNumber == lineNum)
+                // BUG-17: TryGetValue returns false (and leaves idx=0) when the bookmark
+                // line is not in the current filtered view.  Always check the return value.
+                if (_lineIndexMap.TryGetValue(lineNum, out int idx)
+                    && idx >= 0 && idx < _virtualLines.Count
+                    && _virtualLines[idx].LineNumber == lineNum)
                 {
                     string text = _virtualLines[idx].Text;
                     if (text.Length > 80)
@@ -5562,7 +5979,10 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    // BUG-11: reuse the cached call tree built during file load
+                    var callTree = _lastCallTree != null && _lastCallTree.Count > 0
+                        ? _lastCallTree
+                        : _parserService.BuildCallTree(_lastEntries);
                     var exporter = new Services.Export.TreeExportService();
                     exporter.ExportToJson(callTree, dlg.FileName);
 
@@ -5601,7 +6021,10 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    var callTree = _parserService.BuildCallTree(_lastEntries);
+                    // BUG-11: reuse the cached call tree built during file load
+                    var callTree = _lastCallTree != null && _lastCallTree.Count > 0
+                        ? _lastCallTree
+                        : _parserService.BuildCallTree(_lastEntries);
                     var exporter = new Services.Export.TreeExportService();
                     exporter.ExportToXml(callTree, dlg.FileName);
 
@@ -5767,36 +6190,14 @@ namespace Cad3PLogBrowser
 
         private void showFlameGraphTabMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            if (flameGraphTab != null && mainTabControl != null)
-            {
-                if (showFlameGraphTabMenuItem.Checked)
-                {
-                    if (!mainTabControl.TabPages.Contains(flameGraphTab))
-                        mainTabControl.TabPages.Add(flameGraphTab);
-                }
-                else
-                {
-                    if (mainTabControl.TabPages.Contains(flameGraphTab))
-                        mainTabControl.TabPages.Remove(flameGraphTab);
-                }
-            }
+            // BUG-08: use the shared SetTabVisible helper instead of duplicating add/remove logic
+            SetTabVisible(flameGraphTab, showFlameGraphTabMenuItem.Checked);
         }
 
         private void showTimelineTabMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            if (timelineTab != null && mainTabControl != null)
-            {
-                if (showTimelineTabMenuItem.Checked)
-                {
-                    if (!mainTabControl.TabPages.Contains(timelineTab))
-                        mainTabControl.TabPages.Add(timelineTab);
-                }
-                else
-                {
-                    if (mainTabControl.TabPages.Contains(timelineTab))
-                        mainTabControl.TabPages.Remove(timelineTab);
-                }
-            }
+            // BUG-08: use the shared SetTabVisible helper instead of duplicating add/remove logic
+            SetTabVisible(timelineTab, showTimelineTabMenuItem.Checked);
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -51,12 +51,29 @@ namespace Cad3PLogBrowser.Services
         /// </returns>
         public int FindNext(IList<string> lines, string searchTerm, bool matchCase, bool useRegex = false)
         {
+            return Find(lines, searchTerm, matchCase, useRegex, forward: true);
+        }
+
+        /// <summary>
+        /// Searches backward from the last match position for <paramref name="searchTerm"/>
+        /// in <paramref name="lines"/>. Wraps around to the end.
+        /// Supports regex patterns if <paramref name="useRegex"/> is true.
+        /// </summary>
+        /// <returns>
+        /// The zero-based index of the matched line, or -1 if not found.
+        /// </returns>
+        public int FindPrev(IList<string> lines, string searchTerm, bool matchCase, bool useRegex = false)
+        {
+            return Find(lines, searchTerm, matchCase, useRegex, forward: false);
+        }
+
+        private int Find(IList<string> lines, string searchTerm, bool matchCase, bool useRegex, bool forward)
+        {
             if (lines == null || lines.Count == 0 || string.IsNullOrEmpty(searchTerm))
                 return -1;
 
             var comp = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
-            // Reset position when the search term or case-mode changes.
             if (!string.Equals(searchTerm, _lastSearchTerm, comp) || comp != _lastComparison)
             {
                 _lastFoundIndex = -1;
@@ -64,7 +81,11 @@ namespace Cad3PLogBrowser.Services
                 _lastComparison = comp;
             }
 
-            int start = _lastFoundIndex + 1;
+            int count = lines.Count;
+            // Forward: start one step ahead; backward: start one step behind.
+            int start = forward
+                ? (_lastFoundIndex + 1) % count
+                : ((_lastFoundIndex < 0 ? count : _lastFoundIndex) - 1 + count) % count;
 
             if (useRegex)
             {
@@ -73,9 +94,11 @@ namespace Cad3PLogBrowser.Services
                     var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
                     var regex = GetOrBuildRegex(searchTerm, options);
 
-                    for (int i = 0; i < lines.Count; i++)
+                    for (int i = 0; i < count; i++)
                     {
-                        int idx = (start + i) % lines.Count;
+                        int idx = forward
+                            ? (start + i) % count
+                            : (start - i + count) % count;
                         if (regex.IsMatch(lines[idx]))
                         {
                             _lastFoundIndex = idx;
@@ -83,17 +106,18 @@ namespace Cad3PLogBrowser.Services
                         }
                     }
                 }
-                catch (ArgumentException) // RegexException derives from ArgumentException
+                catch (ArgumentException)
                 {
-                    return -1; // Invalid regex pattern
+                    return -1;
                 }
             }
             else
             {
-                // Standard string search
-                for (int i = 0; i < lines.Count; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    int idx = (start + i) % lines.Count;
+                    int idx = forward
+                        ? (start + i) % count
+                        : (start - i + count) % count;
                     if (lines[idx].IndexOf(searchTerm, comp) >= 0)
                     {
                         _lastFoundIndex = idx;
