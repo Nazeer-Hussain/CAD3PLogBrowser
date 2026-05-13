@@ -23,33 +23,36 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>Triggers Find Next using the current search term — called by the menu shortcut.</summary>
-        public void TriggerFindNext() => PerformFind();
+        public void TriggerFindNext() => PerformFind(forward: true);
 
-        private void FindNextButton_Click(object sender, System.EventArgs e) => PerformFind();
+        /// <summary>Triggers Find Previous using the current search term — called by Shift+F3.</summary>
+        public void TriggerFindPrev() => PerformFind(forward: false);
+
+        private void FindNextButton_Click(object sender, System.EventArgs e) => PerformFind(forward: true);
 
         private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter) PerformFind();
+            if (e.KeyCode == Keys.Enter) PerformFind(forward: true);
         }
 
-        private void PerformFind()
+        private void PerformFind(bool forward = true)
         {
             string term = SearchTextBox.Text;
             if (!string.IsNullOrEmpty(term))
             {
-                // Add to history in MainForm
                 _mainForm.AddSearchHistory(term);
 
-                // Add to combo box if not already there
                 if (!SearchTextBox.Items.Contains(term))
                     SearchTextBox.Items.Insert(0, term);
 
-                // Limit combo box items
                 while (SearchTextBox.Items.Count > 20)
                     SearchTextBox.Items.RemoveAt(SearchTextBox.Items.Count - 1);
             }
 
-            _mainForm.FindNext(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
+            if (forward)
+                _mainForm.FindNext(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
+            else
+                _mainForm.FindPrev(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
         }
 
         private void CloseButton_Click(object sender, System.EventArgs e) => Hide();

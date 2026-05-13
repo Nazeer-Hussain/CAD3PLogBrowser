@@ -472,7 +472,10 @@ namespace Cad3PLogBrowser.Services.Analysis
                     client.Headers.Add("anthropic-version", "2023-06-01");
                     client.Headers.Add("Content-Type", "application/json");
 
-                    string raw = await Task.Run(() => client.UploadString(ApiUrl, body));
+                    // BUG-05: UploadStringTaskAsync is truly async; the previous
+                    // Task.Run(UploadString) blocked a ThreadPool thread for the
+                    // entire HTTP round-trip (potentially several seconds).
+                    string raw = await client.UploadStringTaskAsync(ApiUrl, body);
 
                     // Parse "text" from response
                     int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);
@@ -522,26 +525,39 @@ namespace Cad3PLogBrowser.Services.Analysis
         // ── Static helpers used by MainForm ───────────────────────────────────
         public static AggregateStats BuildAggregateStats(List<LogEntry> entries, List<ApiPerfStats> perfStats)
         {
+            // BUG-04: single pass replaces 5 separate LINQ scans (Count×4 + Distinct)
+            // that previously re-iterated entries[N] five times on every AI call.
             int depth = 0, maxDepth = 0;
+            int errorCount = 0, warningCount = 0, apiCallCount = 0;
+            var uniqueApis = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+
             foreach (var e in entries)
             {
-                if (!e.IsApiCall) continue;
-                if (e.IsCallEnter) { if (++depth > maxDepth) maxDepth = depth; }
-                else if (e.IsCallExit && depth > 0) depth--;
+                if (e.Level == "E") errorCount++;
+                else if (e.Level == "W") warningCount++;
+
+                if (e.IsApiCall)
+                {
+                    apiCallCount++;
+                    if (!string.IsNullOrEmpty(e.ApiName)) uniqueApis.Add(e.ApiName);
+                    if (e.IsCallEnter) { if (++depth > maxDepth) maxDepth = depth; }
+                    else if (e.IsCallExit && depth > 0) depth--;
+                }
             }
+
             var stats = new AggregateStats
             {
-                TotalLines    = entries.Count,
-                ErrorCount    = entries.Count(e => e.Level == "E"),
-                WarningCount  = entries.Count(e => e.Level == "W"),
-                TotalApiCalls = entries.Count(e => e.IsApiCall),
-                UniqueApiCount = entries.Where(e => e.IsApiCall).Select(e => e.ApiName).Distinct().Count(),
-                MaxCallDepth  = maxDepth
+                TotalLines     = entries.Count,
+                ErrorCount     = errorCount,
+                WarningCount   = warningCount,
+                TotalApiCalls  = apiCallCount,
+                UniqueApiCount = uniqueApis.Count,
+                MaxCallDepth   = maxDepth
             };
             if (perfStats != null && perfStats.Any())
             {
-                stats.SessionDurationMs  = perfStats.Sum(p => p.TotalDurationMs);
-                stats.MaxCallDurationMs  = perfStats.Max(p => p.MaxDurationMs);
+                stats.SessionDurationMs = perfStats.Sum(p => p.TotalDurationMs);
+                stats.MaxCallDurationMs = perfStats.Max(p => p.MaxDurationMs);
             }
             return stats;
         }

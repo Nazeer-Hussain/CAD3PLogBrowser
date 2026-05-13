@@ -55,6 +55,16 @@ namespace Cad3PLogBrowser.UI
         private IList<InspectorLine> _lastLines;
         private int                  _lastSelectedIndex = -1;
 
+        // BUG-18: Cache level-badge fonts to avoid a new GDI Font allocation on
+        // every row selection and theme change.
+        private static readonly Font _levelFontBold    = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+        private static readonly Font _levelFontRegular = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+
+        // BUG-07 / PERF-02: Cache context-box fonts to avoid 11 GDI Font allocations
+        // per row click (one per line written to the RichTextBox via SelectionFont).
+        private static readonly Font _ctxFontBold    = new Font("Consolas", 9f, FontStyle.Bold);
+        private static readonly Font _ctxFontRegular = new Font("Consolas", 9f, FontStyle.Regular);
+
         // ??????????????????????????????????????????????????????????????????????
         public LineInspectorPanel()
         {
@@ -316,32 +326,32 @@ namespace Cad3PLogBrowser.UI
                 case "E":
                     lbl.Text      = "ERROR";
                     lbl.ForeColor = Color.FromArgb(255, 85, 85);
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+                    lbl.Font      = _levelFontBold;
                     break;
                 case "W":
                     lbl.Text      = "WARNING";
                     lbl.ForeColor = Color.FromArgb(255, 193, 7);
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+                    lbl.Font      = _levelFontBold;
                     break;
                 case "I":
                     lbl.Text      = "INFO";
                     lbl.ForeColor = dark ? Color.FromArgb(100, 200, 255) : Color.FromArgb(0, 120, 215);
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+                    lbl.Font      = _levelFontRegular;
                     break;
                 case "D":
                     lbl.Text      = "DEBUG";
                     lbl.ForeColor = dark ? Color.FromArgb(160, 160, 160) : Color.FromArgb(100, 100, 100);
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+                    lbl.Font      = _levelFontRegular;
                     break;
                 case "C":
                     lbl.Text      = "CONFIG";
                     lbl.ForeColor = dark ? Color.FromArgb(150, 220, 150) : Color.FromArgb(0, 140, 0);
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+                    lbl.Font      = _levelFontRegular;
                     break;
                 default:
                     lbl.Text      = levelCode ?? "";
                     lbl.ForeColor = ThemeManager.ForegroundColor;
-                    lbl.Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular);
+                    lbl.Font      = _levelFontRegular;
                     break;
             }
         }
@@ -428,13 +438,13 @@ namespace Cad3PLogBrowser.UI
                 {
                     _ctxBox.SelectionBackColor = selBg;
                     _ctxBox.SelectionColor     = selFg;
-                    _ctxBox.SelectionFont      = new Font("Consolas", 9f, FontStyle.Bold);
+                    _ctxBox.SelectionFont      = _ctxFontBold;
                 }
                 else
                 {
                     _ctxBox.SelectionBackColor = _ctxBox.BackColor;
                     _ctxBox.SelectionColor     = normFg;
-                    _ctxBox.SelectionFont      = new Font("Consolas", 9f, FontStyle.Regular);
+                    _ctxBox.SelectionFont      = _ctxFontRegular;
                 }
             }
 

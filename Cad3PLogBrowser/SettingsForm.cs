@@ -39,6 +39,7 @@ namespace Cad3PLogBrowser
 
         // ── Performance ───────────────────────────────────────────────────────
         private NumericUpDown  nudSlowCallMs, nudMaxFileMb;
+        private CheckBox       chkFilterPerfOnTreeSelect;
 
         // ── Integration ───────────────────────────────────────────────────────
         private TextBox   txtGrokUrl, txtClaudeApiKey;
@@ -232,6 +233,26 @@ namespace Cad3PLogBrowser
             nudMaxFileMb = AddNud(tp, "Skip list view if file >", 58, 1, 2000, 50);
             Lbl(tp, "MB   (use Raw tab for very large files)", 290, 62);
 
+            chkFilterPerfOnTreeSelect = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 100),
+                Text     = "Auto-filter Performance tab when a Call Tree node is selected",
+            };
+            Lbl(tp, "", 12, 104); // spacer
+            tp.Controls.Add(chkFilterPerfOnTreeSelect);
+
+            var hint = new Label
+            {
+                AutoSize  = false,
+                Location  = new Point(30, 124),
+                Size      = new Size(480, 34),
+                Text      = "When OFF, use the Call Tree right-click menu to filter manually.",
+                ForeColor = SystemColors.GrayText,
+                Font      = new Font("Segoe UI", 8f),
+            };
+            tp.Controls.Add(hint);
+
             return tp;
         }
 
@@ -306,6 +327,7 @@ namespace Cad3PLogBrowser
                 Math.Min(nudSlowCallMs.Maximum, _settings.SlowCallThresholdMs));
             nudMaxFileMb.Value  = Math.Max(nudMaxFileMb.Minimum,
                 Math.Min(nudMaxFileMb.Maximum, _settings.MaxFileSizeMbForListView));
+            chkFilterPerfOnTreeSelect.Checked = _settings.FilterPerfOnTreeSelect;
 
             // Integration
             txtGrokUrl.Text         = _settings.GrokUrl ?? "";
@@ -349,6 +371,7 @@ namespace Cad3PLogBrowser
             // Performance
             _settings.SlowCallThresholdMs      = (long)nudSlowCallMs.Value;
             _settings.MaxFileSizeMbForListView  = (long)nudMaxFileMb.Value;
+            _settings.FilterPerfOnTreeSelect    = chkFilterPerfOnTreeSelect.Checked;
 
             // Integration
             _settings.GrokUrl      = txtGrokUrl.Text.Trim();
@@ -390,6 +413,7 @@ namespace Cad3PLogBrowser
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;
+            _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
             LoadCurrentSettings();

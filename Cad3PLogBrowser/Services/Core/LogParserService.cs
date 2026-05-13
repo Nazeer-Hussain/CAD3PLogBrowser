@@ -401,9 +401,15 @@ namespace Cad3PLogBrowser.Services
 
         private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map, string sourceLogFile = null)
         {
+            // BUG-10: propagate sourceLogFile from the node itself when the caller
+            // does not supply one (single-file loads). Without this, every
+            // ApiPerfStats.SourceLogFile was null for non-merged loads, making the
+            // Performance tab's "Log File" column permanently blank.
+            string effectiveFile = sourceLogFile ?? node.SourceFile;
+
             if (!map.TryGetValue(node.Label, out var stats))
             {
-                stats = new ApiPerfStats { ApiName = node.Label, SourceFile = node.SourceFile, SourceLogFile = sourceLogFile };
+                stats = new ApiPerfStats { ApiName = node.Label, SourceFile = node.SourceFile, SourceLogFile = effectiveFile };
                 map[node.Label] = stats;
             }
 
@@ -427,7 +433,7 @@ namespace Cad3PLogBrowser.Services
             }
 
             foreach (var child in node.Children)
-                CollectStats(child, map, sourceLogFile);
+                CollectStats(child, map, effectiveFile);
         }
 
         // ── Per-file performance statistics (for merged logs) ─────────────────

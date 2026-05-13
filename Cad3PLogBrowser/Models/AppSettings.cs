@@ -57,6 +57,12 @@ namespace Cad3PLogBrowser.Services
         // ── Performance guards ─────────────────────────────────────────────────
         public long    MaxFileSizeMbForListView { get; set; } = 50; // skip list if > N MB
         public long    SlowCallThresholdMs      { get; set; } = 1000;
+        /// <summary>
+        /// When true, clicking a Call Tree node automatically filters the Performance
+        /// tab to show only the API calls within that node's ENTER/EXIT scope.
+        /// When false, the filter must be triggered manually via the context menu.
+        /// </summary>
+        public bool    FilterPerfOnTreeSelect   { get; set; } = true;
 
         // ── Grok integration ──────────────────────────────────────────────────
         public string  GrokUrl          { get; set; } = "";
