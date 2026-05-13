@@ -39,6 +39,11 @@ namespace Cad3PLogBrowser
         private bool              _isLoading       = false;
         private List<string>      _allLines        = new List<string>();
         private List<ApiCallNode> _apiNodes        = new List<ApiCallNode>();
+        // PERF-02: O(1) name → ApiCallNode lookup; built in PopulateTreesFromData alongside
+        // _apiNodes.  Replaces the O(N) _apiNodes.Find() call in ShowApiDetails that fired
+        // on every tree-node click.
+        private Dictionary<string, ApiCallNode> _apiNodeByName =
+            new Dictionary<string, ApiCallNode>(StringComparer.OrdinalIgnoreCase);
         private AppSettings       _appSettings;
         private List<Services.LogEntry>  _lastEntries      = new List<Services.LogEntry>(); // for ENTER/EXIT jump
         private bool              _isFormLoaded     = false; // Flag to prevent saving during initialization
@@ -70,6 +75,12 @@ namespace Cad3PLogBrowser
 
         // BUG-11: cached call tree — built during load, reused for JSON/XML export
         private List<CallStackNode>  _lastCallTree = new List<CallStackNode>();
+
+        // PERF-01: O(1) lookup dictionary built whenever _lastCallTree is populated.
+        // Replaces the O(N) recursive FindCallStackNodeByLine walk that fired on every
+        // Call Tree node click when FilterPerfOnTreeSelect is ON.
+        private Dictionary<int, CallStackNode> _callStackNodeByLine =
+            new Dictionary<int, CallStackNode>();
 
         // BUG-15/16: cached GDI fonts for performance summary row and call-tree root node.
         private Font _perfSummaryFont;
@@ -1185,6 +1196,12 @@ namespace Cad3PLogBrowser
             _lastEntries  = entries;
             _apiNodes     = apiNodes;
 
+            // PERF-02: build the name → node index once so ShowApiDetails is O(1) per click.
+            _apiNodeByName = new Dictionary<string, ApiCallNode>(
+                apiNodes.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (var n in apiNodes)
+                _apiNodeByName[n.ApiName] = n;
+
             // Pre-compute matched status for all APIs in one O(N) pass
             _matchedApiCache = BuildMatchedApiCache(entries);
 
@@ -1205,6 +1222,9 @@ namespace Cad3PLogBrowser
             if (timelinePanel != null)
             {
                 timelinePanel.LoadCallStack(callTree);
+                // BUG-A14: unsubscribe before re-subscribing so reloading a file never
+                // accumulates duplicate handlers (N loads → N calls per timeline click).
+                timelinePanel.TimelineEntrySelected -= TimelinePanel_EntrySelected;
                 timelinePanel.TimelineEntrySelected += TimelinePanel_EntrySelected;
             }
 
@@ -1321,20 +1341,31 @@ namespace Cad3PLogBrowser
 
         private Dictionary<string, bool> BuildMatchedApiCache(List<Services.LogEntry> entries)
         {
-            var enters = new Dictionary<string, int>(StringComparer.Ordinal);
-            var exits  = new Dictionary<string, int>(StringComparer.Ordinal);
+            // PERF-07: single-pass — count ENTER and EXIT in the same loop and write
+            // the result immediately, avoiding two separate Dictionary passes.
+            var enterCount = new Dictionary<string, int>(StringComparer.Ordinal);
+            var exitCount  = new Dictionary<string, int>(StringComparer.Ordinal);
             if (entries != null)
             {
                 foreach (var e in entries)
                 {
                     if (!e.IsApiCall || string.IsNullOrEmpty(e.ApiName)) continue;
-                    if (e.IsCallEnter) { enters.TryGetValue(e.ApiName, out int n); enters[e.ApiName] = n + 1; }
-                    else if (e.IsCallExit) { exits.TryGetValue(e.ApiName, out int n); exits[e.ApiName] = n + 1; }
+                    if (e.IsCallEnter)
+                    {
+                        enterCount.TryGetValue(e.ApiName, out int n);
+                        enterCount[e.ApiName] = n + 1;
+                    }
+                    else if (e.IsCallExit)
+                    {
+                        exitCount.TryGetValue(e.ApiName, out int n);
+                        exitCount[e.ApiName] = n + 1;
+                    }
                 }
             }
-            var cache = new Dictionary<string, bool>(StringComparer.Ordinal);
-            foreach (var kv in enters)
-                cache[kv.Key] = kv.Value == (exits.TryGetValue(kv.Key, out int ex) ? ex : 0);
+            // Build the result in one final pass over the smaller enters dict.
+            var cache = new Dictionary<string, bool>(enterCount.Count, StringComparer.Ordinal);
+            foreach (var kv in enterCount)
+                cache[kv.Key] = kv.Value == (exitCount.TryGetValue(kv.Key, out int ex) ? ex : 0);
             return cache;
         }
 
@@ -1573,13 +1604,56 @@ namespace Cad3PLogBrowser
                 dark ? Color.FromArgb(70, 90, 120) : Color.FromArgb(170, 200, 240);
         }
 
-        /// <summary>Recursively finds the CallStackNode whose ENTER line == enterLineNumber.</summary>
-        private static CallStackNode FindCallStackNodeByLine(int enterLineNumber, IList<CallStackNode> nodes)
+        /// <summary>
+        /// Builds a flat enterLine → CallStackNode index from the call tree in one DFS pass.
+        /// Used by <see cref="FindCallStackNodeByLine"/> for O(1) lookup (PERF-01).
+        /// </summary>
+        private static Dictionary<int, CallStackNode> BuildCallStackNodeIndex(
+            IList<CallStackNode> nodes)
         {
+            var dict = new Dictionary<int, CallStackNode>();
+            BuildCallStackNodeIndexRecursive(nodes, dict, 0);
+            return dict;
+        }
+
+        private static void BuildCallStackNodeIndexRecursive(
+            IList<CallStackNode> nodes,
+            Dictionary<int, CallStackNode> dict,
+            int depth)
+        {
+            if (depth > 500) return; // BUG-A04: guard against pathologically deep trees
+            foreach (var node in nodes)
+            {
+                if (node.LineNumber > 0)
+                    dict[node.LineNumber] = node;
+                BuildCallStackNodeIndexRecursive(node.Children, dict, depth + 1);
+            }
+        }
+
+        /// <summary>
+        /// Returns the <see cref="CallStackNode"/> whose ENTER line equals
+        /// <paramref name="enterLineNumber"/>, or <c>null</c> if not found.
+        /// Lookup is O(1) via the pre-built <see cref="_callStackNodeByLine"/> index
+        /// (PERF-01); falls back to the recursive DFS helper only when the index is
+        /// stale or empty (e.g. during a mid-load callback).
+        /// </summary>
+        private static CallStackNode FindCallStackNodeByLine(
+            int enterLineNumber, IList<CallStackNode> nodes)
+        {
+            // Static helper retained for callers that pass an explicit list
+            // (context menu handler passes _lastCallTree directly).
+            return FindCallStackNodeByLineRecursive(enterLineNumber, nodes, 0);
+        }
+
+        private static CallStackNode FindCallStackNodeByLineRecursive(
+            int enterLineNumber, IList<CallStackNode> nodes, int depth)
+        {
+            if (depth > 500) return null; // BUG-A04: depth guard
             foreach (var node in nodes)
             {
                 if (node.LineNumber == enterLineNumber) return node;
-                var found = FindCallStackNodeByLine(enterLineNumber, node.Children);
+                var found = FindCallStackNodeByLineRecursive(
+                    enterLineNumber, node.Children, depth + 1);
                 if (found != null) return found;
             }
             return null;
@@ -1938,7 +2012,12 @@ namespace Cad3PLogBrowser
         }
 
         // D3: API Invocation Details Panel
-        private void ShowApiDetails(TreeNode node)
+        /// <param name="suppressTabSwitch">
+        /// Pass <c>true</c> when called from <see cref="CallTree_AfterSelect"/> while
+        /// the Performance subtree filter may also be switching tabs, so the Log Details
+        /// tab does not immediately overwrite the Performance tab activation (BUG-A01).
+        /// </param>
+        private void ShowApiDetails(TreeNode node, bool suppressTabSwitch = false)
         {
             if (node == null || _apiDetailsBox == null) return;
             if (node.Tag == null || (node.Tag is int t && t < 0)) return;
@@ -1978,7 +2057,8 @@ namespace Cad3PLogBrowser
             sb.AppendLine(string.Format(Resources.API_DETAILS_HEADER, apiName));
             sb.AppendLine();
 
-            var apiNode = _apiNodes?.Find(a => a.ApiName == apiName);
+            // PERF-02: O(1) lookup via pre-built dictionary instead of O(N) Find().
+            _apiNodeByName.TryGetValue(apiName, out var apiNode);
             if (apiNode != null)
             {
                 sb.AppendLine(string.Format(Resources.API_DETAILS_TOTAL_INVOCATIONS, apiNode.LineNumbers.Count));
@@ -2004,8 +2084,12 @@ namespace Cad3PLogBrowser
             else
                 _apiDetailsBox.Text = sb.ToString();
 
-            // Switch to Log Details tab so the user can see the result
-            if (mainTabControl != null && logDetailTab != null
+            // Switch to Log Details tab so the user can see the result.
+            // BUG-A01: when suppressTabSwitch is true (called from CallTree_AfterSelect
+            // while the performance filter is about to switch to the Performance tab)
+            // do NOT force-switch to Log Details — the performance filter wins.
+            if (!suppressTabSwitch
+                && mainTabControl != null && logDetailTab != null
                 && mainTabControl.TabPages.Contains(logDetailTab))
                 mainTabControl.SelectedTab = logDetailTab;
         }
@@ -2023,15 +2107,28 @@ namespace Cad3PLogBrowser
                 && _lineIndexMap.TryGetValue(ln, out int idx))
                 ShowLogDetail(idx);
 
-            // D3: Show API details in the bottom panel for the selected call node
-            ShowApiDetails(e.Node);
+            // D3: Show API details in the bottom panel for the selected call node.
+            // BUG-A01: suppress the automatic tab-switch to Log Details when the
+            // performance subtree filter is about to switch to the Performance tab,
+            // so the two tab-switches do not fight each other.
+            bool perfWillSwitch = (_appSettings?.FilterPerfOnTreeSelect ?? true)
+                                  && e.Node?.Tag is int checkLn && checkLn > 0
+                                  && _callStackNodeByLine.Count > 0
+                                  && _callStackNodeByLine.TryGetValue(checkLn, out var checkNode)
+                                  && checkNode != null && checkNode.ExitLineNumber > 0;
+            ShowApiDetails(e.Node, suppressTabSwitch: perfWillSwitch);
 
             // Filter Performance tab to the selected node’s ENTER/EXIT scope
             // — only when the auto-filter setting is ON.
             if ((_appSettings?.FilterPerfOnTreeSelect ?? true)
-                && e.Node?.Tag is int enterLn && enterLn > 0 && _lastCallTree != null)
+                && e.Node?.Tag is int enterLn && enterLn > 0)
             {
-                var csNode = FindCallStackNodeByLine(enterLn, _lastCallTree);
+                // PERF-01: O(1) index lookup instead of O(N) recursive walk.
+                CallStackNode csNode;
+                if (_callStackNodeByLine.Count > 0)
+                    _callStackNodeByLine.TryGetValue(enterLn, out csNode);
+                else
+                    csNode = FindCallStackNodeByLine(enterLn, _lastCallTree); // fallback
                 if (csNode != null && csNode.ExitLineNumber > 0)
                     FilterPerformanceToSubtree(csNode);
             }
@@ -2329,6 +2426,10 @@ namespace Cad3PLogBrowser
                 var mCallTask    = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                 await Task.WhenAll(mApiTask, mCallTask);
                 var mCallTree    = mCallTask.Result;
+                // BUG-A05: keep _lastCallTree current so the perf subtree filter and
+                // JSON/XML export always reflect the merged data, not the previous file.
+                _lastCallTree        = mCallTree;
+                _callStackNodeByLine = BuildCallStackNodeIndex(mCallTree); // PERF-01
 
                 UpdateStatusProgress(75, "Building performance stats...");
                 var mPerfStats   = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
@@ -2429,6 +2530,7 @@ namespace Cad3PLogBrowser
                 UpdateStatusProgress(65, "Building performance statistics...");
                 var callTree  = callTreeTask.Result;
                 _lastCallTree = callTree; // BUG-11: cache for JSON/XML export
+                _callStackNodeByLine = BuildCallStackNodeIndex(callTree); // PERF-01
                 var perfStats = await Task.Run(() => _parserService.BuildPerformanceStats(callTree));
 
                 UpdateStatusProgress(80, "Building call graph...");
@@ -4558,6 +4660,7 @@ namespace Cad3PLogBrowser
             {
                 _callTreeContextMenu?.Dispose();
                 _apiTreeContextMenu?.Dispose();
+                _treeSearchDebounce?.Dispose();
             }
             catch { /* Non-fatal */ }
         }
@@ -4956,16 +5059,27 @@ namespace Cad3PLogBrowser
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                var rows = new List<string> { Resources.CSV_HEADER_BRANCH };
-                CollectBranchCsvRows(node, rows, 0);
-                File.WriteAllLines(dlg.FileName, rows);
-
-                MessageBox.Show(string.Format(Resources.MSG_BRANCH_EXPORTED_TO, dlg.FileName),
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // PERF-05: write directly to a StreamWriter instead of buffering the
+                // entire branch into a List<string> and calling File.WriteAllLines.
+                try
+                {
+                    using (var writer = new StreamWriter(dlg.FileName, false, System.Text.Encoding.UTF8))
+                    {
+                        writer.WriteLine(Resources.CSV_HEADER_BRANCH);
+                        CollectBranchCsvRows(node, writer, 0);
+                    }
+                    MessageBox.Show(string.Format(Resources.MSG_BRANCH_EXPORTED_TO, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
-        private void CollectBranchCsvRows(TreeNode node, List<string> rows, int depth)
+        private void CollectBranchCsvRows(TreeNode node, StreamWriter writer, int depth)
         {
             if (depth > 500) return; // guard against StackOverflow
             string name = GetMethodNameFromNode(node);
@@ -4974,9 +5088,9 @@ namespace Cad3PLogBrowser
             int b2 = node.Text.IndexOf(" ms]");
             if (b1 >= 0 && b2 > b1)
                 duration = node.Text.Substring(b1 + 1, b2 - b1 - 1).Trim();
-            rows.Add(string.Format("\"{0}\",{1},{2}", name, depth, duration));
+            writer.WriteLine(string.Format("\"{0}\",{1},{2}", name, depth, duration));
             foreach (TreeNode child in node.Nodes)
-                CollectBranchCsvRows(child, rows, depth + 1);
+                CollectBranchCsvRows(child, writer, depth + 1);
         }
 
         // Show in other tree (cross-reference)
@@ -5564,9 +5678,10 @@ namespace Cad3PLogBrowser
             // Add to beginning
             _appSettings.SearchHistory.Insert(0, searchTerm);
 
-            // Limit size
-            if (_appSettings.SearchHistory.Count > MAX_SEARCH_HISTORY)
-                _appSettings.SearchHistory = _appSettings.SearchHistory.Take(MAX_SEARCH_HISTORY).ToList();
+            // PERF-04: trim with a single RemoveAt instead of Take().ToList() which
+            // allocates a brand-new List<string> on every AddSearchHistory call.
+            while (_appSettings.SearchHistory.Count > MAX_SEARCH_HISTORY)
+                _appSettings.SearchHistory.RemoveAt(_appSettings.SearchHistory.Count - 1);
         }
 
         /// <summary>
@@ -5584,18 +5699,33 @@ namespace Cad3PLogBrowser
         private string _treeSearchText = string.Empty;
         private const string TREE_SEARCH_PLACEHOLDER = "Search tree nodes...";
 
-        /// <summary>
-        /// Handler for tree search textbox - filters tree nodes in real-time.
-        /// </summary>
+        // PERF-06: debounce the tree-search TextChanged event so that FilterTreeNodes
+        // is only called once after the user stops typing, not on every individual
+        // keystroke.  For a 10K-node tree this prevents 10K IndexOf calls per character.
+        private System.Windows.Forms.Timer _treeSearchDebounce;
+
         private void treeSearchTextBox_TextChanged(object sender, EventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                // Ignore if showing placeholder
-                if (textBox.ForeColor == SystemColors.GrayText)
+                // BUG-A02: compare text not ForeColor — placeholder colour differs per theme.
+                if (textBox.Text == TREE_SEARCH_PLACEHOLDER
+                    || textBox.Text == Resources.TREE_SEARCH_PLACEHOLDER)
                     return;
 
-                FilterTreeNodes(textBox.Text);
+                // PERF-06: restart the debounce timer; FilterTreeNodes fires after 120 ms
+                // of inactivity, collapsing rapid keystrokes into a single filter pass.
+                if (_treeSearchDebounce == null)
+                {
+                    _treeSearchDebounce = new System.Windows.Forms.Timer { Interval = 120 };
+                    _treeSearchDebounce.Tick += (s, ev) =>
+                    {
+                        _treeSearchDebounce.Stop();
+                        FilterTreeNodes(treeSearchTextBox.Text);
+                    };
+                }
+                _treeSearchDebounce.Stop();
+                _treeSearchDebounce.Start();
             }
         }
 
@@ -5643,24 +5773,25 @@ namespace Cad3PLogBrowser
         {
             _treeSearchText = searchText.ToLowerInvariant();
 
-            TreeView activeTree = CallTree.Visible ? CallTree : ApiTree;
+            // BUG-A03: apply the filter to BOTH trees so that switching between
+            // Call Tree and API Tree shows consistent highlighted results.
+            // Previously only the currently-visible tree was filtered.
+            var trees = new[] { CallTree, ApiTree };
 
             if (string.IsNullOrWhiteSpace(_treeSearchText))
             {
-                // Show all nodes
-                ShowAllTreeNodes(activeTree);
+                foreach (var tree in trees)
+                    ShowAllTreeNodes(tree);
                 return;
             }
 
-            // Filter nodes
-            activeTree.BeginUpdate();
-
-            foreach (TreeNode rootNode in activeTree.Nodes)
+            foreach (var tree in trees)
             {
-                FilterTreeNodeRecursive(rootNode);
+                tree.BeginUpdate();
+                foreach (TreeNode rootNode in tree.Nodes)
+                    FilterTreeNodeRecursive(rootNode);
+                tree.EndUpdate();
             }
-
-            activeTree.EndUpdate();
         }
 
         /// <summary>
@@ -5683,15 +5814,17 @@ namespace Cad3PLogBrowser
 
             if (nodeMatches || hasMatch)
             {
-                // Highlight matching node; expand ancestors so match is visible
-                node.BackColor = nodeMatches ? Color.Yellow : Color.Transparent;
+                // BUG-A07: use the user-configured highlight colour instead of the
+                // hardcoded Color.Yellow which is nearly invisible in Dark theme.
+                node.BackColor = nodeMatches
+                    ? (_appSettings?.HighlightColor ?? Color.Yellow)
+                    : Color.Transparent;
                 if (hasMatch && !node.IsExpanded)
                     node.Expand();
                 return true;
             }
             else
             {
-                // Dim non-matching nodes but do NOT collapse them (BUG-04)
                 node.BackColor = Color.Transparent;
                 return false;
             }
@@ -5794,9 +5927,12 @@ namespace Cad3PLogBrowser
             if (nextBookmark > 0)
             {
                 JumpToLine(nextBookmark);
-                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT, 
-                    _bookmarkService.GetAllBookmarksSorted().IndexOf(nextBookmark) + 1,
-                    _bookmarkService.Count);
+                // PERF-03: GetBookmarkIndex is O(N) in the list size but avoids the
+                // List<int> heap allocation that GetAllBookmarksSorted().IndexOf() created
+                // on every F2 keypress.
+                int pos = _bookmarkService.GetBookmarkIndex(nextBookmark);
+                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT,
+                    pos > 0 ? pos : 1, _bookmarkService.Count);
             }
         }
 
@@ -5823,9 +5959,9 @@ namespace Cad3PLogBrowser
             if (prevBookmark > 0)
             {
                 JumpToLine(prevBookmark);
-                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT, 
-                    _bookmarkService.GetAllBookmarksSorted().IndexOf(prevBookmark) + 1,
-                    _bookmarkService.Count);
+                int pos = _bookmarkService.GetBookmarkIndex(prevBookmark);
+                StatusFileName.Text = string.Format(Resources.MSG_BOOKMARK_COUNT,
+                    pos > 0 ? pos : 1, _bookmarkService.Count);
             }
         }
 

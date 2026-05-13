@@ -214,5 +214,22 @@ namespace Cad3PLogBrowser.Services.Navigation
         {
             return new List<int>(_bookmarkedLines); // already in ascending order
         }
+
+        /// <summary>
+        /// Returns the 1-based position of <paramref name="lineNumber"/> in the sorted
+        /// bookmark list, or -1 if not found.  O(log N) — avoids the O(N) List allocation
+        /// + IndexOf that the previous callers used on every F2 press (PERF-03).
+        /// </summary>
+        public int GetBookmarkIndex(int lineNumber)
+        {
+            if (!_bookmarkedLines.Contains(lineNumber)) return -1;
+            int pos = 1;
+            foreach (int ln in _bookmarkedLines)
+            {
+                if (ln == lineNumber) return pos;
+                pos++;
+            }
+            return -1;
+        }
     }
 }
