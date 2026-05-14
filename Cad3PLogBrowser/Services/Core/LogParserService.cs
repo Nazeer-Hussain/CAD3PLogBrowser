@@ -364,11 +364,16 @@ namespace Cad3PLogBrowser.Services
                 var fileEntries = fileGroups[fileName];
                 var fileRoots   = BuildCallTree(fileEntries);
 
-                // Wrap the per-file roots under a labelled synthetic node
+                // Wrap the per-file roots under a labelled synthetic node.
+                // BUG-B08: LineNumber = 0 so BuildCallStackNodeIndex skips it
+                // (only nodes with LineNumber > 0 are indexed). Setting it to
+                // fileRoots[0].LineNumber caused the first real child and the
+                // synthetic root to share the same key, with the last writer
+                // winning and producing wrong performance subtree filter ranges.
                 var fileRoot = new CallStackNode
                 {
                     Label           = string.IsNullOrEmpty(fileName) ? "(unknown file)" : fileName,
-                    LineNumber      = fileRoots.Count > 0 ? fileRoots[0].LineNumber : 0,
+                    LineNumber      = 0, // intentionally 0 — synthetic wrapper, not a real call
                     Depth           = 0,
                     IsFileGroupRoot = true
                 };
@@ -399,8 +404,11 @@ namespace Cad3PLogBrowser.Services
             return list;
         }
 
-        private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map, string sourceLogFile = null)
+        private static void CollectStats(CallStackNode node, Dictionary<string, ApiPerfStats> map,
+            string sourceLogFile = null, int depth = 0)
         {
+            if (depth > 500) return; // BUG-B07: guard against StackOverflowException on deep trees
+
             // BUG-10: propagate sourceLogFile from the node itself when the caller
             // does not supply one (single-file loads). Without this, every
             // ApiPerfStats.SourceLogFile was null for non-merged loads, making the
@@ -433,7 +441,7 @@ namespace Cad3PLogBrowser.Services
             }
 
             foreach (var child in node.Children)
-                CollectStats(child, map, effectiveFile);
+                CollectStats(child, map, effectiveFile, depth + 1);
         }
 
         // ── Per-file performance statistics (for merged logs) ─────────────────

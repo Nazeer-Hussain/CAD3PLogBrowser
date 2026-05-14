@@ -1581,9 +1581,16 @@ namespace Cad3PLogBrowser
             _perfFilterBar.Controls.Add(_perfFilterLabel);
             _perfFilterBar.Controls.Add(_perfClearFilterButton);
 
-            // Insert at index 0 so it docks above performanceView (Dock=Fill).
+            // Docking rule: the filter bar (Dock=Top) must be at a HIGHER Controls index
+            // than performanceView (Dock=Fill) so WinForms processes it first and carves
+            // its 28 px from the top before Fill takes the rest.
+            // Controls.Add() places it at the highest index — correct, no SetChildIndex needed.
+            // Previously SetChildIndex(_perfFilterBar, 0) placed it at the LOWEST index,
+            // which caused it to be processed last and to z-order-float ON TOP of the
+            // ListView column-header strip instead of pushing the ListView down.
+            // That floating panel intercepted all mouse events over the header, preventing
+            // column resize dragging whenever the filter bar was visible.
             performanceTab.Controls.Add(_perfFilterBar);
-            performanceTab.Controls.SetChildIndex(_perfFilterBar, 0);
             ApplyPerfFilterBarTheme();
         }
 
@@ -2264,8 +2271,9 @@ namespace Cad3PLogBrowser
                     || argb == highlightArgb) continue;
 
                 // Re-evaluate the theme-dependent level colour.
-                Color fresh = GetLineColour(vl.Text);
-                if (argb != fresh.ToArgb())
+                Color fresh     = GetLineColour(vl.Text);
+                int   freshArgb = fresh.ToArgb(); // PERF-B05: cache to avoid second ToArgb()
+                if (argb != freshArgb)
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
@@ -2550,6 +2558,7 @@ namespace Cad3PLogBrowser
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, Resources.LOAD_ERROR_ACCESS_DENIED, ex.Message); }
             catch (IOException ex)                 { ShowLoadError(filePath, Resources.LOAD_ERROR_FILE_READ, ex.Message); }
+            catch (OperationCanceledException)     { /* user cancelled — no error dialog needed */ }
             catch (Exception ex)                   { ShowLoadError(filePath, Resources.LOAD_ERROR_UNEXPECTED, ex.Message); }
             finally
             {
@@ -2896,11 +2905,28 @@ namespace Cad3PLogBrowser
         {
             // Use the actual log level code (2nd colon-separated field: E=Error, W=Warning)
             if (string.IsNullOrEmpty(line)) return ThemeManager.BackgroundColor;
-            // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
-            int first = line.IndexOf(": ", StringComparison.Ordinal);
-            if (first >= 0 && first + 3 < line.Length)
+
+            // BUG-B02: strip the [filename] prefix added by MergeLogService before
+            // evaluating the level character, otherwise the IndexOf(': ') lands inside
+            // the ISO timestamp (e.g. '07:48:00.304Z') and the extracted character is
+            // a digit, making all merged-file errors/warnings render as plain lines.
+            string parseable = line;
+            if (line.Length > 2 && line[0] == '[')
             {
-                char level = line[first + 2];
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 1)
+                {
+                    string tag = line.Substring(1, cb - 1);
+                    if (tag.IndexOf('.') >= 0) // looks like a filename, not [Thread:NNN]
+                        parseable = line.Substring(cb + 2);
+                }
+            }
+
+            // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
+            int first = parseable.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < parseable.Length)
+            {
+                char level = parseable[first + 2];
                 if (level == 'E') return ThemeManager.ErrorBackgroundColor;
                 if (level == 'W') return ThemeManager.WarningBackgroundColor;
             }
@@ -3176,6 +3202,11 @@ namespace Cad3PLogBrowser
                     var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                     await Task.WhenAll(mApiTask, mCallTask);
                     var mCallTree  = mCallTask.Result;
+                    // BUG-B01: mirror the BUG-A05 fix — keep _lastCallTree current so the
+                    // performance subtree filter and JSON/XML export always reflect the
+                    // most recently merged data, not the previous single-file load.
+                    _lastCallTree        = mCallTree;
+                    _callStackNodeByLine = BuildCallStackNodeIndex(mCallTree);
                     var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
 
                     // Step 5 of 5: Build call graph and populate UI
@@ -3764,52 +3795,22 @@ namespace Cad3PLogBrowser
             {
                 var token = _cancellationTokenSource.Token;
 
-                var callNodes = CollectAllNodes(CallTree.Nodes);
-                var apiNodes  = CollectAllNodes(ApiTree.Nodes);
-                int total     = callNodes.Count + apiNodes.Count;
-                int done      = 0;
-
-                // Switch from Marquee → Blocks immediately so the user sees a
-                // real filled bar even for very small trees (< 10 nodes).
-                UpdateStatusProgress(1,
-                    string.Format("Expanding 0 / {0} nodes...", total));
+                UpdateStatusProgress(1, "Expanding trees...");
                 await System.Threading.Tasks.Task.Yield();
 
-                CallTree.BeginUpdate();
-                foreach (var n in callNodes)
-                {
-                    token.ThrowIfCancellationRequested();
-                    n.Expand();
-                    done++;
-                    if (done % 10 == 0)
-                    {
-                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
-                        UpdateStatusProgress(pct,
-                            string.Format("Expanding... {0} / {1} nodes", done, total));
-                        await System.Threading.Tasks.Task.Yield();
-                    }
-                }
-                CallTree.EndUpdate();
-
+                // BUG-B03: the old implementation pre-collected all TreeNode objects into
+                // a flat list before any expansion.  For lazy-loaded trees, expanding a
+                // placeholder node fires CallTree_BeforeExpand which replaces the placeholder
+                // with real children that are NOT in the pre-collected list — so those
+                // children were never expanded.
+                // Fix: use a Queue-based BFS that enqueues newly-materialised children
+                // AFTER each Expand() call, so every node is visited regardless of
+                // whether it existed at the start.
+                await ExpandTreeBfs(CallTree, token);
                 token.ThrowIfCancellationRequested();
+                await ExpandTreeBfs(ApiTree, token);
 
-                ApiTree.BeginUpdate();
-                foreach (var n in apiNodes)
-                {
-                    token.ThrowIfCancellationRequested();
-                    n.Expand();
-                    done++;
-                    if (done % 10 == 0)
-                    {
-                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
-                        UpdateStatusProgress(pct,
-                            string.Format("Expanding... {0} / {1} nodes", done, total));
-                        await System.Threading.Tasks.Task.Yield();
-                    }
-                }
-                ApiTree.EndUpdate();
-
-                UpdateStatusProgress(100, string.Format("Expanded {0} nodes.", total));
+                UpdateStatusProgress(100, "Expanded.");
             }
             catch (OperationCanceledException)
             {
@@ -3819,6 +3820,42 @@ namespace Cad3PLogBrowser
             {
                 EndOperation();
             }
+        }
+
+        /// <summary>
+        /// Expands every node in <paramref name="tree"/> using a BFS queue.
+        /// Newly-materialised children (from lazy-loading) are enqueued after
+        /// each <see cref="TreeNode.Expand"/> call, so all levels are reached.
+        /// </summary>
+        private async System.Threading.Tasks.Task ExpandTreeBfs(
+            TreeView tree, System.Threading.CancellationToken token)
+        {
+            var queue = new Queue<TreeNode>();
+            foreach (TreeNode root in tree.Nodes) queue.Enqueue(root);
+
+            int done = 0;
+            tree.BeginUpdate();
+            try
+            {
+                while (queue.Count > 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var node = queue.Dequeue();
+                    node.Expand(); // fires BeforeExpand → lazy children injected here
+                    // Enqueue children AFTER Expand so lazy children are included.
+                    foreach (TreeNode child in node.Nodes)
+                        queue.Enqueue(child);
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        UpdateStatusProgress(
+                            Math.Min(99, 1 + done / 10),
+                            string.Format("Expanding... {0} nodes", done));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
+                }
+            }
+            finally { tree.EndUpdate(); }
         }
 
         private List<TreeNode> CollectAllNodes(TreeNodeCollection nodes)
@@ -4233,41 +4270,36 @@ namespace Cad3PLogBrowser
             var result = new HashSet<int>();
             if (_lastEntries == null || _lastEntries.Count == 0) return result;
 
-            var stack = new Stack<Services.LogEntry>();
+            // BUG-B04: the previous implementation used a single stack and restored
+            // intermediate frames on every EXIT miss with a temp stack, which:
+            //   (a) corrupted the LIFO order of those frames on restoration, and
+            //   (b) was O(depth²) for deeply-nested call trees.
+            // Replace with per-API-name stacks (same pattern as BuildCallTree) so
+            // every ENTER/EXIT lookup is O(1) amortised.
+            var nameStacks = new Dictionary<string, Stack<Services.LogEntry>>(StringComparer.Ordinal);
+
             foreach (var entry in _lastEntries)
             {
                 if (!entry.IsApiCall) continue;
 
                 if (entry.IsCallEnter)
                 {
-                    stack.Push(entry);
+                    if (!nameStacks.TryGetValue(entry.ApiName, out var ns))
+                        nameStacks[entry.ApiName] = ns = new Stack<Services.LogEntry>();
+                    ns.Push(entry);
                 }
-                else if (entry.IsCallExit && stack.Count > 0)
+                else if (entry.IsCallExit)
                 {
-                    // Walk the stack to find the matching ENTER (handles unmatched pairs).
-                    var temp = new Stack<Services.LogEntry>();
-                    bool found = false;
-                    while (stack.Count > 0 && !found)
+                    if (!nameStacks.TryGetValue(entry.ApiName, out var ns) || ns.Count == 0)
+                        continue; // orphan EXIT — no matching ENTER on stack
+
+                    var enter = ns.Pop();
+                    if (enter.EpochMs > 0 && entry.EpochMs >= enter.EpochMs)
                     {
-                        var top = stack.Pop();
-                        if (top.ApiName == entry.ApiName)
-                        {
-                            // Compute duration from EpochMs timestamps.
-                            if (top.EpochMs > 0 && entry.EpochMs >= top.EpochMs)
-                            {
-                                long durationMs = entry.EpochMs - top.EpochMs;
-                                if (durationMs >= minDurationMs)
-                                    result.Add(top.LineNumber);
-                            }
-                            found = true;
-                        }
-                        else
-                        {
-                            temp.Push(top);
-                        }
+                        long durationMs = entry.EpochMs - enter.EpochMs;
+                        if (durationMs >= minDurationMs)
+                            result.Add(enter.LineNumber);
                     }
-                    // Restore non-matching frames.
-                    while (temp.Count > 0) stack.Push(temp.Pop());
                 }
             }
             return result;
