@@ -314,6 +314,18 @@
   <data name="STATUS_LOADING" xml:space="preserve">
     <value>Loading...</value>
   </data>
+  <data name="STATUS_FILE_CHANGED_ON_DISK" xml:space="preserve">
+    <value>File changed on disk — click here or press F5 to reload</value>
+  </data>
+  <data name="STATUS_FILE_CHANGED_DECLINED" xml:space="preserve">
+    <value>{0} has unsaved changes on disk (click the status icon to reload)</value>
+  </data>
+  <data name="TOOLTIP_FILE_CHANGED_ON_DISK" xml:space="preserve">
+    <value>The file has changed on disk. Click to reload.</value>
+  </data>
+  <data name="PROMPT_FILE_CHANGED_RELOAD" xml:space="preserve">
+    <value>The file "{0}" has changed on disk.&#13;&#10;&#13;&#10;Reload it now?</value>
+  </data>
   <data name="STATUS_PROCESSING_LOG_DATA" xml:space="preserve">
     <value>Processing log data...</value>
   </data>

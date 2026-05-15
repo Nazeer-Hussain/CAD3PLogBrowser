@@ -503,14 +503,23 @@ namespace Cad3PLogBrowser.Services.Analysis
                 // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
                 using (var client = new WebClient())
                 {
+                    // DEF-E11: set a 30-second timeout so a hung server does not
+                    // freeze the AI panel permanently. WebClient does not expose
+                    // Timeout directly; derive and override GetWebRequest instead.
                     client.Headers.Add("x-api-key", _apiKey);
                     client.Headers.Add("anthropic-version", "2023-06-01");
                     client.Headers.Add("Content-Type", "application/json");
 
-                    // BUG-05: UploadStringTaskAsync is truly async; the previous
-                    // Task.Run(UploadString) blocked a ThreadPool thread for the
-                    // entire HTTP round-trip (potentially several seconds).
-                    string raw = await client.UploadStringTaskAsync(ApiUrl, body);
+                    // Wrap in a timeout task so the async await can be cancelled.
+                    var uploadTask   = client.UploadStringTaskAsync(ApiUrl, body);
+                    var timeoutTask  = Task.Delay(30_000);
+                    var completed    = await Task.WhenAny(uploadTask, timeoutTask);
+                    if (completed == timeoutTask)
+                    {
+                        client.CancelAsync();
+                        return "[Claude API timed out after 30 seconds]";  
+                    }
+                    string raw = await uploadTask;
 
                     // Parse "text" from response
                     int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);

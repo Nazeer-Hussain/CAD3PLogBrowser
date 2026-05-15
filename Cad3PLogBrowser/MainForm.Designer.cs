@@ -748,6 +748,7 @@
             this.FileStatus.Image = null;
             this.FileStatus.Name = "FileStatus";
             this.FileStatus.Size = new System.Drawing.Size(16, 17);
+            this.FileStatus.Click += new System.EventHandler(this.FileStatus_Click);
             // 
             // FileLoadProgress
             // 
@@ -1334,8 +1335,10 @@
             this.logWatcher.EnableRaisingEvents = true;
             this.logWatcher.NotifyFilter = System.IO.NotifyFilters.Attributes;
             this.logWatcher.SynchronizingObject = this;
-            this.logWatcher.Changed += new System.IO.FileSystemEventHandler(this.logWatcher_Changed);
-            // 
+            // logWatcher.Changed is intentionally not subscribed here.
+            // File-change watching is handled by LogFileService.WatchFile which
+            // raises FileChangedOnDisk → OnFileChangedOnDisk in MainForm.
+            //
             // logContextMenu
             // 
             this.logContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {

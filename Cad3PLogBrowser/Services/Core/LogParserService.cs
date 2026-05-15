@@ -118,6 +118,12 @@ namespace Cad3PLogBrowser.Services
                 int fieldIndex = 0;
                 int payloadStart = -1;
 
+                // PERF-B02: walk colon-separated fields using index arithmetic only.
+                // The previous code called line.Substring(pos, len) for every field,
+                // allocating a temporary string for fields 0 (datetime) and 2 (PID)
+                // that were immediately discarded.  We now skip those two fields by
+                // index position alone and only call Substring for the four fields we
+                // actually store (Level, TID, App, Area).
                 while (pos < line.Length)
                 {
                     int next = line.IndexOf(sep, pos, StringComparison.Ordinal);
@@ -127,14 +133,14 @@ namespace Cad3PLogBrowser.Services
                         break;
                     }
 
-                    string field = line.Substring(pos, next - pos);
-
                     switch (fieldIndex)
                     {
-                        case ColonFieldLevel:  entry.Level    = field; break;
-                        case ColonFieldTid:    entry.ThreadId = field; break;
-                        case ColonFieldApp:    entry.App      = field; break;
-                        case ColonFieldArea:   entry.Area     = field; break;
+                        case ColonFieldLevel:  entry.Level    = line.Substring(pos, next - pos); break;
+                        case ColonFieldTid:    entry.ThreadId = line.Substring(pos, next - pos); break;
+                        case ColonFieldApp:    entry.App      = line.Substring(pos, next - pos); break;
+                        case ColonFieldArea:   entry.Area     = line.Substring(pos, next - pos); break;
+                        // ColonFieldDateTime (0) and ColonFieldPid (2) are intentionally
+                        // skipped — no Substring allocation, no discard.
                     }
 
                     fieldIndex++;
@@ -231,12 +237,15 @@ namespace Cad3PLogBrowser.Services
                 if (entry.IsCallEnter)
                 {
                     node.LineNumbers.Add(entry.LineNumber);
-                    depth[entry.ApiName]++;
+                    // PERF-B03: single TryGetValue + assign instead of two indexer calls
+                    depth.TryGetValue(entry.ApiName, out int d);
+                    depth[entry.ApiName] = d + 1;
                 }
                 else if (entry.IsCallExit)
                 {
-                    if (depth[entry.ApiName] > 0)
-                        depth[entry.ApiName]--;          // normal matched EXIT — no extra node
+                    depth.TryGetValue(entry.ApiName, out int d);
+                    if (d > 0)
+                        depth[entry.ApiName] = d - 1;  // normal matched EXIT
                     else
                         node.ExitOnlyLines.Add(entry.LineNumber); // orphan EXIT with no ENTER
                 }
