@@ -58,6 +58,18 @@ namespace Cad3PLogBrowser.Services
         public long    MaxFileSizeMbForListView { get; set; } = 50; // skip list if > N MB
         public long    SlowCallThresholdMs      { get; set; } = 1000;
         /// <summary>
+        /// Maximum number of characters to load into RichTextBox controls (Raw tab, detail views).
+        /// RichTextBox has a hard limit around 2GB but realistically becomes unstable above 32MB.
+        /// Default: 10 million characters (~10MB of text).
+        /// </summary>
+        public int     MaxRichTextBoxChars      { get; set; } = 10_000_000;
+        /// <summary>
+        /// Maximum file size (in bytes) that will be loaded into RichTextBox controls.
+        /// Files larger than this will show a placeholder message instead.
+        /// Default: 50 MB.
+        /// </summary>
+        public long    MaxRichTextBoxFileSizeBytes { get; set; } = 50 * 1024 * 1024;
+        /// <summary>
         /// When true, clicking a Call Tree node automatically filters the Performance
         /// tab to show only the API calls within that node's ENTER/EXIT scope.
         /// When false, the filter must be triggered manually via the context menu.

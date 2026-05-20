@@ -76,19 +76,32 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"API Calls: {stats.TotalApiCalls:N0} ({stats.UniqueApiCount} unique)");
             sb.AppendLine($"Max Call Depth: {stats.MaxCallDepth}");
             sb.AppendLine($"Session Duration: {stats.SessionDurationMs:N0} ms\n");
-            if (perfStats != null && perfStats.Any())
+            if (perfStats != null && perfStats.Count > 0)
             {
-                var slowest = perfStats.OrderByDescending(p => p.TotalDurationMs).Take(5).ToList();
-                if (slowest.Any(p => p.TotalDurationMs > 1000))
+                // PERF-B01: perfStats is already sorted descending by TotalDurationMs;
+                // avoid the O(N log N) OrderByDescending + ToList allocation.
+                int top5 = Math.Min(5, perfStats.Count);
+                bool hasSlowCall = false;
+                for (int i = 0; i < top5; i++)
+                    if (perfStats[i].TotalDurationMs > 1000) { hasSlowCall = true; break; }
+
+                if (hasSlowCall)
                 {
                     sb.AppendLine("PERFORMANCE CONCERNS:");
-                    foreach (var p in slowest.Where(x => x.TotalDurationMs > 1000))
-                        sb.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls)");
+                    for (int i = 0; i < top5; i++)
+                    {
+                        var p = perfStats[i];
+                        if (p.TotalDurationMs > 1000)
+                            sb.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls)");
+                    }
                     sb.AppendLine();
                 }
                 sb.AppendLine("Top 5 Slowest APIs:");
-                foreach (var p in slowest)
+                for (int i = 0; i < top5; i++)
+                {
+                    var p = perfStats[i];
                     sb.AppendLine($"  {p.ApiName}: {p.TotalDurationMs:N0} ms (avg {p.AvgDurationMs:N0} ms, {p.CallCount} calls)");
+                }
             }
             sb.AppendLine("\nRECOMMENDATIONS:");
             if (stats.ErrorCount > 0)    sb.AppendLine($"  Investigate {stats.ErrorCount} error(s) — use F8 to navigate");
@@ -252,10 +265,17 @@ namespace Cad3PLogBrowser.Services.Analysis
             if (perfStats != null && perfStats.Any(p => p.AvgDurationMs > 1000))
             {
                 sb.AppendLine("PERFORMANCE ISSUES:");
-                foreach (var p in perfStats.Where(p => p.AvgDurationMs > 1000).OrderByDescending(p => p.TotalDurationMs).Take(3))
+                // PERF-B01: list already sorted desc by TotalDurationMs
+                sb.AppendLine("Performance impact:");
+                int top3rc = Math.Min(3, perfStats.Count);
+                for (int i = 0; i < top3rc; i++)
                 {
-                    sb.AppendLine($"  {p.ApiName}: {p.AvgDurationMs:N0} ms avg");
-                    sb.AppendLine("    Likely causes: I/O operations, database queries, external API calls");
+                    var p = perfStats[i];
+                    if (p.AvgDurationMs > 1000)
+                    {
+                        sb.AppendLine($"  {p.ApiName}: {p.AvgDurationMs:N0} ms avg");
+                        sb.AppendLine("    Likely causes: I/O operations, database queries, external API calls");
+                    }
                 }
             }
             return sb.ToString();
@@ -285,9 +305,16 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"**Session:** {stats.TotalLines:N0} lines, {stats.SessionDurationMs:N0} ms\n");
             sb.AppendLine($"**Summary:** {stats.ErrorCount} error(s), {stats.WarningCount} warning(s) detected.\n");
             sb.AppendLine("**Performance Impact:**");
-            if (perfStats != null && perfStats.Any())
-                foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(5))
+            if (perfStats != null && perfStats.Count > 0)
+            {
+                // PERF-B01: list already sorted desc by TotalDurationMs
+                int top5 = Math.Min(5, perfStats.Count);
+                for (int i = 0; i < top5; i++)
+                {
+                    var p = perfStats[i];
                     sb.AppendLine($"- {p.ApiName}: {p.TotalDurationMs:N0} ms total ({p.CallCount} calls)");
+                }
+            }
             sb.AppendLine($"\n**Priority:** {(stats.ErrorCount > 10 ? "HIGH" : stats.ErrorCount > 0 ? "MEDIUM" : "LOW")}");
             sb.AppendLine("\n_Tip: Enable Claude API in Settings for an enhanced AI-generated bug report._");
             return sb.ToString();
@@ -332,8 +359,11 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"Total tracked time: {total:N0} ms");
             sb.AppendLine($"Total calls: {perfStats.Sum(p => p.CallCount):N0}\n");
             sb.AppendLine("Top 10 Time Consumers:");
-            foreach (var p in perfStats.OrderByDescending(p => p.TotalDurationMs).Take(10))
+            // PERF-B01: perfStats already sorted desc by TotalDurationMs
+            int top10ap = Math.Min(10, perfStats.Count);
+            for (int i = 0; i < top10ap; i++)
             {
+                var p = perfStats[i];
                 double pct = total > 0 ? (p.TotalDurationMs / (double)total) * 100 : 0;
                 sb.AppendLine($"  {p.ApiName}");
                 sb.AppendLine($"    Total: {p.TotalDurationMs:N0} ms ({pct:F1}%) | Calls: {p.CallCount} | Avg: {p.AvgDurationMs:N0} ms | Max: {p.MaxDurationMs:N0} ms");
@@ -444,11 +474,16 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"API calls: {stats.TotalApiCalls}  Unique: {stats.UniqueApiCount}");
             sb.AppendLine($"Max depth: {stats.MaxCallDepth}  Max single call: {stats.MaxCallDurationMs} ms");
             sb.AppendLine($"Session duration: {stats.SessionDurationMs} ms");
-            if (perfStats != null && perfStats.Any())
+            if (perfStats != null && perfStats.Count > 0)
             {
+                // PERF-B04: perfStats already sorted desc; avoid redundant O(N log N) sort.
                 sb.AppendLine("\nTop 10 APIs by total time:");
-                foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(10))
+                int top10 = Math.Min(10, perfStats.Count);
+                for (int i = 0; i < top10; i++)
+                {
+                    var p = perfStats[i];
                     sb.AppendLine($"  {p.ApiName}: total={p.TotalDurationMs}ms avg={p.AvgDurationMs}ms min={p.MinDurationMs}ms max={p.MaxDurationMs}ms calls={p.CallCount}");
+                }
             }
             if (!string.IsNullOrEmpty(extra)) sb.AppendLine($"\nContext: {extra}");
             return sb.ToString();
@@ -468,14 +503,23 @@ namespace Cad3PLogBrowser.Services.Analysis
                 // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
                 using (var client = new WebClient())
                 {
+                    // DEF-E11: set a 30-second timeout so a hung server does not
+                    // freeze the AI panel permanently. WebClient does not expose
+                    // Timeout directly; derive and override GetWebRequest instead.
                     client.Headers.Add("x-api-key", _apiKey);
                     client.Headers.Add("anthropic-version", "2023-06-01");
                     client.Headers.Add("Content-Type", "application/json");
 
-                    // BUG-05: UploadStringTaskAsync is truly async; the previous
-                    // Task.Run(UploadString) blocked a ThreadPool thread for the
-                    // entire HTTP round-trip (potentially several seconds).
-                    string raw = await client.UploadStringTaskAsync(ApiUrl, body);
+                    // Wrap in a timeout task so the async await can be cancelled.
+                    var uploadTask   = client.UploadStringTaskAsync(ApiUrl, body);
+                    var timeoutTask  = Task.Delay(30_000);
+                    var completed    = await Task.WhenAny(uploadTask, timeoutTask);
+                    if (completed == timeoutTask)
+                    {
+                        client.CancelAsync();
+                        return "[Claude API timed out after 30 seconds]";  
+                    }
+                    string raw = await uploadTask;
 
                     // Parse "text" from response
                     int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);

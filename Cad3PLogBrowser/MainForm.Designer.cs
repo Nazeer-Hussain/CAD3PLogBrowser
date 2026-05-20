@@ -748,6 +748,7 @@
             this.FileStatus.Image = null;
             this.FileStatus.Name = "FileStatus";
             this.FileStatus.Size = new System.Drawing.Size(16, 17);
+            this.FileStatus.Click += new System.EventHandler(this.FileStatus_Click);
             // 
             // FileLoadProgress
             // 
@@ -929,6 +930,7 @@
             this.rawTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
             this.rawTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.rawTextBox.Name      = "rawTextBox";
+            this.rawTextBox.MaxLength = 10_000_000; // Memory safety: prevent OutOfMemoryException
             this.rawTab.Controls.Add(this.rawTextBox);
             this.rawTab.Location = new System.Drawing.Point(4, 25);
             this.rawTab.Name = "rawTab";
@@ -1334,8 +1336,10 @@
             this.logWatcher.EnableRaisingEvents = true;
             this.logWatcher.NotifyFilter = System.IO.NotifyFilters.Attributes;
             this.logWatcher.SynchronizingObject = this;
-            this.logWatcher.Changed += new System.IO.FileSystemEventHandler(this.logWatcher_Changed);
-            // 
+            // logWatcher.Changed is intentionally not subscribed here.
+            // File-change watching is handled by LogFileService.WatchFile which
+            // raises FileChangedOnDisk → OnFileChangedOnDisk in MainForm.
+            //
             // logContextMenu
             // 
             this.logContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {

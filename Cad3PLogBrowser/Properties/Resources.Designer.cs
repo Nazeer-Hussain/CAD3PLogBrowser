@@ -1433,7 +1433,31 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("STATUS_LOADING", resourceCulture);
             }
         }
-        
+
+        internal static string STATUS_FILE_CHANGED_ON_DISK {
+            get {
+                return ResourceManager.GetString("STATUS_FILE_CHANGED_ON_DISK", resourceCulture);
+            }
+        }
+
+        internal static string STATUS_FILE_CHANGED_DECLINED {
+            get {
+                return ResourceManager.GetString("STATUS_FILE_CHANGED_DECLINED", resourceCulture);
+            }
+        }
+
+        internal static string TOOLTIP_FILE_CHANGED_ON_DISK {
+            get {
+                return ResourceManager.GetString("TOOLTIP_FILE_CHANGED_ON_DISK", resourceCulture);
+            }
+        }
+
+        internal static string PROMPT_FILE_CHANGED_RELOAD {
+            get {
+                return ResourceManager.GetString("PROMPT_FILE_CHANGED_RELOAD", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to No line selected.
         /// </summary>
@@ -1442,7 +1466,6 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("STATUS_NO_LINE_SELECTED", resourceCulture);
             }
         }
-        
         /// <summary>
         ///   Looks up a localized string similar to No lines selected.
         /// </summary>

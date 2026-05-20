@@ -82,6 +82,27 @@ namespace Cad3PLogBrowser
         private Dictionary<int, CallStackNode> _callStackNodeByLine =
             new Dictionary<int, CallStackNode>();
 
+        // ── File-change watcher state ─────────────────────────────────────────
+        // FileSystemWatcher fires Changed multiple times per OS write flush.
+        // _fileChangedDebounce coalesces rapid events into a single notification.
+        private System.Windows.Forms.Timer _fileChangedDebounce;
+        private bool                        _fileChangedPending = false;
+
+        // PERF-D01: AggregateStats is deterministic for a given file load.
+        // Cache it here and invalidate in PopulateTreesFromData so every AI
+        // button click does not repeat the O(N) scan over _lastEntries.
+        private Cad3PLogBrowser.Models.AggregateStats _lastAggregateStats;
+        private List<Services.ApiPerfStats> _lastAiPerfStats;
+
+        // PERF-D02: track the last applied icon size so ApplyIconSize skips
+        // the ~40 Bitmap allocations when the size has not changed.
+        private string _lastAppliedIconSize = null;
+
+        // DEF-D10: O(1) line-number → LogEntry lookup used by JumpToMatchingPair.
+        // Replaces the O(N) foreach over _lastEntries on every Ctrl+M / right-click.
+        private Dictionary<int, Services.LogEntry> _lastEntryByLine =
+            new Dictionary<int, Services.LogEntry>();
+
         // BUG-15/16: cached GDI fonts for performance summary row and call-tree root node.
         private Font _perfSummaryFont;
         private Font _callTreeRootFont;
@@ -918,8 +939,38 @@ namespace Cad3PLogBrowser
         // ── Status bar ────────────────────────────────────────────────────────
         private string _activeFilterText = "";
 
+        private void UpdateTitleBar()
+        {
+            const string appName = "CAD 3P Log Browser";
+            if (string.IsNullOrEmpty(_currentFilePath))
+            {
+                this.Text = appName;
+                return;
+            }
+
+            string titleFilePart;
+            if (_currentFilePath.StartsWith("[Merged:"))
+            {
+                // Extract the comma-separated names from "[Merged: a.txt, b.txt]"
+                string inner = _currentFilePath
+                    .TrimStart('[')
+                    .TrimEnd(']')
+                    .Substring("Merged:".Length)
+                    .Trim();
+                titleFilePart = "Merged: " + inner;
+            }
+            else
+            {
+                titleFilePart = Path.GetFileName(_currentFilePath);
+            }
+
+            this.Text = titleFilePart + " – " + appName;
+        }
+
         private void UpdateStatusBar()
         {
+            UpdateTitleBar();
+
             if (string.IsNullOrEmpty(_currentFilePath))
             {
                 StatusFileName.Text = StatusLineCount.Text = StatusSelection.Text = "";
@@ -1121,6 +1172,11 @@ namespace Cad3PLogBrowser
         private void BuildTreeIconList()
         {
             var imgList = treeIconList;
+            // DEF-D04: dispose the previous Bitmap objects before clearing the ImageList.
+            // Images.Clear() removes them from the list but does NOT call Dispose(),
+            // leaking one GDI Bitmap handle per image on every rebuild.
+            for (int i = 0; i < imgList.Images.Count; i++)
+                imgList.Images[i]?.Dispose();
             imgList.Images.Clear();
 
             // Feature C3: Flat-style icons for checkmark and cross
@@ -1195,6 +1251,19 @@ namespace Cad3PLogBrowser
             if (_perfFilterBar != null) _perfFilterBar.Visible = false;
             _lastEntries  = entries;
             _apiNodes     = apiNodes;
+
+            // DEF-D10: rebuild O(1) line-number → entry map for JumpToMatchingPair
+            _lastEntryByLine = new Dictionary<int, Services.LogEntry>(entries.Count);
+            foreach (var e in entries)
+                if (e.IsApiCall && !_lastEntryByLine.ContainsKey(e.LineNumber))
+                    _lastEntryByLine[e.LineNumber] = e;
+
+            // PERF-D01: _lastAiPerfStats/_lastAggregateStats are rebuilt AFTER
+            // PopulatePerformanceTab (below) assigns _apiPerfStats. Nullify here
+            // so BuildAiContext() lazily recomputes on the first AI request with
+            // the final _apiPerfStats value.
+            _lastAiPerfStats    = null;
+            _lastAggregateStats = null;
 
             // PERF-02: build the name → node index once so ShowApiDetails is O(1) per click.
             _apiNodeByName = new Dictionary<string, ApiCallNode>(
@@ -1275,6 +1344,9 @@ namespace Cad3PLogBrowser
 
             ApiTree.BeginUpdate();
             ApiTree.Nodes.Clear();
+            // PERF-E01: rebuild the name → node cache so FindAndSelectApiTreeNode is O(1)
+            _apiNameToTreeNode = new Dictionary<string, TreeNode>(
+                apiNodes.Count, StringComparer.OrdinalIgnoreCase);
 
             // Root node: "API Tree"
             string sortLabel = _apiSortMode == ApiSortMode.ByCount ? Resources.TREE_SORT_LABEL_COUNT
@@ -1294,6 +1366,7 @@ namespace Cad3PLogBrowser
                     ImageIndex      = allMatched ? 0 : 1,
                     SelectedImageIndex = allMatched ? 0 : 1
                 };
+                _apiNameToTreeNode[node.ApiName] = apiRoot; // PERF-E01: O(1) cache
 
                 // Children: one per ENTER invocation
                 foreach (int lineNo in node.LineNumbers)
@@ -1338,6 +1411,11 @@ namespace Cad3PLogBrowser
 
         // Cache of API name → all-matched status, built in one pass during tree population
         private Dictionary<string, bool> _matchedApiCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        // PERF-E01 / DEF-E06: O(1) API-name → root TreeNode lookup built in PopulateApiTree.
+        // Replaces the O(N²) nested foreach in FindAndSelectApiTreeNode.
+        private Dictionary<string, TreeNode> _apiNameToTreeNode =
+            new Dictionary<string, TreeNode>(StringComparer.OrdinalIgnoreCase);
 
         private Dictionary<string, bool> BuildMatchedApiCache(List<Services.LogEntry> entries)
         {
@@ -1581,9 +1659,16 @@ namespace Cad3PLogBrowser
             _perfFilterBar.Controls.Add(_perfFilterLabel);
             _perfFilterBar.Controls.Add(_perfClearFilterButton);
 
-            // Insert at index 0 so it docks above performanceView (Dock=Fill).
+            // Docking rule: the filter bar (Dock=Top) must be at a HIGHER Controls index
+            // than performanceView (Dock=Fill) so WinForms processes it first and carves
+            // its 28 px from the top before Fill takes the rest.
+            // Controls.Add() places it at the highest index — correct, no SetChildIndex needed.
+            // Previously SetChildIndex(_perfFilterBar, 0) placed it at the LOWEST index,
+            // which caused it to be processed last and to z-order-float ON TOP of the
+            // ListView column-header strip instead of pushing the ListView down.
+            // That floating panel intercepted all mouse events over the header, preventing
+            // column resize dragging whenever the filter bar was visible.
             performanceTab.Controls.Add(_perfFilterBar);
-            performanceTab.Controls.SetChildIndex(_perfFilterBar, 0);
             ApplyPerfFilterBarTheme();
         }
 
@@ -2264,8 +2349,9 @@ namespace Cad3PLogBrowser
                     || argb == highlightArgb) continue;
 
                 // Re-evaluate the theme-dependent level colour.
-                Color fresh = GetLineColour(vl.Text);
-                if (argb != fresh.ToArgb())
+                Color fresh     = GetLineColour(vl.Text);
+                int   freshArgb = fresh.ToArgb(); // PERF-B05: cache to avoid second ToArgb()
+                if (argb != freshArgb)
                     _virtualLines[i] = new VirtualLogLine
                     {
                         LineNumber = vl.LineNumber,
@@ -2374,6 +2460,11 @@ namespace Cad3PLogBrowser
 
         private async void MergeDroppedFileAsync(string droppedFile)
         {
+            // DEF-E12: guard _isLoading so OnFileChangedOnDisk skips change
+            // notifications while the merge is in progress, matching the
+            // identical guard in LoadFileAsync.
+            if (_isLoading) return;
+            _isLoading = true;
             StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, 2));
 
             try
@@ -2443,7 +2534,9 @@ namespace Cad3PLogBrowser
                 UpdateStatusProgress(100, "Merge complete.");
 
                 SetDocumentLoaded(true);
-                FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                FileStatus.Image       = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                FileStatus.ToolTipText = string.Empty;
+                _fileChangedPending    = false; // DEF-D09: clear stale watcher state after merge
                 UpdateStatusBar();
 
                 MessageBox.Show(
@@ -2458,6 +2551,7 @@ namespace Cad3PLogBrowser
             }
             finally
             {
+                _isLoading = false;
                 EndOperation();
             }
         }
@@ -2542,7 +2636,9 @@ namespace Cad3PLogBrowser
                 UpdateStatusProgress(100, "Load complete.");
 
                 SetDocumentLoaded(true);
-                FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                FileStatus.Image       = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                FileStatus.ToolTipText = string.Empty;
+                _fileChangedPending    = false;
                 _logFileService.WatchFile(filePath);
                 UpdateStatusBar();
                 _appSettings.AddRecentFile(filePath);
@@ -2550,6 +2646,7 @@ namespace Cad3PLogBrowser
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, Resources.LOAD_ERROR_ACCESS_DENIED, ex.Message); }
             catch (IOException ex)                 { ShowLoadError(filePath, Resources.LOAD_ERROR_FILE_READ, ex.Message); }
+            catch (OperationCanceledException)     { /* user cancelled — no error dialog needed */ }
             catch (Exception ex)                   { ShowLoadError(filePath, Resources.LOAD_ERROR_UNEXPECTED, ex.Message); }
             finally
             {
@@ -2710,6 +2807,12 @@ namespace Cad3PLogBrowser
         // ── Icon Size Management ──────────────────────────────────────────────
         private void ApplyIconSize()
         {
+            // PERF-D02: skip the ~40 Bitmap allocations when the icon size has not
+            // changed since the last call (e.g. theme toggles that do not change size).
+            string currentSize = _appSettings?.ToolbarIconSize ?? "Medium";
+            if (currentSize == _lastAppliedIconSize) return;
+            _lastAppliedIconSize = currentSize;
+
             IconGenerator.IconSize sz;
             switch (_appSettings.ToolbarIconSize)
             {
@@ -2896,11 +2999,28 @@ namespace Cad3PLogBrowser
         {
             // Use the actual log level code (2nd colon-separated field: E=Error, W=Warning)
             if (string.IsNullOrEmpty(line)) return ThemeManager.BackgroundColor;
-            // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
-            int first = line.IndexOf(": ", StringComparison.Ordinal);
-            if (first >= 0 && first + 3 < line.Length)
+
+            // BUG-B02: strip the [filename] prefix added by MergeLogService before
+            // evaluating the level character, otherwise the IndexOf(': ') lands inside
+            // the ISO timestamp (e.g. '07:48:00.304Z') and the extracted character is
+            // a digit, making all merged-file errors/warnings render as plain lines.
+            string parseable = line;
+            if (line.Length > 2 && line[0] == '[')
             {
-                char level = line[first + 2];
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 1)
+                {
+                    string tag = line.Substring(1, cb - 1);
+                    if (tag.IndexOf('.') >= 0) // looks like a filename, not [Thread:NNN]
+                        parseable = line.Substring(cb + 2);
+                }
+            }
+
+            // Format: "{datetime}: {Level}: ..."  — level is always at index 1 after ": " split
+            int first = parseable.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < parseable.Length)
+            {
+                char level = parseable[first + 2];
                 if (level == 'E') return ThemeManager.ErrorBackgroundColor;
                 if (level == 'W') return ThemeManager.WarningBackgroundColor;
             }
@@ -2961,9 +3081,74 @@ namespace Cad3PLogBrowser
                 Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        /// <summary>
+        /// Raised by <see cref="LogFileService"/> (on the UI thread via SynchronizingObject)
+        /// whenever the watched log file changes on disk.
+        /// A 750 ms debounce timer is used because FileSystemWatcher fires the Changed event
+        /// multiple times per OS write flush for a single logical save.
+        /// After the debounce period the status icon changes to indicate the file is stale
+        /// and a non-blocking prompt asks the user whether to reload.
+        /// </summary>
         private void OnFileChangedOnDisk(object sender, EventArgs e)
         {
-            if (!_isLoading) FileStatus.Image = IconGenerator.CreateStatusErrorIcon(IconGenerator.IconSize.Small);
+            if (_isLoading) return; // ignore mid-load noise
+
+            // Start / restart the debounce timer so rapid successive events collapse
+            // into a single notification fired 750 ms after the last change.
+            if (_fileChangedDebounce == null)
+            {
+                _fileChangedDebounce = new System.Windows.Forms.Timer { Interval = 750 };
+                _fileChangedDebounce.Tick += (s, ev) =>
+                {
+                    _fileChangedDebounce.Stop();
+                    ShowFileChangedNotification();
+                };
+            }
+            _fileChangedDebounce.Stop();
+            _fileChangedDebounce.Start();
+        }
+
+        /// <summary>
+        /// Called once per debounce cycle when the watched file has changed on disk.
+        /// Updates the status icon/tooltip to indicate the file is stale and asks the
+        /// user whether to reload.  Uses MessageBox so the prompt is non-blocking from
+        /// the watcher thread's perspective (we are already on the UI thread).
+        /// </summary>
+        private void ShowFileChangedNotification()
+        {
+            if (_isLoading) return;
+
+            _fileChangedPending = true;
+
+            // Show a distinct orange "changed" icon and a tooltip so hovering reveals the cause.
+            FileStatus.Image       = IconGenerator.CreateStatusChangedIcon(IconGenerator.IconSize.Small);
+            FileStatus.ToolTipText = Resources.TOOLTIP_FILE_CHANGED_ON_DISK;
+            StatusFileName.Text    = Resources.STATUS_FILE_CHANGED_ON_DISK;
+
+            // Ask the user whether to reload; keep it non-intrusive with a status-bar
+            // message first and an explicit Yes/No dialog so background work is not lost.
+            var result = MessageBox.Show(
+                string.Format(Resources.PROMPT_FILE_CHANGED_RELOAD,
+                    System.IO.Path.GetFileName(_currentFilePath)),
+                Resources.TITLE,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button1);
+
+            if (result == DialogResult.Yes)
+            {
+                _fileChangedPending = false;
+                FileStatus.ToolTipText = string.Empty;
+                LoadFileAsync(_currentFilePath);
+            }
+            else
+            {
+                // User declined: keep the warning icon so they can see the file is stale.
+                // Clicking the FileStatus icon will re-offer the reload.
+                StatusFileName.Text = string.Format(
+                    Resources.STATUS_FILE_CHANGED_DECLINED,
+                    System.IO.Path.GetFileName(_currentFilePath));
+            }
         }
 
         // ── UI state ──────────────────────────────────────────────────────────
@@ -3176,6 +3361,11 @@ namespace Cad3PLogBrowser
                     var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
                     await Task.WhenAll(mApiTask, mCallTask);
                     var mCallTree  = mCallTask.Result;
+                    // BUG-B01: mirror the BUG-A05 fix — keep _lastCallTree current so the
+                    // performance subtree filter and JSON/XML export always reflect the
+                    // most recently merged data, not the previous single-file load.
+                    _lastCallTree        = mCallTree;
+                    _callStackNodeByLine = BuildCallStackNodeIndex(mCallTree);
                     var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
 
                     // Step 5 of 5: Build call graph and populate UI
@@ -3507,10 +3697,8 @@ namespace Cad3PLogBrowser
             int selectedIdx  = logListView.SelectedIndices[0];
             int selectedLine = _virtualLines[selectedIdx].LineNumber;
 
-            // Find the entry at this line
-            LogEntry current = null;
-            foreach (var e in _lastEntries)
-                if (e.LineNumber == selectedLine && e.IsApiCall) { current = e; break; }
+            // DEF-D10: O(1) lookup via _lastEntryByLine instead of O(N) foreach over _lastEntries
+            _lastEntryByLine.TryGetValue(selectedLine, out LogEntry current);
 
             if (current == null) { MessageBox.Show(Resources.MSG_NOT_API_CALL, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
@@ -3666,6 +3854,18 @@ namespace Cad3PLogBrowser
             }
         }
 
+        private void FileStatus_Click(object sender, EventArgs e)
+        {
+            // If the file changed on disk and the user has not yet reloaded,
+            // clicking the warning icon re-offers the reload prompt.
+            if (_fileChangedPending && !_isLoading
+                && !string.IsNullOrEmpty(_currentFilePath)
+                && System.IO.File.Exists(_currentFilePath))
+            {
+                ShowFileChangedNotification();
+            }
+        }
+
         private void SetOperationInProgress(bool inProgress)
         {
             // Disable/enable menu items that could conflict with operations
@@ -3693,11 +3893,18 @@ namespace Cad3PLogBrowser
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            // Handle ESC key to cancel operations
-            if (keyData == Keys.Escape && _cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            // ENH-E04: only consume Escape when an operation is actually in progress
+            // and was successfully requested for cancellation.  The previous code
+            // always returned true, preventing Escape from reaching focused controls
+            // (e.g. closing a drop-down ComboBox) when nothing was running.
+            if (keyData == Keys.Escape)
             {
-                CancelCurrentOperation();
-                return true;
+                if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+                {
+                    CancelCurrentOperation();
+                    return true;
+                }
+                // Fall through — let Escape reach the focused control normally.
             }
 
             // Handle error/warning navigation shortcuts
@@ -3764,52 +3971,22 @@ namespace Cad3PLogBrowser
             {
                 var token = _cancellationTokenSource.Token;
 
-                var callNodes = CollectAllNodes(CallTree.Nodes);
-                var apiNodes  = CollectAllNodes(ApiTree.Nodes);
-                int total     = callNodes.Count + apiNodes.Count;
-                int done      = 0;
-
-                // Switch from Marquee → Blocks immediately so the user sees a
-                // real filled bar even for very small trees (< 10 nodes).
-                UpdateStatusProgress(1,
-                    string.Format("Expanding 0 / {0} nodes...", total));
+                UpdateStatusProgress(1, "Expanding trees...");
                 await System.Threading.Tasks.Task.Yield();
 
-                CallTree.BeginUpdate();
-                foreach (var n in callNodes)
-                {
-                    token.ThrowIfCancellationRequested();
-                    n.Expand();
-                    done++;
-                    if (done % 10 == 0)
-                    {
-                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
-                        UpdateStatusProgress(pct,
-                            string.Format("Expanding... {0} / {1} nodes", done, total));
-                        await System.Threading.Tasks.Task.Yield();
-                    }
-                }
-                CallTree.EndUpdate();
-
+                // BUG-B03: the old implementation pre-collected all TreeNode objects into
+                // a flat list before any expansion.  For lazy-loaded trees, expanding a
+                // placeholder node fires CallTree_BeforeExpand which replaces the placeholder
+                // with real children that are NOT in the pre-collected list — so those
+                // children were never expanded.
+                // Fix: use a Queue-based BFS that enqueues newly-materialised children
+                // AFTER each Expand() call, so every node is visited regardless of
+                // whether it existed at the start.
+                await ExpandTreeBfs(CallTree, token);
                 token.ThrowIfCancellationRequested();
+                await ExpandTreeBfs(ApiTree, token);
 
-                ApiTree.BeginUpdate();
-                foreach (var n in apiNodes)
-                {
-                    token.ThrowIfCancellationRequested();
-                    n.Expand();
-                    done++;
-                    if (done % 10 == 0)
-                    {
-                        int pct = total > 0 ? Math.Max(1, done * 100 / total) : 50;
-                        UpdateStatusProgress(pct,
-                            string.Format("Expanding... {0} / {1} nodes", done, total));
-                        await System.Threading.Tasks.Task.Yield();
-                    }
-                }
-                ApiTree.EndUpdate();
-
-                UpdateStatusProgress(100, string.Format("Expanded {0} nodes.", total));
+                UpdateStatusProgress(100, "Expanded.");
             }
             catch (OperationCanceledException)
             {
@@ -3819,6 +3996,42 @@ namespace Cad3PLogBrowser
             {
                 EndOperation();
             }
+        }
+
+        /// <summary>
+        /// Expands every node in <paramref name="tree"/> using a BFS queue.
+        /// Newly-materialised children (from lazy-loading) are enqueued after
+        /// each <see cref="TreeNode.Expand"/> call, so all levels are reached.
+        /// </summary>
+        private async System.Threading.Tasks.Task ExpandTreeBfs(
+            TreeView tree, System.Threading.CancellationToken token)
+        {
+            var queue = new Queue<TreeNode>();
+            foreach (TreeNode root in tree.Nodes) queue.Enqueue(root);
+
+            int done = 0;
+            tree.BeginUpdate();
+            try
+            {
+                while (queue.Count > 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var node = queue.Dequeue();
+                    node.Expand(); // fires BeforeExpand → lazy children injected here
+                    // Enqueue children AFTER Expand so lazy children are included.
+                    foreach (TreeNode child in node.Nodes)
+                        queue.Enqueue(child);
+                    done++;
+                    if (done % 10 == 0)
+                    {
+                        UpdateStatusProgress(
+                            Math.Min(99, 1 + done / 10),
+                            string.Format("Expanding... {0} nodes", done));
+                        await System.Threading.Tasks.Task.Yield();
+                    }
+                }
+            }
+            finally { tree.EndUpdate(); }
         }
 
         private List<TreeNode> CollectAllNodes(TreeNodeCollection nodes)
@@ -4088,7 +4301,8 @@ namespace Cad3PLogBrowser
         {
             _activeFilterText = "";
             PopulateVirtualListView(_allLines);
-            ClearHighlighting(); // Clear search highlights when filter is cleared
+            // DEF-D01: ClearHighlighting() removed — PopulateVirtualListView already
+            // sets BackColour = GetLineColour() for every line; a second pass is O(N) waste.
         }
 
         // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──
@@ -4233,41 +4447,36 @@ namespace Cad3PLogBrowser
             var result = new HashSet<int>();
             if (_lastEntries == null || _lastEntries.Count == 0) return result;
 
-            var stack = new Stack<Services.LogEntry>();
+            // BUG-B04: the previous implementation used a single stack and restored
+            // intermediate frames on every EXIT miss with a temp stack, which:
+            //   (a) corrupted the LIFO order of those frames on restoration, and
+            //   (b) was O(depth²) for deeply-nested call trees.
+            // Replace with per-API-name stacks (same pattern as BuildCallTree) so
+            // every ENTER/EXIT lookup is O(1) amortised.
+            var nameStacks = new Dictionary<string, Stack<Services.LogEntry>>(StringComparer.Ordinal);
+
             foreach (var entry in _lastEntries)
             {
                 if (!entry.IsApiCall) continue;
 
                 if (entry.IsCallEnter)
                 {
-                    stack.Push(entry);
+                    if (!nameStacks.TryGetValue(entry.ApiName, out var ns))
+                        nameStacks[entry.ApiName] = ns = new Stack<Services.LogEntry>();
+                    ns.Push(entry);
                 }
-                else if (entry.IsCallExit && stack.Count > 0)
+                else if (entry.IsCallExit)
                 {
-                    // Walk the stack to find the matching ENTER (handles unmatched pairs).
-                    var temp = new Stack<Services.LogEntry>();
-                    bool found = false;
-                    while (stack.Count > 0 && !found)
+                    if (!nameStacks.TryGetValue(entry.ApiName, out var ns) || ns.Count == 0)
+                        continue; // orphan EXIT — no matching ENTER on stack
+
+                    var enter = ns.Pop();
+                    if (enter.EpochMs > 0 && entry.EpochMs >= enter.EpochMs)
                     {
-                        var top = stack.Pop();
-                        if (top.ApiName == entry.ApiName)
-                        {
-                            // Compute duration from EpochMs timestamps.
-                            if (top.EpochMs > 0 && entry.EpochMs >= top.EpochMs)
-                            {
-                                long durationMs = entry.EpochMs - top.EpochMs;
-                                if (durationMs >= minDurationMs)
-                                    result.Add(top.LineNumber);
-                            }
-                            found = true;
-                        }
-                        else
-                        {
-                            temp.Push(top);
-                        }
+                        long durationMs = entry.EpochMs - enter.EpochMs;
+                        if (durationMs >= minDurationMs)
+                            result.Add(enter.LineNumber);
                     }
-                    // Restore non-matching frames.
-                    while (temp.Count > 0) stack.Push(temp.Pop());
                 }
             }
             return result;
@@ -4661,6 +4870,7 @@ namespace Cad3PLogBrowser
                 _callTreeContextMenu?.Dispose();
                 _apiTreeContextMenu?.Dispose();
                 _treeSearchDebounce?.Dispose();
+                _fileChangedDebounce?.Dispose();
             }
             catch { /* Non-fatal */ }
         }
@@ -5169,14 +5379,24 @@ namespace Cad3PLogBrowser
 
         private void FindAndSelectApiTreeNode(string methodName)
         {
+            // PERF-E01 / DEF-E06: O(1) lookup via _apiNameToTreeNode instead of
+            // the previous O(N²) nested foreach that scanned every root×every child.
+            if (_apiNameToTreeNode.TryGetValue(methodName, out TreeNode apiNode))
+            {
+                ApiTree.SelectedNode = apiNode;
+                apiNode.EnsureVisible();
+                return;
+            }
+            // Fallback: methodName may be a raw node label rather than a pure API name;
+            // scan top-level children of the "API Tree" root for a label match.
             foreach (TreeNode root in ApiTree.Nodes)
             {
-                foreach (TreeNode apiNode in root.Nodes)
+                foreach (TreeNode child in root.Nodes)
                 {
-                    if (GetMethodNameFromNode(apiNode).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                    if (GetMethodNameFromNode(child).Equals(methodName, StringComparison.OrdinalIgnoreCase))
                     {
-                        ApiTree.SelectedNode = apiNode;
-                        apiNode.EnsureVisible();
+                        ApiTree.SelectedNode = child;
+                        child.EnsureVisible();
                         return;
                     }
                 }
@@ -5187,13 +5407,22 @@ namespace Cad3PLogBrowser
         {
             foreach (TreeNode root in CallTree.Nodes)
             {
-                if (FindNodeInTree(root.Nodes, methodName))
+                // DEF-D03: check the root node itself before recursing into its children
+                if (GetMethodNameFromNode(root).Equals(methodName, StringComparison.OrdinalIgnoreCase))
+                {
+                    CallTree.SelectedNode = root;
+                    root.EnsureVisible();
+                    return;
+                }
+                if (FindNodeInTree(root.Nodes, methodName, 1))
                     return;
             }
         }
 
-        private bool FindNodeInTree(TreeNodeCollection nodes, string methodName)
+        private bool FindNodeInTree(TreeNodeCollection nodes, string methodName, int depth = 0)
         {
+            // DEF-D02: guard against StackOverflowException on pathologically deep trees
+            if (depth > 500) return false;
             foreach (TreeNode n in nodes)
             {
                 if (GetMethodNameFromNode(n).Equals(methodName, StringComparison.OrdinalIgnoreCase))
@@ -5202,13 +5431,11 @@ namespace Cad3PLogBrowser
                     n.EnsureVisible();
                     return true;
                 }
-                if (FindNodeInTree(n.Nodes, methodName))
+                if (FindNodeInTree(n.Nodes, methodName, depth + 1))
                     return true;
             }
             return false;
         }
-
-        private void logWatcher_Changed(object sender, System.IO.FileSystemEventArgs e) { }
 
         // ── Feature I3: Export Performance to CSV ────────────────────────────
         private void exportPerformanceMenuItem_Click(object sender, EventArgs e)
@@ -6360,8 +6587,11 @@ namespace Cad3PLogBrowser
 
                 if (logFontDialog.ShowDialog() == DialogResult.OK)
                 {
-                    // Apply font to log list view
+                    // DEF-E02: dispose the previous Font GDI object before replacing it
+                    var oldFont = logListView.Font;
                     logListView.Font = logFontDialog.Font;
+                    if (oldFont != null && oldFont != logFontDialog.Font)
+                        oldFont.Dispose();
 
                     // Save to settings
                     if (_appSettings != null)
@@ -6406,7 +6636,7 @@ namespace Cad3PLogBrowser
         {
             try
             {
-                if (_appSettings != null && 
+                if (_appSettings != null &&
                     !string.IsNullOrEmpty(_appSettings.LogFontFamily))
                 {
                     var font = new Font(
@@ -6414,7 +6644,11 @@ namespace Cad3PLogBrowser
                         _appSettings.LogFontSize > 0 ? _appSettings.LogFontSize : 9.0f,
                         _appSettings.LogFontStyle);
 
+                    // DEF-E01: dispose the previous Font GDI object before replacing it
+                    var oldFont = logListView.Font;
                     logListView.Font = font;
+                    if (oldFont != null && oldFont != font)
+                        oldFont.Dispose();
                 }
             }
             catch (Exception ex)
@@ -6520,16 +6754,33 @@ namespace Cad3PLogBrowser
             _aiPanel?.UpdateTheme();
         }
 
+        /// <summary>
+        /// DEF-D08 / ENH-D01 / PERF-D01: Single helper that returns the cached
+        /// AggregateStats and converted perf list for AI handlers.
+        /// Eliminates the 2x ConvertPerfStats call per handler and avoids the
+        /// O(N) BuildAggregateStats scan on every AI button click.
+        /// _lastAggregateStats is invalidated and rebuilt in PopulateTreesFromData.
+        /// </summary>
+        private (Cad3PLogBrowser.Models.AggregateStats stats,
+                 List<Services.ApiPerfStats> perfStats) BuildAiContext()
+        {
+            // Rebuild on demand if somehow null (e.g. called before first file load).
+            if (_lastAggregateStats == null || _lastAiPerfStats == null)
+            {
+                _lastAiPerfStats    = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                _lastAggregateStats = Services.Analysis.AiLogService.BuildAggregateStats(
+                                          _lastEntries, _lastAiPerfStats);
+            }
+            return (_lastAggregateStats, _lastAiPerfStats);
+        }
+
         private async void AiPanel_QuerySubmitted(object sender, string query)
         {
             if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
-                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var (stats, perfStats) = BuildAiContext();
                 var response = await _aiService.AnalyzeAsync(query, stats, perfStats, _lastEntries);
                 _aiPanel.ShowResponse(response);
             }
@@ -6537,22 +6788,16 @@ namespace Cad3PLogBrowser
             {
                 _aiPanel.ShowError(string.Format(Resources.ERR_AI_QUERY_FAILED, ex.Message));
             }
-            finally
-            {
-                _aiPanel.ShowThinking(false);
-            }
+            finally { _aiPanel.ShowThinking(false); }
         }
 
         private async void AiPanel_SummarizeRequested(object sender, EventArgs e)
         {
             if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
-                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var (stats, perfStats) = BuildAiContext();
                 var summary = await _aiService.SummarizeAsync(stats, perfStats);
                 _aiPanel.ShowResponse(summary);
             }
@@ -6560,22 +6805,16 @@ namespace Cad3PLogBrowser
             {
                 _aiPanel.ShowError(string.Format(Resources.ERR_AI_SUMMARIZE_FAILED, ex.Message));
             }
-            finally
-            {
-                _aiPanel.ShowThinking(false);
-            }
+            finally { _aiPanel.ShowThinking(false); }
         }
 
         private async void AiPanel_DetectAnomaliesRequested(object sender, EventArgs e)
         {
             if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, 
-                    Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
+                var (stats, perfStats) = BuildAiContext();
                 var anomalies = await _aiService.DetectAnomaliesAsync(stats, perfStats);
                 _aiPanel.ShowResponse(anomalies);
             }
@@ -6583,10 +6822,7 @@ namespace Cad3PLogBrowser
             {
                 _aiPanel.ShowError(string.Format(Resources.ERR_AI_ANOMALY_DETECTION_FAILED, ex.Message));
             }
-            finally
-            {
-                _aiPanel.ShowThinking(false);
-            }
+            finally { _aiPanel.ShowThinking(false); }
         }
 
         private async void AiPanel_RootCauseRequested(object sender, EventArgs e)
@@ -6595,8 +6831,9 @@ namespace Cad3PLogBrowser
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                var result = await _aiService.SuggestRootCauseAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), stats.ErrorCount, stats.WarningCount);
+                var (stats, perfStats) = BuildAiContext();
+                var result = await _aiService.SuggestRootCauseAsync(
+                    stats, perfStats, stats.ErrorCount, stats.WarningCount);
                 _aiPanel.ShowResponse(result);
             }
             catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_ROOT_CAUSE_FAILED, ex.Message)); }
@@ -6609,9 +6846,10 @@ namespace Cad3PLogBrowser
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
-                var result = await _aiService.GenerateBugReportAsync(stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats), version);
+                var (stats, perfStats) = BuildAiContext();
+                string version = System.Reflection.Assembly.GetExecutingAssembly()
+                                     .GetName().Version?.ToString() ?? "unknown";
+                var result = await _aiService.GenerateBugReportAsync(stats, perfStats, version);
                 _aiPanel.ShowResponse(result);
             }
             catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_BUG_REPORT_FAILED, ex.Message)); }
@@ -6624,8 +6862,9 @@ namespace Cad3PLogBrowser
             try
             {
                 _aiPanel.ShowThinking(true);
-                var stats = Services.Analysis.AiLogService.BuildAggregateStats(_lastEntries, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
-                var result = await _aiService.ChatAsync(message, _aiPanel.ChatHistory, stats, Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats));
+                var (stats, perfStats) = BuildAiContext();
+                var result = await _aiService.ChatAsync(
+                    message, _aiPanel.ChatHistory, stats, perfStats);
                 _aiPanel.AppendChatTurn("assistant", result);
             }
             catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_CHAT_FAILED, ex.Message)); }
