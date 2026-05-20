@@ -939,8 +939,38 @@ namespace Cad3PLogBrowser
         // ── Status bar ────────────────────────────────────────────────────────
         private string _activeFilterText = "";
 
+        private void UpdateTitleBar()
+        {
+            const string appName = "CAD 3P Log Browser";
+            if (string.IsNullOrEmpty(_currentFilePath))
+            {
+                this.Text = appName;
+                return;
+            }
+
+            string titleFilePart;
+            if (_currentFilePath.StartsWith("[Merged:"))
+            {
+                // Extract the comma-separated names from "[Merged: a.txt, b.txt]"
+                string inner = _currentFilePath
+                    .TrimStart('[')
+                    .TrimEnd(']')
+                    .Substring("Merged:".Length)
+                    .Trim();
+                titleFilePart = "Merged: " + inner;
+            }
+            else
+            {
+                titleFilePart = Path.GetFileName(_currentFilePath);
+            }
+
+            this.Text = titleFilePart + " – " + appName;
+        }
+
         private void UpdateStatusBar()
         {
+            UpdateTitleBar();
+
             if (string.IsNullOrEmpty(_currentFilePath))
             {
                 StatusFileName.Text = StatusLineCount.Text = StatusSelection.Text = "";

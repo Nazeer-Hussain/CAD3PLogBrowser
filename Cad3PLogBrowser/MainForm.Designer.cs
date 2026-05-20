@@ -930,6 +930,7 @@
             this.rawTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
             this.rawTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.rawTextBox.Name      = "rawTextBox";
+            this.rawTextBox.MaxLength = 10_000_000; // Memory safety: prevent OutOfMemoryException
             this.rawTab.Controls.Add(this.rawTextBox);
             this.rawTab.Location = new System.Drawing.Point(4, 25);
             this.rawTab.Name = "rawTab";
