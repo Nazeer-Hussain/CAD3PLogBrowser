@@ -78,8 +78,7 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"Session Duration: {stats.SessionDurationMs:N0} ms\n");
             if (perfStats != null && perfStats.Count > 0)
             {
-                // PERF-B01: perfStats is already sorted descending by TotalDurationMs;
-                // avoid the O(N log N) OrderByDescending + ToList allocation.
+                // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
                 int top5 = Math.Min(5, perfStats.Count);
                 bool hasSlowCall = false;
                 for (int i = 0; i < top5; i++)
@@ -144,8 +143,7 @@ namespace Cad3PLogBrowser.Services.Analysis
                 sb.AppendLine("Performance Analysis:");
                 if (perfStats != null && perfStats.Count > 0)
                 {
-                    // P5: perfStats is already sorted descending by TotalDurationMs;
-                    // avoid the redundant O(N log N) OrderByDescending allocation.
+                    // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
                     sb.AppendLine("  Slowest operations:");
                     int top3 = Math.Min(3, perfStats.Count);
                     for (int i = 0; i < top3; i++)
@@ -272,7 +270,7 @@ namespace Cad3PLogBrowser.Services.Analysis
             if (perfStats != null && perfStats.Any(p => p.AvgDurationMs > 1000))
             {
                 sb.AppendLine("PERFORMANCE ISSUES:");
-                // PERF-B01: list already sorted desc by TotalDurationMs
+                // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
                 sb.AppendLine("Performance impact:");
                 int top3rc = Math.Min(3, perfStats.Count);
                 for (int i = 0; i < top3rc; i++)
@@ -314,7 +312,7 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine("**Performance Impact:**");
             if (perfStats != null && perfStats.Count > 0)
             {
-                // PERF-B01: list already sorted desc by TotalDurationMs
+                // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
                 int top5 = Math.Min(5, perfStats.Count);
                 for (int i = 0; i < top5; i++)
                 {
@@ -366,7 +364,7 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"Total tracked time: {total:N0} ms");
             sb.AppendLine($"Total calls: {perfStats.Sum(p => p.CallCount):N0}\n");
             sb.AppendLine("Top 10 Time Consumers:");
-            // PERF-B01: perfStats already sorted desc by TotalDurationMs
+            // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
             int top10ap = Math.Min(10, perfStats.Count);
             for (int i = 0; i < top10ap; i++)
             {
@@ -483,7 +481,7 @@ namespace Cad3PLogBrowser.Services.Analysis
             sb.AppendLine($"Session duration: {stats.SessionDurationMs} ms");
             if (perfStats != null && perfStats.Count > 0)
             {
-                // PERF-B04: perfStats already sorted desc; avoid redundant O(N log N) sort.
+                // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
                 sb.AppendLine("\nTop 10 APIs by total time:");
                 int top10 = Math.Min(10, perfStats.Count);
                 for (int i = 0; i < top10; i++)
@@ -613,7 +611,27 @@ namespace Cad3PLogBrowser.Services.Analysis
             return stats;
         }
 
-        public static List<ApiPerfStats> ConvertPerfStats(List<ApiPerfStats> stats) =>
-            stats ?? new List<ApiPerfStats>();
+        /// <summary>
+        /// Returns a copy of <paramref name="stats"/> sorted descending by
+        /// <see cref="ApiPerfStats.TotalDurationMs"/>.
+        ///
+        /// Sorting here — once, at the AI boundary — guarantees that every
+        /// offline method that indexes into the first N entries (OfflineSummarize,
+        /// OfflineNlSearch, OfflineRootCause, OfflineBugReport,
+        /// AnalyzePerformanceAsync, BuildStructuredSummary) always sees the
+        /// globally slowest APIs, regardless of:
+        ///   * which column the user has sorted the Performance grid by, or
+        ///   * merged sessions where BuildPerformanceStatsGroupedByFile produces
+        ///     per-file sorted blocks that are NOT globally sorted when concatenated.
+        /// </summary>
+        public static List<ApiPerfStats> ConvertPerfStats(List<ApiPerfStats> stats)
+        {
+            if (stats == null || stats.Count == 0)
+                return new List<ApiPerfStats>();
+
+            var sorted = new List<ApiPerfStats>(stats);
+            sorted.Sort((a, b) => b.TotalDurationMs.CompareTo(a.TotalDurationMs));
+            return sorted;
+        }
     }
 }
