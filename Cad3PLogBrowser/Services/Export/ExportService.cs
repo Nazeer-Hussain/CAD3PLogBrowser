@@ -74,19 +74,21 @@ namespace Cad3PLogBrowser.Services.Export
             using (var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8))
             {
                 // Write header
-                writer.WriteLine("???????????????????????????????????????????????????????????????");
-                writer.WriteLine($"Exported from: {Constants.Application.Name}");
-                writer.WriteLine($"Export date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                writer.WriteLine($"Source file: {sourceFilePath ?? "N/A"}");
-                writer.WriteLine($"Filters applied: {filterDescription ?? "None"}");
-                writer.WriteLine($"Total lines exported: {entries.Count:N0}");
-                writer.WriteLine("???????????????????????????????????????????????????????????????");
+                writer.WriteLine("================================================================");
+                writer.WriteLine(string.Format("Exported from: {0}", Constants.Application.Name));
+                writer.WriteLine(string.Format("Export date: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now));
+                writer.WriteLine(string.Format("Source file: {0}", sourceFilePath ?? "N/A"));
+                writer.WriteLine(string.Format("Filters applied: {0}", filterDescription ?? "None"));
+                writer.WriteLine(string.Format("Total lines exported: {0:N0}", entries.Count));
+                writer.WriteLine("================================================================");
                 writer.WriteLine();
 
-                // Write entries with progress updates
+                // Write entries with progress updates.
+                // D4: write RawText (the original log line) rather than Text which
+                // may contain UI-injected duration annotations like "[142 ms]".
                 for (int i = 0; i < entries.Count; i++)
                 {
-                    writer.WriteLine(entries[i].Text);
+                    writer.WriteLine(entries[i].RawText ?? entries[i].Text);
 
                     // Update progress every N lines
                     if (i % Constants.Performance.ProgressUpdateInterval == 0)

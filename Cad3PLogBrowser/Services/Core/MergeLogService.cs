@@ -37,7 +37,9 @@ namespace Cad3PLogBrowser.Services.Core
                 paths.Add(p);
                 totalBytes += new FileInfo(p).Length;
             }
-            int estimatedLines = totalBytes > 0 ? (int)Math.Min(totalBytes / 120, int.MaxValue) : 4096;
+            // D3: cap capacity to avoid passing int.MaxValue (2B) to List<T> on huge files.
+            const int maxEstimate = 5_000_000;
+            int estimatedLines = totalBytes > 0 ? (int)Math.Min(totalBytes / 120L, maxEstimate) : 4096;
 
             var buckets = new List<(long ts, string line)>(estimatedLines);
 
@@ -61,19 +63,23 @@ namespace Cad3PLogBrowser.Services.Core
             }
 
             // Stable sort: lines with timestamp first (ascending), unknowns last
-            buckets.Sort((a, b) =>
-            {
-                if (a.ts == 0 && b.ts == 0) return 0;
-                if (a.ts == 0) return 1;
-                if (b.ts == 0) return -1;
-                return a.ts.CompareTo(b.ts);
-            });
+            // P3: use a static Comparison<T> to avoid allocating a new delegate on every call.
+            buckets.Sort(TimestampComparison);
 
             var result = new List<string>(buckets.Count);
             foreach (var (_, line) in buckets)
                 result.Add(line);
 
             return result;
+        }
+
+        // P3: static comparison method — captured once, no per-sort delegate allocation.
+        private static int TimestampComparison((long ts, string line) a, (long ts, string line) b)
+        {
+            if (a.ts == 0 && b.ts == 0) return 0;
+            if (a.ts == 0) return 1;
+            if (b.ts == 0) return -1;
+            return a.ts.CompareTo(b.ts);
         }
 
         private static long ExtractTimestamp(string line)
@@ -136,13 +142,7 @@ namespace Cad3PLogBrowser.Services.Core
                     }
                 }
 
-                buckets.Sort((a, b) =>
-                {
-                    if (a.ts == 0 && b.ts == 0) return 0;
-                    if (a.ts == 0) return 1;
-                    if (b.ts == 0) return -1;
-                    return a.ts.CompareTo(b.ts);
-                });
+                buckets.Sort(TimestampComparison);
 
                 var result = new List<string>(buckets.Count);
                 foreach (var (_, line) in buckets)

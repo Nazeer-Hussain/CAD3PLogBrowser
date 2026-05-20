@@ -38,6 +38,13 @@ namespace Cad3PLogBrowser.Models
         public string Text { get; set; }
 
         /// <summary>
+        /// Gets or sets the original unmodified line as read from disk.
+        /// Unlike <see cref="Text"/>, this property is never modified with UI annotations
+        /// (e.g. duration overlays). Use this for export and file-write operations.
+        /// </summary>
+        public string RawText { get; set; }
+
+        /// <summary>
         /// Gets or sets the timestamp when this log entry was created.
         /// Null if the log line doesn't contain a parseable timestamp.
         /// </summary>

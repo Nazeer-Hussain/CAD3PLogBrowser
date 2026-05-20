@@ -43,8 +43,21 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (entry.IsCallExit)
                 {
-                    if (callStack.Count > 0 && callStack.Peek() == entry.ApiName)
+                    // D9: if the EXIT name doesn't match the stack top (mis-matched log),
+                    // search down the stack for the matching frame and pop to it so the
+                    // stack doesn't grow unboundedly on corrupt/partial log files.
+                    if (callStack.Count == 0) continue;
+
+                    if (callStack.Peek() == entry.ApiName)
+                    {
                         callStack.Pop();
+                    }
+                    else if (callStack.Contains(entry.ApiName))
+                    {
+                        // Pop frames down to (and including) the matching ENTER.
+                        while (callStack.Count > 0 && callStack.Pop() != entry.ApiName) { }
+                    }
+                    // If the name isn't on the stack at all it's an orphan EXIT — ignore it.
                 }
             }
 
