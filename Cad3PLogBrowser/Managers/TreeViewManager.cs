@@ -38,6 +38,18 @@ namespace Cad3PLogBrowser.Managers
         private readonly TreeView _apiTreeView;
         private readonly ImageList _nodeIconList;
 
+        // P7: cached GDI brushes for DrawNode � keyed by ARGB value.
+        // Avoids allocating and immediately disposing a SolidBrush per node per frame.
+        private readonly Dictionary<int, SolidBrush> _brushCache = new Dictionary<int, SolidBrush>();
+
+        private SolidBrush GetBrush(Color color)
+        {
+            int key = color.ToArgb();
+            if (!_brushCache.TryGetValue(key, out var brush))
+                _brushCache[key] = brush = new SolidBrush(color);
+            return brush;
+        }
+
         /// <summary>
         /// Gets a value indicating whether the Call Tree is currently visible.
         /// </summary>
@@ -111,8 +123,7 @@ namespace Cad3PLogBrowser.Managers
                     : (isDark ? Color.FromArgb(28, 30, 38) : SystemColors.Window);
             }
 
-            using (var bgBrush = new System.Drawing.SolidBrush(backColor))
-                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+            e.Graphics.FillRectangle(GetBrush(backColor), e.Bounds);
 
             // ── Focus rectangle ───────────────────────────────────────────────
             if ((e.State & TreeNodeStates.Focused) != 0)
@@ -662,14 +673,18 @@ namespace Cad3PLogBrowser.Managers
         /// </summary>
         private int CountNodesRecursive(TreeNode node)
         {
-            int count = 1; // Count this node
-
+            int count = 1;
             foreach (TreeNode child in node.Nodes)
-            {
                 count += CountNodesRecursive(child);
-            }
-
             return count;
+        }
+
+        /// <summary>Disposes cached GDI brushes.</summary>
+        public void Dispose()
+        {
+            foreach (var brush in _brushCache.Values)
+                brush.Dispose();
+            _brushCache.Clear();
         }
     }
 }

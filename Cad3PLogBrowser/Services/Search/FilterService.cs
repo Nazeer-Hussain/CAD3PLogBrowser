@@ -20,6 +20,25 @@ namespace Cad3PLogBrowser.Services.Search
     /// </remarks>
     public class FilterService
     {
+        // D2/P2: cached Regex to avoid recompiling on every filter operation.
+        // Invalidated whenever the pattern or options change.
+        private Regex  _cachedRegex;
+        private string _cachedRegexPattern;
+        private RegexOptions _cachedRegexOptions = (RegexOptions)(-1);
+
+        private Regex GetOrBuildRegex(string pattern, RegexOptions options)
+        {
+            if (_cachedRegex != null &&
+                _cachedRegexPattern == pattern &&
+                _cachedRegexOptions == options)
+                return _cachedRegex;
+
+            _cachedRegex        = new Regex(pattern, options | RegexOptions.Compiled);
+            _cachedRegexPattern = pattern;
+            _cachedRegexOptions = options;
+            return _cachedRegex;
+        }
+
         /// <summary>
         /// Applies multiple filters to a collection of log entries.
         /// All active filters must match for an entry to be included (AND logic).
@@ -129,16 +148,16 @@ namespace Cad3PLogBrowser.Services.Search
 
             if (useRegex)
             {
-                // Regex matching
+                // Regex matching — use cached instance to avoid recompiling on every entry
                 var options = caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
                 try
                 {
-                    var regex = new Regex(searchText, options);
+                    var regex = GetOrBuildRegex(searchText, options);
                     return regex.IsMatch(entry.Text);
                 }
                 catch (ArgumentException ex)
                 {
-                    throw new ArgumentException($"Invalid regular expression: {searchText}", ex);
+                    throw new ArgumentException(string.Format("Invalid regular expression: {0}", searchText), ex);
                 }
             }
             else

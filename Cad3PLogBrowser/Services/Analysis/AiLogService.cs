@@ -142,11 +142,18 @@ namespace Cad3PLogBrowser.Services.Analysis
             else if (q.Contains("slow") || q.Contains("performance") || q.Contains("bottleneck"))
             {
                 sb.AppendLine("Performance Analysis:");
-                if (perfStats != null && perfStats.Any())
+                if (perfStats != null && perfStats.Count > 0)
                 {
+                    // P5: perfStats is already sorted descending by TotalDurationMs;
+                    // avoid the redundant O(N log N) OrderByDescending allocation.
                     sb.AppendLine("  Slowest operations:");
-                    foreach (var p in perfStats.OrderByDescending(x => x.TotalDurationMs).Take(3))
-                        sb.AppendLine($"    {p.ApiName}: {p.TotalDurationMs:N0} ms ({p.CallCount} calls)");
+                    int top3 = Math.Min(3, perfStats.Count);
+                    for (int i = 0; i < top3; i++)
+                    {
+                        var p = perfStats[i];
+                        sb.AppendLine(string.Format("    {0}: {1:N0} ms ({2} calls)",
+                            p.ApiName, p.TotalDurationMs, p.CallCount));
+                    }
                 }
             }
             else if (q.Contains("warning"))
