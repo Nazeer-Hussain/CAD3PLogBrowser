@@ -41,8 +41,13 @@ namespace Cad3PLogBrowser
         {
             try
             {
-                // Write details to a temp crash log so the user can attach it to a bug report.
-                string logPath = Path.Combine(Path.GetTempPath(), "Cad3PLogBrowser.err");
+                // Write details to a per-session crash log so subsequent crashes don't
+                // overwrite earlier ones and the file is user-identifiable.
+                // D10: use a timestamp-based filename instead of the shared static name.
+                string logPath = Path.Combine(
+                    Path.GetTempPath(),
+                    string.Format("Cad3PLogBrowser_{0}.err",
+                        DateTime.Now.ToString("yyyyMMdd_HHmmss")));
                 File.AppendAllText(logPath,
                     string.Format("[{0}] Unhandled exception:{1}{2}{1}{1}",
                         DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),

@@ -172,31 +172,39 @@ namespace Cad3PLogBrowser.Services.Analysis
 
             var slowCalls = new List<SlowCallInfo>();
 
-            // Find all API calls with durations
-            var apiCalls = logEntries
-                .Where(e => e.IsApiCall && e.IsCallEnter && !string.IsNullOrEmpty(e.ApiName))
-                .ToList();
+            // O(N) stack-based matching — consistent with MatchEnterExitPairs.
+            // Keyed per API name so recursive calls are correctly paired LIFO.
+            var enterStacks = new Dictionary<string, Stack<LogEntry>>(StringComparer.Ordinal);
 
-            foreach (var enter in apiCalls)
+            foreach (var entry in logEntries)
             {
-                // Find matching EXIT
-                var exit = logEntries.FirstOrDefault(e =>
-                    e.LineNumber > enter.LineNumber &&
-                    e.IsCallExit &&
-                    e.ApiName == enter.ApiName);
+                if (!entry.IsApiCall || string.IsNullOrEmpty(entry.ApiName))
+                    continue;
 
-                if (exit != null && enter.Timestamp.HasValue && exit.Timestamp.HasValue)
+                if (entry.IsCallEnter)
                 {
-                    var duration = (exit.Timestamp.Value - enter.Timestamp.Value).TotalMilliseconds;
+                    if (!enterStacks.TryGetValue(entry.ApiName, out var stack))
+                        enterStacks[entry.ApiName] = stack = new Stack<LogEntry>();
+                    stack.Push(entry);
+                }
+                else if (entry.IsCallExit)
+                {
+                    if (!enterStacks.TryGetValue(entry.ApiName, out var stack) || stack.Count == 0)
+                        continue;
 
-                    slowCalls.Add(new SlowCallInfo
+                    var enter = stack.Pop();
+                    if (enter.Timestamp.HasValue && entry.Timestamp.HasValue)
                     {
-                        ApiName = enter.ApiName,
-                        EnterLineNumber = enter.LineNumber,
-                        ExitLineNumber = exit.LineNumber,
-                        DurationMs = (long)duration,
-                        Timestamp = enter.Timestamp.Value
-                    });
+                        var duration = (entry.Timestamp.Value - enter.Timestamp.Value).TotalMilliseconds;
+                        slowCalls.Add(new SlowCallInfo
+                        {
+                            ApiName        = enter.ApiName,
+                            EnterLineNumber = enter.LineNumber,
+                            ExitLineNumber  = entry.LineNumber,
+                            DurationMs      = (long)duration,
+                            Timestamp       = enter.Timestamp.Value
+                        });
+                    }
                 }
             }
 
