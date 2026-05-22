@@ -1,0 +1,6 @@
+{
+  "version": "3.0.0.0",
+  "downloadUrl": "https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases/latest/download/Cad3PLogBrowser.exe",
+  "releaseNotes": "Initial auto-update support.",
+  "mandatory": false
+}

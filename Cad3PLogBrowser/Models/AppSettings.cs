@@ -81,6 +81,16 @@ namespace Cad3PLogBrowser.Services
         /// </summary>
         public bool    FilterPerfOnTreeSelect   { get; set; } = true;
 
+        // ── Auto-update ───────────────────────────────────────────────────────
+        /// <summary>When true, checks for a new version once per <see cref="UpdateCheckIntervalDays"/> on startup.</summary>
+        public bool     CheckForUpdatesOnStartup  { get; set; } = true;
+        /// <summary>URL of the remote version manifest JSON.</summary>
+        public string   UpdateManifestUrl         { get; set; } = "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/main/version.json";
+        /// <summary>UTC timestamp of the last successful update check.</summary>
+        public DateTime LastUpdateCheck           { get; set; } = DateTime.MinValue;
+        /// <summary>Minimum number of days between automatic background checks.</summary>
+        public int      UpdateCheckIntervalDays   { get; set; } = 1;
+
         // ── Grok integration ──────────────────────────────────────────────────
         public string  GrokUrl          { get; set; } = "";
         public string  ClaudeApiKey     { get; set; } = "";  // L1-L6: AI features (never log raw content)

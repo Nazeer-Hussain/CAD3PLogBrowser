@@ -4742,15 +4742,56 @@ namespace Cad3PLogBrowser
 
         private void checkForUpdatesMenuItem_Click(object sender, EventArgs e)
         {
+            CheckForUpdatesAsync(silent: false);
+        }
+
+        /// <summary>
+        /// Checks for an update.  When <paramref name="silent"/> is true the method
+        /// shows no UI unless a newer version is actually available.
+        /// </summary>
+        private async void CheckForUpdatesAsync(bool silent)
+        {
+            var svc = new Services.Update.UpdateService(_appSettings.UpdateManifestUrl);
+
+            Services.Update.UpdateManifest manifest = null;
             try
             {
-                // Open GitHub releases page
-                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases");
+                manifest = await svc.FetchManifestAsync();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERR_OPEN_UPDATES_FAILED, ex.Message), 
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!silent)
+                    MessageBox.Show(string.Format(Resources.UPDATE_CHECK_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Record the check timestamp regardless of result
+            _appSettings.LastUpdateCheck = DateTime.UtcNow;
+            _appSettings.Save();
+
+            if (!svc.IsUpdateAvailable(manifest))
+            {
+                if (!silent)
+                {
+                    string current = System.Reflection.Assembly.GetExecutingAssembly()
+                                          .GetName().Version.ToString();
+                    MessageBox.Show(string.Format(Resources.UPDATE_UP_TO_DATE, current),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                return;
+            }
+
+            using (var dlg = new UpdateAvailableForm(manifest, svc))
+            {
+                var result = dlg.ShowDialog(this);
+                if (result == DialogResult.OK)
+                {
+                    // Update downloaded and launcher script started — exit to let updater run
+                    MessageBox.Show(Resources.UPDATE_APPLY_EXIT,
+                        "Update Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Application.Exit();
+                }
             }
         }
 
@@ -4773,7 +4814,7 @@ namespace Cad3PLogBrowser
             ShowUserGuide();
         }
 
-        /// <summary>
+
         /// Opens the User Guide HTML file in default browser.
         /// Provides context-sensitive help based on current active control/tab.
         /// </summary>
@@ -5049,6 +5090,17 @@ namespace Cad3PLogBrowser
             {
                 // No saved value - just enable saving
                 _isFormLoaded = true;
+            }
+
+            // Auto-update: background check once per configured interval
+            if (_appSettings.CheckForUpdatesOnStartup)
+            {
+                var daysSinceCheck = (DateTime.UtcNow - _appSettings.LastUpdateCheck).TotalDays;
+                if (daysSinceCheck >= _appSettings.UpdateCheckIntervalDays)
+                {
+                    // Run silently after the form is fully shown
+                    this.BeginInvoke((Action)(() => CheckForUpdatesAsync(silent: true)));
+                }
             }
         }
 

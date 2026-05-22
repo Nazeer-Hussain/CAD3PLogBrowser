@@ -572,7 +572,34 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("ERR_OPEN_UPDATES_FAILED", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not check for updates:\n{0}.
+        /// </summary>
+        internal static string UPDATE_CHECK_FAILED {
+            get {
+                return ResourceManager.GetString("UPDATE_CHECK_FAILED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to You are running the latest version ({0}).
+        /// </summary>
+        internal static string UPDATE_UP_TO_DATE {
+            get {
+                return ResourceManager.GetString("UPDATE_UP_TO_DATE", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The update will be applied after the application closes.
+        /// </summary>
+        internal static string UPDATE_APPLY_EXIT {
+            get {
+                return ResourceManager.GetString("UPDATE_APPLY_EXIT", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Could not save branch:\n{0}.
         /// </summary>
