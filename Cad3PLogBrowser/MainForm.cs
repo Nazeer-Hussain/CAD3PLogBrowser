@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -114,6 +115,10 @@ namespace Cad3PLogBrowser
         private Label  _perfFilterLabel;
         private Button _perfClearFilterButton;
 
+        // F9: per-source-file tint state for merged sessions.
+        private bool              _showSourceTints = false;
+        private ToolStripButton   _sourceTintButton;
+
         // ── Cancellation support for long-running operations ──────────────────
         private CancellationTokenSource _cancellationTokenSource;
         private string _currentOperation = string.Empty;
@@ -211,6 +216,13 @@ namespace Cad3PLogBrowser
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
                 if (ReferenceEquals(tab, flameGraphTab))  showFlameGraphTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
+                // B10: guard the AI tab so closing it when it is the last visible tab
+                // does not leave the TabControl in a 0-tab state.
+                if (_aiTab != null && ReferenceEquals(tab, _aiTab))
+                {
+                    _appSettings.ShowAiTab = true;
+                    _appSettings.Save();
+                }
                 return;
             }
 
@@ -309,6 +321,177 @@ namespace Cad3PLogBrowser
             _themeToggleButton.ToolTipText = isDark
                 ? Resources.TOOLTIP_THEME_TOGGLE_TO_LIGHT
                 : Resources.TOOLTIP_THEME_TOGGLE_TO_DARK;
+        }
+
+        // ── F4: Go-to-line status-bar control ─────────────────────────────────
+        private ToolStripLabel  _goToLineLabel;
+        private ToolStripTextBox _goToLineBox;
+
+        /// <summary>
+        /// Adds a compact "Go to line:" label + text box to the right end of the
+        /// status bar. The user types a 1-based line number and presses Enter to jump
+        /// instantly — no modal dialog required (F4 feature).
+        /// </summary>
+        private void AddGoToLineControl()
+        {
+            _goToLineLabel = new ToolStripLabel("Go to:")
+            {
+                ToolTipText = "Type a line number and press Enter to jump (F4)",
+                Margin      = new Padding(6, 0, 2, 0),
+            };
+
+            _goToLineBox = new ToolStripTextBox
+            {
+                Name        = "GoToLineBox",
+                ToolTipText = "Type a line number and press Enter",
+                AutoSize    = false,
+                Width       = 65,
+                MaxLength   = 10,
+                TextBoxTextAlign = HorizontalAlignment.Center,
+            };
+            _goToLineBox.KeyDown += GoToLineBox_KeyDown;
+            _goToLineBox.LostFocus += (s, e) => { if (_goToLineBox.Text.Trim() == "") _goToLineBox.Text = ""; };
+
+            mainStatusStrip.Items.Add(_goToLineLabel);
+            mainStatusStrip.Items.Add(_goToLineBox);
+        }
+
+        private void GoToLineBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.Handled = e.SuppressKeyPress = true;
+
+            string text = _goToLineBox?.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(text)) return;
+
+            if (int.TryParse(text, out int lineNum) && _virtualLines.Count > 0)
+            {
+                if (lineNum >= 1 && lineNum <= _virtualLines.Count)
+                {
+                    int index = lineNum - 1;
+                    logListView.EnsureVisible(index);
+                    logListView.SelectedIndices.Clear();
+                    logListView.SelectedIndices.Add(index);
+                    logListView.Focus();
+                    _goToLineBox.Text = "";
+                }
+                else
+                {
+                    _goToLineBox.SelectAll();
+                    SystemSounds.Beep.Play();
+                }
+            }
+            else
+            {
+                _goToLineBox.SelectAll();
+            }
+        }
+
+        // ── F9: Source-file tint toggle ───────────────────────────────────────
+        // Palette: soft per-file background tints used in merged sessions.
+        // Designed to be legible in both light and dark themes (low saturation).
+        private static readonly Color[] SourceTintColors =
+        {
+            Color.FromArgb(255, 240, 215),  // warm amber
+            Color.FromArgb(215, 240, 255),  // cool blue
+            Color.FromArgb(220, 255, 220),  // soft green
+            Color.FromArgb(250, 215, 250),  // pale violet
+            Color.FromArgb(255, 255, 210),  // pale yellow
+            Color.FromArgb(215, 250, 245),  // teal-ish
+        };
+        private static readonly Color[] SourceTintColorsDark =
+        {
+            Color.FromArgb(60, 45, 20),     // warm amber — dark
+            Color.FromArgb(20, 45, 65),     // cool blue — dark
+            Color.FromArgb(20, 55, 20),     // soft green — dark
+            Color.FromArgb(55, 20, 60),     // pale violet — dark
+            Color.FromArgb(55, 55, 15),     // pale yellow — dark
+            Color.FromArgb(15, 55, 50),     // teal — dark
+        };
+
+        private void AddSourceTintButton()
+        {
+            _sourceTintButton = new ToolStripButton
+            {
+                Text         = "⬛ Diff",
+                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                ToolTipText  = "Toggle per-source-file colour tints (merged sessions only) — F9",
+                Enabled      = false,
+            };
+            _sourceTintButton.Click += (s, e) => ToggleSourceTints();
+
+            // Insert before the go-to-line label (last two items)
+            int insertAt = mainStatusStrip.Items.Count > 2
+                ? mainStatusStrip.Items.Count - 2
+                : mainStatusStrip.Items.Count;
+            mainStatusStrip.Items.Insert(insertAt, _sourceTintButton);
+        }
+
+        /// <summary>
+        /// Toggles the per-source-file background tint on the log view (F9 feature).
+        /// Only active when a merged session is loaded (multiple SourceLogFile values present).
+        /// </summary>
+        private void ToggleSourceTints()
+        {
+            _showSourceTints = !_showSourceTints;
+            if (_sourceTintButton != null)
+                _sourceTintButton.Text = _showSourceTints ? "🟦 Diff ON" : "⬛ Diff";
+            ApplySourceFileTints(_showSourceTints);
+        }
+
+        /// <summary>
+        /// Applies or removes per-source-file background tints on every virtual line.
+        /// When <paramref name="apply"/> is true each unique SourceLogFile gets a distinct
+        /// soft background colour; when false the standard level-based colour is restored.
+        /// </summary>
+        private void ApplySourceFileTints(bool apply)
+        {
+            if (_virtualLines == null || _virtualLines.Count == 0) return;
+            if (_lastEntries  == null || _lastEntries.Count  == 0) return;
+
+            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            Color[] palette = dark ? SourceTintColorsDark : SourceTintColors;
+
+            // Build file → colour index map in first-seen order
+            var fileIndex = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            for (int i = 0; i < _virtualLines.Count; i++)
+            {
+                var vl      = _virtualLines[i];
+                Color colour;
+
+                if (apply && i < _lastEntries.Count)
+                {
+                    string src = _lastEntries[i].SourceLogFile ?? string.Empty;
+                    if (!string.IsNullOrEmpty(src))
+                    {
+                        if (!fileIndex.TryGetValue(src, out int idx))
+                        {
+                            idx = fileIndex.Count % palette.Length;
+                            fileIndex[src] = idx;
+                        }
+                        colour = palette[idx];
+                    }
+                    else
+                    {
+                        colour = GetLineColour(vl.Text);
+                    }
+                }
+                else
+                {
+                    colour = GetLineColour(vl.Text);
+                }
+
+                if (vl.BackColour != colour)
+                    _virtualLines[i] = new VirtualLogLine
+                    {
+                        LineNumber = vl.LineNumber,
+                        Text       = vl.Text,
+                        BackColour = colour
+                    };
+            }
+
+            logListView?.Invalidate();
         }
 
         private void BuildMruMenu()
@@ -521,6 +704,8 @@ namespace Cad3PLogBrowser
             InitAiPanel();
             BuildMruMenu();
             AddThemeToggleButton();
+            AddGoToLineControl();
+            AddSourceTintButton();
             ApplyTheme();
 
             // Ensure search box is on top (above trees)
@@ -3166,6 +3351,23 @@ namespace Cad3PLogBrowser
             // Feature I1: Enable export filtered logs menu item (will be added to designer)
             if (exportFilteredLogsMenuItem != null)
                 exportFilteredLogsMenuItem.Enabled = loaded;
+
+            // F9: enable the source-tint button only when a merged session is loaded
+            // (i.e. there is more than one unique SourceLogFile in the current entries).
+            if (_sourceTintButton != null)
+            {
+                bool isMerged = loaded
+                    && _lastEntries != null
+                    && _lastEntries.Count > 0
+                    && _mergedSourcePaths != null
+                    && _mergedSourcePaths.Count > 1;
+                _sourceTintButton.Enabled = isMerged;
+                if (!isMerged && _showSourceTints)
+                {
+                    _showSourceTints = false;
+                    _sourceTintButton.Text = "\u2b1b Diff";
+                }
+            }
         }
 
         // ── File menu ─────────────────────────────────────────────────────────

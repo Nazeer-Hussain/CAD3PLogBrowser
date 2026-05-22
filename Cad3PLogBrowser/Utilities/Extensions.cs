@@ -179,15 +179,25 @@ namespace Cad3PLogBrowser.Utilities
         /// 250L.GetDurationColor()  // Returns Color.DarkOrange
         /// 1000L.GetDurationColor() // Returns Color.Red
         /// </example>
-        public static Color GetDurationColor(this long durationMs)
+        /// <summary>
+        /// Gets the foreground color for a call duration (for color-coding tree nodes).
+        /// Thresholds are read from <see cref="Cad3PLogBrowser.Services.AppSettings"/> when
+        /// available so users can customise them in Settings (F5).
+        /// Falls back to compile-time constants when no settings instance is provided.
+        /// </summary>
+        public static Color GetDurationColor(this long durationMs,
+            Cad3PLogBrowser.Services.AppSettings settings = null)
         {
-            if (durationMs < Constants.Performance.FastCallThresholdMs)
-                return Color.FromArgb(0, 128, 0); // Green
+            int fast = settings?.FastCallThresholdMs  ?? Constants.Performance.FastCallThresholdMs;
+            long slow = settings?.SlowCallThresholdMs ?? Constants.Performance.SlowCallThresholdMs;
 
-            if (durationMs < Constants.Performance.SlowCallThresholdMs)
-                return Color.FromArgb(204, 102, 0); // DarkOrange (Amber)
+            if (durationMs < fast)
+                return Color.FromArgb(0, 128, 0);         // Green
 
-            return Color.FromArgb(200, 0, 0); // Red
+            if (durationMs < slow)
+                return Color.FromArgb(204, 102, 0);       // Amber
+
+            return Color.FromArgb(200, 0, 0);             // Red
         }
 
         /// <summary>

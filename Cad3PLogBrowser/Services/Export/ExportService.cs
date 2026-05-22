@@ -174,39 +174,96 @@ namespace Cad3PLogBrowser.Services.Export
             bool inBranch = false;
             int depth = 0;
 
-            // Find the method's ENTER and collect all lines until matching EXIT
+            // B7: Use tab-field parsing (same approach as LogParserService) instead of
+            // plain line.Contains() which fires on log message text that merely mentions
+            // the ENTER/EXIT keywords, causing premature termination or over-collection.
+            // A genuine ENTER/EXIT line has the keyword at tab-field index 4 (EntryType).
             foreach (var line in allLogLines)
             {
-                // Check if this is the ENTER line for our method
-                if (line.Contains(Constants.Parsing.EnterKeyword) && line.Contains(methodName))
+                bool isEnter = IsApiEntryLine(line, "ENTER");
+                bool isExit  = IsApiEntryLine(line, "EXIT");
+                bool isForMethod = line.Contains(methodName);
+
+                if (!inBranch)
                 {
-                    inBranch = true;
-                    depth = 1;
-                    branchLines.Add(line);
+                    if (isEnter && isForMethod)
+                    {
+                        inBranch = true;
+                        depth = 1;
+                        branchLines.Add(line);
+                    }
                 }
-                else if (inBranch)
+                else
                 {
                     branchLines.Add(line);
 
-                    // Track depth for nested calls
-                    if (line.Contains(Constants.Parsing.EnterKeyword))
-                        depth++;
+                    if (isEnter) depth++;
 
-                    if (line.Contains(Constants.Parsing.ExitKeyword))
+                    if (isExit)
                     {
                         depth--;
                         if (depth == 0)
-                        {
-                            // Found matching EXIT - we're done
-                            break;
-                        }
+                            break; // found the matching EXIT — done
                     }
                 }
             }
 
-            // Write to file
             File.WriteAllLines(filePath, branchLines);
             return branchLines.Count;
+        }
+
+        /// <summary>
+        /// Returns true only when the line's tab-field[4] (EntryType) exactly matches
+        /// <paramref name="keyword"/> ("ENTER" or "EXIT").
+        /// Avoids false positives from log message text containing those words.
+        /// </summary>
+        private static bool IsApiEntryLine(string line, string keyword)
+        {
+            // Count to the 5th tab (index 4 in 0-based tab-field array).
+            // Payload starts after the 7th colon-separated prefix field.
+            int tabCount = 0;
+            int payloadStart = -1;
+
+            // Find payload start: skip past the [filename] tag if present.
+            int scanStart = 0;
+            if (line.Length > 2 && line[0] == '[')
+            {
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 1 && line.Substring(1, cb - 1).IndexOf('.') >= 0)
+                    scanStart = cb + 2;
+            }
+
+            // Locate the payload after the 7th ": " separator (colon-field index 6).
+            int colonFields = 0;
+            for (int i = scanStart; i < line.Length - 1; i++)
+            {
+                if (line[i] == ':' && line[i + 1] == ' ')
+                {
+                    colonFields++;
+                    if (colonFields == 6) { payloadStart = i + 2; break; }
+                    i++; // skip the space
+                }
+            }
+            if (payloadStart < 0) return false;
+
+            // Walk to tab field 4 in the payload.
+            for (int i = payloadStart; i < line.Length; i++)
+            {
+                if (line[i] == '\t')
+                {
+                    tabCount++;
+                    if (tabCount == 4)
+                    {
+                        // Compare field 4 to keyword
+                        int fieldStart = i + 1;
+                        int fieldEnd   = line.IndexOf('\t', fieldStart);
+                        if (fieldEnd < 0) fieldEnd = line.Length;
+                        string field = line.Substring(fieldStart, fieldEnd - fieldStart).Trim();
+                        return string.Equals(field, keyword, StringComparison.Ordinal);
+                    }
+                }
+            }
+            return false;
         }
     }
 
