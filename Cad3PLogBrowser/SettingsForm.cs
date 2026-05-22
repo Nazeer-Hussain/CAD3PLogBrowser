@@ -38,7 +38,7 @@ namespace Cad3PLogBrowser
         private TextBox        txtSnippetSuffix;
 
         // ── Performance ───────────────────────────────────────────────────────
-        private NumericUpDown  nudSlowCallMs, nudMaxFileMb;
+        private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
         private CheckBox       chkFilterPerfOnTreeSelect;
 
         // ── Integration ───────────────────────────────────────────────────────
@@ -227,25 +227,28 @@ namespace Cad3PLogBrowser
         {
             var tp = Tab("Performance");
 
-            nudSlowCallMs = AddNud(tp, "Slow call threshold:", 22, 10, 60000, 1000);
-            Lbl(tp, "ms   (highlights slow calls in the tree)", 290, 26);
+            nudFastCallMs = AddNud(tp, "Fast call threshold:", 22, 1, 60000, 100);
+            Lbl(tp, "ms   (green — below this is fast)", 290, 26);
 
-            nudMaxFileMb = AddNud(tp, "Skip list view if file >", 58, 1, 2000, 50);
-            Lbl(tp, "MB   (use Raw tab for very large files)", 290, 62);
+            nudSlowCallMs = AddNud(tp, "Slow call threshold:", 58, 10, 60000, 1000);
+            Lbl(tp, "ms   (red — above this is slow, amber is in between)", 290, 62);
+
+            nudMaxFileMb = AddNud(tp, "Skip list view if file >", 94, 1, 2000, 50);
+            Lbl(tp, "MB   (use Raw tab for very large files)", 290, 98);
 
             chkFilterPerfOnTreeSelect = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(12, 100),
+                Location = new Point(12, 136),
                 Text     = "Auto-filter Performance tab when a Call Tree node is selected",
             };
-            Lbl(tp, "", 12, 104); // spacer
+            Lbl(tp, "", 12, 140); // spacer
             tp.Controls.Add(chkFilterPerfOnTreeSelect);
 
             var hint = new Label
             {
                 AutoSize  = false,
-                Location  = new Point(30, 124),
+                Location  = new Point(30, 160),
                 Size      = new Size(480, 34),
                 Text      = "When OFF, use the Call Tree right-click menu to filter manually.",
                 ForeColor = SystemColors.GrayText,
@@ -323,6 +326,8 @@ namespace Cad3PLogBrowser
             txtSnippetSuffix.Text      = _settings.SaveSnippetSuffix ?? "_snippet";
 
             // Performance
+            nudFastCallMs.Value = Math.Max(nudFastCallMs.Minimum,
+                Math.Min(nudFastCallMs.Maximum, _settings.FastCallThresholdMs));
             nudSlowCallMs.Value = Math.Max(nudSlowCallMs.Minimum,
                 Math.Min(nudSlowCallMs.Maximum, _settings.SlowCallThresholdMs));
             nudMaxFileMb.Value  = Math.Max(nudMaxFileMb.Minimum,
@@ -369,6 +374,7 @@ namespace Cad3PLogBrowser
             _settings.SaveSnippetSuffix = txtSnippetSuffix.Text.Trim();
 
             // Performance
+            _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
             _settings.SlowCallThresholdMs      = (long)nudSlowCallMs.Value;
             _settings.MaxFileSizeMbForListView  = (long)nudMaxFileMb.Value;
             _settings.FilterPerfOnTreeSelect    = chkFilterPerfOnTreeSelect.Checked;
@@ -411,6 +417,7 @@ namespace Cad3PLogBrowser
             _settings.InitialDirectory    = def.InitialDirectory;
             _settings.MaxRecentFiles      = def.MaxRecentFiles;
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
+            _settings.FastCallThresholdMs       = def.FastCallThresholdMs;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;

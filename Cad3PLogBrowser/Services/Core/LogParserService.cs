@@ -287,7 +287,11 @@ namespace Cad3PLogBrowser.Services
                         Depth      = stack.Count,
                         SourceFile = entry.SourceFile,
                         Module     = entry.Module,
-                        EpochMs    = entry.EpochMs
+                        EpochMs    = entry.EpochMs,
+                        // B3: assign Parent so GetCallChain() and any consumer that
+                        // walks up the tree gets the correct full chain instead of
+                        // a single-node result.
+                        Parent     = stack.Count > 0 ? stack.Peek() : null
                     };
 
                     if (stack.Count == 0) roots.Add(node);
@@ -560,6 +564,11 @@ namespace Cad3PLogBrowser.Services
         public long                ExitEpochMs     { get; set; }
         public long                DurationMs      { get; set; }
         public List<CallStackNode> Children        { get; } = new List<CallStackNode>();
+        /// <summary>
+        /// The parent node in the call tree (null for root-level nodes).
+        /// Set by <see cref="LogParserService.BuildCallTree"/> during construction (B3).
+        /// </summary>
+        public CallStackNode       Parent          { get; set; }
 
         public override string ToString() =>
             DurationMs > 0

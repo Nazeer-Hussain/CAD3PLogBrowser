@@ -57,6 +57,11 @@ namespace Cad3PLogBrowser.Services
         // ── Performance guards ─────────────────────────────────────────────────
         public long    MaxFileSizeMbForListView { get; set; } = 50; // skip list if > N MB
         public long    SlowCallThresholdMs      { get; set; } = 1000;
+        // F5: user-configurable thresholds for call-tree colour coding.
+        // FastCallThresholdMs  — calls below this are green  (default 100 ms)
+        // SlowCallThresholdMs is reused as the upper bound    (default 1000 ms)
+        // Calls between Fast..Slow are amber; calls above Slow are red.
+        public int     FastCallThresholdMs      { get; set; } = 100;
         /// <summary>
         /// Maximum number of characters to load into RichTextBox controls (Raw tab, detail views).
         /// RichTextBox has a hard limit around 2GB but realistically becomes unstable above 32MB.

@@ -16,7 +16,7 @@ namespace Cad3PLogBrowser.UI
     /// </summary>
     internal sealed class LineInspectorPanel : Panel
     {
-        // ?? Section: parsed field table ??????????????????????????????????????
+        // ── Section: parsed field table ────────────────────────────────────
         private readonly TableLayoutPanel _fieldTable;
         private readonly Label[]          _fieldKeys;
         private readonly Label[]          _fieldVals;
@@ -37,15 +37,15 @@ namespace Cad3PLogBrowser.UI
         };
         private const int FieldCount = 11;
 
-        // ?? Section: ENTER/EXIT pair ?????????????????????????????????????????
+        // ── Section: ENTER/EXIT pair ────────────────────────────────────────
         private readonly Panel _pairPanel;
         private readonly Label _pairLabel;
 
-        // ?? Section: context window ??????????????????????????????????????????
+        // ── Section: context window ─────────────────────────────────────────
         private readonly Label       _ctxHeader;
         private readonly RichTextBox _ctxBox;
 
-        // ?? Dividers ?????????????????????????????????????????????????????????
+        // ── Dividers ──────────────────────────────────────────────────────────
         private readonly Label _divider1;
         private readonly Label _divider2;
 
@@ -65,14 +65,14 @@ namespace Cad3PLogBrowser.UI
         private static readonly Font _ctxFontBold    = new Font("Consolas", 9f, FontStyle.Bold);
         private static readonly Font _ctxFontRegular = new Font("Consolas", 9f, FontStyle.Regular);
 
-        // ??????????????????????????????????????????????????????????????????????
+        // ──────────────────────────────────────────────────────────────────
         public LineInspectorPanel()
         {
             Dock      = DockStyle.Fill;
             Padding   = new Padding(8);
             AutoScroll = true;
 
-            // ?? Field table ??????????????????????????????????????????????????
+            // ── Field table ──────────────────────────────────────────────────────────────────
             _fieldTable = new TableLayoutPanel
             {
                 ColumnCount = 2,
@@ -98,7 +98,9 @@ namespace Cad3PLogBrowser.UI
                     Height    = 22,
                     Dock      = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                    // B5: reuse the cached static fonts instead of allocating a new Font
+                    // object per label (was 22 Font allocations per panel construction).
+                    Font      = _levelFontBold,
                     Padding   = new Padding(4, 0, 4, 0),
                     Margin    = new Padding(0, 1, 2, 1),
                 };
@@ -109,7 +111,7 @@ namespace Cad3PLogBrowser.UI
                     Height    = 22,
                     Dock      = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleLeft,
-                    Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular),
+                    Font      = _levelFontRegular,
                     Padding   = new Padding(4, 0, 4, 0),
                     Margin    = new Padding(0, 1, 0, 1),
                 };
@@ -119,15 +121,15 @@ namespace Cad3PLogBrowser.UI
                 _fieldTable.Controls.Add(val, 1, i);
             }
 
-            // ?? Divider 1 ????????????????????????????????????????????????????
+            // ── Divider 1 ──────────────────────────────────────────────────────────────────
             _divider1 = MakeDivider();
 
-            // ?? ENTER/EXIT pair panel ????????????????????????????????????????
+            // ── ENTER/EXIT pair panel ─────────────────────────────────────────────────────
             _pairLabel = new Label
             {
                 AutoSize  = true,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font      = new Font("Segoe UI", 8.5f, FontStyle.Regular),
+                Font      = _levelFontRegular,
                 Padding   = new Padding(4, 2, 4, 2),
                 Dock      = DockStyle.Fill,
             };
@@ -140,10 +142,10 @@ namespace Cad3PLogBrowser.UI
             };
             _pairPanel.Controls.Add(_pairLabel);
 
-            // ?? Divider 2 ????????????????????????????????????????????????????
+            // ── Divider 2 ──────────────────────────────────────────────────────────────────
             _divider2 = MakeDivider();
 
-            // ?? Context header ???????????????????????????????????????????????
+            // ── Context header ─────────────────────────────────────────────────────────────
             _ctxHeader = new Label
             {
                 Text      = "Context  (± 5 lines)",
@@ -151,17 +153,17 @@ namespace Cad3PLogBrowser.UI
                 Height    = 22,
                 Dock      = DockStyle.Top,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Font      = _levelFontBold,
                 Padding   = new Padding(4, 0, 0, 0),
             };
 
-            // ?? Context rich-text box ????????????????????????????????????????
+            // ── Context rich-text box ────────────────────────────────────────────────────
             _ctxBox = new RichTextBox
             {
                 Dock      = DockStyle.Fill,
                 ReadOnly  = true,
                 WordWrap  = false,
-                Font      = new Font("Consolas", 9f),
+                Font      = _ctxFontRegular,
                 BorderStyle = BorderStyle.None,
                 ScrollBars  = RichTextBoxScrollBars.Both,
             };
@@ -247,9 +249,9 @@ namespace Cad3PLogBrowser.UI
             RecolourContextBox();
         }
 
-        // ?? VirtualLogLine accessor — removed; use InspectorLine instead ????????
+        // ── VirtualLogLine accessor — removed; use InspectorLine instead ───────────
 
-        // ?? Private helpers ???????????????????????????????????????????????????
+        // ── Private helpers ───────────────────────────────────────────────
 
         private void Clear()
         {

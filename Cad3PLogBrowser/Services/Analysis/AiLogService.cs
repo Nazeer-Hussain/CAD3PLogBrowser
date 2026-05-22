@@ -204,25 +204,45 @@ namespace Cad3PLogBrowser.Services.Analysis
             }
             if (stats.WarningCount > 20) { sb.AppendLine($"HIGH WARNING COUNT: {stats.WarningCount} warnings\n   Review warning messages\n"); found = true; }
             if (stats.MaxCallDepth > 25) { sb.AppendLine($"DEEP CALL STACK: depth {stats.MaxCallDepth}\n   Check for recursion or excessive nesting\n"); found = true; }
-            if (perfStats != null && perfStats.Any())
+            if (perfStats != null && perfStats.Count > 0)
             {
-                double avg = perfStats.Average(p => (double)p.AvgDurationMs);
-                var outliers = perfStats.Where(p => p.AvgDurationMs > avg * 10).ToList();
-                if (outliers.Any())
+                // P4: single pass instead of three separate LINQ iterations
+                // (Average + Where outliers + Where hotspots = 3x N allocations).
+                double totalAvgMs    = 0;
+                double totalCallsD   = 0;
+                foreach (var p in perfStats)
                 {
-                    sb.AppendLine($"PERFORMANCE OUTLIERS: {outliers.Count} API(s) with 10x+ average duration");
-                    foreach (var p in outliers.Take(5))
-                        sb.AppendLine($"   {p.ApiName}: {p.AvgDurationMs:N0} ms avg (session avg {avg:N0} ms)");
+                    totalAvgMs  += p.AvgDurationMs;
+                    totalCallsD += p.CallCount;
+                }
+                double avg      = totalAvgMs  / perfStats.Count;
+                double avgCalls = totalCallsD / perfStats.Count;
+
+                var outliers  = new List<ApiPerfStats>();
+                var hotspots  = new List<ApiPerfStats>();
+                foreach (var p in perfStats)
+                {
+                    if (p.AvgDurationMs > avg      * 10) outliers.Add(p);
+                    if (p.CallCount     > avgCalls * 5)  hotspots.Add(p);
+                }
+
+                if (outliers.Count > 0)
+                {
+                    sb.AppendLine(string.Format("PERFORMANCE OUTLIERS: {0} API(s) with 10x+ average duration", outliers.Count));
+                    int show = Math.Min(5, outliers.Count);
+                    for (int i = 0; i < show; i++)
+                        sb.AppendLine(string.Format("   {0}: {1:N0} ms avg (session avg {2:N0} ms)",
+                            outliers[i].ApiName, outliers[i].AvgDurationMs, avg));
                     sb.AppendLine("   Profile these methods for optimization\n");
                     found = true;
                 }
-                double avgCalls = perfStats.Average(p => (double)p.CallCount);
-                var hotspots = perfStats.Where(p => p.CallCount > avgCalls * 5).ToList();
-                if (hotspots.Any())
+                if (hotspots.Count > 0)
                 {
-                    sb.AppendLine($"HOTSPOT METHODS: {hotspots.Count} API(s) called 5x+ more than average");
-                    foreach (var p in hotspots.Take(5))
-                        sb.AppendLine($"   {p.ApiName}: {p.CallCount} calls (avg {avgCalls:N0})");
+                    sb.AppendLine(string.Format("HOTSPOT METHODS: {0} API(s) called 5x+ more than average", hotspots.Count));
+                    int show = Math.Min(5, hotspots.Count);
+                    for (int i = 0; i < show; i++)
+                        sb.AppendLine(string.Format("   {0}: {1} calls (avg {2:N0})",
+                            hotspots[i].ApiName, hotspots[i].CallCount, avgCalls));
                     found = true;
                 }
             }
