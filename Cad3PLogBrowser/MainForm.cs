@@ -4824,21 +4824,21 @@ namespace Cad3PLogBrowser
             {
                 string helpFilePath = Path.Combine(Application.StartupPath, "Help", "UserGuide.html");
 
+                // Always ensure the on-disk copy matches the version embedded in this EXE.
+                // After an auto-update the EXE is newer than the old Help folder, so we
+                // extract the embedded resource to refresh it.
+                EnsureHelpFileUpToDate(helpFilePath);
+
                 if (File.Exists(helpFilePath))
                 {
-                    // Add section anchor if specified for context-sensitive help
                     string url = helpFilePath;
                     if (!string.IsNullOrEmpty(section))
-                    {
                         url = helpFilePath + "#" + section;
-                    }
 
-                    // Open HTML help file in default browser
                     System.Diagnostics.Process.Start(url);
                 }
                 else
                 {
-                    // If help file doesn't exist, show inline help dialog
                     ShowInlineHelpDialog();
                 }
             }
@@ -4847,6 +4847,43 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_OPEN_HELP_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        /// <summary>
+        /// Extracts the embedded UserGuide.html from the assembly to disk when the
+        /// on-disk copy is missing or older than the running EXE (i.e. after an update).
+        /// </summary>
+        private static void EnsureHelpFileUpToDate(string helpFilePath)
+        {
+            try
+            {
+                string exePath      = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                DateTime exeModified = File.GetLastWriteTimeUtc(exePath);
+                bool needsExtract   = !File.Exists(helpFilePath) ||
+                                      File.GetLastWriteTimeUtc(helpFilePath) < exeModified;
+
+                if (!needsExtract) return;
+
+                // Extract the HTML that was compiled into the EXE as an EmbeddedResource
+                var asm          = System.Reflection.Assembly.GetExecutingAssembly();
+                const string res = "Cad3PLogBrowser.Help.UserGuide.html";
+
+                using (var stream = asm.GetManifestResourceStream(res))
+                {
+                    if (stream == null) return; // resource not found — nothing to extract
+
+                    string dir = Path.GetDirectoryName(helpFilePath);
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                    using (var fs = new FileStream(helpFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        stream.CopyTo(fs);
+
+                    // Stamp the extracted file with the EXE's modification time so we
+                    // don't re-extract on every launch.
+                    File.SetLastWriteTimeUtc(helpFilePath, exeModified);
+                }
+            }
+            catch { /* Non-fatal: fall through to File.Exists check */ }
         }
 
         /// <summary>

@@ -1,0 +1,80 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # ?? 1. Checkout ????????????????????????????????????????????????????????
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ?? 2. Read version from version.json ??????????????????????????????????
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content version.json | ConvertFrom-Json).version
+          echo "VERSION=$v"          >> $env:GITHUB_OUTPUT
+          echo "TAG=v$($v -replace '\.0$','')"  >> $env:GITHUB_OUTPUT
+
+      # ?? 3. Build ???????????????????????????????????????????????????????????
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore Cad3PLogBrowser.sln
+
+      - name: Build (Release / AnyCPU)
+        run: |
+          msbuild Cad3PLogBrowser.sln `
+            /p:Configuration=Release `
+            /p:Platform=AnyCPU `
+            /m
+
+      # ?? 4. Upload build artifact (available on every branch/PR) ???????????
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cad3PLogBrowser-${{ steps.ver.outputs.VERSION }}
+          path: Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe
+          if-no-files-found: error
+
+      # ?? 5. Create GitHub Release + attach EXE (main branch only) ??????????
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.TAG }}
+          name: "Release ${{ steps.ver.outputs.TAG }}"
+          body_path: version.json
+          files: Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ?? 6. Commit updated version.json back to main ????????????????????????
+      #    (ensures the raw URL always reflects the latest release for auto-update)
+      - name: Commit version.json to main
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          $status = git status --porcelain
+          if ($status) {
+            git commit -m "chore: update version.json to ${{ steps.ver.outputs.VERSION }} [skip ci]"
+            git push
+          } else {
+            Write-Host "version.json unchanged, nothing to commit."
+          }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
