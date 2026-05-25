@@ -1,0 +1,6 @@
+{
+  "version": "3.1.0.0",
+  "downloadUrl": "https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases/download/v3.1/Cad3PLogBrowser.exe",
+  "releaseNotes": "v3.1 � CI/CD Release\n\n- Automated GitHub Actions build pipeline.\n- EXE built as AnyCPU Release and published to GitHub Releases.\n- version.json updated automatically so older EXEs receive the auto-update prompt.",
+  "mandatory": false
+}

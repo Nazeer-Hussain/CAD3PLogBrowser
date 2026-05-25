@@ -4742,15 +4742,56 @@ namespace Cad3PLogBrowser
 
         private void checkForUpdatesMenuItem_Click(object sender, EventArgs e)
         {
+            CheckForUpdatesAsync(silent: false);
+        }
+
+        /// <summary>
+        /// Checks for an update.  When <paramref name="silent"/> is true the method
+        /// shows no UI unless a newer version is actually available.
+        /// </summary>
+        private async void CheckForUpdatesAsync(bool silent)
+        {
+            var svc = new Services.Update.UpdateService(_appSettings.UpdateManifestUrl);
+
+            Services.Update.UpdateManifest manifest = null;
             try
             {
-                // Open GitHub releases page
-                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases");
+                manifest = await svc.FetchManifestAsync();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERR_OPEN_UPDATES_FAILED, ex.Message), 
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!silent)
+                    MessageBox.Show(string.Format(Resources.UPDATE_CHECK_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Record the check timestamp regardless of result
+            _appSettings.LastUpdateCheck = DateTime.UtcNow;
+            _appSettings.Save();
+
+            if (!svc.IsUpdateAvailable(manifest))
+            {
+                if (!silent)
+                {
+                    string current = System.Reflection.Assembly.GetExecutingAssembly()
+                                          .GetName().Version.ToString();
+                    MessageBox.Show(string.Format(Resources.UPDATE_UP_TO_DATE, current),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                return;
+            }
+
+            using (var dlg = new UpdateAvailableForm(manifest, svc))
+            {
+                var result = dlg.ShowDialog(this);
+                if (result == DialogResult.OK)
+                {
+                    // Update downloaded and launcher script started — exit to let updater run
+                    MessageBox.Show(Resources.UPDATE_APPLY_EXIT,
+                        "Update Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Application.Exit();
+                }
             }
         }
 
@@ -4773,7 +4814,7 @@ namespace Cad3PLogBrowser
             ShowUserGuide();
         }
 
-        /// <summary>
+
         /// Opens the User Guide HTML file in default browser.
         /// Provides context-sensitive help based on current active control/tab.
         /// </summary>
@@ -4783,21 +4824,21 @@ namespace Cad3PLogBrowser
             {
                 string helpFilePath = Path.Combine(Application.StartupPath, "Help", "UserGuide.html");
 
+                // Always ensure the on-disk copy matches the version embedded in this EXE.
+                // After an auto-update the EXE is newer than the old Help folder, so we
+                // extract the embedded resource to refresh it.
+                EnsureHelpFileUpToDate(helpFilePath);
+
                 if (File.Exists(helpFilePath))
                 {
-                    // Add section anchor if specified for context-sensitive help
                     string url = helpFilePath;
                     if (!string.IsNullOrEmpty(section))
-                    {
                         url = helpFilePath + "#" + section;
-                    }
 
-                    // Open HTML help file in default browser
                     System.Diagnostics.Process.Start(url);
                 }
                 else
                 {
-                    // If help file doesn't exist, show inline help dialog
                     ShowInlineHelpDialog();
                 }
             }
@@ -4806,6 +4847,43 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_OPEN_HELP_FAILED, ex.Message), 
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        /// <summary>
+        /// Extracts the embedded UserGuide.html from the assembly to disk when the
+        /// on-disk copy is missing or older than the running EXE (i.e. after an update).
+        /// </summary>
+        private static void EnsureHelpFileUpToDate(string helpFilePath)
+        {
+            try
+            {
+                string exePath      = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                DateTime exeModified = File.GetLastWriteTimeUtc(exePath);
+                bool needsExtract   = !File.Exists(helpFilePath) ||
+                                      File.GetLastWriteTimeUtc(helpFilePath) < exeModified;
+
+                if (!needsExtract) return;
+
+                // Extract the HTML that was compiled into the EXE as an EmbeddedResource
+                var asm          = System.Reflection.Assembly.GetExecutingAssembly();
+                const string res = "Cad3PLogBrowser.Help.UserGuide.html";
+
+                using (var stream = asm.GetManifestResourceStream(res))
+                {
+                    if (stream == null) return; // resource not found — nothing to extract
+
+                    string dir = Path.GetDirectoryName(helpFilePath);
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                    using (var fs = new FileStream(helpFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        stream.CopyTo(fs);
+
+                    // Stamp the extracted file with the EXE's modification time so we
+                    // don't re-extract on every launch.
+                    File.SetLastWriteTimeUtc(helpFilePath, exeModified);
+                }
+            }
+            catch { /* Non-fatal: fall through to File.Exists check */ }
         }
 
         /// <summary>
@@ -5049,6 +5127,17 @@ namespace Cad3PLogBrowser
             {
                 // No saved value - just enable saving
                 _isFormLoaded = true;
+            }
+
+            // Auto-update: background check once per configured interval
+            if (_appSettings.CheckForUpdatesOnStartup)
+            {
+                var daysSinceCheck = (DateTime.UtcNow - _appSettings.LastUpdateCheck).TotalDays;
+                if (daysSinceCheck >= _appSettings.UpdateCheckIntervalDays)
+                {
+                    // Run silently after the form is fully shown
+                    this.BeginInvoke((Action)(() => CheckForUpdatesAsync(silent: true)));
+                }
             }
         }
 

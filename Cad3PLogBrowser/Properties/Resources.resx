@@ -196,6 +196,15 @@
   <data name="ERR_OPEN_UPDATES_FAILED" xml:space="preserve">
     <value>Could not open updates page:&#10;{0}</value>
   </data>
+  <data name="UPDATE_CHECK_FAILED" xml:space="preserve">
+    <value>Could not check for updates:&#10;{0}</value>
+  </data>
+  <data name="UPDATE_UP_TO_DATE" xml:space="preserve">
+    <value>You are running the latest version ({0}).</value>
+  </data>
+  <data name="UPDATE_APPLY_EXIT" xml:space="preserve">
+    <value>The update will be applied after the application closes.&#10;&#10;The application will now exit and restart automatically.</value>
+  </data>
   <data name="ERR_OPEN_ISSUES_FAILED" xml:space="preserve">
     <value>Could not open issues page:&#10;{0}</value>
   </data>

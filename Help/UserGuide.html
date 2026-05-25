@@ -323,7 +323,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2>&#128218; CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v2.7</p>
+        <p>User Guide &#8212; v3.0</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -373,6 +373,7 @@
     <div class="nav-section">Configuration</div>
     <ul>
         <li><a href="#settings">Settings Dialog</a></li>
+        <li><a href="#updates">Auto-Update</a></li>
         <li><a href="#themes">Themes &amp; Fonts</a></li>
         <li><a href="#menus">Menu Reference</a></li>
         <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
@@ -392,7 +393,7 @@
 <div class="page-header">
     <h1>&#128218; CAD 3P Log Browser</h1>
     <p>Complete User Guide &amp; Reference Manual</p>
-    <span class="badge">v2.7</span>
+    <span class="badge">v3.0</span>
     <span class="badge">.NET Framework 4.8</span>
     <span class="badge">Windows</span>
 </div>
@@ -436,7 +437,16 @@
 
 <!-- ═══ WHAT'S NEW ═══ -->
 <div class="section" id="whats-new">
-    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v2.7</h2>
+    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v3.0</h2>
+
+    <h3>&#128257; Automatic Updates</h3>
+    <p>The application now checks for new versions <strong>automatically on startup</strong> (once per day by default). When an update is available a dialog shows the release notes and lets you download and install the new version in one click. The old EXE is replaced while the app is closed; the app restarts automatically when the update completes.</p>
+    <ul>
+        <li><span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> triggers an immediate check at any time.</li>
+        <li>Configure the check interval, toggle auto-check on/off, or change the manifest URL in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Updates</span>.</li>
+        <li>No installation required &#8212; the update replaces only <code>Cad3PLogBrowser.exe</code>; your <code>Help\</code> folder and <code>settings.json</code> are preserved.</li>
+    </ul>
+
 
     <h3>&#128221; Raw View Tab</h3>
     <p>A new <strong>Raw</strong> tab shows the unformatted file content in a read-only, scrollable text box (Consolas font, horizontal + vertical scrollbars). Files above 50,000 lines are capped with a visible notice. Toggle it via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Raw</span>.</p>
@@ -1129,9 +1139,64 @@
         </tbody>
     </table>
 
+    <h3>Updates</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Check for updates on startup</td><td>&#10003; On</td><td>Silently checks the manifest URL once per interval when the app launches</td></tr>
+            <tr><td>Check interval (days)</td><td>1</td><td>Minimum days between automatic background checks</td></tr>
+            <tr><td>Update manifest URL</td><td><em>GitHub raw</em></td><td>URL of the remote <code>version.json</code> file. Change this to point to an internal mirror if needed</td></tr>
+        </tbody>
+    </table>
+    <div class="info"><strong>&#128257; Update storage:</strong> The date of the last successful check is stored in <code>%AppData%\CAD3PLogBrowser\settings.json</code> alongside all other settings. Deleting that file resets the check timer.</div>
+
     <div class="info">
         <strong>&#128193; Storage location:</strong> All settings are saved to <code>%AppData%\CAD3PLogBrowser\settings.json</code>. Use <strong>Reset to Defaults</strong> in the dialog, or delete this file, to restore factory defaults.
     </div>
+</div>
+
+
+<!-- ═══ AUTO-UPDATE ═══ -->
+<div class="section" id="updates">
+    <h2 class="section-title"><span class="ico">&#128257;</span> Auto-Update</h2>
+
+    <h3>How It Works</h3>
+    <p>On every startup (subject to the configured interval) the app silently downloads a small JSON manifest from GitHub and compares the remote version with the installed assembly version. If a newer version is found the <strong>Update Available</strong> dialog appears.</p>
+
+    <h3>Update Available Dialog</h3>
+    <table>
+        <thead><tr><th>Button</th><th>Action</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Update Now</strong></td><td>Downloads the new <code>Cad3PLogBrowser.exe</code> to a temp folder with a live progress bar, then writes a batch script that replaces the EXE after the app closes and restarts it.</td></tr>
+            <tr><td><strong>Later</strong></td><td>Dismisses the dialog. The next automatic check runs after the configured interval.</td></tr>
+            <tr><td><strong>Cancel Download</strong></td><td>Appears while downloading. Aborts the transfer; the partial download is deleted.</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Manual Check</h3>
+    <p>Go to <span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> at any time. The result is always shown (&#8220;up to date&#8221; message or the update dialog).</p>
+
+    <h3>What Gets Replaced</h3>
+    <p>Only <code>Cad3PLogBrowser.exe</code> is replaced. The following are <strong>not touched</strong>:</p>
+    <ul>
+        <li><code>Help\UserGuide.html</code> — ship the updated Help folder as part of the GitHub Release zip if you change the guide.</li>
+        <li><code>Cad3PLogBrowser.exe.config</code> — .NET runtime binding config; rarely changes.</li>
+        <li><code>%AppData%\CAD3PLogBrowser\settings.json</code> — all user preferences are preserved.</li>
+    </ul>
+
+    <div class="info">
+        <strong>&#9888; Note:</strong> The self-replacement uses a temporary <code>.bat</code> script launched via <code>cmd.exe /C</code>. If your environment blocks batch scripts (e.g. AppLocker), the update will fail with an error. In that case download and replace the EXE manually from the <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases" target="_blank">GitHub Releases page</a>.
+    </div>
+
+    <h3>Configuration (Settings &#8594; Updates)</h3>
+    <table>
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Check for updates on startup</td><td>&#10003;</td><td>Enable/disable the automatic background check</td></tr>
+            <tr><td>Check interval (days)</td><td>1</td><td>Minimum days between checks. Set to 0 to check every launch.</td></tr>
+            <tr><td>Update manifest URL</td><td>GitHub raw</td><td>URL of <code>version.json</code>. Override to point to an internal distribution server.</td></tr>
+        </tbody>
+    </table>
 </div>
 
 
@@ -1236,7 +1301,7 @@
             <tr><td>User Guide</td><td><kbd>F1</kbd></td><td>Opens this guide in the default browser</td></tr>
             <tr><td>Keyboard Shortcuts</td><td><kbd>Ctrl+K</kbd></td><td>Quick-reference shortcuts dialog</td></tr>
             <tr><td>About</td><td></td><td>Version and credits</td></tr>
-            <tr><td>Check for Updates</td><td></td><td>Opens GitHub releases page</td></tr>
+            <tr><td>Check for Updates</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Downloads and installs the new EXE automatically with a progress bar. If already up to date, shows a confirmation message.</td></tr>
             <tr><td>Report Errors</td><td></td><td>Opens GitHub Issues page</td></tr>
         </tbody>
     </table>
@@ -1447,7 +1512,7 @@
 
 
 <footer>
-    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v2.7 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v3.0 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
     <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
 </footer>
 
