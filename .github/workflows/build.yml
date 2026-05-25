@@ -36,7 +36,7 @@ jobs:
         run: |
           msbuild Cad3PLogBrowser.sln `
             /p:Configuration=Release `
-            /p:Platform=AnyCPU `
+            "/p:Platform=Any CPU" `
             /m
 
       # ?? 4. Upload build artifact (available on every branch/PR) ???????????
