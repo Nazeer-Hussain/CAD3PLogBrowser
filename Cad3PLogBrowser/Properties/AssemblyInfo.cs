@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CAD 3P Log Browser v3.1")]
+[assembly: AssemblyTitle("CAD 3P Log Browser")]
 [assembly: AssemblyDescription("Professional Log Analysis Tool for CAD Applications")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("PTC")]
 [assembly: AssemblyProduct("CAD 3P Log Browser")]
-[assembly: AssemblyCopyright("Copyright © PTC 2024")]
+[assembly: AssemblyCopyright("Copyright © PTC 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

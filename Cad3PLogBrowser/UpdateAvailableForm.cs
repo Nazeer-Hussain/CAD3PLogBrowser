@@ -156,7 +156,7 @@ namespace Cad3PLogBrowser
             Version current = Assembly.GetExecutingAssembly().GetName().Version;
 
             _lblTitle.Text          = "A new version is available!";
-            _lblCurrentVersion.Text = string.Format("Installed version:  {0}", current);
+            _lblCurrentVersion.Text = string.Format("Installed version:  {0}", current.ToString(3));
             _lblNewVersion.Text     = string.Format("Available version:  {0}", _manifest.Version);
             _txtReleaseNotes.Text   = string.IsNullOrWhiteSpace(_manifest.ReleaseNotes)
                                         ? "(No release notes provided.)"
