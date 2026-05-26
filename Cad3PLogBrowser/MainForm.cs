@@ -1126,7 +1126,8 @@ namespace Cad3PLogBrowser
 
         private void UpdateTitleBar()
         {
-            const string appName = "CAD 3P Log Browser";
+            string ver     = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            string appName = string.Format("CAD 3P Log Browser v{0}", ver);
             if (string.IsNullOrEmpty(_currentFilePath))
             {
                 this.Text = appName;
@@ -4736,8 +4737,15 @@ namespace Cad3PLogBrowser
 
         private void aboutMenuItem_Click(object sender, EventArgs e)
         {
-            using (var aboutDialog = new AboutForm())
-                aboutDialog.ShowDialog(this);
+            // Defer form creation until after the ToolStripDropDown has finished
+            // processing WM_MOUSEUP and released the screen DC. Any control
+            // constructor that calls Font.GetHeight() -> GetDC(null) will throw
+            // "Parameter is not valid" if invoked while the menu holds the DC.
+            BeginInvoke((Action)(() =>
+            {
+                using (var aboutDialog = new AboutForm())
+                    aboutDialog.ShowDialog(this);
+            }));
         }
 
         private void checkForUpdatesMenuItem_Click(object sender, EventArgs e)
@@ -4775,7 +4783,7 @@ namespace Cad3PLogBrowser
                 if (!silent)
                 {
                     string current = System.Reflection.Assembly.GetExecutingAssembly()
-                                          .GetName().Version.ToString();
+                                          .GetName().Version.ToString(3);
                     MessageBox.Show(string.Format(Resources.UPDATE_UP_TO_DATE, current),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -7139,7 +7147,7 @@ namespace Cad3PLogBrowser
                 _aiPanel.ShowThinking(true);
                 var (stats, perfStats) = BuildAiContext();
                 string version = System.Reflection.Assembly.GetExecutingAssembly()
-                                     .GetName().Version?.ToString() ?? "unknown";
+                                     .GetName().Version?.ToString(3) ?? "unknown";
                 var result = await _aiService.GenerateBugReportAsync(stats, perfStats, version);
                 _aiPanel.ShowResponse(result);
             }

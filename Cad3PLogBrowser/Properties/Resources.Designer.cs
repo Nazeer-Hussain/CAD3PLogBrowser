@@ -1623,7 +1623,7 @@ namespace Cad3PLogBrowser.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to CAD 3P Log Browser v2.5.
+        ///   Looks up a localized string similar to CAD 3P Log Browser.
         /// </summary>
         internal static string TITLE {
             get {

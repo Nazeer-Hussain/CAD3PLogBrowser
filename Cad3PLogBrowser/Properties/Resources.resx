@@ -119,7 +119,7 @@
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="TITLE" xml:space="preserve">
-    <value>CAD 3P Log Browser v2.5</value>
+    <value>CAD 3P Log Browser</value>
   </data>
   <data name="MSG_FILE_SAVED" xml:space="preserve">
     <value>{0} line(s) saved.</value>

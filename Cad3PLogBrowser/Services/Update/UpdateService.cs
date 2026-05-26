@@ -220,7 +220,7 @@ namespace Cad3PLogBrowser.Services.Update
         private static string GetUserAgent()
         {
             var ver = Assembly.GetExecutingAssembly().GetName().Version;
-            return string.Format("Cad3PLogBrowser/{0} (Windows; .NET Framework 4.8)", ver);
+            return string.Format("Cad3PLogBrowser/{0} (Windows; .NET Framework 4.8)", ver.ToString(3));
         }
 
         private static void TryDeleteFile(string path)
