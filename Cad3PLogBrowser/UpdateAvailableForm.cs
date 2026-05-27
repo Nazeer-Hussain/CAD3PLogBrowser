@@ -14,27 +14,31 @@
     /// </summary>
     internal class UpdateAvailableForm : Form
     {
-        // ?? Controls ??????????????????????????????????????????????????????????
+        // ── Controls ──────────────────────────────────────────────────────────
         private Label       _lblTitle;
         private Label       _lblCurrentVersion;
         private Label       _lblNewVersion;
-        private Label       _lblDownloadSize;       // ENH-5
+        private Label       _lblDownloadSize;
         private Label       _lblReleaseNotesHeader;
         private RichTextBox _txtReleaseNotes;
         private ProgressBar _progressBar;
-        private Label       _lblStatus;             // shows %, speed, ETA (ENH-1)
+        private Label       _lblStatus;
         private Button      _btnUpdate;
         private Button      _btnLater;
-        private Button      _btnSkip;               // ENH-3
+        private Button      _btnSkip;
         private Button      _btnCancel;
 
-        // ?? State ?????????????????????????????????????????????????????????????
+        // ── Owned fonts (disposed with the form) ──────────────────────────────
+        private Font _fontTitle;
+        private Font _fontBold;
+
+        // ── State ─────────────────────────────────────────────────────────────
         private readonly UpdateManifest _manifest;
         private readonly UpdateService  _service;
-        private bool _downloadActive = false;       // BUG-1: separate from SetDownloadingState
+        private bool _downloadActive  = false;
         private bool _cancelledByUser = false;
 
-        // ?? Result ????????????????????????????????????????????????????????????
+        // ── Result ────────────────────────────────────────────────────────────
         /// <summary>True when the user chose "Skip this version" (ENH-3).</summary>
         public bool UserSkippedVersion { get; private set; }
 
@@ -72,6 +76,14 @@
 
         private void BuildUI()
         {
+            // Create owned fonts using explicit family names so we never depend on
+            // SystemFonts.DefaultFont whose underlying GDI object may already be
+            // freed when the RichTextBox constructor queries it internally.
+            _fontTitle = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Point);
+            _fontBold  = new Font("Segoe UI",  9f, FontStyle.Bold, GraphicsUnit.Point);
+
+            SuspendLayout();
+
             Text            = "Update Available";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox     = false;
@@ -79,10 +91,11 @@
             StartPosition   = FormStartPosition.CenterParent;
             ClientSize      = new Size(500, 400);
             ShowInTaskbar   = false;
+            Font            = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
 
             _lblTitle = new Label
             {
-                Font      = new Font(SystemFonts.DefaultFont.FontFamily, 12f, FontStyle.Bold),
+                Font      = _fontTitle,
                 Location  = new Point(16, 14),
                 Size      = new Size(468, 28),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -101,7 +114,7 @@
                 ForeColor = Color.FromArgb(0, 128, 0)
             };
 
-            _lblDownloadSize = new Label          // ENH-5
+            _lblDownloadSize = new Label
             {
                 AutoSize  = true,
                 Location  = new Point(16, 90),
@@ -111,11 +124,14 @@
             _lblReleaseNotesHeader = new Label
             {
                 AutoSize = true,
-                Font     = new Font(SystemFonts.DefaultFont, FontStyle.Bold),
+                Font     = _fontBold,
                 Location = new Point(16, 114),
                 Text     = "Release Notes:"
             };
 
+            // Create the RichTextBox AFTER the form Font is set and SuspendLayout is
+            // active so the internal Multiline/AdjustHeight call uses our explicit font
+            // and never falls back to a potentially-disposed SystemFonts object.
             _txtReleaseNotes = new RichTextBox
             {
                 Location    = new Point(16, 134),
@@ -133,7 +149,7 @@
                 Visible  = false
             };
 
-            _lblStatus = new Label              // BUG-1 / ENH-1
+            _lblStatus = new Label
             {
                 Location  = new Point(16, 314),
                 Size      = new Size(468, 18),
@@ -141,7 +157,7 @@
                 Visible   = false
             };
 
-            // ?? Buttons ???????????????????????????????????????????????????????
+            // ── Buttons ───────────────────────────────────────────────────────
 
             _btnUpdate = new Button
             {
@@ -159,7 +175,7 @@
                 TabIndex = 1
             };
 
-            _btnSkip = new Button             // ENH-3
+            _btnSkip = new Button
             {
                 Text      = "Skip This Version",
                 Location  = new Point(244, 358),
@@ -192,6 +208,8 @@
 
             AcceptButton = _btnUpdate;
             CancelButton = _btnLater;
+
+            ResumeLayout(false);
         }
 
         private void PopulateContent()
@@ -386,6 +404,16 @@
                 _service.CancelDownload();
             }
             base.OnFormClosing(e);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _fontTitle?.Dispose();
+                _fontBold?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
