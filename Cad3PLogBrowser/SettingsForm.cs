@@ -45,6 +45,13 @@ namespace Cad3PLogBrowser
         private TextBox   txtGrokUrl, txtClaudeApiKey;
         private CheckBox  chkUseClaudeApi;
 
+        // ── Updates (ENH-4) ───────────────────────────────────────────────────
+        private CheckBox      chkCheckOnStartup;
+        private NumericUpDown nudUpdateIntervalDays;
+        private TextBox       txtManifestUrl;
+        private Label         lblLastChecked;
+        private Label         lblSkippedVersion;
+
         // ── Buttons ───────────────────────────────────────────────────────────
         private Button OkButton, CancelBtn, btnResetDefaults;
 
@@ -86,6 +93,7 @@ namespace Cad3PLogBrowser
             tabs.TabPages.Add(BuildFilesTab());
             tabs.TabPages.Add(BuildPerformanceTab());
             tabs.TabPages.Add(BuildIntegrationTab());
+            tabs.TabPages.Add(BuildUpdatesTab());   // ENH-4
 
             // Bottom buttons
             btnResetDefaults = Btn("Reset to Defaults", 12,   414, 140, 28);
@@ -338,6 +346,17 @@ namespace Cad3PLogBrowser
             txtGrokUrl.Text         = _settings.GrokUrl ?? "";
             txtClaudeApiKey.Text    = _settings.ClaudeApiKey ?? "";
             chkUseClaudeApi.Checked = _settings.UseClaudeApi;
+
+            // Updates (ENH-4)
+            chkCheckOnStartup.Checked    = _settings.CheckForUpdatesOnStartup;
+            nudUpdateIntervalDays.Value  = Math.Max(0, Math.Min(365, _settings.UpdateCheckIntervalDays));
+            txtManifestUrl.Text          = _settings.UpdateManifestUrl ?? "";
+            lblLastChecked.Text          = _settings.LastUpdateCheck == DateTime.MinValue
+                ? "Last checked:  never"
+                : string.Format("Last checked:  {0:yyyy-MM-dd HH:mm} UTC", _settings.LastUpdateCheck);
+            lblSkippedVersion.Text       = string.IsNullOrEmpty(_settings.SkippedVersion)
+                ? "Skipped version:  (none)"
+                : string.Format("Skipped version:  {0}", _settings.SkippedVersion);
         }
 
         private void OkButton_Click()
@@ -384,6 +403,11 @@ namespace Cad3PLogBrowser
             _settings.ClaudeApiKey = txtClaudeApiKey.Text.Trim();
             _settings.UseClaudeApi = chkUseClaudeApi.Checked;
 
+            // Updates (ENH-4)
+            _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
+            _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
+            _settings.UpdateManifestUrl        = txtManifestUrl.Text.Trim();
+
             _settings.Save();
         }
 
@@ -423,6 +447,10 @@ namespace Cad3PLogBrowser
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
+            // Updates — reset to defaults but preserve LastUpdateCheck and SkippedVersion
+            _settings.CheckForUpdatesOnStartup = def.CheckForUpdatesOnStartup;
+            _settings.UpdateCheckIntervalDays  = def.UpdateCheckIntervalDays;
+            _settings.UpdateManifestUrl        = def.UpdateManifestUrl;
             LoadCurrentSettings();
         }
 
@@ -466,6 +494,80 @@ namespace Cad3PLogBrowser
                 MessageBox.Show("Cannot create font: " + ex.Message, "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // ── TAB: Updates (ENH-4) ──────────────────────────────────────────────
+        private TabPage BuildUpdatesTab()
+        {
+            var tp = Tab("Updates");
+
+            chkCheckOnStartup = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 22),
+                Text     = "Check for updates automatically on startup"
+            };
+            tp.Controls.Add(chkCheckOnStartup);
+
+            nudUpdateIntervalDays = AddNud(tp, "Check interval (days):", 58, 0, 365, 1);
+            Lbl(tp, "  0 = every launch", 290, 62);
+
+            Lbl(tp, "Manifest URL:", 12, 98);
+            txtManifestUrl = new TextBox
+            {
+                Location = new Point(12, 114),
+                Size     = new Size(500, 23)
+            };
+            tp.Controls.Add(txtManifestUrl);
+
+            var hint = new Label
+            {
+                AutoSize  = false,
+                Location  = new Point(12, 142),
+                Size      = new Size(500, 18),
+                Text      = "Leave as default unless you host your own update server.",
+                ForeColor = SystemColors.GrayText,
+                Font      = new Font("Segoe UI", 8f)
+            };
+            tp.Controls.Add(hint);
+
+            lblLastChecked = new Label
+            {
+                AutoSize  = true,
+                Location  = new Point(12, 170),
+                ForeColor = SystemColors.GrayText
+            };
+            tp.Controls.Add(lblLastChecked);
+
+            lblSkippedVersion = new Label
+            {
+                AutoSize  = true,
+                Location  = new Point(12, 192),
+                ForeColor = SystemColors.GrayText
+            };
+            tp.Controls.Add(lblSkippedVersion);
+
+            var btnClearSkip = Btn("Clear Skipped Version", 12, 216, 160, 26);
+            btnClearSkip.Click += (s, e) =>
+            {
+                _settings.SkippedVersion  = "";
+                lblSkippedVersion.Text    = "Skipped version:  (none)";
+            };
+            tp.Controls.Add(btnClearSkip);
+
+            var btnCheckNow = Btn("Check Now", 186, 216, 100, 26);
+            btnCheckNow.Click += (s, e) =>
+            {
+                DialogResult = DialogResult.OK;
+                OkButton_Click();
+                Close();
+                // MainForm.checkForUpdatesMenuItem_Click equivalent
+                if (_mainForm != null)
+                    _mainForm.TriggerUpdateCheck();
+            };
+            tp.Controls.Add(btnCheckNow);
+
+            return tp;
         }
 
         // ── Build helpers ─────────────────────────────────────────────────────

@@ -90,6 +90,12 @@ namespace Cad3PLogBrowser.Services
         public DateTime LastUpdateCheck           { get; set; } = DateTime.MinValue;
         /// <summary>Minimum number of days between automatic background checks.</summary>
         public int      UpdateCheckIntervalDays   { get; set; } = 1;
+        /// <summary>
+        /// Version string the user chose to skip (ENH-3).
+        /// The update dialog is suppressed for this version until a newer one appears.
+        /// Reset to empty to stop skipping.
+        /// </summary>
+        public string   SkippedVersion            { get; set; } = "";
 
         // ── Grok integration ──────────────────────────────────────────────────
         public string  GrokUrl          { get; set; } = "";
