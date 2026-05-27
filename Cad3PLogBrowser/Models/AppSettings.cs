@@ -83,9 +83,15 @@ namespace Cad3PLogBrowser.Services
 
         // ── Auto-update ───────────────────────────────────────────────────────
         /// <summary>When true, checks for a new version once per <see cref="UpdateCheckIntervalDays"/> on startup.</summary>
+        /// <summary>The canonical default manifest URL — used as a fallback whenever the
+        /// user-configured value is blank.</summary>
+        public const string DefaultUpdateManifestUrl =
+            "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/main/version.json";
+
         public bool     CheckForUpdatesOnStartup  { get; set; } = true;
-        /// <summary>URL of the remote version manifest JSON.</summary>
-        public string   UpdateManifestUrl         { get; set; } = "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/main/version.json";
+        /// <summary>URL of the remote version manifest JSON.
+        /// When blank the application falls back to <see cref="DefaultUpdateManifestUrl"/>.</summary>
+        public string   UpdateManifestUrl         { get; set; } = DefaultUpdateManifestUrl;
         /// <summary>UTC timestamp of the last successful update check.</summary>
         public DateTime LastUpdateCheck           { get; set; } = DateTime.MinValue;
         /// <summary>Minimum number of days between automatic background checks.</summary>

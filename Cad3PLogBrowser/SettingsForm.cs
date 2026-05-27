@@ -406,7 +406,15 @@ namespace Cad3PLogBrowser
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
             _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
-            _settings.UpdateManifestUrl        = txtManifestUrl.Text.Trim();
+            // Guard: never persist an empty URL — fall back to the default so the
+            // UpdateService constructor (which throws on whitespace) can never crash.
+            string manifestUrl = txtManifestUrl.Text.Trim();
+            _settings.UpdateManifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
+                ? AppSettings.DefaultUpdateManifestUrl
+                : manifestUrl;
+            // Reflect the resolved value back into the text box so the user can
+            // see that the blank field was replaced with the default.
+            txtManifestUrl.Text = _settings.UpdateManifestUrl;
 
             _settings.Save();
         }

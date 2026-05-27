@@ -4762,7 +4762,14 @@ namespace Cad3PLogBrowser
         /// </summary>
         private async void CheckForUpdatesAsync(bool silent)
         {
-            var svc = new Services.Update.UpdateService(_appSettings.UpdateManifestUrl);
+            // Second line of defence: if the persisted URL is blank (e.g. hand-edited
+            // settings.json) resolve to the default rather than letting the
+            // UpdateService constructor throw ArgumentNullException.
+            string manifestUrl = string.IsNullOrWhiteSpace(_appSettings.UpdateManifestUrl)
+                ? Services.AppSettings.DefaultUpdateManifestUrl
+                : _appSettings.UpdateManifestUrl;
+
+            var svc = new Services.Update.UpdateService(manifestUrl);
 
             Services.Update.UpdateManifest manifest = null;
             try
