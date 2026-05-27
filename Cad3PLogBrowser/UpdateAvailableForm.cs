@@ -1,17 +1,16 @@
-namespace Cad3PLogBrowser
+﻿namespace Cad3PLogBrowser
 {
     using System;
     using System.Diagnostics;
     using System.Drawing;
     using System.Reflection;
-    using System.Threading.Tasks;
     using System.Windows.Forms;
     using Cad3PLogBrowser.Services;
     using Cad3PLogBrowser.Services.Update;
 
     /// <summary>
     /// Displays information about an available update and lets the user
-    /// download and install it or defer until later.
+    /// download and install it, defer until later, or skip this version.
     /// </summary>
     internal class UpdateAvailableForm : Form
     {
@@ -19,18 +18,25 @@ namespace Cad3PLogBrowser
         private Label       _lblTitle;
         private Label       _lblCurrentVersion;
         private Label       _lblNewVersion;
+        private Label       _lblDownloadSize;       // ENH-5
         private Label       _lblReleaseNotesHeader;
         private RichTextBox _txtReleaseNotes;
         private ProgressBar _progressBar;
-        private Label       _lblStatus;
+        private Label       _lblStatus;             // shows %, speed, ETA (ENH-1)
         private Button      _btnUpdate;
         private Button      _btnLater;
+        private Button      _btnSkip;               // ENH-3
         private Button      _btnCancel;
 
         // ?? State ?????????????????????????????????????????????????????????????
         private readonly UpdateManifest _manifest;
         private readonly UpdateService  _service;
-        private bool _downloading = false;
+        private bool _downloadActive = false;       // BUG-1: separate from SetDownloadingState
+        private bool _cancelledByUser = false;
+
+        // ?? Result ????????????????????????????????????????????????????????????
+        /// <summary>True when the user chose "Skip this version" (ENH-3).</summary>
+        public bool UserSkippedVersion { get; private set; }
 
         // ?? Constructor ???????????????????????????????????????????????????????
 
@@ -42,6 +48,24 @@ namespace Cad3PLogBrowser
             BuildUI();
             PopulateContent();
             ThemeManager.ApplyTheme(this);
+
+            // ENH-5: query size asynchronously so the dialog opens instantly
+            if (_manifest.DownloadSizeBytes > 0)
+            {
+                ShowDownloadSize(_manifest.DownloadSizeBytes);
+            }
+            else if (!string.IsNullOrWhiteSpace(_manifest.DownloadUrl))
+            {
+                _lblDownloadSize.Text = "Checking download size...";
+                var svc = _service;
+                var url = _manifest.DownloadUrl;
+                System.Threading.Tasks.Task.Run(() => svc.QueryDownloadSizeAsync(url))
+                    .ContinueWith(t =>
+                    {
+                        if (!IsDisposed)
+                            BeginInvoke((Action)(() => ShowDownloadSize(t.Result)));
+                    });
+            }
         }
 
         // ?? UI construction ???????????????????????????????????????????????????
@@ -53,67 +77,76 @@ namespace Cad3PLogBrowser
             MaximizeBox     = false;
             MinimizeBox     = false;
             StartPosition   = FormStartPosition.CenterParent;
-            ClientSize      = new Size(480, 370);
+            ClientSize      = new Size(500, 400);
             ShowInTaskbar   = false;
 
             _lblTitle = new Label
             {
                 Font      = new Font(SystemFonts.DefaultFont.FontFamily, 12f, FontStyle.Bold),
-                Location  = new Point(16, 16),
-                Size      = new Size(448, 28),
+                Location  = new Point(16, 14),
+                Size      = new Size(468, 28),
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
             _lblCurrentVersion = new Label
             {
                 AutoSize = true,
-                Location = new Point(16, 52)
+                Location = new Point(16, 50)
             };
 
             _lblNewVersion = new Label
             {
                 AutoSize  = true,
-                Location  = new Point(16, 72),
+                Location  = new Point(16, 70),
                 ForeColor = Color.FromArgb(0, 128, 0)
+            };
+
+            _lblDownloadSize = new Label          // ENH-5
+            {
+                AutoSize  = true,
+                Location  = new Point(16, 90),
+                ForeColor = SystemColors.GrayText
             };
 
             _lblReleaseNotesHeader = new Label
             {
                 AutoSize = true,
                 Font     = new Font(SystemFonts.DefaultFont, FontStyle.Bold),
-                Location = new Point(16, 100),
+                Location = new Point(16, 114),
                 Text     = "Release Notes:"
             };
 
             _txtReleaseNotes = new RichTextBox
             {
-                Location   = new Point(16, 120),
-                Size       = new Size(448, 140),
-                ReadOnly   = true,
+                Location    = new Point(16, 134),
+                Size        = new Size(468, 148),
+                ReadOnly    = true,
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor  = SystemColors.Window,
-                ScrollBars = RichTextBoxScrollBars.Vertical
+                BackColor   = SystemColors.Window,
+                ScrollBars  = RichTextBoxScrollBars.Vertical
             };
 
             _progressBar = new ProgressBar
             {
-                Location = new Point(16, 272),
-                Size     = new Size(448, 18),
+                Location = new Point(16, 292),
+                Size     = new Size(468, 18),
                 Visible  = false
             };
 
-            _lblStatus = new Label
+            _lblStatus = new Label              // BUG-1 / ENH-1
             {
-                AutoSize  = true,
-                Location  = new Point(16, 294),
+                Location  = new Point(16, 314),
+                Size      = new Size(468, 18),
                 ForeColor = SystemColors.GrayText,
                 Visible   = false
             };
 
+            // ?? Buttons ???????????????????????????????????????????????????????
+
             _btnUpdate = new Button
             {
                 Text     = "&Update Now",
-                Location = new Point(16, 326),
+                Location = new Point(16, 358),
                 Size     = new Size(120, 30),
                 TabIndex = 0
             };
@@ -121,30 +154,40 @@ namespace Cad3PLogBrowser
             _btnLater = new Button
             {
                 Text     = "Later",
-                Location = new Point(152, 326),
+                Location = new Point(150, 358),
                 Size     = new Size(80, 30),
                 TabIndex = 1
             };
 
+            _btnSkip = new Button             // ENH-3
+            {
+                Text      = "Skip This Version",
+                Location  = new Point(244, 358),
+                Size      = new Size(130, 30),
+                TabIndex  = 2,
+                ForeColor = SystemColors.GrayText
+            };
+
             _btnCancel = new Button
             {
-                Text    = "Cancel Download",
-                Location = new Point(16, 326),
-                Size    = new Size(140, 30),
-                Visible = false,
-                TabIndex = 2
+                Text     = "Cancel Download",
+                Location = new Point(16, 358),
+                Size     = new Size(140, 30),
+                Visible  = false,
+                TabIndex = 3
             };
 
             _btnUpdate.Click += OnUpdateClicked;
             _btnLater.Click  += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+            _btnSkip.Click   += OnSkipClicked;
             _btnCancel.Click += OnCancelClicked;
 
-            Controls.AddRange(new Control[]
+            Controls.AddRange(new System.Windows.Forms.Control[]
             {
-                _lblTitle, _lblCurrentVersion, _lblNewVersion,
+                _lblTitle, _lblCurrentVersion, _lblNewVersion, _lblDownloadSize,
                 _lblReleaseNotesHeader, _txtReleaseNotes,
                 _progressBar, _lblStatus,
-                _btnUpdate, _btnLater, _btnCancel
+                _btnUpdate, _btnLater, _btnSkip, _btnCancel
             });
 
             AcceptButton = _btnUpdate;
@@ -165,6 +208,7 @@ namespace Cad3PLogBrowser
             if (_manifest.Mandatory)
             {
                 _btnLater.Enabled = false;
+                _btnSkip.Enabled  = false;
                 _btnLater.Text    = "(Required)";
                 CancelButton      = null;
             }
@@ -176,7 +220,8 @@ namespace Cad3PLogBrowser
         {
             if (string.IsNullOrWhiteSpace(_manifest.DownloadUrl))
             {
-                MessageBox.Show("The update manifest does not contain a download URL.\n" +
+                MessageBox.Show(
+                    "The update manifest does not contain a download URL.\n" +
                     "Please visit the GitHub releases page to download manually.",
                     "Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -185,19 +230,30 @@ namespace Cad3PLogBrowser
             SetDownloadingState(true);
 
             _service.DownloadProgressChanged += OnDownloadProgress;
+            _service.DownloadStatsChanged    += OnDownloadStats;   // ENH-1
 
-            string tempPath = await _service.DownloadUpdateAsync(_manifest.DownloadUrl);
+            // Pass expected SHA-256 so UpdateService can verify (ENH-6)
+            string tempPath = await _service.DownloadUpdateAsync(
+                _manifest.DownloadUrl, _manifest.Sha256);
 
             _service.DownloadProgressChanged -= OnDownloadProgress;
+            _service.DownloadStatsChanged    -= OnDownloadStats;
+
+            // BUG-1: capture cancel state BEFORE SetDownloadingState resets _downloadActive
+            bool wasCancelled = _cancelledByUser;
+            SetDownloadingState(false);
 
             if (tempPath == null)
             {
-                SetDownloadingState(false);
-                if (_downloading) // not cancelled by the user
+                if (!wasCancelled)
                 {
-                    MessageBox.Show("Download failed. Please check your internet connection and try again.",
+                    // Genuine failure (network error or hash/PE verification failure)
+                    MessageBox.Show(
+                        "Download failed or the downloaded file failed verification.\n" +
+                        "Please check your internet connection and try again.",
                         "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+                // If cancelled by user: no message, just re-enable the buttons silently
                 return;
             }
 
@@ -216,37 +272,73 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            // Signal the parent form to close the application
             DialogResult = DialogResult.OK;
             Close();
         }
 
         private void OnCancelClicked(object sender, EventArgs e)
         {
-            _downloading = false;
+            _cancelledByUser = true;
             _service.CancelDownload();
-            SetDownloadingState(false);
+            // SetDownloadingState(false) is called from OnUpdateClicked after await returns
         }
 
+        // ENH-3 ? Skip this version
+        private void OnSkipClicked(object sender, EventArgs e)
+        {
+            UserSkippedVersion = true;
+            DialogResult       = DialogResult.Ignore;
+            Close();
+        }
+
+        // ENH-1 ? Progress percentage
         private void OnDownloadProgress(int percent)
+        {
+            if (InvokeRequired) { BeginInvoke((Action<int>)OnDownloadProgress, percent); return; }
+            _progressBar.Value = Math.Min(percent, 100);
+        }
+
+        // ENH-1 ? Speed + ETA in the status label
+        private void OnDownloadStats(long bytesReceived, long totalBytes, long speedBytesPerSec)
         {
             if (InvokeRequired)
             {
-                BeginInvoke((Action<int>)OnDownloadProgress, percent);
+                BeginInvoke((Action<long, long, long>)OnDownloadStats, bytesReceived, totalBytes, speedBytesPerSec);
                 return;
             }
 
-            _progressBar.Value = Math.Min(percent, 100);
-            _lblStatus.Text    = string.Format("Downloading... {0}%", percent);
+            string received = FormatBytes(bytesReceived);
+            string speed    = speedBytesPerSec > 0
+                ? string.Format("{0}/s", FormatBytes(speedBytesPerSec))
+                : "...";
+
+            if (totalBytes > 0)
+            {
+                string total = FormatBytes(totalBytes);
+                long   etaSec = speedBytesPerSec > 0
+                    ? (totalBytes - bytesReceived) / speedBytesPerSec
+                    : 0;
+                string eta = etaSec > 0
+                    ? string.Format(", {0} remaining", FormatSeconds(etaSec))
+                    : "";
+                _lblStatus.Text = string.Format(
+                    "Downloading {0} / {1}  —  {2}{3}", received, total, speed, eta);
+            }
+            else
+            {
+                _lblStatus.Text = string.Format("Downloading {0}  —  {1}", received, speed);
+            }
         }
 
         // ?? Helpers ???????????????????????????????????????????????????????????
 
         private void SetDownloadingState(bool downloading)
         {
-            _downloading         = downloading;
+            _downloadActive      = downloading;
+            _cancelledByUser     = false;
             _btnUpdate.Visible   = !downloading;
             _btnLater.Visible    = !downloading;
+            _btnSkip.Visible     = !downloading;
             _btnCancel.Visible   = downloading;
             _progressBar.Visible = downloading;
             _lblStatus.Visible   = downloading;
@@ -264,13 +356,37 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // ENH-5 ? show formatted size below the version labels
+        private void ShowDownloadSize(long bytes)
+        {
+            _lblDownloadSize.Text = bytes > 0
+                ? string.Format("Download size:  {0}", FormatBytes(bytes))
+                : "";
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes < 1024)        return string.Format("{0} B",        bytes);
+            if (bytes < 1024 * 1024) return string.Format("{0:F1} KB",    bytes / 1024.0);
+            return                          string.Format("{0:F1} MB",    bytes / (1024.0 * 1024));
+        }
+
+        private static string FormatSeconds(long seconds)
+        {
+            if (seconds < 60)   return string.Format("{0}s",       seconds);
+            if (seconds < 3600) return string.Format("{0}m {1}s",  seconds / 60, seconds % 60);
+            return                     string.Format("{0}h {1}m",  seconds / 3600, (seconds % 3600) / 60);
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            if (_downloading)
+            if (_downloadActive)
             {
+                _cancelledByUser = true;
                 _service.CancelDownload();
             }
             base.OnFormClosing(e);
         }
     }
 }
+

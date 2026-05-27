@@ -4753,13 +4753,23 @@ namespace Cad3PLogBrowser
             CheckForUpdatesAsync(silent: false);
         }
 
+        /// <summary>Public entry point so SettingsForm's "Check Now" button can trigger a check.</summary>
+        public void TriggerUpdateCheck() => CheckForUpdatesAsync(silent: false);
+
         /// <summary>
         /// Checks for an update.  When <paramref name="silent"/> is true the method
         /// shows no UI unless a newer version is actually available.
         /// </summary>
         private async void CheckForUpdatesAsync(bool silent)
         {
-            var svc = new Services.Update.UpdateService(_appSettings.UpdateManifestUrl);
+            // Second line of defence: if the persisted URL is blank (e.g. hand-edited
+            // settings.json) resolve to the default rather than letting the
+            // UpdateService constructor throw ArgumentNullException.
+            string manifestUrl = string.IsNullOrWhiteSpace(_appSettings.UpdateManifestUrl)
+                ? Services.AppSettings.DefaultUpdateManifestUrl
+                : _appSettings.UpdateManifestUrl;
+
+            var svc = new Services.Update.UpdateService(manifestUrl);
 
             Services.Update.UpdateManifest manifest = null;
             try
@@ -4790,9 +4800,26 @@ namespace Cad3PLogBrowser
                 return;
             }
 
+            // ENH-3: suppress dialog silently if the user has already skipped this exact version
+            if (silent &&
+                !string.IsNullOrEmpty(_appSettings.SkippedVersion) &&
+                string.Equals(_appSettings.SkippedVersion, manifest.Version, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             using (var dlg = new UpdateAvailableForm(manifest, svc))
             {
                 var result = dlg.ShowDialog(this);
+
+                // ENH-3: user clicked "Skip This Version" — record it and suppress future alerts
+                if (dlg.UserSkippedVersion)
+                {
+                    _appSettings.SkippedVersion = manifest.Version;
+                    _appSettings.Save();
+                    return;
+                }
+
                 if (result == DialogResult.OK)
                 {
                     // Update downloaded and launcher script started — exit to let updater run
@@ -4860,9 +4887,13 @@ namespace Cad3PLogBrowser
         /// <summary>
         /// Extracts the embedded UserGuide.html from the assembly to disk when the
         /// on-disk copy is missing or older than the running EXE (i.e. after an update).
+        /// BUG-5: result is cached after the first call so repeated F1 presses are free.
         /// </summary>
+        private static bool _helpFileChecked = false;
         private static void EnsureHelpFileUpToDate(string helpFilePath)
         {
+            if (_helpFileChecked) return;   // BUG-5: only do the file-system work once
+            _helpFileChecked = true;
             try
             {
                 string exePath      = System.Reflection.Assembly.GetExecutingAssembly().Location;
