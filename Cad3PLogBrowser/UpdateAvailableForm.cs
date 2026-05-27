@@ -20,13 +20,13 @@
         private Label       _lblNewVersion;
         private Label       _lblDownloadSize;
         private Label       _lblReleaseNotesHeader;
-        // _txtReleaseNotes is intentionally NOT created in BuildUI.
-        // RichTextBox..ctor() always calls set_Multiline(true) → AdjustHeight
-        // → Font.GetHeight() → GetDC(null).  GetDC(null) can return NULL in
-        // async-continuation contexts, causing ArgumentException from GDI+.
-        // It is created safely in OnLoad() once the form HWND exists.
-        private RichTextBox _txtReleaseNotes;
-        private Panel       _releaseNotesContainer;  // placeholder until OnLoad
+        // RichTextBox is NOT used here.  Its constructor always calls
+        // set_Multiline(true) → AdjustHeight → Font.GetHeight() → GetDC(NULL).
+        // GetDC(NULL) returns zero in this async-resume UI context, making the
+        // crash unresolvable regardless of how we defer construction.
+        // We use Panel (AutoScroll) + Label instead: neither touches GetDC(NULL).
+        private Panel       _releaseNotesPanel;
+        private Label       _releaseNotesLabel;
         private ProgressBar _progressBar;
         private Label       _lblStatus;
         private Button      _btnUpdate;
@@ -135,15 +135,25 @@
                 Text     = "Release Notes:"
             };
 
-            // Plain Panel placeholder — no font measurement required.
-            // The actual RichTextBox is created in OnLoad() once the HWND exists.
-            _releaseNotesContainer = new Panel
+            // Scrollable panel + auto-sizing label.  No GetDC(NULL) anywhere.
+            _releaseNotesPanel = new Panel
             {
                 Location    = new Point(16, 134),
                 Size        = new Size(468, 148),
                 BackColor   = SystemColors.Window,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                AutoScroll  = true
             };
+
+            _releaseNotesLabel = new Label
+            {
+                AutoSize  = true,
+                MaximumSize = new Size(444, 0),   // wrap at panel width minus scrollbar
+                Location  = new Point(4, 4),
+                BackColor = SystemColors.Window
+            };
+
+            _releaseNotesPanel.Controls.Add(_releaseNotesLabel);
 
             _progressBar = new ProgressBar
             {
@@ -204,7 +214,7 @@
             Controls.AddRange(new System.Windows.Forms.Control[]
             {
                 _lblTitle, _lblCurrentVersion, _lblNewVersion, _lblDownloadSize,
-                _lblReleaseNotesHeader, _releaseNotesContainer,
+                _lblReleaseNotesHeader, _releaseNotesPanel,
                 _progressBar, _lblStatus,
                 _btnUpdate, _btnLater, _btnSkip, _btnCancel
             });
@@ -222,7 +232,9 @@
             _lblTitle.Text          = "A new version is available!";
             _lblCurrentVersion.Text = string.Format("Installed version:  {0}", current.ToString(3));
             _lblNewVersion.Text     = string.Format("Available version:  {0}", _manifest.Version);
-            // Release notes text is applied in OnLoad() once _txtReleaseNotes exists.
+            _releaseNotesLabel.Text = string.IsNullOrWhiteSpace(_manifest.ReleaseNotes)
+                                          ? "(No release notes provided.)"
+                                          : _manifest.ReleaseNotes;
 
             if (_manifest.Mandatory)
             {
@@ -234,31 +246,6 @@
         }
 
         // ── Button handlers ───────────────────────────────────────────────────
-
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
-
-            // Form HWND is guaranteed to exist here, so RichTextBox..ctor()
-            // can safely call AdjustHeight → Font.GetHeight() → GetDC(hwnd).
-            _txtReleaseNotes = new RichTextBox
-            {
-                Dock        = DockStyle.Fill,
-                ReadOnly    = true,
-                BorderStyle = BorderStyle.None,   // outer panel supplies the border
-                BackColor   = SystemColors.Window,
-                ScrollBars  = RichTextBoxScrollBars.Vertical,
-                Text        = string.IsNullOrWhiteSpace(_manifest.ReleaseNotes)
-                                  ? "(No release notes provided.)"
-                                  : _manifest.ReleaseNotes
-            };
-            _releaseNotesContainer.Controls.Add(_txtReleaseNotes);
-
-            // Theme the new control to match the rest of the dialog.
-            // ThemeManager.ApplyTheme only accepts Form, so mirror the form colours directly.
-            _txtReleaseNotes.BackColor = this.BackColor;
-            _txtReleaseNotes.ForeColor = this.ForeColor;
-        }
 
         private async void OnUpdateClicked(object sender, EventArgs e)
         {
