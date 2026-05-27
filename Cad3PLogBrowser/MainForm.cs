@@ -4753,6 +4753,25 @@ namespace Cad3PLogBrowser
             CheckForUpdatesAsync(silent: false);
         }
 
+        private void viewUpdateLogMenuItem_Click(object sender, EventArgs e)
+        {
+            string logPath = Services.Update.UpdateLogger.LogFilePath;
+            if (!System.IO.File.Exists(logPath))
+            {
+                MessageBox.Show(
+                    "No update log found.\n\nThe log is created the first time an update check runs.\nLog location:\n" + logPath,
+                    "Update Log", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            // Open in default text editor (Notepad etc.)
+            try { System.Diagnostics.Process.Start(logPath); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format("Could not open log file:\n{0}\n\n{1}", logPath, ex.Message),
+                    "Update Log", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         /// <summary>Public entry point so SettingsForm's "Check Now" button can trigger a check.</summary>
         public void TriggerUpdateCheck() => CheckForUpdatesAsync(silent: false);
 
@@ -4762,12 +4781,17 @@ namespace Cad3PLogBrowser
         /// </summary>
         private async void CheckForUpdatesAsync(bool silent)
         {
-            // Second line of defence: if the persisted URL is blank (e.g. hand-edited
-            // settings.json) resolve to the default rather than letting the
-            // UpdateService constructor throw ArgumentNullException.
             string manifestUrl = string.IsNullOrWhiteSpace(_appSettings.UpdateManifestUrl)
                 ? Services.AppSettings.DefaultUpdateManifestUrl
                 : _appSettings.UpdateManifestUrl;
+
+            Services.Update.UpdateLogger.Log(
+                "CheckForUpdatesAsync: silent={0}  url={1}  currentVersion={2}  lastCheck={3}  interval={4}d  skipped='{5}'",
+                silent, manifestUrl,
+                System.Reflection.Assembly.GetExecutingAssembly().GetName().Version,
+                _appSettings.LastUpdateCheck == DateTime.MinValue ? "never" : _appSettings.LastUpdateCheck.ToString("u"),
+                _appSettings.UpdateCheckIntervalDays,
+                _appSettings.SkippedVersion ?? "");
 
             var svc = new Services.Update.UpdateService(manifestUrl);
 
@@ -4778,6 +4802,7 @@ namespace Cad3PLogBrowser
             }
             catch (Exception ex)
             {
+                Services.Update.UpdateLogger.Log("CheckForUpdatesAsync: FetchManifestAsync threw — {0}", ex.Message);
                 if (!silent)
                     MessageBox.Show(string.Format(Resources.UPDATE_CHECK_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -4790,6 +4815,7 @@ namespace Cad3PLogBrowser
 
             if (!svc.IsUpdateAvailable(manifest))
             {
+                Services.Update.UpdateLogger.Log("CheckForUpdatesAsync: no update available — done");
                 if (!silent)
                 {
                     string current = System.Reflection.Assembly.GetExecutingAssembly()
@@ -4805,16 +4831,22 @@ namespace Cad3PLogBrowser
                 !string.IsNullOrEmpty(_appSettings.SkippedVersion) &&
                 string.Equals(_appSettings.SkippedVersion, manifest.Version, StringComparison.Ordinal))
             {
+                Services.Update.UpdateLogger.Log(
+                    "CheckForUpdatesAsync: version {0} was skipped by user — suppressing dialog", manifest.Version);
                 return;
             }
+
+            Services.Update.UpdateLogger.Log(
+                "CheckForUpdatesAsync: showing update dialog for version {0}", manifest.Version);
 
             using (var dlg = new UpdateAvailableForm(manifest, svc))
             {
                 var result = dlg.ShowDialog(this);
 
-                // ENH-3: user clicked "Skip This Version" — record it and suppress future alerts
                 if (dlg.UserSkippedVersion)
                 {
+                    Services.Update.UpdateLogger.Log(
+                        "CheckForUpdatesAsync: user skipped version {0}", manifest.Version);
                     _appSettings.SkippedVersion = manifest.Version;
                     _appSettings.Save();
                     return;
@@ -4822,7 +4854,8 @@ namespace Cad3PLogBrowser
 
                 if (result == DialogResult.OK)
                 {
-                    // Update downloaded and launcher script started — exit to let updater run
+                    Services.Update.UpdateLogger.Log(
+                        "CheckForUpdatesAsync: update accepted — exiting for installer");
                     MessageBox.Show(Resources.UPDATE_APPLY_EXIT,
                         "Update Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     Application.Exit();
@@ -5174,9 +5207,21 @@ namespace Cad3PLogBrowser
                 var daysSinceCheck = (DateTime.UtcNow - _appSettings.LastUpdateCheck).TotalDays;
                 if (daysSinceCheck >= _appSettings.UpdateCheckIntervalDays)
                 {
-                    // Run silently after the form is fully shown
+                    Services.Update.UpdateLogger.Log(
+                        "Startup: auto-check triggered — daysSinceCheck={0:F1}  interval={1}",
+                        daysSinceCheck, _appSettings.UpdateCheckIntervalDays);
                     this.BeginInvoke((Action)(() => CheckForUpdatesAsync(silent: true)));
                 }
+                else
+                {
+                    Services.Update.UpdateLogger.Log(
+                        "Startup: auto-check skipped — daysSinceCheck={0:F1} < interval={1}",
+                        daysSinceCheck, _appSettings.UpdateCheckIntervalDays);
+                }
+            }
+            else
+            {
+                Services.Update.UpdateLogger.Log("Startup: auto-check disabled by user setting");
             }
         }
 

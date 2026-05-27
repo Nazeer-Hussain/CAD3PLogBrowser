@@ -73,15 +73,20 @@
         /// </summary>
         public UpdateManifest FetchManifest()
         {
+            UpdateLogger.Log("FetchManifest: starting — URL={0}", _manifestUrl);
             Exception lastEx = null;
             for (int attempt = 0; attempt <= FetchRetryCount; attempt++)
             {
                 if (attempt > 0)
+                {
+                    UpdateLogger.Log("FetchManifest: retry {0}/{1} after {2}s (last error: {3})",
+                        attempt, FetchRetryCount, FetchRetryDelaySeconds,
+                        lastEx != null ? lastEx.Message : "?");
                     Thread.Sleep(FetchRetryDelaySeconds * 1000);
+                }
 
                 try
                 {
-                    // BUG-2: enforce a timeout — WebClient default is ~100 s
                     var request = (HttpWebRequest)WebRequest.Create(_manifestUrl);
                     request.Timeout   = FetchTimeoutSeconds * 1000;
                     request.UserAgent = GetUserAgent();
@@ -92,16 +97,21 @@
                     using (var reader   = new StreamReader(stream, Encoding.UTF8))
                     {
                         string json = reader.ReadToEnd();
-                        return DeserializeManifest(json);
+                        UpdateLogger.Log("FetchManifest: HTTP {0} — received {1} bytes",
+                            (int)response.StatusCode, json.Length);
+                        var manifest = DeserializeManifest(json);
+                        UpdateLogger.Log("FetchManifest: parsed OK — remote version={0}", manifest.Version);
+                        return manifest;
                     }
                 }
                 catch (Exception ex)
                 {
                     lastEx = ex;
+                    UpdateLogger.Log("FetchManifest: attempt {0} failed — {1}", attempt, ex.Message);
                 }
             }
 
-            // All retries exhausted
+            UpdateLogger.Log("FetchManifest: all retries exhausted — returning null");
             return null;
         }
 
@@ -118,14 +128,24 @@
         public bool IsUpdateAvailable(UpdateManifest manifest)
         {
             if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
+            {
+                UpdateLogger.Log("IsUpdateAvailable: manifest is null or has no version — returning false");
                 return false;
+            }
 
             Version remote;
             if (!Version.TryParse(manifest.Version, out remote))
+            {
+                UpdateLogger.Log("IsUpdateAvailable: could not parse remote version '{0}' — returning false",
+                    manifest.Version);
                 return false;
+            }
 
-            Version current = Assembly.GetExecutingAssembly().GetName().Version;
-            return remote > current;
+            Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            bool available  = remote > current;
+            UpdateLogger.Log("IsUpdateAvailable: remote={0}  current={1}  available={2}",
+                remote, current, available);
+            return available;
         }
 
         /// <summary>

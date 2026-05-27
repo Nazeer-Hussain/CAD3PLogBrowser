@@ -92,6 +92,7 @@
             this.helpSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.checkForUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewUpdateLogMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reportErrorsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -680,6 +681,7 @@
             this.helpSeparator1,
             this.aboutMenuItem,
             this.checkForUpdatesMenuItem,
+            this.viewUpdateLogMenuItem,
             this.reportErrorsMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
@@ -720,6 +722,13 @@
             this.checkForUpdatesMenuItem.Size = new System.Drawing.Size(200, 22);
             this.checkForUpdatesMenuItem.Text = "&Check for Updates";
             this.checkForUpdatesMenuItem.Click += new System.EventHandler(this.checkForUpdatesMenuItem_Click);
+            // 
+            // viewUpdateLogMenuItem
+            // 
+            this.viewUpdateLogMenuItem.Name = "viewUpdateLogMenuItem";
+            this.viewUpdateLogMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.viewUpdateLogMenuItem.Text = "View Update &Log...";
+            this.viewUpdateLogMenuItem.Click += new System.EventHandler(this.viewUpdateLogMenuItem_Click);
             // 
             // reportErrorsMenuItem
             // 
@@ -1734,6 +1743,7 @@
         private System.Windows.Forms.ToolStripMenuItem aboutMenuItem;
         private System.Windows.Forms.ToolStripMenuItem checkForUpdatesMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reportErrorsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewUpdateLogMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;

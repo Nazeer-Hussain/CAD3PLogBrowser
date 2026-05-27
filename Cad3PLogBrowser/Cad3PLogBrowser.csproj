@@ -113,6 +113,7 @@
     <Compile Include="Services\Search\FilterService.cs" />
     <Compile Include="Services\ThemeManager.cs" />
     <Compile Include="Services\UI\StatusBarManager.cs" />
+    <Compile Include="Services\Update\UpdateLogger.cs" />
     <Compile Include="Services\Update\UpdateManifest.cs" />
     <Compile Include="Services\Update\UpdateService.cs" />
     <Compile Include="SettingsForm.cs">
