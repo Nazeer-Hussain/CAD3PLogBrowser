@@ -86,7 +86,7 @@ namespace Cad3PLogBrowser.Services
         /// <summary>The canonical default manifest URL — used as a fallback whenever the
         /// user-configured value is blank.</summary>
         public const string DefaultUpdateManifestUrl =
-            "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/main/version.json";
+            "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/master/version.json";
 
         public bool     CheckForUpdatesOnStartup  { get; set; } = true;
         /// <summary>URL of the remote version manifest JSON.

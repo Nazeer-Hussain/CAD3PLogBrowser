@@ -14,27 +14,37 @@
     /// </summary>
     internal class UpdateAvailableForm : Form
     {
-        // ?? Controls ??????????????????????????????????????????????????????????
+        // ── Controls ──────────────────────────────────────────────────────────
         private Label       _lblTitle;
         private Label       _lblCurrentVersion;
         private Label       _lblNewVersion;
-        private Label       _lblDownloadSize;       // ENH-5
+        private Label       _lblDownloadSize;
         private Label       _lblReleaseNotesHeader;
-        private RichTextBox _txtReleaseNotes;
+        // RichTextBox is NOT used here.  Its constructor always calls
+        // set_Multiline(true) → AdjustHeight → Font.GetHeight() → GetDC(NULL).
+        // GetDC(NULL) returns zero in this async-resume UI context, making the
+        // crash unresolvable regardless of how we defer construction.
+        // We use Panel (AutoScroll) + Label instead: neither touches GetDC(NULL).
+        private Panel       _releaseNotesPanel;
+        private Label       _releaseNotesLabel;
         private ProgressBar _progressBar;
-        private Label       _lblStatus;             // shows %, speed, ETA (ENH-1)
+        private Label       _lblStatus;
         private Button      _btnUpdate;
         private Button      _btnLater;
-        private Button      _btnSkip;               // ENH-3
+        private Button      _btnSkip;
         private Button      _btnCancel;
 
-        // ?? State ?????????????????????????????????????????????????????????????
+        // ── Owned fonts (disposed with the form) ──────────────────────────────
+        private Font _fontTitle;
+        private Font _fontBold;
+
+        // ── State ─────────────────────────────────────────────────────────────
         private readonly UpdateManifest _manifest;
         private readonly UpdateService  _service;
-        private bool _downloadActive = false;       // BUG-1: separate from SetDownloadingState
+        private bool _downloadActive  = false;
         private bool _cancelledByUser = false;
 
-        // ?? Result ????????????????????????????????????????????????????????????
+        // ── Result ────────────────────────────────────────────────────────────
         /// <summary>True when the user chose "Skip this version" (ENH-3).</summary>
         public bool UserSkippedVersion { get; private set; }
 
@@ -72,6 +82,14 @@
 
         private void BuildUI()
         {
+            // Create owned fonts using explicit family names so we never depend on
+            // SystemFonts.DefaultFont whose underlying GDI object may already be
+            // freed when the RichTextBox constructor queries it internally.
+            _fontTitle = new Font("Segoe UI", 12f, FontStyle.Bold, GraphicsUnit.Point);
+            _fontBold  = new Font("Segoe UI",  9f, FontStyle.Bold, GraphicsUnit.Point);
+
+            SuspendLayout();
+
             Text            = "Update Available";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox     = false;
@@ -79,10 +97,11 @@
             StartPosition   = FormStartPosition.CenterParent;
             ClientSize      = new Size(500, 400);
             ShowInTaskbar   = false;
+            Font            = new Font("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
 
             _lblTitle = new Label
             {
-                Font      = new Font(SystemFonts.DefaultFont.FontFamily, 12f, FontStyle.Bold),
+                Font      = _fontTitle,
                 Location  = new Point(16, 14),
                 Size      = new Size(468, 28),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -101,7 +120,7 @@
                 ForeColor = Color.FromArgb(0, 128, 0)
             };
 
-            _lblDownloadSize = new Label          // ENH-5
+            _lblDownloadSize = new Label
             {
                 AutoSize  = true,
                 Location  = new Point(16, 90),
@@ -111,20 +130,30 @@
             _lblReleaseNotesHeader = new Label
             {
                 AutoSize = true,
-                Font     = new Font(SystemFonts.DefaultFont, FontStyle.Bold),
+                Font     = _fontBold,
                 Location = new Point(16, 114),
                 Text     = "Release Notes:"
             };
 
-            _txtReleaseNotes = new RichTextBox
+            // Scrollable panel + auto-sizing label.  No GetDC(NULL) anywhere.
+            _releaseNotesPanel = new Panel
             {
                 Location    = new Point(16, 134),
                 Size        = new Size(468, 148),
-                ReadOnly    = true,
-                BorderStyle = BorderStyle.FixedSingle,
                 BackColor   = SystemColors.Window,
-                ScrollBars  = RichTextBoxScrollBars.Vertical
+                BorderStyle = BorderStyle.FixedSingle,
+                AutoScroll  = true
             };
+
+            _releaseNotesLabel = new Label
+            {
+                AutoSize  = true,
+                MaximumSize = new Size(444, 0),   // wrap at panel width minus scrollbar
+                Location  = new Point(4, 4),
+                BackColor = SystemColors.Window
+            };
+
+            _releaseNotesPanel.Controls.Add(_releaseNotesLabel);
 
             _progressBar = new ProgressBar
             {
@@ -133,7 +162,7 @@
                 Visible  = false
             };
 
-            _lblStatus = new Label              // BUG-1 / ENH-1
+            _lblStatus = new Label
             {
                 Location  = new Point(16, 314),
                 Size      = new Size(468, 18),
@@ -141,7 +170,7 @@
                 Visible   = false
             };
 
-            // ?? Buttons ???????????????????????????????????????????????????????
+            // ── Buttons ───────────────────────────────────────────────────────
 
             _btnUpdate = new Button
             {
@@ -159,7 +188,7 @@
                 TabIndex = 1
             };
 
-            _btnSkip = new Button             // ENH-3
+            _btnSkip = new Button
             {
                 Text      = "Skip This Version",
                 Location  = new Point(244, 358),
@@ -185,13 +214,15 @@
             Controls.AddRange(new System.Windows.Forms.Control[]
             {
                 _lblTitle, _lblCurrentVersion, _lblNewVersion, _lblDownloadSize,
-                _lblReleaseNotesHeader, _txtReleaseNotes,
+                _lblReleaseNotesHeader, _releaseNotesPanel,
                 _progressBar, _lblStatus,
                 _btnUpdate, _btnLater, _btnSkip, _btnCancel
             });
 
             AcceptButton = _btnUpdate;
             CancelButton = _btnLater;
+
+            ResumeLayout(false);
         }
 
         private void PopulateContent()
@@ -201,9 +232,9 @@
             _lblTitle.Text          = "A new version is available!";
             _lblCurrentVersion.Text = string.Format("Installed version:  {0}", current.ToString(3));
             _lblNewVersion.Text     = string.Format("Available version:  {0}", _manifest.Version);
-            _txtReleaseNotes.Text   = string.IsNullOrWhiteSpace(_manifest.ReleaseNotes)
-                                        ? "(No release notes provided.)"
-                                        : _manifest.ReleaseNotes;
+            _releaseNotesLabel.Text = string.IsNullOrWhiteSpace(_manifest.ReleaseNotes)
+                                          ? "(No release notes provided.)"
+                                          : _manifest.ReleaseNotes;
 
             if (_manifest.Mandatory)
             {
@@ -214,7 +245,7 @@
             }
         }
 
-        // ?? Button handlers ???????????????????????????????????????????????????
+        // ── Button handlers ───────────────────────────────────────────────────
 
         private async void OnUpdateClicked(object sender, EventArgs e)
         {
@@ -386,6 +417,16 @@
                 _service.CancelDownload();
             }
             base.OnFormClosing(e);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _fontTitle?.Dispose();
+                _fontBold?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
