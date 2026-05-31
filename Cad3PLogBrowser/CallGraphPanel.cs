@@ -32,12 +32,16 @@ namespace Cad3PLogBrowser
         private List<(string FileName, CallGraph Graph)> _fileGraphs;
         private ComboBox _fileSelector;
 
+        // Toolbar / status-bar
+        private Managers.VisualizationToolbar    _toolbar;
+        private Managers.VisualizationStatusBar  _statusBar;
+
         // ?? Layout constants ???????????????????????????????????????????????????
         private const float NW      = 140f;
         private const float NH      = 34f;
         private const float NR      = NH / 2f;
         private const float MinZoom = 0.15f;
-        private const float MaxZoom = 5.0f;
+        private const float MaxZoom = 10.0f;
 
         // ?? Theme helpers ?????????????????????????????????????????????????????
         private bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
@@ -68,6 +72,19 @@ namespace Cad3PLogBrowser
             DoubleBuffered = true;
             ResizeRedraw   = true;
             BorderStyle    = BorderStyle.None;
+            AutoScroll     = true;
+
+            // Toolbar
+            _toolbar = new Managers.VisualizationToolbar();
+            _toolbar.Dock = DockStyle.Top;
+            _toolbar.ResetClicked        += (s, e) => { ResetView(); };
+            _toolbar.ZoomInClicked       += (s, e) => { ApplyZoom(_zoom * 1.2f); };
+            _toolbar.ZoomOutClicked      += (s, e) => { ApplyZoom(_zoom * 0.8f); };
+            _toolbar.FitToWindowClicked  += (s, e) => { FitToWindow(); Invalidate(); };
+
+            // Status bar
+            _statusBar = new Managers.VisualizationStatusBar();
+            _statusBar.Dock = DockStyle.Bottom;
 
             _welcomePanel = new Managers.VisualizationWelcomePanel(
                 "Call Graph",
@@ -85,7 +102,13 @@ namespace Cad3PLogBrowser
                 },
                 Color.FromArgb(0, 140, 220));
             _welcomePanel.Visible = false;
+
             Controls.Add(_welcomePanel);
+            Controls.Add(_toolbar);
+            Controls.Add(_statusBar);
+
+            _toolbar.BringToFront();
+            _statusBar.BringToFront();
         }
 
         // ?? Public API ?????????????????????????????????????????????????????????
@@ -97,6 +120,7 @@ namespace Cad3PLogBrowser
             bool hasData = graph != null && graph.Nodes.Count > 0;
             _welcomePanel.Visible = !hasData;
             if (hasData) { LayoutNodes(); FitToWindow(); }
+            else { AutoScrollMinSize = Size.Empty; }
             Invalidate();
         }
 
@@ -200,10 +224,47 @@ namespace Cad3PLogBrowser
             }
             float gw = maxX - minX, gh = maxY - minY;
             if (gw < 1 || gh < 1) { _zoom = 1f; _pan = PointF.Empty; return; }
+            int toolbarH  = _toolbar?.Visible  == true ? _toolbar.Height  : 0;
+            int statusBarH = _statusBar?.Visible == true ? _statusBar.Height : 0;
             float zx = (Width  - 60) / gw;
-            float zy = (Height - 80) / gh;
+            float zy = (Height - toolbarH - statusBarH - 20) / gh;
             _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, Math.Min(zx, zy) * 0.88f));
             _pan  = PointF.Empty;
+            _toolbar?.UpdateZoomLevel(_zoom);
+            _statusBar?.UpdateZoom(_zoom);
+            UpdateScrollableSize();
+        }
+
+        private void ApplyZoom(float newZoom)
+        {
+            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, newZoom));
+            _toolbar?.UpdateZoomLevel(_zoom);
+            _statusBar?.UpdateZoom(_zoom);
+            UpdateScrollableSize();
+            Invalidate();
+        }
+
+        private void UpdateScrollableSize()
+        {
+            if (_graph == null || _graph.Nodes.Count == 0) { AutoScrollMinSize = Size.Empty; return; }
+            float cx = Width / 2f + _pan.X;
+            float cy = Height / 2f + _pan.Y;
+            float minSX = float.MaxValue, minSY = float.MaxValue;
+            float maxSX = float.MinValue, maxSY = float.MinValue;
+            foreach (var nd in _graph.Nodes.Values)
+            {
+                float sx = cx + nd.X * _zoom;
+                float sy = cy + nd.Y * _zoom;
+                minSX = Math.Min(minSX, sx - NW * _zoom / 2);
+                minSY = Math.Min(minSY, sy - NH * _zoom / 2);
+                maxSX = Math.Max(maxSX, sx + NW * _zoom / 2);
+                maxSY = Math.Max(maxSY, sy + NH * _zoom / 2);
+            }
+            float contentW = (maxSX - minSX) + 80;
+            float contentH = (maxSY - minSY) + 80;
+            AutoScrollMinSize = new Size(
+                (int)Math.Max(0, contentW),
+                (int)Math.Max(0, contentH));
         }
 
         // ?? Painting ??????????????????????????????????????????????????????????
@@ -221,13 +282,15 @@ namespace Cad3PLogBrowser
             DrawGrid(g);
 
             var state = g.Save();
-            g.TranslateTransform(Width / 2f + _pan.X, Height / 2f + _pan.Y);
+            // Include AutoScrollPosition so scrollbars shift the view
+            float scrollX = AutoScrollPosition.X;
+            float scrollY = AutoScrollPosition.Y;
+            g.TranslateTransform(Width / 2f + _pan.X + scrollX, Height / 2f + _pan.Y + scrollY);
             g.ScaleTransform(_zoom, _zoom);
             DrawEdges(g);
             DrawNodes(g);
             g.Restore(state);
 
-            DrawStatusBar(g);
             DrawLegend(g);
         }
 
@@ -472,8 +535,7 @@ namespace Cad3PLogBrowser
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, _zoom * (e.Delta > 0 ? 1.12f : 0.89f)));
-            Invalidate();
+            ApplyZoom(_zoom * (e.Delta > 0 ? 1.12f : 0.89f));
         }
         protected override void OnMouseDown(MouseEventArgs e)
         {
@@ -489,8 +551,7 @@ namespace Cad3PLogBrowser
             string hit = HitTest(e.Location);
             if (hit == null || !_graph.Nodes.TryGetValue(hit, out var nd)) return;
             _pan.X = -nd.X * _zoom; _pan.Y = -nd.Y * _zoom;
-            _zoom = Math.Min(MaxZoom, _zoom * 1.5f);
-            Invalidate();
+            ApplyZoom(_zoom * 1.5f);
         }
         protected override void OnMouseUp(MouseEventArgs e)   { base.OnMouseUp(e); _dragging = false; Cursor = Cursors.Default; }
         protected override void OnMouseLeave(EventArgs e)     { base.OnMouseLeave(e); _hoveredNode = null; Invalidate(); }
@@ -500,22 +561,39 @@ namespace Cad3PLogBrowser
             if (_dragging)
             {
                 _pan.X += e.X - _lastMouse.X; _pan.Y += e.Y - _lastMouse.Y;
-                _lastMouse = e.Location; Invalidate(); return;
+                _lastMouse = e.Location;
+                UpdateScrollableSize();
+                Invalidate(); return;
             }
             string hit = HitTest(e.Location);
-            if (hit != _hoveredNode) { _hoveredNode = hit; Cursor = hit != null ? Cursors.Hand : Cursors.Default; Invalidate(); }
+            if (hit != _hoveredNode)
+            {
+                _hoveredNode = hit;
+                Cursor = hit != null ? Cursors.Hand : Cursors.Default;
+                if (_statusBar != null)
+                {
+                    string mode = _structuralView ? "Structural" : "Weighted";
+                    _statusBar.UpdateInfo(hit != null
+                        ? $"{hit}  \u2022  Mode: {mode}"
+                        : $"{(_graph != null ? _graph.Nodes.Count + " nodes  \u2022  " + _graph.Edges.Count + " edges  \u2022  Mode: " + mode : "")}");
+                }
+                Invalidate();
+            }
         }
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
             if (_welcomePanel != null) _welcomePanel.Bounds = ClientRectangle;
+            UpdateScrollableSize();
         }
 
         private string HitTest(Point pt)
         {
             if (_graph == null) return null;
-            float gx = (pt.X - Width  / 2f - _pan.X) / _zoom;
-            float gy = (pt.Y - Height / 2f - _pan.Y) / _zoom;
+            float scrollX = AutoScrollPosition.X;
+            float scrollY = AutoScrollPosition.Y;
+            float gx = (pt.X - Width  / 2f - _pan.X - scrollX) / _zoom;
+            float gy = (pt.Y - Height / 2f - _pan.Y - scrollY) / _zoom;
             foreach (var nd in _graph.Nodes.Values)
                 if (Math.Abs(gx - nd.X) <= NW / 2f && Math.Abs(gy - nd.Y) <= NH / 2f)
                     return nd.Name;
