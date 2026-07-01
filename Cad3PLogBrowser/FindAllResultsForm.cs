@@ -23,7 +23,7 @@ namespace Cad3PLogBrowser
         {
             _mainForm = mainForm;
             InitializeComponent();
-            ThemeManager.ApplyTheme(this);
+            // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
 
             Text = $"Find All Results - '{searchTerm}'";
             PopulateResults(results, searchTerm);
@@ -98,9 +98,16 @@ namespace Cad3PLogBrowser
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterParent;
             Text = "Find All Results";
+            Load += FindAllResultsForm_Load;
 
             ResumeLayout(false);
             PerformLayout();
+        }
+
+        private void FindAllResultsForm_Load(object sender, EventArgs e)
+        {
+            // Apply theme now that form and controls are fully created
+            ThemeManager.ApplyTheme(this);
         }
 
         private void PopulateResults(List<FindResult> results, string searchTerm)

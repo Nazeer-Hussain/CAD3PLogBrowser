@@ -16,7 +16,7 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
             _mainForm = mainForm;
-            ThemeManager.ApplyTheme(this);
+            // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
 
             // Load search history from settings
             LoadSearchHistory();
@@ -57,7 +57,11 @@ namespace Cad3PLogBrowser
 
         private void CloseButton_Click(object sender, System.EventArgs e) => Hide();
 
-        private void FindForm_Load(object sender, System.EventArgs e) { }
+        private void FindForm_Load(object sender, System.EventArgs e)
+        {
+            // Apply theme now that form and controls are fully created
+            ThemeManager.ApplyTheme(this);
+        }
 
         /// <summary>
         /// Loads search history from MainForm settings.

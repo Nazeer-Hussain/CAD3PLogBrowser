@@ -57,7 +57,7 @@
 
             BuildUI();
             PopulateContent();
-            ThemeManager.ApplyTheme(this);
+            // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
 
             // ENH-5: query size asynchronously so the dialog opens instantly
             if (_manifest.DownloadSizeBytes > 0)
@@ -76,6 +76,14 @@
                             BeginInvoke((Action)(() => ShowDownloadSize(t.Result)));
                     });
             }
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // Apply theme now that form and controls are fully created
+            ThemeManager.ApplyTheme(this);
         }
 
         // ?? UI construction ???????????????????????????????????????????????????

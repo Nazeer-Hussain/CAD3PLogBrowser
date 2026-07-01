@@ -13,11 +13,22 @@ namespace Cad3PLogBrowser.Services
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, bool wParam, int lParam);
 
-        internal static void SuppressRedraw(Control c)  => SendMessage(c.Handle, WM_SETREDRAW, false, 0);
+        internal static void SuppressRedraw(Control c)
+        {
+            // Only suppress redraw if the control handle has been created.
+            // Accessing Handle property forces handle creation, so check IsHandleCreated first.
+            if (c != null && c.IsHandleCreated)
+                SendMessage(c.Handle, WM_SETREDRAW, false, 0);
+        }
+
         internal static void ResumeRedraw(Control c)
         {
-            SendMessage(c.Handle, WM_SETREDRAW, true, 0);
-            c.Refresh();
+            // Only resume redraw if the control handle has been created.
+            if (c != null && c.IsHandleCreated)
+            {
+                SendMessage(c.Handle, WM_SETREDRAW, true, 0);
+                c.Refresh();
+            }
         }
     }
 
@@ -93,6 +104,17 @@ namespace Cad3PLogBrowser.Services
         public static void ApplyTheme(Form form)
         {
             if (form == null) return;
+
+            // Safety check: Only apply theme if the form handle has been created.
+            // Applying theme before handle creation can cause crashes, especially when
+            // controls perform graphics operations (e.g., CreateGraphics, MeasureString)
+            // that require a valid window handle.
+            if (!form.IsHandleCreated)
+            {
+                // If the handle isn't created yet, defer theme application.
+                // The caller should ensure ApplyTheme is called after OnShown or OnHandleCreated.
+                return;
+            }
 
             // Suppress all repaints for the form window while we restyle every control.
             // This eliminates the cascade of incremental Paint events that made theme
@@ -215,14 +237,14 @@ namespace Cad3PLogBrowser.Services
                         {
                             tabControl.DrawItem += TabControl_DrawItem;
                             int maxW = 80;
-                            using (var g = tabControl.CreateGraphics())
+
+                            foreach (TabPage tp in tabControl.TabPages)
                             {
-                                foreach (TabPage tp in tabControl.TabPages)
-                                {
-                                    int w = (int)g.MeasureString(tp.Text, tabControl.Font).Width + 16 + 16;
-                                    if (w > maxW) maxW = w;
-                                }
+                                int w = TextRenderer.MeasureText(tp.Text, tabControl.Font).Width + 32;
+                                if (w > maxW)
+                                    maxW = w;
                             }
+
                             tabControl.ItemSize = new Size(maxW, 26);
                         }
                         tabControl.DrawMode = wantedTabMode;

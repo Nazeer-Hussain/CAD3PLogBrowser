@@ -1,5 +1,9 @@
-﻿using System;
+﻿using Cad3PLogBrowser.Properties;
+using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Services.Navigation;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -7,9 +11,6 @@ using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Cad3PLogBrowser.Properties;
-using Cad3PLogBrowser.Services;
-using Cad3PLogBrowser.Services.Navigation;
 
 namespace Cad3PLogBrowser
 {
@@ -683,7 +684,7 @@ namespace Cad3PLogBrowser
                 Height    = 1,
                 BackColor = SystemColors.ControlDark,
             };
-
+            
             // Add in reverse dock order: Fill panel last so it takes all remaining space
             logDetailTab.Controls.Add(_apiDetailsPanel);
             logDetailTab.Controls.Add(_apiDetailsDivider);
@@ -698,7 +699,7 @@ namespace Cad3PLogBrowser
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
-
+            
             RestoreSettings();
             InitTreeViews();
             InitAiPanel();
@@ -706,14 +707,16 @@ namespace Cad3PLogBrowser
             AddThemeToggleButton();
             AddGoToLineControl();
             AddSourceTintButton();
-            ApplyTheme();
+            
+            // NOTE: ApplyTheme() moved to OnShown() to avoid premature handle creation
+            // during construction which can cause crashes (especially in child forms like CompareLogsForm).
 
             // Ensure search box is on top (above trees)
             treeSearchTextBox.BringToFront();
-
+            
             // Load saved font preferences
             LoadLogFont();
-
+ 
             // Initialize tree search placeholder
             InitializeTreeSearchBox();
 
@@ -760,6 +763,12 @@ namespace Cad3PLogBrowser
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
+
+            // Apply theme now that the form and all controls are fully created and shown.
+            // This prevents the crash that occurred when ApplyTheme was called in the constructor
+            // before handles were created (Handle=False, Visible=False state).
+            ApplyTheme();
+
             InitializePerfFilterBar();
 
             // Force layout again when form is shown to ensure correct positioning
@@ -3599,6 +3608,24 @@ namespace Cad3PLogBrowser
                 {
                     EndOperation();
                 }
+            }
+        }
+
+        // Compare Logs Feature - Opens the log comparison window
+        private void compareLogsMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var compareForm = new UI.CompareLogsForm();
+                compareForm.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error opening comparison window:\n{ex.Message}",
+                    "Compare Logs Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
 
@@ -7007,7 +7034,7 @@ namespace Cad3PLogBrowser
         /// Loads saved font from settings.
         /// Call this during form initialization.
         /// </summary>
-        private void LoadLogFont()
+        /*private void LoadLogFont()
         {
             try
             {
@@ -7030,6 +7057,24 @@ namespace Cad3PLogBrowser
             {
                 // Use default font if loading fails
                 System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
+            }
+        }*/
+        private void LoadLogFont()
+        {
+            try
+            {
+                if (_appSettings != null &&
+                    !string.IsNullOrEmpty(_appSettings.LogFontFamily))
+                {
+                    logListView.Font = new Font(
+                        _appSettings.LogFontFamily,
+                        _appSettings.LogFontSize > 0 ? _appSettings.LogFontSize : 9.0f,
+                        _appSettings.LogFontStyle);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load font: {ex.Message}");
             }
         }
 

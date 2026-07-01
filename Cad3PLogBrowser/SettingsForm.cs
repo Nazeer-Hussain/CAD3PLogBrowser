@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Cad3PLogBrowser.Services;
+using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser
 {
@@ -58,11 +59,28 @@ namespace Cad3PLogBrowser
         // ─────────────────────────────────────────────────────────────────────
         public SettingsForm(MainForm mainForm)
         {
+            Debug.WriteLine("SettingsForm ctor start");
+
+            InitializeComponent();
+
+            Debug.WriteLine("InitializeComponent finished"); 
+            
             _mainForm = mainForm;
             _settings = mainForm.AppSettings;
             BuildUi();
             LoadCurrentSettings();
+
+            // NOTE: ThemeManager.ApplyTheme moved to OnShown to avoid premature handle creation.
+            // UpdateColourPreview is also called in OnShown after theme application.
+        }
+
+        protected override void OnShown(System.EventArgs e)
+        {
+            base.OnShown(e);
+
+            // Apply theme now that the form and all controls are fully created.
             ThemeManager.ApplyTheme(this);
+
             // UpdateColourPreview must be called AFTER ApplyTheme because the theme
             // walk overwrites every Panel's BackColor, including panelColorPreview.
             UpdateColourPreview();
@@ -71,6 +89,8 @@ namespace Cad3PLogBrowser
         // ── UI Construction ───────────────────────────────────────────────────
         private void BuildUi()
         {
+            Debug.WriteLine("BuildUi start"); 
+            
             Text             = "Settings";
             ClientSize       = new Size(556, 450);
             FormBorderStyle  = FormBorderStyle.FixedDialog;
@@ -117,6 +137,8 @@ namespace Cad3PLogBrowser
         // ── TAB: Appearance ───────────────────────────────────────────────────
         private TabPage BuildAppearanceTab()
         {
+            Debug.WriteLine("Appearance start"); 
+            
             var tp = Tab("Appearance");
 
             cmbTheme = AddRow(tp, "Theme:", 22, out _);
@@ -586,6 +608,52 @@ namespace Cad3PLogBrowser
         private static ComboBox AddRow(TabPage tp, string label, int y, out Label lbl)
         {
             lbl = Lbl(tp, label, 12, y + 3);
+
+            Debug.WriteLine("DefaultFont = " + Control.DefaultFont);
+
+            if (Control.DefaultFont != null)
+            {
+                Debug.WriteLine(Control.DefaultFont.Name);
+                Debug.WriteLine(Control.DefaultFont.Size);
+                Debug.WriteLine(Control.DefaultFont.Style);
+            }
+
+            using (var f = SystemFonts.MessageBoxFont)
+            {
+                Debug.WriteLine("MessageBoxFont = " + f.Name);
+            }
+
+            try
+            {
+                using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    Debug.WriteLine("Graphics OK");
+
+                    Debug.WriteLine(Control.DefaultFont.GetHeight(g));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Graphics FAILED");
+                Debug.WriteLine(ex.ToString());
+            }
+
+            try
+            {
+                Debug.WriteLine(Control.DefaultFont.Height);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Font.Height failed");
+                Debug.WriteLine(ex.ToString());
+            }
+
+            Debug.WriteLine(Object.ReferenceEquals(Control.DefaultFont,SystemFonts.DefaultFont));
+            Debug.WriteLine(Control.DefaultFont.Equals(SystemFonts.DefaultFont));
+            Debug.WriteLine(Control.DefaultFont.GetHashCode());
+            Debug.WriteLine(SystemFonts.DefaultFont.GetHashCode());
+
+            Debug.WriteLine("Creating ComboBox...");
             var cmb = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
