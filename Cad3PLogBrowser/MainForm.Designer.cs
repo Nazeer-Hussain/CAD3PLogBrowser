@@ -45,6 +45,7 @@
             this.fileSeparatorAfterExports = new System.Windows.Forms.ToolStripSeparator();
             this.reloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mergeLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.compareLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorBeforeExit = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -208,6 +209,7 @@
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
             this.mergeLogsMenuItem,
+            this.compareLogsMenuItem,
             this.fileSeparatorAfterOpen,
             this.saveAsMenuItem,
             this.exportFilteredLogsMenuItem,
@@ -311,6 +313,14 @@
             this.mergeLogsMenuItem.Size = new System.Drawing.Size(260, 22);
             this.mergeLogsMenuItem.Text = "&Merge Log Files...";
             this.mergeLogsMenuItem.Click += new System.EventHandler(this.mergeLogsMenuItem_Click);
+            // 
+            // compareLogsMenuItem
+            // 
+            this.compareLogsMenuItem.Name = "compareLogsMenuItem";
+            this.compareLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
+            this.compareLogsMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.compareLogsMenuItem.Text = "Compare &Logs...";
+            this.compareLogsMenuItem.Click += new System.EventHandler(this.compareLogsMenuItem_Click);
             // 
             // reloadMenuItem
             // 
@@ -1627,6 +1637,7 @@
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mergeLogsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem compareLogsMenuItem;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
         private System.Windows.Forms.TextBox treeSearchTextBox;

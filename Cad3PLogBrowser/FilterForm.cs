@@ -17,7 +17,7 @@ namespace Cad3PLogBrowser
         {
             InitializeComponent();
             _mainForm = mainForm;
-            ThemeManager.ApplyTheme(this);
+            // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
         }
 
         private void ApplyButton_Click(object sender, EventArgs e)
@@ -52,6 +52,10 @@ namespace Cad3PLogBrowser
 
         private void CloseButton_Click(object sender, EventArgs e) => Hide();
 
-        private void FilterForm_Load(object sender, EventArgs e) { }
+        private void FilterForm_Load(object sender, EventArgs e)
+        {
+            // Apply theme now that form and controls are fully created
+            ThemeManager.ApplyTheme(this);
+        }
     }
 }
