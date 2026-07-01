@@ -17,26 +17,42 @@ namespace Cad3PLogBrowser.UI
 
         private void InitializeComponent()
         {
-            this.mainToolStrip = new System.Windows.Forms.ToolStrip();
-            this.browseLeftToolButton = new System.Windows.Forms.ToolStripButton();
-            this.leftFileLabel = new System.Windows.Forms.ToolStripLabel();
+            this.menuStrip = new System.Windows.Forms.MenuStrip();
+            this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.browseLeftMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.browseRightMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.browseRightToolButton = new System.Windows.Forms.ToolStripButton();
-            this.rightFileLabel = new System.Windows.Forms.ToolStripLabel();
+            this.compareMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.compareToolButton = new System.Windows.Forms.ToolStripButton();
+            this.swapFilesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
-            this.firstDiffToolButton = new System.Windows.Forms.ToolStripButton();
-            this.prevDiffToolButton = new System.Windows.Forms.ToolStripButton();
-            this.nextDiffToolButton = new System.Windows.Forms.ToolStripButton();
-            this.lastDiffToolButton = new System.Windows.Forms.ToolStripButton();
+            this.closeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.navigationMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.firstDiffMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.prevDiffMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.nextDiffMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.lastDiffMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStrip = new System.Windows.Forms.ToolStrip();
+            this.browseLeftButton = new System.Windows.Forms.ToolStripButton();
+            this.browseRightButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
-            this.optionsToolButton = new System.Windows.Forms.ToolStripButton();
+            this.compareButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.firstDiffButton = new System.Windows.Forms.ToolStripButton();
+            this.prevDiffButton = new System.Windows.Forms.ToolStripButton();
+            this.nextDiffButton = new System.Windows.Forms.ToolStripButton();
+            this.lastDiffButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.optionsButton = new System.Windows.Forms.ToolStripButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.statsStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.progressBar = new System.Windows.Forms.ToolStripProgressBar();
-            this.bottomSplitContainer = new System.Windows.Forms.SplitContainer();
             this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
+            this.topSplitContainer = new System.Windows.Forms.SplitContainer();
             this.leftPanel = new System.Windows.Forms.Panel();
             this.leftTreeView = new System.Windows.Forms.TreeView();
             this.leftHeaderPanel = new System.Windows.Forms.Panel();
@@ -51,182 +67,318 @@ namespace Cad3PLogBrowser.UI
             this.colPath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colLeftValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colRightValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.legendPanel = new System.Windows.Forms.Panel();
-            this.legendLabel = new System.Windows.Forms.Label();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.mainToolStrip.SuspendLayout();
+            this.menuStrip.SuspendLayout();
+            this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.bottomSplitContainer)).BeginInit();
-            this.bottomSplitContainer.Panel1.SuspendLayout();
-            this.bottomSplitContainer.Panel2.SuspendLayout();
-            this.bottomSplitContainer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
             this.mainSplitContainer.Panel1.SuspendLayout();
             this.mainSplitContainer.Panel2.SuspendLayout();
             this.mainSplitContainer.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.topSplitContainer)).BeginInit();
+            this.topSplitContainer.Panel1.SuspendLayout();
+            this.topSplitContainer.Panel2.SuspendLayout();
+            this.topSplitContainer.SuspendLayout();
             this.leftPanel.SuspendLayout();
             this.leftHeaderPanel.SuspendLayout();
             this.rightPanel.SuspendLayout();
             this.rightHeaderPanel.SuspendLayout();
-            this.legendPanel.SuspendLayout();
             this.SuspendLayout();
             // 
-            // mainToolStrip
+            // menuStrip
             // 
-            this.mainToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.mainToolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.mainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.browseLeftToolButton,
-            this.leftFileLabel,
+            this.menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fileMenuItem,
+            this.navigationMenuItem,
+            this.viewMenuItem});
+            this.menuStrip.Location = new System.Drawing.Point(0, 0);
+            this.menuStrip.Name = "menuStrip";
+            this.menuStrip.Size = new System.Drawing.Size(1400, 24);
+            this.menuStrip.TabIndex = 0;
+            // 
+            // fileMenuItem
+            // 
+            this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.browseLeftMenuItem,
+            this.browseRightMenuItem,
             this.toolStripSeparator1,
-            this.browseRightToolButton,
-            this.rightFileLabel,
+            this.compareMenuItem,
             this.toolStripSeparator2,
-            this.compareToolButton,
+            this.swapFilesMenuItem,
             this.toolStripSeparator3,
-            this.firstDiffToolButton,
-            this.prevDiffToolButton,
-            this.nextDiffToolButton,
-            this.lastDiffToolButton,
-            this.toolStripSeparator4,
-            this.optionsToolButton});
-            this.mainToolStrip.Location = new System.Drawing.Point(0, 0);
-            this.mainToolStrip.Name = "mainToolStrip";
-            this.mainToolStrip.Padding = new System.Windows.Forms.Padding(8, 4, 1, 4);
-            this.mainToolStrip.Size = new System.Drawing.Size(1400, 35);
-            this.mainToolStrip.TabIndex = 0;
+            this.closeMenuItem});
+            this.fileMenuItem.Name = "fileMenuItem";
+            this.fileMenuItem.Size = new System.Drawing.Size(37, 20);
+            this.fileMenuItem.Text = "&File";
             // 
-            // browseLeftToolButton
+            // browseLeftMenuItem
             // 
-            this.browseLeftToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.browseLeftToolButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.browseLeftToolButton.Name = "browseLeftToolButton";
-            this.browseLeftToolButton.Size = new System.Drawing.Size(70, 24);
-            this.browseLeftToolButton.Text = "Left File...";
-            this.browseLeftToolButton.Click += new System.EventHandler(this.browseLeftButton_Click);
+            this.browseLeftMenuItem.Name = "browseLeftMenuItem";
+            this.browseLeftMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.L)));
+            this.browseLeftMenuItem.Size = new System.Drawing.Size(250, 22);
+            this.browseLeftMenuItem.Text = "Browse &Left File...";
+            this.browseLeftMenuItem.Click += new System.EventHandler(this.browseLeftButton_Click);
             // 
-            // leftFileLabel
+            // browseRightMenuItem
             // 
-            this.leftFileLabel.ForeColor = System.Drawing.Color.Gray;
-            this.leftFileLabel.Name = "leftFileLabel";
-            this.leftFileLabel.Size = new System.Drawing.Size(300, 24);
-            this.leftFileLabel.Text = "No file selected";
-            this.leftFileLabel.AutoSize = false;
-            this.leftFileLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.browseRightMenuItem.Name = "browseRightMenuItem";
+            this.browseRightMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.R)));
+            this.browseRightMenuItem.Size = new System.Drawing.Size(250, 22);
+            this.browseRightMenuItem.Text = "Browse &Right File...";
+            this.browseRightMenuItem.Click += new System.EventHandler(this.browseRightButton_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 27);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(247, 6);
             // 
-            // browseRightToolButton
+            // compareMenuItem
             // 
-            this.browseRightToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.browseRightToolButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.browseRightToolButton.Name = "browseRightToolButton";
-            this.browseRightToolButton.Size = new System.Drawing.Size(75, 24);
-            this.browseRightToolButton.Text = "Right File...";
-            this.browseRightToolButton.Click += new System.EventHandler(this.browseRightButton_Click);
-            // 
-            // rightFileLabel
-            // 
-            this.rightFileLabel.ForeColor = System.Drawing.Color.Gray;
-            this.rightFileLabel.Name = "rightFileLabel";
-            this.rightFileLabel.Size = new System.Drawing.Size(300, 24);
-            this.rightFileLabel.Text = "No file selected";
-            this.rightFileLabel.AutoSize = false;
-            this.rightFileLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.compareMenuItem.Enabled = false;
+            this.compareMenuItem.Name = "compareMenuItem";
+            this.compareMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
+            this.compareMenuItem.Size = new System.Drawing.Size(250, 22);
+            this.compareMenuItem.Text = "&Compare";
+            this.compareMenuItem.Click += new System.EventHandler(this.compareButton_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 27);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(247, 6);
             // 
-            // compareToolButton
+            // swapFilesMenuItem
             // 
-            this.compareToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.compareToolButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.compareToolButton.ForeColor = System.Drawing.Color.DarkBlue;
-            this.compareToolButton.Name = "compareToolButton";
-            this.compareToolButton.Size = new System.Drawing.Size(70, 24);
-            this.compareToolButton.Text = "Compare";
-            this.compareToolButton.Click += new System.EventHandler(this.compareButton_Click);
+            this.swapFilesMenuItem.Name = "swapFilesMenuItem";
+            this.swapFilesMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
+            this.swapFilesMenuItem.Size = new System.Drawing.Size(250, 22);
+            this.swapFilesMenuItem.Text = "S&wap Left/Right";
+            this.swapFilesMenuItem.Click += new System.EventHandler(this.swapFilesMenuItem_Click);
             // 
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 27);
+            this.toolStripSeparator3.Size = new System.Drawing.Size(247, 6);
             // 
-            // firstDiffToolButton
+            // closeMenuItem
             // 
-            this.firstDiffToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.firstDiffToolButton.Enabled = false;
-            this.firstDiffToolButton.Name = "firstDiffToolButton";
-            this.firstDiffToolButton.Size = new System.Drawing.Size(40, 24);
-            this.firstDiffToolButton.Text = "First";
-            this.firstDiffToolButton.ToolTipText = "First Difference";
-            this.firstDiffToolButton.Click += new System.EventHandler(this.firstDiffButton_Click);
+            this.closeMenuItem.Name = "closeMenuItem";
+            this.closeMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
+            this.closeMenuItem.Size = new System.Drawing.Size(250, 22);
+            this.closeMenuItem.Text = "C&lose";
+            this.closeMenuItem.Click += new System.EventHandler(this.closeMenuItem_Click);
             // 
-            // prevDiffToolButton
+            // navigationMenuItem
             // 
-            this.prevDiffToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.prevDiffToolButton.Enabled = false;
-            this.prevDiffToolButton.Name = "prevDiffToolButton";
-            this.prevDiffToolButton.Size = new System.Drawing.Size(55, 24);
-            this.prevDiffToolButton.Text = "< Prev";
-            this.prevDiffToolButton.ToolTipText = "Previous Difference";
-            this.prevDiffToolButton.Click += new System.EventHandler(this.prevDiffButton_Click);
+            this.navigationMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.firstDiffMenuItem,
+            this.prevDiffMenuItem,
+            this.nextDiffMenuItem,
+            this.lastDiffMenuItem});
+            this.navigationMenuItem.Name = "navigationMenuItem";
+            this.navigationMenuItem.Size = new System.Drawing.Size(77, 20);
+            this.navigationMenuItem.Text = "&Navigation";
             // 
-            // nextDiffToolButton
+            // firstDiffMenuItem
             // 
-            this.nextDiffToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.nextDiffToolButton.Enabled = false;
-            this.nextDiffToolButton.Name = "nextDiffToolButton";
-            this.nextDiffToolButton.Size = new System.Drawing.Size(55, 24);
-            this.nextDiffToolButton.Text = "Next >";
-            this.nextDiffToolButton.ToolTipText = "Next Difference";
-            this.nextDiffToolButton.Click += new System.EventHandler(this.nextDiffButton_Click);
+            this.firstDiffMenuItem.Enabled = false;
+            this.firstDiffMenuItem.Name = "firstDiffMenuItem";
+            this.firstDiffMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Home)));
+            this.firstDiffMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.firstDiffMenuItem.Text = "&First Difference";
+            this.firstDiffMenuItem.Click += new System.EventHandler(this.firstDiffButton_Click);
             // 
-            // lastDiffToolButton
+            // prevDiffMenuItem
             // 
-            this.lastDiffToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.lastDiffToolButton.Enabled = false;
-            this.lastDiffToolButton.Name = "lastDiffToolButton";
-            this.lastDiffToolButton.Size = new System.Drawing.Size(40, 24);
-            this.lastDiffToolButton.Text = "Last";
-            this.lastDiffToolButton.ToolTipText = "Last Difference";
-            this.lastDiffToolButton.Click += new System.EventHandler(this.lastDiffButton_Click);
+            this.prevDiffMenuItem.Enabled = false;
+            this.prevDiffMenuItem.Name = "prevDiffMenuItem";
+            this.prevDiffMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F7;
+            this.prevDiffMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.prevDiffMenuItem.Text = "&Previous Difference";
+            this.prevDiffMenuItem.Click += new System.EventHandler(this.prevDiffButton_Click);
+            // 
+            // nextDiffMenuItem
+            // 
+            this.nextDiffMenuItem.Enabled = false;
+            this.nextDiffMenuItem.Name = "nextDiffMenuItem";
+            this.nextDiffMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F8;
+            this.nextDiffMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.nextDiffMenuItem.Text = "&Next Difference";
+            this.nextDiffMenuItem.Click += new System.EventHandler(this.nextDiffButton_Click);
+            // 
+            // lastDiffMenuItem
+            // 
+            this.lastDiffMenuItem.Enabled = false;
+            this.lastDiffMenuItem.Name = "lastDiffMenuItem";
+            this.lastDiffMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.End)));
+            this.lastDiffMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.lastDiffMenuItem.Text = "&Last Difference";
+            this.lastDiffMenuItem.Click += new System.EventHandler(this.lastDiffButton_Click);
+            // 
+            // viewMenuItem
+            // 
+            this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.expandAllMenuItem,
+            this.collapseAllMenuItem,
+            this.optionsMenuItem});
+            this.viewMenuItem.Name = "viewMenuItem";
+            this.viewMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.viewMenuItem.Text = "&View";
+            // 
+            // expandAllMenuItem
+            // 
+            this.expandAllMenuItem.Name = "expandAllMenuItem";
+            this.expandAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.E)));
+            this.expandAllMenuItem.Size = new System.Drawing.Size(196, 22);
+            this.expandAllMenuItem.Text = "&Expand All";
+            this.expandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
+            // 
+            // collapseAllMenuItem
+            // 
+            this.collapseAllMenuItem.Name = "collapseAllMenuItem";
+            this.collapseAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
+            this.collapseAllMenuItem.Size = new System.Drawing.Size(196, 22);
+            this.collapseAllMenuItem.Text = "&Collapse All";
+            this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
+            // 
+            // optionsMenuItem
+            // 
+            this.optionsMenuItem.Name = "optionsMenuItem";
+            this.optionsMenuItem.Size = new System.Drawing.Size(196, 22);
+            this.optionsMenuItem.Text = "&Options...";
+            this.optionsMenuItem.Click += new System.EventHandler(this.optionsButton_Click);
+            // 
+            // toolStrip
+            // 
+            this.toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.browseLeftButton,
+            this.browseRightButton,
+            this.toolStripSeparator4,
+            this.compareButton,
+            this.toolStripSeparator5,
+            this.firstDiffButton,
+            this.prevDiffButton,
+            this.nextDiffButton,
+            this.lastDiffButton,
+            this.toolStripSeparator6,
+            this.optionsButton});
+            this.toolStrip.Location = new System.Drawing.Point(0, 24);
+            this.toolStrip.Name = "toolStrip";
+            this.toolStrip.Padding = new System.Windows.Forms.Padding(4, 2, 1, 2);
+            this.toolStrip.Size = new System.Drawing.Size(1400, 27);
+            this.toolStrip.TabIndex = 1;
+            // 
+            // browseLeftButton
+            // 
+            this.browseLeftButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.browseLeftButton.Name = "browseLeftButton";
+            this.browseLeftButton.Size = new System.Drawing.Size(64, 20);
+            this.browseLeftButton.Text = "Left File...";
+            this.browseLeftButton.Click += new System.EventHandler(this.browseLeftButton_Click);
+            // 
+            // browseRightButton
+            // 
+            this.browseRightButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.browseRightButton.Name = "browseRightButton";
+            this.browseRightButton.Size = new System.Drawing.Size(72, 20);
+            this.browseRightButton.Text = "Right File...";
+            this.browseRightButton.Click += new System.EventHandler(this.browseRightButton_Click);
             // 
             // toolStripSeparator4
             // 
             this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 27);
+            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 23);
             // 
-            // optionsToolButton
+            // compareButton
             // 
-            this.optionsToolButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.optionsToolButton.Name = "optionsToolButton";
-            this.optionsToolButton.Size = new System.Drawing.Size(65, 24);
-            this.optionsToolButton.Text = "Options...";
-            this.optionsToolButton.Click += new System.EventHandler(this.optionsButton_Click);
+            this.compareButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.compareButton.Enabled = false;
+            this.compareButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.compareButton.Name = "compareButton";
+            this.compareButton.Size = new System.Drawing.Size(63, 20);
+            this.compareButton.Text = "Compare";
+            this.compareButton.Click += new System.EventHandler(this.compareButton_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 23);
+            // 
+            // firstDiffButton
+            // 
+            this.firstDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.firstDiffButton.Enabled = false;
+            this.firstDiffButton.Name = "firstDiffButton";
+            this.firstDiffButton.Size = new System.Drawing.Size(36, 20);
+            this.firstDiffButton.Text = "|?";
+            this.firstDiffButton.ToolTipText = "First Difference";
+            this.firstDiffButton.Click += new System.EventHandler(this.firstDiffButton_Click);
+            // 
+            // prevDiffButton
+            // 
+            this.prevDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.prevDiffButton.Enabled = false;
+            this.prevDiffButton.Name = "prevDiffButton";
+            this.prevDiffButton.Size = new System.Drawing.Size(23, 20);
+            this.prevDiffButton.Text = "?";
+            this.prevDiffButton.ToolTipText = "Previous Difference (F7)";
+            this.prevDiffButton.Click += new System.EventHandler(this.prevDiffButton_Click);
+            // 
+            // nextDiffButton
+            // 
+            this.nextDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.nextDiffButton.Enabled = false;
+            this.nextDiffButton.Name = "nextDiffButton";
+            this.nextDiffButton.Size = new System.Drawing.Size(23, 20);
+            this.nextDiffButton.Text = "?";
+            this.nextDiffButton.ToolTipText = "Next Difference (F8)";
+            this.nextDiffButton.Click += new System.EventHandler(this.nextDiffButton_Click);
+            // 
+            // lastDiffButton
+            // 
+            this.lastDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.lastDiffButton.Enabled = false;
+            this.lastDiffButton.Name = "lastDiffButton";
+            this.lastDiffButton.Size = new System.Drawing.Size(36, 20);
+            this.lastDiffButton.Text = "?|";
+            this.lastDiffButton.ToolTipText = "Last Difference";
+            this.lastDiffButton.Click += new System.EventHandler(this.lastDiffButton_Click);
+            // 
+            // toolStripSeparator6
+            // 
+            this.toolStripSeparator6.Name = "toolStripSeparator6";
+            this.toolStripSeparator6.Size = new System.Drawing.Size(6, 23);
+            // 
+            // optionsButton
+            // 
+            this.optionsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.optionsButton.Name = "optionsButton";
+            this.optionsButton.Size = new System.Drawing.Size(62, 20);
+            this.optionsButton.Text = "Options...";
+            this.optionsButton.Click += new System.EventHandler(this.optionsButton_Click);
             // 
             // statusStrip
             // 
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.statsStatusLabel,
+            this.statusLabel,
             this.progressBar});
             this.statusStrip.Location = new System.Drawing.Point(0, 778);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(1400, 22);
-            this.statusStrip.TabIndex = 1;
+            this.statusStrip.TabIndex = 2;
             // 
-            // statsStatusLabel
+            // statusLabel
             // 
-            this.statsStatusLabel.Name = "statsStatusLabel";
-            this.statsStatusLabel.Size = new System.Drawing.Size(1285, 17);
-            this.statsStatusLabel.Spring = true;
-            this.statsStatusLabel.Text = "Select files to compare";
-            this.statsStatusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusLabel.Name = "statusLabel";
+            this.statusLabel.Size = new System.Drawing.Size(1285, 17);
+            this.statusLabel.Spring = true;
+            this.statusLabel.Text = "Select files to compare";
+            this.statusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // progressBar
             // 
@@ -234,46 +386,46 @@ namespace Cad3PLogBrowser.UI
             this.progressBar.Size = new System.Drawing.Size(100, 16);
             this.progressBar.Visible = false;
             // 
-            // bottomSplitContainer
-            // 
-            this.bottomSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.bottomSplitContainer.Location = new System.Drawing.Point(0, 35);
-            this.bottomSplitContainer.Name = "bottomSplitContainer";
-            this.bottomSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            // 
-            // bottomSplitContainer.Panel1
-            // 
-            this.bottomSplitContainer.Panel1.Controls.Add(this.mainSplitContainer);
-            // 
-            // bottomSplitContainer.Panel2
-            // 
-            this.bottomSplitContainer.Panel2.Controls.Add(this.differenceListView);
-            this.bottomSplitContainer.Panel2.Controls.Add(this.legendPanel);
-            this.bottomSplitContainer.Size = new System.Drawing.Size(1400, 743);
-            this.bottomSplitContainer.SplitterDistance = 500;
-            this.bottomSplitContainer.SplitterWidth = 5;
-            this.bottomSplitContainer.TabIndex = 2;
-            // 
             // mainSplitContainer
             // 
             this.mainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainSplitContainer.Location = new System.Drawing.Point(0, 0);
+            this.mainSplitContainer.Location = new System.Drawing.Point(0, 51);
             this.mainSplitContainer.Name = "mainSplitContainer";
+            this.mainSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
             // mainSplitContainer.Panel1
             // 
-            this.mainSplitContainer.Panel1.Controls.Add(this.leftPanel);
+            this.mainSplitContainer.Panel1.Controls.Add(this.topSplitContainer);
             // 
             // mainSplitContainer.Panel2
             // 
-            this.mainSplitContainer.Panel2.Controls.Add(this.rightPanel);
-            this.mainSplitContainer.Size = new System.Drawing.Size(1400, 500);
-            this.mainSplitContainer.SplitterDistance = 695;
-            this.mainSplitContainer.SplitterWidth = 5;
-            this.mainSplitContainer.TabIndex = 0;
+            this.mainSplitContainer.Panel2.Controls.Add(this.differenceListView);
+            this.mainSplitContainer.Size = new System.Drawing.Size(1400, 727);
+            this.mainSplitContainer.SplitterDistance = 500;
+            this.mainSplitContainer.SplitterWidth = 6;
+            this.mainSplitContainer.TabIndex = 3;
+            // 
+            // topSplitContainer
+            // 
+            this.topSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.topSplitContainer.Location = new System.Drawing.Point(0, 0);
+            this.topSplitContainer.Name = "topSplitContainer";
+            // 
+            // topSplitContainer.Panel1
+            // 
+            this.topSplitContainer.Panel1.Controls.Add(this.leftPanel);
+            // 
+            // topSplitContainer.Panel2
+            // 
+            this.topSplitContainer.Panel2.Controls.Add(this.rightPanel);
+            this.topSplitContainer.Size = new System.Drawing.Size(1400, 500);
+            this.topSplitContainer.SplitterDistance = 695;
+            this.topSplitContainer.SplitterWidth = 6;
+            this.topSplitContainer.TabIndex = 0;
             // 
             // leftPanel
             // 
+            this.leftPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.leftPanel.Controls.Add(this.leftTreeView);
             this.leftPanel.Controls.Add(this.leftHeaderPanel);
             this.leftPanel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -287,10 +439,14 @@ namespace Cad3PLogBrowser.UI
             this.leftTreeView.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.leftTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.leftTreeView.Font = new System.Drawing.Font("Consolas", 9F);
+            this.leftTreeView.FullRowSelect = false;
             this.leftTreeView.HideSelection = false;
-            this.leftTreeView.Location = new System.Drawing.Point(0, 32);
+            this.leftTreeView.Location = new System.Drawing.Point(0, 28);
             this.leftTreeView.Name = "leftTreeView";
-            this.leftTreeView.Size = new System.Drawing.Size(695, 468);
+            this.leftTreeView.ShowLines = true;
+            this.leftTreeView.ShowPlusMinus = true;
+            this.leftTreeView.ShowRootLines = true;
+            this.leftTreeView.Size = new System.Drawing.Size(693, 470);
             this.leftTreeView.TabIndex = 1;
             // 
             // leftHeaderPanel
@@ -300,30 +456,30 @@ namespace Cad3PLogBrowser.UI
             this.leftHeaderPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.leftHeaderPanel.Location = new System.Drawing.Point(0, 0);
             this.leftHeaderPanel.Name = "leftHeaderPanel";
-            this.leftHeaderPanel.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
-            this.leftHeaderPanel.Size = new System.Drawing.Size(695, 32);
+            this.leftHeaderPanel.Size = new System.Drawing.Size(693, 28);
             this.leftHeaderPanel.TabIndex = 0;
             // 
             // leftTitleLabel
             // 
             this.leftTitleLabel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.leftTitleLabel.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
-            this.leftTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.leftTitleLabel.Location = new System.Drawing.Point(10, 0);
+            this.leftTitleLabel.Location = new System.Drawing.Point(0, 0);
             this.leftTitleLabel.Name = "leftTitleLabel";
-            this.leftTitleLabel.Size = new System.Drawing.Size(685, 32);
+            this.leftTitleLabel.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
+            this.leftTitleLabel.Size = new System.Drawing.Size(693, 28);
             this.leftTitleLabel.TabIndex = 0;
             this.leftTitleLabel.Text = "Left File";
             this.leftTitleLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // rightPanel
             // 
+            this.rightPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.rightPanel.Controls.Add(this.rightTreeView);
             this.rightPanel.Controls.Add(this.rightHeaderPanel);
             this.rightPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rightPanel.Location = new System.Drawing.Point(0, 0);
             this.rightPanel.Name = "rightPanel";
-            this.rightPanel.Size = new System.Drawing.Size(700, 500);
+            this.rightPanel.Size = new System.Drawing.Size(699, 500);
             this.rightPanel.TabIndex = 0;
             // 
             // rightTreeView
@@ -331,10 +487,14 @@ namespace Cad3PLogBrowser.UI
             this.rightTreeView.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.rightTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rightTreeView.Font = new System.Drawing.Font("Consolas", 9F);
+            this.rightTreeView.FullRowSelect = false;
             this.rightTreeView.HideSelection = false;
-            this.rightTreeView.Location = new System.Drawing.Point(0, 32);
+            this.rightTreeView.Location = new System.Drawing.Point(0, 28);
             this.rightTreeView.Name = "rightTreeView";
-            this.rightTreeView.Size = new System.Drawing.Size(700, 468);
+            this.rightTreeView.ShowLines = true;
+            this.rightTreeView.ShowPlusMinus = true;
+            this.rightTreeView.ShowRootLines = true;
+            this.rightTreeView.Size = new System.Drawing.Size(697, 470);
             this.rightTreeView.TabIndex = 1;
             // 
             // rightHeaderPanel
@@ -344,25 +504,24 @@ namespace Cad3PLogBrowser.UI
             this.rightHeaderPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.rightHeaderPanel.Location = new System.Drawing.Point(0, 0);
             this.rightHeaderPanel.Name = "rightHeaderPanel";
-            this.rightHeaderPanel.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
-            this.rightHeaderPanel.Size = new System.Drawing.Size(700, 32);
+            this.rightHeaderPanel.Size = new System.Drawing.Size(697, 28);
             this.rightHeaderPanel.TabIndex = 0;
             // 
             // rightTitleLabel
             // 
             this.rightTitleLabel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rightTitleLabel.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold);
-            this.rightTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.rightTitleLabel.Location = new System.Drawing.Point(10, 0);
+            this.rightTitleLabel.Location = new System.Drawing.Point(0, 0);
             this.rightTitleLabel.Name = "rightTitleLabel";
-            this.rightTitleLabel.Size = new System.Drawing.Size(690, 32);
+            this.rightTitleLabel.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
+            this.rightTitleLabel.Size = new System.Drawing.Size(697, 28);
             this.rightTitleLabel.TabIndex = 0;
             this.rightTitleLabel.Text = "Right File";
             this.rightTitleLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // differenceListView
             // 
-            this.differenceListView.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.differenceListView.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.differenceListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colIndex,
             this.colType,
@@ -374,10 +533,10 @@ namespace Cad3PLogBrowser.UI
             this.differenceListView.FullRowSelect = true;
             this.differenceListView.GridLines = true;
             this.differenceListView.HideSelection = false;
-            this.differenceListView.Location = new System.Drawing.Point(0, 30);
+            this.differenceListView.Location = new System.Drawing.Point(0, 0);
             this.differenceListView.MultiSelect = false;
             this.differenceListView.Name = "differenceListView";
-            this.differenceListView.Size = new System.Drawing.Size(1400, 208);
+            this.differenceListView.Size = new System.Drawing.Size(1400, 221);
             this.differenceListView.TabIndex = 0;
             this.differenceListView.UseCompatibleStateImageBehavior = false;
             this.differenceListView.View = System.Windows.Forms.View.Details;
@@ -408,29 +567,6 @@ namespace Cad3PLogBrowser.UI
             this.colRightValue.Text = "Right Value";
             this.colRightValue.Width = 400;
             // 
-            // legendPanel
-            // 
-            this.legendPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
-            this.legendPanel.Controls.Add(this.legendLabel);
-            this.legendPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.legendPanel.Location = new System.Drawing.Point(0, 0);
-            this.legendPanel.Name = "legendPanel";
-            this.legendPanel.Padding = new System.Windows.Forms.Padding(10, 5, 10, 5);
-            this.legendPanel.Size = new System.Drawing.Size(1400, 30);
-            this.legendPanel.TabIndex = 1;
-            // 
-            // legendLabel
-            // 
-            this.legendLabel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.legendLabel.Font = new System.Drawing.Font("Segoe UI", 8.25F);
-            this.legendLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.legendLabel.Location = new System.Drawing.Point(10, 5);
-            this.legendLabel.Name = "legendLabel";
-            this.legendLabel.Size = new System.Drawing.Size(1380, 20);
-            this.legendLabel.TabIndex = 0;
-            this.legendLabel.Text = "Differences:";
-            this.legendLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
             // openFileDialog
             // 
             this.openFileDialog.Filter = "Log Files (*.log;*.txt)|*.log;*.txt|All Files (*.*)|*.*";
@@ -438,34 +574,37 @@ namespace Cad3PLogBrowser.UI
             // 
             // CompareLogsForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(1400, 800);
-            this.Controls.Add(this.bottomSplitContainer);
+            this.Controls.Add(this.mainSplitContainer);
             this.Controls.Add(this.statusStrip);
-            this.Controls.Add(this.mainToolStrip);
+            this.Controls.Add(this.toolStrip);
+            this.Controls.Add(this.menuStrip);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.MainMenuStrip = this.menuStrip;
             this.MinimumSize = new System.Drawing.Size(1024, 768);
             this.Name = "CompareLogsForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Compare Logs";
-            this.mainToolStrip.ResumeLayout(false);
-            this.mainToolStrip.PerformLayout();
+            this.menuStrip.ResumeLayout(false);
+            this.menuStrip.PerformLayout();
+            this.toolStrip.ResumeLayout(false);
+            this.toolStrip.PerformLayout();
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
-            this.bottomSplitContainer.Panel1.ResumeLayout(false);
-            this.bottomSplitContainer.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.bottomSplitContainer)).EndInit();
-            this.bottomSplitContainer.ResumeLayout(false);
             this.mainSplitContainer.Panel1.ResumeLayout(false);
             this.mainSplitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).EndInit();
             this.mainSplitContainer.ResumeLayout(false);
+            this.topSplitContainer.Panel1.ResumeLayout(false);
+            this.topSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.topSplitContainer)).EndInit();
+            this.topSplitContainer.ResumeLayout(false);
             this.leftPanel.ResumeLayout(false);
             this.leftHeaderPanel.ResumeLayout(false);
             this.rightPanel.ResumeLayout(false);
             this.rightHeaderPanel.ResumeLayout(false);
-            this.legendPanel.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -473,26 +612,42 @@ namespace Cad3PLogBrowser.UI
 
         #endregion
 
-        private System.Windows.Forms.ToolStrip mainToolStrip;
-        private System.Windows.Forms.ToolStripButton browseLeftToolButton;
-        private System.Windows.Forms.ToolStripLabel leftFileLabel;
+        private System.Windows.Forms.MenuStrip menuStrip;
+        private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem browseLeftMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem browseRightMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
-        private System.Windows.Forms.ToolStripButton browseRightToolButton;
-        private System.Windows.Forms.ToolStripLabel rightFileLabel;
+        private System.Windows.Forms.ToolStripMenuItem compareMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
-        private System.Windows.Forms.ToolStripButton compareToolButton;
+        private System.Windows.Forms.ToolStripMenuItem swapFilesMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
-        private System.Windows.Forms.ToolStripButton firstDiffToolButton;
-        private System.Windows.Forms.ToolStripButton prevDiffToolButton;
-        private System.Windows.Forms.ToolStripButton nextDiffToolButton;
-        private System.Windows.Forms.ToolStripButton lastDiffToolButton;
+        private System.Windows.Forms.ToolStripMenuItem closeMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem navigationMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem firstDiffMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem prevDiffMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem nextDiffMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem lastDiffMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
+        private System.Windows.Forms.ToolStrip toolStrip;
+        private System.Windows.Forms.ToolStripButton browseLeftButton;
+        private System.Windows.Forms.ToolStripButton browseRightButton;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
-        private System.Windows.Forms.ToolStripButton optionsToolButton;
+        private System.Windows.Forms.ToolStripButton compareButton;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripButton firstDiffButton;
+        private System.Windows.Forms.ToolStripButton prevDiffButton;
+        private System.Windows.Forms.ToolStripButton nextDiffButton;
+        private System.Windows.Forms.ToolStripButton lastDiffButton;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
+        private System.Windows.Forms.ToolStripButton optionsButton;
         private System.Windows.Forms.StatusStrip statusStrip;
-        private System.Windows.Forms.ToolStripStatusLabel statsStatusLabel;
+        private System.Windows.Forms.ToolStripStatusLabel statusLabel;
         private System.Windows.Forms.ToolStripProgressBar progressBar;
-        private System.Windows.Forms.SplitContainer bottomSplitContainer;
         private System.Windows.Forms.SplitContainer mainSplitContainer;
+        private System.Windows.Forms.SplitContainer topSplitContainer;
         private System.Windows.Forms.Panel leftPanel;
         private System.Windows.Forms.TreeView leftTreeView;
         private System.Windows.Forms.Panel leftHeaderPanel;
@@ -507,8 +662,6 @@ namespace Cad3PLogBrowser.UI
         private System.Windows.Forms.ColumnHeader colPath;
         private System.Windows.Forms.ColumnHeader colLeftValue;
         private System.Windows.Forms.ColumnHeader colRightValue;
-        private System.Windows.Forms.Panel legendPanel;
-        private System.Windows.Forms.Label legendLabel;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }

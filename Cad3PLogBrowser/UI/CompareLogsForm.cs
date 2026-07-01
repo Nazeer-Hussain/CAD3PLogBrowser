@@ -11,17 +11,17 @@ using Cad3PLogBrowser.Services.Comparison;
 namespace Cad3PLogBrowser.UI
 {
     /// <summary>
-    /// Main form for comparing two log files or tree structures.
-    /// Provides a side-by-side comparison view with difference highlighting and navigation.
+    /// Professional log comparison viewer with BeyondCompare-style interface.
     /// </summary>
     public partial class CompareLogsForm : Form
     {
         private readonly LogParserService _parserService;
         private CompareOptions _compareOptions;
         private TreeComparer _comparer;
-        private DifferenceHighlighter _highlighter;
         private DifferenceNavigator _navigator;
         private List<TreeDifference> _differences;
+        private string _leftFilePath;
+        private string _rightFilePath;
 
         public CompareLogsForm()
         {
@@ -30,13 +30,12 @@ namespace Cad3PLogBrowser.UI
             _parserService = new LogParserService();
             _compareOptions = CompareOptions.CreateDefaultLogOptions();
             _comparer = new TreeComparer();
-            _highlighter = new DifferenceHighlighter();
             _differences = new List<TreeDifference>();
 
             InitializeNavigator();
             ConfigureTreeViews();
             UpdateNavigationButtons();
-            ApplyModernStyling();
+            SetFormIcon();
         }
 
         public CompareLogsForm(TreeView leftTreeView, TreeView rightTreeView, string leftTitle, string rightTitle)
@@ -50,28 +49,27 @@ namespace Cad3PLogBrowser.UI
                 leftTitleLabel.Text = leftTitle ?? "Left Tree";
                 rightTitleLabel.Text = rightTitle ?? "Right Tree";
 
-                browseLeftToolButton.Visible = false;
-                browseRightToolButton.Visible = false;
-                leftFileLabel.Visible = false;
-                rightFileLabel.Visible = false;
-                toolStripSeparator1.Visible = false;
-                toolStripSeparator2.Visible = false;
+                browseLeftMenuItem.Visible = false;
+                browseRightMenuItem.Visible = false;
 
                 PerformComparison();
             }
         }
 
-        private void ApplyModernStyling()
+        private void SetFormIcon()
         {
-            this.BackColor = Color.White;
-            mainToolStrip.BackColor = Color.FromArgb(240, 240, 240);
-            statusStrip.BackColor = Color.FromArgb(240, 240, 240);
-            UpdateLegend();
-        }
-
-        private void UpdateLegend()
-        {
-            legendLabel.Text = "  ? Identical  ? Text Changed  ? Missing  ? Added  ? Child Count";
+            try
+            {
+                var mainForm = Application.OpenForms.OfType<MainForm>().FirstOrDefault();
+                if (mainForm != null && mainForm.Icon != null)
+                {
+                    this.Icon = mainForm.Icon;
+                }
+            }
+            catch
+            {
+                // Use default icon if copy fails
+            }
         }
 
         private void InitializeNavigator()
@@ -104,10 +102,9 @@ namespace Cad3PLogBrowser.UI
         {
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                leftFileLabel.Text = openFileDialog.FileName;
-                leftFileLabel.ForeColor = Color.Black;
-                leftFileLabel.Tag = openFileDialog.FileName;
-                leftFileLabel.ToolTipText = openFileDialog.FileName;
+                _leftFilePath = openFileDialog.FileName;
+                leftTitleLabel.Text = string.Format("Left: {0}", Path.GetFileName(_leftFilePath));
+                UpdateCompareButtonState();
             }
         }
 
@@ -115,40 +112,44 @@ namespace Cad3PLogBrowser.UI
         {
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                rightFileLabel.Text = openFileDialog.FileName;
-                rightFileLabel.ForeColor = Color.Black;
-                rightFileLabel.Tag = openFileDialog.FileName;
-                rightFileLabel.ToolTipText = openFileDialog.FileName;
+                _rightFilePath = openFileDialog.FileName;
+                rightTitleLabel.Text = string.Format("Right: {0}", Path.GetFileName(_rightFilePath));
+                UpdateCompareButtonState();
             }
+        }
+
+        private void UpdateCompareButtonState()
+        {
+            bool canCompare = !string.IsNullOrWhiteSpace(_leftFilePath) && 
+                            !string.IsNullOrWhiteSpace(_rightFilePath);
+            compareButton.Enabled = canCompare;
+            compareMenuItem.Enabled = canCompare;
         }
 
         private void compareButton_Click(object sender, EventArgs e)
         {
-            string leftPath = leftFileLabel.Tag as string;
-            string rightPath = rightFileLabel.Tag as string;
-
-            if (string.IsNullOrWhiteSpace(leftPath) || string.IsNullOrWhiteSpace(rightPath))
+            if (string.IsNullOrWhiteSpace(_leftFilePath) || string.IsNullOrWhiteSpace(_rightFilePath))
             {
                 MessageBox.Show("Please select both files to compare.", "Files Required",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (!File.Exists(leftPath))
+            if (!File.Exists(_leftFilePath))
             {
-                MessageBox.Show(string.Format("Left file not found:\n{0}", leftPath), "File Not Found",
+                MessageBox.Show(string.Format("Left file not found:\n{0}", _leftFilePath), "File Not Found",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!File.Exists(rightPath))
+            if (!File.Exists(_rightFilePath))
             {
-                MessageBox.Show(string.Format("Right file not found:\n{0}", rightPath), "File Not Found",
+                MessageBox.Show(string.Format("Right file not found:\n{0}", _rightFilePath), "File Not Found",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            LoadAndCompareFiles(leftPath, rightPath);
+            LoadAndCompareFiles(_leftFilePath, _rightFilePath);
         }
 
         private void LoadAndCompareFiles(string leftPath, string rightPath)
@@ -156,8 +157,9 @@ namespace Cad3PLogBrowser.UI
             try
             {
                 Cursor = Cursors.WaitCursor;
-                compareToolButton.Enabled = false;
-                statsStatusLabel.Text = "Loading files...";
+                compareButton.Enabled = false;
+                compareMenuItem.Enabled = false;
+                statusLabel.Text = "Loading files...";
                 progressBar.Visible = true;
                 progressBar.Style = ProgressBarStyle.Marquee;
                 Application.DoEvents();
@@ -167,14 +169,12 @@ namespace Cad3PLogBrowser.UI
                 var leftEntries = _parserService.Parse(leftLines);
                 var leftCallTree = _parserService.BuildCallTree(leftEntries);
                 PopulateTreeView(leftTreeView, leftCallTree);
-                leftTitleLabel.Text = string.Format("Left: {0}", Path.GetFileName(leftPath));
 
                 rightTreeView.Nodes.Clear();
                 var rightLines = File.ReadAllLines(rightPath);
                 var rightEntries = _parserService.Parse(rightLines);
                 var rightCallTree = _parserService.BuildCallTree(rightEntries);
                 PopulateTreeView(rightTreeView, rightCallTree);
-                rightTitleLabel.Text = string.Format("Right: {0}", Path.GetFileName(rightPath));
 
                 PerformComparison();
             }
@@ -186,7 +186,8 @@ namespace Cad3PLogBrowser.UI
             finally
             {
                 Cursor = Cursors.Default;
-                compareToolButton.Enabled = true;
+                compareButton.Enabled = true;
+                compareMenuItem.Enabled = true;
                 progressBar.Visible = false;
             }
         }
@@ -225,7 +226,7 @@ namespace Cad3PLogBrowser.UI
             try
             {
                 Cursor = Cursors.WaitCursor;
-                statsStatusLabel.Text = "Comparing trees...";
+                statusLabel.Text = "Comparing trees...";
                 Application.DoEvents();
 
                 var leftLogNode = LogNodeFactory.FromTreeView(leftTreeView);
@@ -302,7 +303,6 @@ namespace Cad3PLogBrowser.UI
 
         private void UpdateStatistics()
         {
-            int identicalCount = 0;
             int textMismatchCount = 0;
             int missingInRightCount = 0;
             int extraInRightCount = 0;
@@ -327,23 +327,26 @@ namespace Cad3PLogBrowser.UI
                 }
             }
 
-            statsStatusLabel.Text = string.Format(
-                "Text Changed: {0}  |  Missing: {1}  |  Added: {2}  |  Child Count: {3}  |  Total Differences: {4}",
+            statusLabel.Text = string.Format(
+                "Changed: {0} | Missing: {1} | Added: {2} | Count Diff: {3} | Total: {4}",
                 textMismatchCount,
                 missingInRightCount,
                 extraInRightCount,
                 childCountMismatchCount,
                 _differences.Count);
-            statsStatusLabel.ForeColor = Color.FromArgb(64, 64, 64);
         }
 
         private void UpdateNavigationButtons()
         {
             bool hasDifferences = _differences != null && _differences.Count > 0;
-            firstDiffToolButton.Enabled = hasDifferences;
-            prevDiffToolButton.Enabled = hasDifferences;
-            nextDiffToolButton.Enabled = hasDifferences;
-            lastDiffToolButton.Enabled = hasDifferences;
+            firstDiffButton.Enabled = hasDifferences;
+            prevDiffButton.Enabled = hasDifferences;
+            nextDiffButton.Enabled = hasDifferences;
+            lastDiffButton.Enabled = hasDifferences;
+            firstDiffMenuItem.Enabled = hasDifferences;
+            prevDiffMenuItem.Enabled = hasDifferences;
+            nextDiffMenuItem.Enabled = hasDifferences;
+            lastDiffMenuItem.Enabled = hasDifferences;
         }
 
         private void firstDiffButton_Click(object sender, EventArgs e)
@@ -398,10 +401,9 @@ namespace Cad3PLogBrowser.UI
 
         private void Navigator_Navigated(object sender, DifferenceNavigationEventArgs e)
         {
-            string positionInfo = string.Format("{0}  |  {1}: {2}",
-                _navigator.GetPositionText(), e.Difference.Type, e.Difference.Path);
-            statsStatusLabel.Text = positionInfo;
-            statsStatusLabel.ForeColor = Color.FromArgb(64, 64, 64);
+            string positionInfo = string.Format("Difference {0}/{1}: {2} - {3}",
+                e.Index + 1, _differences.Count, e.Difference.Type, e.Difference.Path);
+            statusLabel.Text = positionInfo;
 
             if (e.Index >= 0 && e.Index < differenceListView.Items.Count)
             {
@@ -447,6 +449,57 @@ namespace Cad3PLogBrowser.UI
             }
 
             return clone;
+        }
+
+        private void closeMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void expandAllMenuItem_Click(object sender, EventArgs e)
+        {
+            leftTreeView.ExpandAll();
+            rightTreeView.ExpandAll();
+        }
+
+        private void collapseAllMenuItem_Click(object sender, EventArgs e)
+        {
+            leftTreeView.CollapseAll();
+            rightTreeView.CollapseAll();
+        }
+
+        private void swapFilesMenuItem_Click(object sender, EventArgs e)
+        {
+            var tempPath = _leftFilePath;
+            _leftFilePath = _rightFilePath;
+            _rightFilePath = tempPath;
+
+            var tempLabel = leftTitleLabel.Text;
+            leftTitleLabel.Text = rightTitleLabel.Text;
+            rightTitleLabel.Text = tempLabel;
+
+            var tempNodes = new List<TreeNode>();
+            foreach (TreeNode node in leftTreeView.Nodes)
+            {
+                tempNodes.Add(CloneTreeNode(node));
+            }
+
+            leftTreeView.Nodes.Clear();
+            foreach (TreeNode node in rightTreeView.Nodes)
+            {
+                leftTreeView.Nodes.Add(CloneTreeNode(node));
+            }
+
+            rightTreeView.Nodes.Clear();
+            foreach (TreeNode node in tempNodes)
+            {
+                rightTreeView.Nodes.Add(node);
+            }
+
+            if (_differences.Count > 0)
+            {
+                PerformComparison();
+            }
         }
     }
 }
