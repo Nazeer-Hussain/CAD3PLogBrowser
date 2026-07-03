@@ -1,61 +1,90 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.AI.Abstractions;
+using Cad3PLogBrowser.AI.Context;
+using Cad3PLogBrowser.AI.Models;
+using Cad3PLogBrowser.AI.Security;
+using Cad3PLogBrowser.AI.Services;
 
 namespace Cad3PLogBrowser.Managers
 {
     /// <summary>
-    /// AI Assistant Panel — Option B hybrid approach.
-    ///
-    /// Shows offline analysis by default. When Claude API is enabled in Settings,
-    /// all buttons silently upgrade to real API calls with no UI change needed.
-    ///
-    /// Buttons: Summarize | Detect Anomalies | Root Cause | Bug Report | Performance | Patterns
-    /// Chat:    Multi-turn text input that routes to L6 (offline keyword or Claude API).
+    /// AI Assistant Panel with modern AI framework integration.
+    /// Supports multiple AI providers (Anthropic, OpenAI, Azure OpenAI, etc.)
     /// </summary>
     public class AiAssistantPanel : Panel
     {
-        // ── Events ────────────────────────────────────────────────────────────
-        public event EventHandler<string>  QuerySubmitted;
-        public event EventHandler          SummarizeRequested;
-        public event EventHandler          DetectAnomaliesRequested;
-        public event EventHandler          AnalyzePerformanceRequested;
-        public event EventHandler          FindPatternsRequested;
-        public event EventHandler          RootCauseRequested;       // L4
-        public event EventHandler          BugReportRequested;       // L5
-        public event EventHandler<string>  ChatMessageSubmitted;     // L6
+        // ?? AI Service ????????????????????????????????????????????????????????
+        private AIService _aiService;
+        private Func<Models.AggregateStats> _getStats;
+        private Func<List<Services.ApiPerfStats>> _getPerfStats;
+        private Func<string> _getCurrentFilePath;
+        private Func<string> _getSelectedText;
+        private CancellationTokenSource _cancellationTokenSource;
 
-        // ── Controls ─────────────────────────────────────────────────────────
+        // ?? Events ????????????????????????????????????????????????????????????
+        public event EventHandler SettingsRequested;
+
+        // ?? Controls ?????????????????????????????????????????????????????????
         private Label      _statusLabel;
         private Label      _apiModeLabel;
         private Panel      _buttonPanel;
-        private Panel      _inputPanel;   // Issue 5 Fix: store as field so UpdateTheme can reach it
-        private Button     _summarizeBtn, _anomalyBtn, _perfBtn,
-                           _patternsBtn, _rootCauseBtn, _bugReportBtn;
-        private TextBox    _queryBox;
-        private Button     _askBtn, _chatBtn, _clearBtn;
+        private Panel      _inputPanel;
+        private Button     _summarizeBtn, _rootCauseBtn, _findErrorsBtn,
+                           _findWarningsBtn, _perfBtn, _timelineBtn;
+        private TextBox    _chatInputBox;
+        private Button     _sendBtn, _clearBtn, _settingsBtn;
         private RichTextBox _responseBox;
+        private ProgressBar _progressBar;
+        private Label       _tokenLabel;
 
-        // Chat history for L6
-        private readonly List<(string role, string content)> _chatHistory
-            = new List<(string, string)>();
-        public List<(string role, string content)> ChatHistory => _chatHistory;
-
-        public AiAssistantPanel()
+        public AiAssistantPanel(
+            Func<Models.AggregateStats> getStats,
+            Func<List<Services.ApiPerfStats>> getPerfStats,
+            Func<string> getCurrentFilePath,
+            Func<string> getSelectedText)
         {
+            _getStats = getStats;
+            _getPerfStats = getPerfStats;
+            _getCurrentFilePath = getCurrentFilePath;
+            _getSelectedText = getSelectedText;
+
+            InitializeAIService();
             BuildUI();
+        }
+
+        private void InitializeAIService()
+        {
+            try
+            {
+                var settings = AISettingsService.Load();
+                _aiService = new AIService(settings);
+                UpdateStatusLabel();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to initialize AI service: {ex.Message}");
+            }
+        }
+
+        public void RefreshAIService()
+        {
+            InitializeAIService();
+            UpdateStatusLabel();
         }
 
         private void BuildUI()
         {
             SuspendLayout();
 
-            // ── API mode indicator ─────────────────────────────────────────
+            // ?? API mode indicator ?????????????????????????????????????????
             _apiModeLabel = new Label
             {
-                Text      = "Mode: Offline (enable Claude API in Settings > AI)",
+                Text      = GetProviderStatus(),
                 Dock      = DockStyle.Top,
                 Height    = 22,
                 Font      = new Font("Segoe UI", 8f),
@@ -64,19 +93,42 @@ namespace Cad3PLogBrowser.Managers
                 BackColor = Color.FromArgb(40, 44, 54)
             };
 
-            // ── Title ──────────────────────────────────────────────────────
-            _statusLabel = new Label
+            // ?? Title with Settings button ????????????????????????????????
+            var titlePanel = new Panel
             {
-                Text      = "AI Assistant — Log Analysis",
                 Dock      = DockStyle.Top,
-                Height    = 28,
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(200, 215, 240),
-                Padding   = new Padding(8, 5, 0, 0),
+                Height    = 32,
                 BackColor = Color.FromArgb(35, 38, 48)
             };
 
-            // ── Button rows ────────────────────────────────────────────────
+            _statusLabel = new Label
+            {
+                Text      = "AI Assistant",
+                Dock      = DockStyle.Fill,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(200, 215, 240),
+                Padding   = new Padding(8, 7, 0, 0),
+                BackColor = Color.Transparent
+            };
+
+            _settingsBtn = new Button
+            {
+                Text      = "? Settings",
+                Dock      = DockStyle.Right,
+                Width     = 100,
+                Height    = 28,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(45, 50, 62),
+                ForeColor = Color.FromArgb(200, 215, 240),
+                Margin    = new Padding(0, 2, 5, 2),
+                Cursor    = Cursors.Hand
+            };
+            _settingsBtn.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            _settingsBtn.Click += (s, e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+            titlePanel.Controls.AddRange(new Control[] { _statusLabel, _settingsBtn });
+
+            // ?? Analysis Buttons ??????????????????????????????????????????
             _buttonPanel = new Panel
             {
                 Height    = 70,
@@ -85,339 +137,455 @@ namespace Cad3PLogBrowser.Managers
                 Padding   = new Padding(6, 4, 6, 4)
             };
 
-            _summarizeBtn  = MakeBtn("Summarize",       0);
-            _anomalyBtn    = MakeBtn("Anomalies",       1);
-            _rootCauseBtn  = MakeBtn("Root Cause",      2);
-            _bugReportBtn  = MakeBtn("Bug Report",      3);
-            _perfBtn       = MakeBtn("Performance",     4);
-            _patternsBtn   = MakeBtn("Patterns",        5);
+            _summarizeBtn     = MakeBtn("?? Summarize",       0);
+            _rootCauseBtn     = MakeBtn("?? Root Cause",      1);
+            _findErrorsBtn    = MakeBtn("? Find Errors",     2);
+            _findWarningsBtn  = MakeBtn("? Find Warnings",   3);
+            _perfBtn          = MakeBtn("? Performance",     4);
+            _timelineBtn      = MakeBtn("?? Timeline",        5);
 
-            _summarizeBtn.Click  += (s, e) => SummarizeRequested?.Invoke(this, EventArgs.Empty);
-            _anomalyBtn.Click    += (s, e) => DetectAnomaliesRequested?.Invoke(this, EventArgs.Empty);
-            _rootCauseBtn.Click  += (s, e) => RootCauseRequested?.Invoke(this, EventArgs.Empty);
-            _bugReportBtn.Click  += (s, e) => BugReportRequested?.Invoke(this, EventArgs.Empty);
-            _perfBtn.Click       += (s, e) => AnalyzePerformanceRequested?.Invoke(this, EventArgs.Empty);
-            _patternsBtn.Click   += (s, e) => FindPatternsRequested?.Invoke(this, EventArgs.Empty);
+            _summarizeBtn.Click     += async (s, e) => await RunAnalysisAsync(AnalysisType.Summarize);
+            _rootCauseBtn.Click     += async (s, e) => await RunAnalysisAsync(AnalysisType.RootCause);
+            _findErrorsBtn.Click    += async (s, e) => await RunAnalysisAsync(AnalysisType.FindErrors);
+            _findWarningsBtn.Click  += async (s, e) => await RunAnalysisAsync(AnalysisType.FindWarnings);
+            _perfBtn.Click          += async (s, e) => await RunAnalysisAsync(AnalysisType.Performance);
+            _timelineBtn.Click      += async (s, e) => await RunAnalysisAsync(AnalysisType.Timeline);
 
             _buttonPanel.Controls.AddRange(new Control[]
-                { _summarizeBtn, _anomalyBtn, _rootCauseBtn, _bugReportBtn, _perfBtn, _patternsBtn });
-
-            // ── Chat / query input ─────────────────────────────────────────
-            _inputPanel = new Panel
             {
-                Height    = 36,
-                Dock      = DockStyle.Bottom,
-                BackColor = Color.FromArgb(35, 38, 48)
+                _summarizeBtn, _rootCauseBtn, _findErrorsBtn,
+                _findWarningsBtn, _perfBtn, _timelineBtn
+            });
+
+            // ?? Response Display ??????????????????????????????????????????
+            _responseBox = new RichTextBox
+            {
+                Dock        = DockStyle.Fill,
+                Font        = new Font("Segoe UI", 9.5f),
+                BackColor   = Color.FromArgb(30, 33, 43),
+                ForeColor   = Color.FromArgb(210, 220, 235),
+                BorderStyle = BorderStyle.None,
+                ReadOnly    = true,
+                Padding     = new Padding(10),
+                Text        = "Welcome to AI Assistant!\n\n" +
+                             "� Click any analysis button above to analyze the log\n" +
+                             "� Or type a question below for interactive chat\n" +
+                             "� Configure AI provider in Settings if not done yet"
             };
 
-            _queryBox = new TextBox
+            // ?? Progress Bar ??????????????????????????????????????????????
+            _progressBar = new ProgressBar
+            {
+                Dock    = DockStyle.Bottom,
+                Height  = 3,
+                Style   = ProgressBarStyle.Marquee,
+                Visible = false
+            };
+
+            // ?? Token Usage Display ???????????????????????????????????????
+            _tokenLabel = new Label
+            {
+                Dock      = DockStyle.Bottom,
+                Height    = 22,
+                Font      = new Font("Segoe UI", 8f),
+                ForeColor = Color.FromArgb(130, 140, 160),
+                Padding   = new Padding(8, 3, 0, 0),
+                BackColor = Color.FromArgb(35, 38, 48),
+                Text      = "Ready"
+            };
+
+            // ?? Chat Input ????????????????????????????????????????????????
+            _inputPanel = new Panel
+            {
+                Height    = 40,
+                Dock      = DockStyle.Bottom,
+                BackColor = Color.FromArgb(35, 38, 48),
+                Padding   = new Padding(6, 5, 6, 5)
+            };
+
+            _chatInputBox = new TextBox
             {
                 Dock        = DockStyle.Fill,
                 Font        = new Font("Segoe UI", 9.5f),
                 BackColor   = Color.FromArgb(48, 52, 64),
-                ForeColor   = Color.Gray,
+                ForeColor   = Color.FromArgb(210, 220, 235),
                 BorderStyle = BorderStyle.FixedSingle,
-                Text        = "Ask a question or type a chat message..."
+                Multiline   = false,
+                Height      = 30
             };
+            _chatInputBox.KeyDown += ChatInput_KeyDown;
 
-            // Implement placeholder behavior manually (PlaceholderText not available in .NET Framework 4.8)
-            _queryBox.GotFocus += (s, e) =>
+            _sendBtn = MakeSmallBtn("Send", DockStyle.Right, 70);
+            _sendBtn.Click += async (s, e) => await SendChatMessageAsync();
+
+            _clearBtn = MakeSmallBtn("Clear", DockStyle.Right, 70);
+            _clearBtn.Click += (s, e) => ClearResponse();
+
+            _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _clearBtn });
+
+            // ?? Add all to panel ??????????????????????????????????????????
+            Controls.AddRange(new Control[]
             {
-                if (_queryBox.ForeColor == Color.Gray && _queryBox.Text == "Ask a question or type a chat message...")
-                {
-                    _queryBox.Text = "";
-                    // Use theme-aware active text color so text is readable in both dark and light themes
-                    _queryBox.ForeColor = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
-                        ? Color.FromArgb(210, 220, 235)
-                        : Color.Black;
-                }
-            };
-            _queryBox.LostFocus += (s, e) =>
-            {
-                if (string.IsNullOrWhiteSpace(_queryBox.Text))
-                {
-                    _queryBox.Text = "Ask a question or type a chat message...";
-                    _queryBox.ForeColor = Color.Gray;
-                }
-            };
-
-            _queryBox.KeyDown += (s, e) =>
-            {
-                if (e.KeyCode == Keys.Enter && !e.Shift) { e.SuppressKeyPress = true; Submit(); }
-            };
-
-            _askBtn = MakeSmallBtn("Ask", DockStyle.Right, 55);
-            _askBtn.Click += (s, e) => Submit();
-
-            _chatBtn = MakeSmallBtn("Chat", DockStyle.Right, 55);
-            _chatBtn.Click += (s, e) => SubmitChat();
-
-            _clearBtn = MakeSmallBtn("Clear", DockStyle.Right, 50);
-            _clearBtn.BackColor = Color.FromArgb(60, 40, 40);
-            _clearBtn.Click += (s, e) => { _responseBox.Clear(); _chatHistory.Clear(); };
-
-            _inputPanel.Controls.Add(_queryBox);
-            _inputPanel.Controls.Add(_askBtn);
-            _inputPanel.Controls.Add(_chatBtn);
-            _inputPanel.Controls.Add(_clearBtn);
-
-            // ── Response area ──────────────────────────────────────────────
-            _responseBox = new RichTextBox
-            {
-                Dock        = DockStyle.Fill,
-                ReadOnly    = true,
-                Font        = new Font("Consolas", 9f),
-                BackColor   = Color.FromArgb(22, 24, 30),
-                ForeColor   = Color.FromArgb(200, 215, 235),
-                BorderStyle = BorderStyle.None,
-                ScrollBars  = RichTextBoxScrollBars.Vertical
-                // Welcome text is set in UpdateTheme() so it picks up the correct ForeColor
-            };
-
-            // Add in reverse Dock order (Fill goes first)
-            Controls.Add(_responseBox);
-            Controls.Add(_inputPanel);
-            Controls.Add(_buttonPanel);
-            Controls.Add(_apiModeLabel);
-            Controls.Add(_statusLabel);
+                _responseBox,
+                _progressBar,
+                _tokenLabel,
+                _inputPanel,
+                _buttonPanel,
+                titlePanel,
+                _apiModeLabel
+            });
 
             ResumeLayout();
-
-            // Issue 5 Fix: apply correct theme colors immediately on creation,
-            // so light-mode start-up doesn't show dark hardcoded colors.
-            UpdateTheme();
         }
 
-        // ── Submit helpers ────────────────────────────────────────────────────
-        private void Submit()
+        // ?? Button Factory ????????????????????????????????????????????????????
+        private Button MakeBtn(string text, int col)
         {
-            string q = _queryBox.Text.Trim();
-            if (string.IsNullOrEmpty(q)) return;
-            _queryBox.Clear();
-            QuerySubmitted?.Invoke(this, q);
-        }
+            int w = 90, h = 28, gap = 4;
+            int rowHeight = h + gap;
+            int row = col / 3;
+            int colInRow = col % 3;
 
-        private void SubmitChat()
-        {
-            string q = _queryBox.Text.Trim();
-            if (string.IsNullOrEmpty(q)) return;
-            _queryBox.Clear();
-            AppendChatTurn("user", q);
-            ChatMessageSubmitted?.Invoke(this, q);
-        }
-
-        // ── Public API called by MainForm ─────────────────────────────────────
-        public void SetApiMode(bool apiEnabled)
-        {
-            if (_apiModeLabel == null) return;
-            _apiModeLabel.Text      = apiEnabled
-                ? "Mode: Claude API (enhanced AI responses)"
-                : "Mode: Offline (enable Claude API in Settings > AI)";
-            _apiModeLabel.ForeColor = apiEnabled
-                ? Color.FromArgb(100, 200, 120)
-                : Color.FromArgb(130, 140, 160);
-        }
-
-        public void ShowThinking(bool thinking)
-        {
-            _statusLabel.Text = thinking ? "AI Assistant — Thinking..." : "AI Assistant — Log Analysis";
-            bool e = !thinking;
-            foreach (var btn in new[] { _summarizeBtn, _anomalyBtn, _rootCauseBtn,
-                                        _bugReportBtn, _perfBtn, _patternsBtn, _askBtn, _chatBtn })
-                btn.Enabled = e;
-            _queryBox.Enabled = e;
-            // Use theme-aware muted color for the "thinking" indicator
-            if (thinking) AppendText("\n[Analysing...]\n", ThinkingColor);
-        }
-
-        public void ShowResponse(string response) => AppendText("\n" + response + "\n", ResponseColor);
-        public void ShowError(string error)        => AppendText("\nERROR: " + error + "\n", ErrorColor);
-        public void ShowAnalysis(string text)      => ShowResponse(text);
-
-        public void AppendChatTurn(string role, string text)
-        {
-            _chatHistory.Add((role, text));
-            // Label colors that are readable in both dark and light themes
-            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-            Color labelColor = role == "user"
-                ? (isDark ? Color.FromArgb(100, 160, 255) : Color.FromArgb( 30,  90, 200))
-                : (isDark ? Color.FromArgb( 80, 200, 120) : Color.FromArgb( 20, 130,  60));
-            string label = role == "user" ? "You" : "Claude";
-            AppendText($"\n[{label}] ", labelColor);
-            AppendText(text + "\n", ResponseColor);
-        }
-
-        public void ClearResponse() { _responseBox.Clear(); _chatHistory.Clear(); }
-
-        // ── Theme-aware color helpers ─────────────────────────────────────────
-
-        /// <summary>Body / response text color — readable on both dark and light backgrounds.</summary>
-        private Color ResponseColor =>
-            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
-                ? Color.FromArgb(200, 215, 235)   // soft white-blue on dark bg
-                : Color.FromArgb( 30,  40,  60);  // near-black on white bg
-
-        /// <summary>Error text color — visible in both themes.</summary>
-        private Color ErrorColor =>
-            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
-                ? Color.FromArgb(255, 100, 100)   // bright red on dark bg
-                : Color.FromArgb(180,  20,  20);  // deep red on white bg
-
-        /// <summary>Muted "thinking / analysing" indicator color.</summary>
-        private Color ThinkingColor =>
-            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
-                ? Color.FromArgb(140, 160, 200)   // muted blue-grey on dark bg
-                : Color.FromArgb( 80, 100, 150);  // slate on white bg
-
-        // ── Rendering helpers ─────────────────────────────────────────────────
-        private void AppendText(string text, Color color)
-        {
-            if (InvokeRequired) { Invoke((Action<string, Color>)AppendText, text, color); return; }
-            _responseBox.SelectionStart  = _responseBox.TextLength;
-            _responseBox.SelectionLength = 0;
-            _responseBox.SelectionColor  = color;
-            _responseBox.AppendText(text);
-            // Reset to the response box's current ForeColor so un-styled text inherits the theme
-            _responseBox.SelectionColor  = _responseBox.ForeColor;
-            _responseBox.ScrollToCaret();
-        }
-
-        private static Button MakeBtn(string text, int index)
-        {
-            int col = index % 3, row = index / 3;
             return new Button
             {
                 Text      = text,
-                Location  = new Point(6 + col * 110, 4 + row * 30),
-                Size      = new Size(106, 26),
+                Location  = new Point(gap + colInRow * (w + gap), gap + row * rowHeight),
+                Size      = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(50, 60, 85),
+                BackColor = Color.FromArgb(45, 50, 62),
                 ForeColor = Color.FromArgb(200, 215, 240),
                 Font      = new Font("Segoe UI", 8.5f),
-                FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 130) }
+                Cursor    = Cursors.Hand,
+                TabStop   = false
             };
         }
 
-        private static Button MakeSmallBtn(string text, DockStyle dock, int width) => new Button
+        private Button MakeSmallBtn(string text, DockStyle dock, int width)
         {
-            Text      = text,
-            Width     = width,
-            Dock      = dock,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.FromArgb(50, 60, 85),
-            ForeColor = Color.FromArgb(200, 215, 240),
-            Font      = new Font("Segoe UI", 8.5f),
-            FlatAppearance = { BorderColor = Color.FromArgb(70, 90, 130) }
-        };
-
-        /// <summary>
-        /// Updates the panel colors based on current theme.
-        /// Call this after theme changes.
-        /// </summary>
-        public void UpdateTheme()
-        {
-            bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-
-            if (isDark)
+            var btn = new Button
             {
-                // Dark theme colors
-                _apiModeLabel.BackColor = Color.FromArgb(40, 44, 54);
-                _apiModeLabel.ForeColor = _apiModeLabel.Text.Contains("Claude API") 
-                    ? Color.FromArgb(100, 200, 120) 
-                    : Color.FromArgb(130, 140, 160);
+                Text      = text,
+                Dock      = dock,
+                Width     = width,
+                Height    = 28,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(45, 50, 62),
+                ForeColor = Color.FromArgb(200, 215, 240),
+                Font      = new Font("Segoe UI", 9f),
+                Margin    = new Padding(3, 0, 0, 0),
+                Cursor    = Cursors.Hand,
+                TabStop   = false
+            };
+            btn.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            return btn;
+        }
 
-                _statusLabel.BackColor = Color.FromArgb(35, 38, 48);
-                _statusLabel.ForeColor = Color.FromArgb(200, 215, 240);
+        // ?? Analysis Execution ????????????????????????????????????????????????
+        private async Task RunAnalysisAsync(AnalysisType analysisType)
+        {
+            if (!CheckAIAvailable()) return;
 
-                _buttonPanel.BackColor = Color.FromArgb(35, 38, 48);
-                foreach (Control ctrl in _buttonPanel.Controls)
+            // Cancel any ongoing operation
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            // Create context providers
+            var contextProviders = CreateContextProviders();
+
+            // Clear previous response
+            _responseBox.Clear();
+            ShowProgress($"Running {analysisType} analysis...");
+
+            try
+            {
+                await _aiService.AnalyzeStreamingAsync(
+                    analysisType,
+                    contextProviders,
+                    onChunkReceived: chunk => AppendText(chunk),
+                    onComplete: result => OnAnalysisCompleteAnalysis(result),
+                    onError: ex => OnAnalysisError(ex),
+                    cancellationToken: _cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                OnAnalysisError(ex);
+            }
+        }
+
+        private async Task SendChatMessageAsync()
+        {
+            string message = _chatInputBox.Text.Trim();
+            if (string.IsNullOrEmpty(message)) return;
+
+            if (!CheckAIAvailable()) return;
+
+            // Start conversation if not already started
+            if (_aiService.ActiveConversation == null)
+            {
+                _aiService.StartConversation();
+                _responseBox.Clear();
+            }
+
+            // Display user message
+            AppendText($"\n\nYou: {message}\n\n");
+            _chatInputBox.Clear();
+
+            // Context for first message only
+            var contextProviders = _aiService.ActiveConversation.Messages.Count == 0
+                ? CreateContextProviders()
+                : null;
+
+            // Cancel any ongoing operation
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            ShowProgress("AI is thinking...");
+            AppendText("AI: ");
+
+            try
+            {
+                await _aiService.SendConversationMessageStreamingAsync(
+                    message,
+                    onChunkReceived: chunk => AppendText(chunk),
+                    onComplete: result => OnAnalysisComplete(result),
+                    onError: ex => OnAnalysisError(ex),
+                    contextProviders: contextProviders,
+                    cancellationToken: _cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                OnAnalysisError(ex);
+            }
+        }
+
+        private void ChatInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && !e.Shift)
+            {
+                e.SuppressKeyPress = true;
+                _ = SendChatMessageAsync();
+            }
+        }
+
+        // ?? Context Providers ?????????????????????????????????????????????????
+        private List<IContextProvider> CreateContextProviders()
+        {
+            var providers = new List<IContextProvider>();
+
+            try
+            {
+                var stats = _getStats?.Invoke();
+                if (stats != null)
                 {
-                    if (ctrl is Button btn)
-                    {
-                        btn.BackColor = Color.FromArgb(50, 60, 85);
-                        btn.ForeColor = Color.FromArgb(200, 215, 240);
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(70, 90, 130);
-                    }
+                    providers.Add(new CurrentLogContextProvider(
+                        stats,
+                        _getCurrentFilePath?.Invoke(),
+                        _getSelectedText));
                 }
 
-                // Issue 5 Fix: style input panel and its buttons
-                _inputPanel.BackColor = Color.FromArgb(35, 38, 48);
-                foreach (Control ctrl in _inputPanel.Controls)
+                var selectedText = _getSelectedText?.Invoke();
+                if (!string.IsNullOrEmpty(selectedText))
                 {
-                    if (ctrl is Button btn)
-                    {
-                        btn.BackColor = btn == _clearBtn
-                            ? Color.FromArgb(60, 40, 40)
-                            : Color.FromArgb(50, 60, 85);
-                        btn.ForeColor = Color.FromArgb(200, 215, 240);
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(70, 90, 130);
-                    }
+                    providers.Add(new SelectedLinesContextProvider(_getSelectedText));
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating context providers: {ex.Message}");
+            }
 
-                _queryBox.BackColor = Color.FromArgb(48, 52, 64);
-                _queryBox.ForeColor = _queryBox.Text == "Ask a question or type a chat message..." 
-                    ? Color.Gray 
-                    : Color.FromArgb(210, 220, 235);
+            return providers;
+        }
 
-                _responseBox.BackColor = Color.FromArgb(22, 24, 30);
-                _responseBox.ForeColor = Color.FromArgb(200, 215, 235);
-                // Refresh welcome text with the now-correct ForeColor
-                if (string.IsNullOrWhiteSpace(_responseBox.Text))
-                    _responseBox.Text = "Welcome to AI Assistant\n\nQuick Actions (top buttons):\n  Summarize    — overall health and session overview\n  Anomalies    — statistical outliers and unusual patterns\n  Root Cause   — likely causes of errors and warnings\n  Bug Report   — structured bug report from log data\n  Performance  — top time consumers and call metrics\n  Patterns     — repeated errors, escalation, hotspots\n\nChat / Ask:\n  Type a question and press Ask or Chat (multi-turn)\n  e.g. \"What caused the errors?\"\n       \"Which APIs are the slowest?\"\n\nTip: Enable Claude API in Settings > AI for enhanced answers.\n";
+        // ?? UI Updates ????????????????????????????????????????????????????????
+        private void ShowProgress(string message)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => ShowProgress(message)));
+                return;
+            }
 
-                this.BackColor = Color.FromArgb(28, 30, 38);
+            _progressBar.Visible = true;
+            _tokenLabel.Text = message;
+            _sendBtn.Enabled = false;
+            _summarizeBtn.Enabled = false;
+            _rootCauseBtn.Enabled = false;
+            _findErrorsBtn.Enabled = false;
+            _findWarningsBtn.Enabled = false;
+            _perfBtn.Enabled = false;
+            _timelineBtn.Enabled = false;
+        }
+
+        private void HideProgress()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(HideProgress));
+                return;
+            }
+
+            _progressBar.Visible = false;
+            _sendBtn.Enabled = true;
+            _summarizeBtn.Enabled = true;
+            _rootCauseBtn.Enabled = true;
+            _findErrorsBtn.Enabled = true;
+            _findWarningsBtn.Enabled = true;
+            _perfBtn.Enabled = true;
+            _timelineBtn.Enabled = true;
+        }
+
+        private void AppendText(string text)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AppendText(text)));
+                return;
+            }
+
+            _responseBox.AppendText(text);
+            _responseBox.SelectionStart = _responseBox.Text.Length;
+            _responseBox.ScrollToCaret();
+        }
+
+        private void OnAnalysisComplete(IAIResponse result)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => OnAnalysisComplete(result)));
+                return;
+            }
+
+            HideProgress();
+
+            if (result.Success)
+            {
+                var tokenInfo = result.TotalTokens.HasValue
+                    ? $" � {result.TotalTokens.Value} tokens"
+                    : "";
+                var timeInfo = result.ElapsedTime.TotalSeconds > 0
+                    ? $" � {result.ElapsedTime.TotalSeconds:F1}s"
+                    : "";
+                _tokenLabel.Text = $"? Complete{tokenInfo}{timeInfo}";
             }
             else
             {
-                // Light theme colors
-                _apiModeLabel.BackColor = Color.FromArgb(240, 240, 245);
-                _apiModeLabel.ForeColor = _apiModeLabel.Text.Contains("Claude API") 
-                    ? Color.FromArgb(0, 120, 40) 
-                    : Color.FromArgb(100, 100, 120);
+                _tokenLabel.Text = "? Failed";
+            }
+        }
 
-                _statusLabel.BackColor = Color.FromArgb(230, 235, 245);
-                _statusLabel.ForeColor = Color.FromArgb(40, 50, 80);
-
-                _buttonPanel.BackColor = Color.FromArgb(235, 240, 250);
-                foreach (Control ctrl in _buttonPanel.Controls)
-                {
-                    if (ctrl is Button btn)
-                    {
-                        btn.BackColor = Color.FromArgb(200, 210, 230);
-                        btn.ForeColor = Color.FromArgb(40, 50, 70);
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
-                    }
-                }
-
-                // Issue 5 Fix: style input panel and its buttons
-                _inputPanel.BackColor = Color.FromArgb(235, 240, 250);
-                foreach (Control ctrl in _inputPanel.Controls)
-                {
-                    if (ctrl is Button btn)
-                    {
-                        btn.BackColor = btn == _clearBtn
-                            ? Color.FromArgb(220, 200, 200)
-                            : Color.FromArgb(200, 210, 230);
-                        btn.ForeColor = Color.FromArgb(40, 50, 70);
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(150, 160, 180);
-                    }
-                }
-
-                _queryBox.BackColor = Color.White;
-                _queryBox.ForeColor = _queryBox.Text == "Ask a question or type a chat message..." 
-                    ? Color.Gray 
-                    : Color.Black;
-
-                _responseBox.BackColor = Color.White;
-                _responseBox.ForeColor = Color.Black;
-                // Refresh welcome text with the now-correct ForeColor
-                if (string.IsNullOrWhiteSpace(_responseBox.Text))
-                    _responseBox.Text = "Welcome to AI Assistant\n\nQuick Actions (top buttons):\n  Summarize    — overall health and session overview\n  Anomalies    — statistical outliers and unusual patterns\n  Root Cause   — likely causes of errors and warnings\n  Bug Report   — structured bug report from log data\n  Performance  — top time consumers and call metrics\n  Patterns     — repeated errors, escalation, hotspots\n\nChat / Ask:\n  Type a question and press Ask or Chat (multi-turn)\n  e.g. \"What caused the errors?\"\n       \"Which APIs are the slowest?\"\n\nTip: Enable Claude API in Settings > AI for enhanced answers.\n";
-
-                this.BackColor = Color.FromArgb(235, 240, 250);
+        private void OnAnalysisCompleteAnalysis(AnalysisResult result)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => OnAnalysisCompleteAnalysis(result)));
+                return;
             }
 
-            Invalidate(true);
+            HideProgress();
+
+            if (result.Success)
+            {
+                var tokenInfo = result.TokensUsed.HasValue
+                    ? $" � {result.TokensUsed.Value} tokens"
+                    : "";
+                var timeInfo = result.ElapsedTime.TotalSeconds > 0
+                    ? $" � {result.ElapsedTime.TotalSeconds:F1}s"
+                    : "";
+                _tokenLabel.Text = $"? Complete{tokenInfo}{timeInfo}";
+            }
+            else
+            {
+                _tokenLabel.Text = "? Failed";
+            }
+        }
+
+        private void OnAnalysisError(Exception ex)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => OnAnalysisError(ex)));
+                return;
+            }
+
+            HideProgress();
+            AppendText($"\n\n? Error: {ex.Message}");
+            _tokenLabel.Text = "? Error occurred";
+        }
+
+        private void ClearResponse()
+        {
+            _responseBox.Clear();
+            _aiService?.EndConversation();
+            _tokenLabel.Text = "Ready";
+            _responseBox.Text = "Conversation cleared. Start a new chat or run an analysis.";
+        }
+
+        private void UpdateStatusLabel()
+        {
+            if (_apiModeLabel != null)
+            {
+                _apiModeLabel.Text = GetProviderStatus();
+            }
+        }
+
+        private string GetProviderStatus()
+        {
+            if (_aiService == null || !_aiService.IsEnabled)
+                return "? AI Disabled - Click Settings to configure";
+
+            var provider = _aiService.CurrentProvider;
+            if (provider == null)
+                return "? No provider configured";
+
+            return $"? {provider.ProviderName} ready";
+        }
+
+        private bool CheckAIAvailable()
+        {
+            if (_aiService == null || !_aiService.IsEnabled)
+            {
+                var result = MessageBox.Show(
+                    "AI features are not configured.\n\nWould you like to configure them now?",
+                    "AI Not Configured",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    SettingsRequested?.Invoke(this, EventArgs.Empty);
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        // ?? Theme Support ?????????????????????????????????????????????????????
+        public void UpdateTheme()
+        {
+            // This method can be called from MainForm when theme changes
+            // Color scheme already set in BuildUI, but can be updated here if needed
+        }
+
+        public void SetApiMode(bool enabled)
+        {
+            // Legacy method for compatibility
+            UpdateStatusLabel();
+        }
+
+        public void AppendResponse(string text)
+        {
+            AppendText(text);
+        }
+
+        public void SetStatus(string text)
+        {
+            if (_tokenLabel != null)
+            {
+                _tokenLabel.Text = text;
+            }
         }
     }
 }

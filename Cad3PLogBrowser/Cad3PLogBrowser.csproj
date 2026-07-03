@@ -76,6 +76,35 @@
     <Compile Include="AboutForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="AI\Abstractions\IAIAuthentication.cs" />
+    <Compile Include="AI\Abstractions\IAIConversation.cs" />
+    <Compile Include="AI\Abstractions\IAIProvider.cs" />
+    <Compile Include="AI\Abstractions\IAIRequest.cs" />
+    <Compile Include="AI\Abstractions\IAIResponse.cs" />
+    <Compile Include="AI\Abstractions\IContextProvider.cs" />
+    <Compile Include="AI\Abstractions\IConversationStorage.cs" />
+    <Compile Include="AI\Abstractions\IPromptBuilder.cs" />
+    <Compile Include="AI\Abstractions\ITokenEstimator.cs" />
+    <Compile Include="AI\Context\ContextProviderBase.cs" />
+    <Compile Include="AI\Context\CurrentLogContextProvider.cs" />
+    <Compile Include="AI\Context\SelectedLinesContextProvider.cs" />
+    <Compile Include="AI\Models\AIProviderType.cs" />
+    <Compile Include="AI\Models\AISettings.cs" />
+    <Compile Include="AI\Models\AnalysisResult.cs" />
+    <Compile Include="AI\Prompts\PromptBuilder.cs" />
+    <Compile Include="AI\Prompts\SystemPrompts.cs" />
+    <Compile Include="AI\Providers\Anthropic\AnthropicConversation.cs" />
+    <Compile Include="AI\Providers\Anthropic\AnthropicProvider.cs" />
+    <Compile Include="AI\Providers\GitHub\GitHubConversation.cs" />
+    <Compile Include="AI\Providers\GitHub\GitHubCopilotProvider.cs" />
+    <Compile Include="AI\Providers\Mock\MockProvider.cs" />
+    <Compile Include="AI\Security\AISettingsService.cs" />
+    <Compile Include="AI\Security\CredentialManager.cs" />
+    <Compile Include="AI\Security\DataRedactor.cs" />
+    <Compile Include="AI\Services\AIService.cs" />
+    <Compile Include="AI\Services\ConversationStorage.cs" />
+    <Compile Include="AI\Services\TokenEstimationService.cs" />
+    <Compile Include="AI\Utilities\JsonHelper.cs" />
     <Compile Include="Managers\AiAssistantPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -163,6 +192,9 @@
     <Compile Include="Services\Search\SearchService.cs" />
     <Compile Include="Services\Core\SettingsService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI\AI\AISettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="UI\CompareLogsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -200,6 +232,18 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="AI\ARCHITECTURE.md" />
+    <None Include="AI\BUILD_SUCCESS.md" />
+    <None Include="AI\CHECKLIST.md" />
+    <None Include="AI\DELIVERABLES.md" />
+    <None Include="AI\GITHUB_COPILOT_ANALYSIS.md" />
+    <None Include="AI\GITHUB_COPILOT_INTEGRATION.md" />
+    <None Include="AI\INSTALLATION.md" />
+    <None Include="AI\INTEGRATION_COMPLETE.md" />
+    <None Include="AI\PTC_GITHUB_COPILOT_GUIDE.md" />
+    <None Include="AI\QUICKSTART.md" />
+    <None Include="AI\README.md" />
+    <None Include="AI\SUMMARY.md" />
     <None Include="app.config" />
     <None Include="COMPARISON_FEATURE_README.md" />
     <None Include="Properties\Settings.settings">

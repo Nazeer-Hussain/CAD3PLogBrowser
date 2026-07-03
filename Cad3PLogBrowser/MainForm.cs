@@ -7108,26 +7108,20 @@ namespace Cad3PLogBrowser
                 UseVisualStyleBackColor = true
             };
 
-            // Create AI panel
-            _aiPanel = new Managers.AiAssistantPanel()
+            // Create AI panel with modern AI framework
+            _aiPanel = new Managers.AiAssistantPanel(
+                getStats: () => _lastAggregateStats,
+                getPerfStats: () => _lastAiPerfStats,
+                getCurrentFilePath: () => _currentFilePath,
+                getSelectedText: () => GetSelectedLogLines()
+            )
             {
                 Dock = DockStyle.Fill,
                 Name = "aiAssistantPanel"
             };
 
-            // Initialize AI service
-            _aiService = new Services.Analysis.AiLogService(_appSettings?.ClaudeApiKey ?? "", _appSettings?.UseClaudeApi ?? false);
-
-            // Wire up events
-            _aiPanel.QuerySubmitted              += AiPanel_QuerySubmitted;
-            _aiPanel.SummarizeRequested          += AiPanel_SummarizeRequested;
-            _aiPanel.DetectAnomaliesRequested    += AiPanel_DetectAnomaliesRequested;
-            _aiPanel.AnalyzePerformanceRequested += AiPanel_AnalyzePerformanceRequested;
-            _aiPanel.FindPatternsRequested       += AiPanel_FindPatternsRequested;
-            _aiPanel.RootCauseRequested          += AiPanel_RootCauseRequested;
-            _aiPanel.BugReportRequested          += AiPanel_BugReportRequested;
-            _aiPanel.ChatMessageSubmitted        += AiPanel_ChatMessageSubmitted;
-            _aiPanel.SetApiMode(_appSettings?.UseClaudeApi ?? false);
+            // Wire up settings event
+            _aiPanel.SettingsRequested += (s, e) => ShowAISettingsDialog();
 
             // Add panel to tab
             _aiTab.Controls.Add(_aiPanel);
@@ -7194,149 +7188,43 @@ namespace Cad3PLogBrowser
             return (_lastAggregateStats, _lastAiPerfStats);
         }
 
-        private async void AiPanel_QuerySubmitted(object sender, string query)
+        // ── AI Helper Methods ────────────────────────────────────────────────
+
+        private void ShowAISettingsDialog()
         {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-            try
+            using (var dialog = new UI.AI.AISettingsDialog())
             {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                var response = await _aiService.AnalyzeAsync(query, stats, perfStats, _lastEntries);
-                _aiPanel.ShowResponse(response);
+                if (dialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    // Refresh AI service in the panel
+                    _aiPanel?.RefreshAIService();
+                    MessageBox.Show(
+                        "AI settings updated successfully!\n\nThe AI Assistant is now ready to use.",
+                        "Settings Updated",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
             }
-            catch (Exception ex)
-            {
-                _aiPanel.ShowError(string.Format(Resources.ERR_AI_QUERY_FAILED, ex.Message));
-            }
-            finally { _aiPanel.ShowThinking(false); }
         }
 
-        private async void AiPanel_SummarizeRequested(object sender, EventArgs e)
+        private string GetSelectedLogLines()
         {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
             try
             {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                var summary = await _aiService.SummarizeAsync(stats, perfStats);
-                _aiPanel.ShowResponse(summary);
+                // Return empty for now - can be enhanced later to get selected text from UI
+                // This is used to provide additional context to AI when analyzing specific log sections
+                return string.Empty;
             }
-            catch (Exception ex)
+            catch
             {
-                _aiPanel.ShowError(string.Format(Resources.ERR_AI_SUMMARIZE_FAILED, ex.Message));
+                return string.Empty;
             }
-            finally { _aiPanel.ShowThinking(false); }
         }
 
-        private async void AiPanel_DetectAnomaliesRequested(object sender, EventArgs e)
-        {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                var anomalies = await _aiService.DetectAnomaliesAsync(stats, perfStats);
-                _aiPanel.ShowResponse(anomalies);
-            }
-            catch (Exception ex)
-            {
-                _aiPanel.ShowError(string.Format(Resources.ERR_AI_ANOMALY_DETECTION_FAILED, ex.Message));
-            }
-            finally { _aiPanel.ShowThinking(false); }
-        }
-
-        private async void AiPanel_RootCauseRequested(object sender, EventArgs e)
-        {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                var result = await _aiService.SuggestRootCauseAsync(
-                    stats, perfStats, stats.ErrorCount, stats.WarningCount);
-                _aiPanel.ShowResponse(result);
-            }
-            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_ROOT_CAUSE_FAILED, ex.Message)); }
-            finally { _aiPanel.ShowThinking(false); }
-        }
-
-        private async void AiPanel_BugReportRequested(object sender, EventArgs e)
-        {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                string version = System.Reflection.Assembly.GetExecutingAssembly()
-                                     .GetName().Version?.ToString(3) ?? "unknown";
-                var result = await _aiService.GenerateBugReportAsync(stats, perfStats, version);
-                _aiPanel.ShowResponse(result);
-            }
-            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_BUG_REPORT_FAILED, ex.Message)); }
-            finally { _aiPanel.ShowThinking(false); }
-        }
-
-        private async void AiPanel_ChatMessageSubmitted(object sender, string message)
-        {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var (stats, perfStats) = BuildAiContext();
-                var result = await _aiService.ChatAsync(
-                    message, _aiPanel.ChatHistory, stats, perfStats);
-                _aiPanel.AppendChatTurn("assistant", result);
-            }
-            catch (Exception ex) { _aiPanel.ShowError(string.Format(Resources.ERR_AI_CHAT_FAILED, ex.Message)); }
-            finally { _aiPanel.ShowThinking(false); }
-        }
-
-        /// <summary>Call after settings are saved so AI service picks up new key/mode.</summary>
+        /// <summary>Call after settings are saved so AI service picks up new settings.</summary>
         public void RefreshAiService()
         {
-            _aiService?.UpdateConfig(_appSettings?.ClaudeApiKey ?? "", _appSettings?.UseClaudeApi ?? false);
-            _aiPanel?.SetApiMode(_appSettings?.UseClaudeApi ?? false);
-        }
-
-        private async void AiPanel_AnalyzePerformanceRequested(object sender, EventArgs e)
-        {
-            if (_aiService == null || _aiPanel == null || _apiPerfStats == null) return;
-
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var perfStats = Services.Analysis.AiLogService.ConvertPerfStats(_apiPerfStats);
-                var analysis = await _aiService.AnalyzePerformanceAsync(perfStats);
-                _aiPanel.ShowResponse(analysis);
-            }
-            catch (Exception ex)
-            {
-                _aiPanel.ShowError(string.Format(Resources.ERR_AI_PERFORMANCE_ANALYSIS_FAILED, ex.Message));
-            }
-            finally
-            {
-                _aiPanel.ShowThinking(false);
-            }
-        }
-
-        private async void AiPanel_FindPatternsRequested(object sender, EventArgs e)
-        {
-            if (_aiService == null || _aiPanel == null || _lastEntries == null) return;
-
-            try
-            {
-                _aiPanel.ShowThinking(true);
-                var patterns = await _aiService.FindPatternsAsync(_lastEntries);
-                _aiPanel.ShowResponse(patterns);
-            }
-            catch (Exception ex)
-            {
-                _aiPanel.ShowError(string.Format(Resources.ERR_AI_PATTERN_FINDING_FAILED, ex.Message));
-            }
-            finally
-            {
-                _aiPanel.ShowThinking(false);
-            }
+            _aiPanel?.RefreshAIService();
         }
     }
 }
