@@ -85,9 +85,11 @@
     <Compile Include="AI\Abstractions\IConversationStorage.cs" />
     <Compile Include="AI\Abstractions\IPromptBuilder.cs" />
     <Compile Include="AI\Abstractions\ITokenEstimator.cs" />
+    <Compile Include="AI\Configuration\OllamaConfigurationHelper.cs" />
     <Compile Include="AI\Context\ContextProviderBase.cs" />
     <Compile Include="AI\Context\CurrentLogContextProvider.cs" />
     <Compile Include="AI\Context\SelectedLinesContextProvider.cs" />
+    <Compile Include="AI\Examples\OllamaUsageExample.cs" />
     <Compile Include="AI\Models\AIProviderType.cs" />
     <Compile Include="AI\Models\AISettings.cs" />
     <Compile Include="AI\Models\AnalysisResult.cs" />
@@ -98,6 +100,8 @@
     <Compile Include="AI\Providers\GitHub\GitHubConversation.cs" />
     <Compile Include="AI\Providers\GitHub\GitHubCopilotProvider.cs" />
     <Compile Include="AI\Providers\Mock\MockProvider.cs" />
+    <Compile Include="AI\Providers\Ollama\OllamaConversation.cs" />
+    <Compile Include="AI\Providers\Ollama\OllamaProvider.cs" />
     <Compile Include="AI\Security\AISettingsService.cs" />
     <Compile Include="AI\Security\CredentialManager.cs" />
     <Compile Include="AI\Security\DataRedactor.cs" />
@@ -232,20 +236,51 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="AI\ARCHITECTURE.md" />
-    <None Include="AI\BUILD_SUCCESS.md" />
-    <None Include="AI\CHECKLIST.md" />
+    <None Include="..\DOCUMENTATION\ARCHITECTURE.md">
+      <Link>Documentation\ARCHITECTURE.md</Link>
+    </None>
+    <None Include="..\DOCUMENTATION\BUILD_SUCCESS.md">
+      <Link>Documentation\BUILD_SUCCESS.md</Link>
+    </None>
+    <None Include="..\DOCUMENTATION\CHECKLIST.md" />
     <None Include="AI\DELIVERABLES.md" />
+    <None Include="AI\DEVELOPER_INTEGRATION_GUIDE.md" />
+    <None Include="AI\DIALOG_HEIGHT_FIX.md" />
+    <None Include="AI\DOCUMENTATION_INDEX.md" />
+    <None Include="AI\END_USER_GUIDE.md" />
     <None Include="AI\GITHUB_COPILOT_ANALYSIS.md" />
     <None Include="AI\GITHUB_COPILOT_INTEGRATION.md" />
     <None Include="AI\INSTALLATION.md" />
     <None Include="AI\INTEGRATION_COMPLETE.md" />
+    <None Include="AI\MERGED_TAB_GUIDE.md" />
+    <None Include="AI\Providers\Ollama\FORMATTING_FIX.md" />
+    <None Include="AI\Providers\Ollama\MISSING_SPACES_DIAGNOSTIC.md" />
+    <None Include="AI\Providers\Ollama\MISSING_SPACES_SOLUTION.md" />
+    <None Include="AI\Providers\Ollama\ollama.config" />
+    <None Include="AI\Providers\Ollama\QUICKSTART.md" />
+    <None Include="AI\Providers\Ollama\QUICK_FIX_SUMMARY.md" />
+    <None Include="AI\Providers\Ollama\README.md" />
+    <None Include="AI\Providers\Ollama\SETUP_GUIDE.md" />
+    <None Include="AI\Providers\Ollama\SPACING_FIX_COMPLETE.md" />
+    <None Include="AI\Providers\Ollama\SUMMARY.md" />
+    <None Include="AI\Providers\Ollama\TROUBLESHOOTING.md" />
     <None Include="AI\PTC_GITHUB_COPILOT_GUIDE.md" />
     <None Include="AI\QUICKSTART.md" />
+    <None Include="AI\QUICK_REFERENCE.md" />
     <None Include="AI\README.md" />
+    <None Include="AI\SETTINGS_INTEGRATION_SUMMARY.md" />
+    <None Include="AI\SETTINGS_UI_GUIDE.md" />
     <None Include="AI\SUMMARY.md" />
+    <None Include="AI\TAB_MERGE_SUMMARY.md" />
     <None Include="app.config" />
     <None Include="COMPARISON_FEATURE_README.md" />
+    <None Include="Managers\AI_ASSISTANT_QUICK_GUIDE.md" />
+    <None Include="Managers\AI_ASSISTANT_UPDATES.md" />
+    <None Include="Managers\AI_IMPROVEMENTS_GUIDE.md" />
+    <None Include="Managers\AI_MARKDOWN_RENDERING.md" />
+    <None Include="Managers\CURRENT_STATUS.md" />
+    <None Include="Managers\MARKDOWN_COMPLETE_FIX.md" />
+    <None Include="Managers\MARKDOWN_VISUAL_GUIDE.md" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

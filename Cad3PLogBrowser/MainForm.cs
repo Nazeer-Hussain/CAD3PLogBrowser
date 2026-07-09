@@ -7192,18 +7192,40 @@ namespace Cad3PLogBrowser
 
         private void ShowAISettingsDialog()
         {
-            using (var dialog = new UI.AI.AISettingsDialog())
+            using (var dialog = new SettingsForm(this))
             {
+                // The SettingsForm now has an AI Settings tab
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
+                    // Apply updated settings (same as settingsMenuItem_Click)
+                    SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
+                    SetTabVisible(TabId.Raw,         _appSettings.ShowRawTab);
+                    SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
+                    SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
+                    SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
+                    SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
+                    SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+
+                    // AI tab is a dynamic TabPage — toggle directly
+                    if (_aiTab != null && mainTabControl != null)
+                    {
+                        bool showAi = _appSettings.ShowAiTab;
+                        if (showAi && !mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Add(_aiTab);
+                        else if (!showAi && mainTabControl.TabPages.Contains(_aiTab))
+                            mainTabControl.TabPages.Remove(_aiTab);
+                    }
+
+                    ApplyThemeWithOverlay();
+                    ApplyToolbarVisibility();
+                    ApplyFontSettings();
+
                     // Refresh AI service in the panel
                     _aiPanel?.RefreshAIService();
-                    MessageBox.Show(
-                        "AI settings updated successfully!\n\nThe AI Assistant is now ready to use.",
-                        "Settings Updated",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
                 }
+
+                // Refresh AI service after settings may have changed
+                RefreshAiService();
             }
         }
 

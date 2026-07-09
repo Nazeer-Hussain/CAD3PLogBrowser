@@ -1,4 +1,7 @@
 ﻿using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.AI.Models;
+using Cad3PLogBrowser.AI.Security;
+using Cad3PLogBrowser.AI.Services;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -46,6 +49,25 @@ namespace Cad3PLogBrowser
         private TextBox   txtGrokUrl, txtClaudeApiKey;
         private CheckBox  chkUseClaudeApi;
 
+        // ── AI Settings ───────────────────────────────────────────────────────
+        private CheckBox chkEnableAI;
+        private ComboBox cmbAIProvider;
+        private TextBox txtAIApiKey;
+        private Button btnShowHideAIKey;
+        private ComboBox cmbAIModel;
+        private TrackBar trackAITemperature;
+        private Label lblAITemperatureValue;
+        private NumericUpDown numAIMaxTokens;
+        private CheckBox chkAIStreaming;
+        private CheckBox chkAIRedactData;
+        private CheckBox chkAIRememberConversation;
+        private NumericUpDown numAIMaxMessages;
+        private TextBox txtOllamaServerUrl;
+        private ComboBox cmbOllamaModel;
+        private Button btnTestAIConnection;
+        private Label lblAIStatus;
+        private AISettings _aiSettings;
+
         // ── Updates (ENH-4) ───────────────────────────────────────────────────
         private CheckBox      chkCheckOnStartup;
         private NumericUpDown nudUpdateIntervalDays;
@@ -59,14 +81,11 @@ namespace Cad3PLogBrowser
         // ─────────────────────────────────────────────────────────────────────
         public SettingsForm(MainForm mainForm)
         {
-            Debug.WriteLine("SettingsForm ctor start");
-
             InitializeComponent();
 
-            Debug.WriteLine("InitializeComponent finished"); 
-            
             _mainForm = mainForm;
             _settings = mainForm.AppSettings;
+            _aiSettings = AISettingsService.Load();
             BuildUi();
             LoadCurrentSettings();
 
@@ -89,10 +108,8 @@ namespace Cad3PLogBrowser
         // ── UI Construction ───────────────────────────────────────────────────
         private void BuildUi()
         {
-            Debug.WriteLine("BuildUi start"); 
-            
             Text             = "Settings";
-            ClientSize       = new Size(556, 450);
+            ClientSize       = new Size(556, 600);
             FormBorderStyle  = FormBorderStyle.FixedDialog;
             MaximizeBox      = false;
             MinimizeBox      = false;
@@ -100,11 +117,12 @@ namespace Cad3PLogBrowser
             StartPosition    = FormStartPosition.CenterParent;
             AutoScaleMode    = AutoScaleMode.Font;
             AutoScaleDimensions = new SizeF(8f, 16f);
+            Font             = new Font("Segoe UI", 9f);
 
             var tabs = new TabControl
             {
                 Location = new Point(12, 10),
-                Size     = new Size(532, 390),
+                Size     = new Size(532, 540),
             };
 
             tabs.TabPages.Add(BuildAppearanceTab());
@@ -112,13 +130,13 @@ namespace Cad3PLogBrowser
             tabs.TabPages.Add(BuildFontTab());
             tabs.TabPages.Add(BuildFilesTab());
             tabs.TabPages.Add(BuildPerformanceTab());
-            tabs.TabPages.Add(BuildIntegrationTab());
+            tabs.TabPages.Add(BuildAIAndIntegrationTab());
             tabs.TabPages.Add(BuildUpdatesTab());   // ENH-4
 
             // Bottom buttons
-            btnResetDefaults = Btn("Reset to Defaults", 12,   414, 140, 28);
-            OkButton         = Btn("&OK",               338,  414,  90, 28);
-            CancelBtn        = Btn("&Cancel",            438,  414,  90, 28);
+            btnResetDefaults = Btn("Reset to Defaults", 12,   564, 140, 28);
+            OkButton         = Btn("&OK",               338,  564,  90, 28);
+            CancelBtn        = Btn("&Cancel",            438,  564,  90, 28);
 
             OkButton.DialogResult     = DialogResult.OK;
             CancelBtn.DialogResult    = DialogResult.Cancel;
@@ -137,8 +155,6 @@ namespace Cad3PLogBrowser
         // ── TAB: Appearance ───────────────────────────────────────────────────
         private TabPage BuildAppearanceTab()
         {
-            Debug.WriteLine("Appearance start"); 
-            
             var tp = Tab("Appearance");
 
             cmbTheme = AddRow(tp, "Theme:", 22, out _);
@@ -177,8 +193,13 @@ namespace Cad3PLogBrowser
         {
             var tp = Tab("Tabs & Layout");
 
-            var grp = new GroupBox { Text = "Visible Tabs",
-                Location = new Point(12, 10), Size = new Size(498, 136), TabStop = false };
+            var grp = new GroupBox { 
+                Text = "Visible Tabs",
+                Location = new Point(12, 10), 
+                Size = new Size(498, 136), 
+                TabStop = false,
+                Font = new Font("Segoe UI", 9f)
+            };
 
             // Row 1: Log, Raw, Performance, Log Details
             chkShowLog         = Chk(grp, "Log View",      14,  24);
@@ -282,36 +303,343 @@ namespace Cad3PLogBrowser
                 Size      = new Size(480, 34),
                 Text      = "When OFF, use the Call Tree right-click menu to filter manually.",
                 ForeColor = SystemColors.GrayText,
-                Font      = new Font("Segoe UI", 8f),
+                Font      = new Font("Segoe UI", 8.5f)
             };
             tp.Controls.Add(hint);
 
             return tp;
         }
 
-        // ── TAB: Integration ──────────────────────────────────────────────────
-        private TabPage BuildIntegrationTab()
+        // ── TAB: AI & Integration ─────────────────────────────────────────────
+        private TabPage BuildAIAndIntegrationTab()
         {
-            var tp = Tab("Integration");
+            var tp = Tab("AI & Integration");
 
-            Lbl(tp, "Grok URL:", 12, 26);
-            txtGrokUrl = new TextBox { Location = new Point(175, 22), Size = new Size(336, 23) };
-            tp.Controls.Add(txtGrokUrl);
+            // ═══ AI Settings Section ═══
+            var grpAI = new GroupBox 
+            { 
+                Text = "AI Provider", 
+                Location = new Point(12, 10), 
+                Size = new Size(498, 165),
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
 
-            Lbl(tp, "Claude API Key:", 12, 62);
-            txtClaudeApiKey = new TextBox
+            // Enable AI checkbox
+            chkEnableAI = new CheckBox
             {
-                Location = new Point(175, 58), Size = new Size(336, 23),
+                Text = "Enable AI Features",
+                Location = new Point(10, 22),
+                Size = new Size(200, 20),
+                Checked = true
+            };
+            chkEnableAI.CheckedChanged += (s, e) => UpdateAIControlsState();
+            grpAI.Controls.Add(chkEnableAI);
+
+            // Provider selection
+            grpAI.Controls.Add(new Label { 
+                Text = "Provider:", 
+                Location = new Point(10, 51), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            cmbAIProvider = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(100, 48),
+                Size = new Size(380, 24)
+            };
+            cmbAIProvider.Items.AddRange(new object[] 
+            { 
+                "Mock (Testing)", 
+                "Anthropic Claude", 
+                "GitHub Copilot",
+                "Ollama (Self-Hosted)",
+                "OpenAI (Coming Soon)", 
+                "Azure OpenAI (Coming Soon)", 
+                "Google Gemini (Coming Soon)" 
+            });
+            cmbAIProvider.SelectedIndex = 0;
+            cmbAIProvider.SelectedIndexChanged += (s, e) => UpdateAIProviderFields();
+            grpAI.Controls.Add(cmbAIProvider);
+
+            // API Key for cloud providers
+            grpAI.Controls.Add(new Label { 
+                Text = "API Key:", 
+                Location = new Point(10, 81), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            txtAIApiKey = new TextBox
+            {
+                Location = new Point(100, 78),
+                Size = new Size(330, 23),
                 UseSystemPasswordChar = true
             };
-            tp.Controls.Add(txtClaudeApiKey);
+            grpAI.Controls.Add(txtAIApiKey);
+
+            btnShowHideAIKey = new Button
+            {
+                Text = "Show",
+                Location = new Point(435, 78),
+                Size = new Size(50, 25),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 8f)
+            };
+            btnShowHideAIKey.Click += (s, e) =>
+            {
+                txtAIApiKey.UseSystemPasswordChar = !txtAIApiKey.UseSystemPasswordChar;
+                btnShowHideAIKey.Text = txtAIApiKey.UseSystemPasswordChar ? "Show" : "Hide";
+            };
+            grpAI.Controls.Add(btnShowHideAIKey);
+
+            // Ollama server URL (shown only for Ollama provider)
+            grpAI.Controls.Add(new Label { 
+                Text = "Server URL:", 
+                Location = new Point(10, 111), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            txtOllamaServerUrl = new TextBox
+            {
+                Location = new Point(100, 108),
+                Size = new Size(380, 23),
+                Text = "http://localhost:11434",
+                Visible = false
+            };
+            grpAI.Controls.Add(txtOllamaServerUrl);
+
+            // Ollama model selection
+            grpAI.Controls.Add(new Label { 
+                Text = "Model:", 
+                Location = new Point(10, 141), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            cmbOllamaModel = new ComboBox
+            {
+                Location = new Point(100, 138),
+                Size = new Size(200, 24),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Visible = false
+            };
+            cmbOllamaModel.Items.AddRange(new object[] { "llama3", "codellama", "mistral", "phi3" });
+            cmbOllamaModel.SelectedIndex = 0;
+            grpAI.Controls.Add(cmbOllamaModel);
+
+            // Model for cloud providers
+            cmbAIModel = new ComboBox
+            {
+                Location = new Point(100, 138),
+                Size = new Size(200, 24),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cmbAIModel.Items.Add("(Select provider first)");
+            cmbAIModel.SelectedIndex = 0;
+            grpAI.Controls.Add(cmbAIModel);
+
+            tp.Controls.Add(grpAI);
+
+            // ═══ Model Configuration Section ═══
+            var grpModel = new GroupBox 
+            { 
+                Text = "Model Configuration", 
+                Location = new Point(12, 182), 
+                Size = new Size(498, 110),
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+
+            // Temperature
+            grpModel.Controls.Add(new Label { 
+                Text = "Temperature:", 
+                Location = new Point(10, 25), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            trackAITemperature = new TrackBar
+            {
+                Location = new Point(100, 22),
+                Size = new Size(310, 45),
+                Minimum = 0,
+                Maximum = 20,
+                Value = 7,
+                TickFrequency = 1
+            };
+            trackAITemperature.ValueChanged += (s, e) =>
+            {
+                lblAITemperatureValue.Text = (trackAITemperature.Value / 10.0).ToString("0.0");
+            };
+            grpModel.Controls.Add(trackAITemperature);
+
+            lblAITemperatureValue = new Label
+            {
+                Text = "0.7",
+                Location = new Point(415, 27),
+                Size = new Size(65, 20),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            grpModel.Controls.Add(lblAITemperatureValue);
+
+            var lblTempHelp = new Label
+            {
+                Text = "Lower = focused, Higher = creative",
+                Location = new Point(100, 62),
+                Size = new Size(380, 18),
+                ForeColor = SystemColors.GrayText,
+                Font = new Font("Segoe UI", 8.5f)
+            };
+            grpModel.Controls.Add(lblTempHelp);
+
+            // Max tokens
+            grpModel.Controls.Add(new Label { 
+                Text = "Max Tokens:", 
+                Location = new Point(10, 85), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            numAIMaxTokens = new NumericUpDown
+            {
+                Location = new Point(100, 82),
+                Size = new Size(100, 23),
+                Minimum = 100,
+                Maximum = 200000,
+                Value = 4096,
+                Increment = 100
+            };
+            grpModel.Controls.Add(numAIMaxTokens);
+
+            // Streaming
+            chkAIStreaming = new CheckBox
+            {
+                Text = "Enable streaming",
+                Location = new Point(210, 84),
+                Size = new Size(140, 20),
+                Checked = true
+            };
+            grpModel.Controls.Add(chkAIStreaming);
+
+            tp.Controls.Add(grpModel);
+
+            // ═══ Privacy & Conversation Section ═══
+            var grpPrivacy = new GroupBox 
+            { 
+                Text = "Privacy & Conversation", 
+                Location = new Point(12, 299), 
+                Size = new Size(498, 75),
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+
+            chkAIRedactData = new CheckBox
+            {
+                Text = "Redact sensitive data (emails, IPs, paths)",
+                Location = new Point(10, 22),
+                Size = new Size(400, 20),
+                Checked = true
+            };
+            grpPrivacy.Controls.Add(chkAIRedactData);
+
+            chkAIRememberConversation = new CheckBox
+            {
+                Text = "Remember conversation history",
+                Location = new Point(10, 47),
+                Size = new Size(220, 20),
+                Checked = true
+            };
+            chkAIRememberConversation.CheckedChanged += (s, e) => UpdateAIControlsState();
+            grpPrivacy.Controls.Add(chkAIRememberConversation);
+
+            grpPrivacy.Controls.Add(new Label { 
+                Text = "Max messages:", 
+                Location = new Point(240, 49), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            numAIMaxMessages = new NumericUpDown
+            {
+                Location = new Point(345, 46),
+                Size = new Size(70, 23),
+                Minimum = 5,
+                Maximum = 100,
+                Value = 20
+            };
+            grpPrivacy.Controls.Add(numAIMaxMessages);
+
+            tp.Controls.Add(grpPrivacy);
+
+            // ═══ Legacy Integration Section ═══
+            var grpLegacy = new GroupBox 
+            { 
+                Text = "Legacy Integration (Deprecated)", 
+                Location = new Point(12, 381), 
+                Size = new Size(498, 100),
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+
+            grpLegacy.Controls.Add(new Label { 
+                Text = "Grok URL:", 
+                Location = new Point(10, 25), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            txtGrokUrl = new TextBox
+            { 
+                Location = new Point(100, 22), 
+                Size = new Size(380, 23) 
+            };
+            grpLegacy.Controls.Add(txtGrokUrl);
+
+            grpLegacy.Controls.Add(new Label { 
+                Text = "Claude Key:", 
+                Location = new Point(10, 55), 
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            });
+            txtClaudeApiKey = new TextBox
+            {
+                Location = new Point(100, 52),
+                Size = new Size(380, 23),
+                UseSystemPasswordChar = true
+            };
+            grpLegacy.Controls.Add(txtClaudeApiKey);
 
             chkUseClaudeApi = new CheckBox
             {
-                AutoSize = true, Location = new Point(175, 92),
-                Text = "Enable Claude AI integration (requires key above)"
+                Text = "Enable legacy Claude integration",
+                Location = new Point(100, 77),
+                Size = new Size(380, 20)
             };
-            tp.Controls.Add(chkUseClaudeApi);
+            grpLegacy.Controls.Add(chkUseClaudeApi);
+
+            var lblDeprecated = new Label
+            {
+                Text = "WARNING: Use 'Anthropic Claude' provider above instead",
+                Location = new Point(10, 77),
+                AutoSize = false,
+                Size = new Size(480, 20),
+                ForeColor = Color.DarkOrange,
+                Font = new Font("Segoe UI", 8f)
+            };
+            grpLegacy.Controls.Add(lblDeprecated);
+
+            tp.Controls.Add(grpLegacy);
+
+            // ═══ Connection Testing ═══
+            btnTestAIConnection = new Button
+            {
+                Text = "Test AI Connection",
+                Location = new Point(12, 488),
+                Size = new Size(140, 28)
+            };
+            btnTestAIConnection.Click += async (s, e) => await TestAIConnection();
+            tp.Controls.Add(btnTestAIConnection);
+
+            lblAIStatus = new Label
+            {
+                Text = "",
+                Location = new Point(160, 493),
+                Size = new Size(350, 20),
+                ForeColor = Color.DarkGreen
+            };
+            tp.Controls.Add(lblAIStatus);
 
             return tp;
         }
@@ -379,6 +707,52 @@ namespace Cad3PLogBrowser
             lblSkippedVersion.Text       = string.IsNullOrEmpty(_settings.SkippedVersion)
                 ? "Skipped version:  (none)"
                 : string.Format("Skipped version:  {0}", _settings.SkippedVersion);
+
+            // AI Settings
+            chkEnableAI.Checked = _aiSettings.EnableAI;
+
+            // Map AIProviderType to combo index (accounting for Ollama at index 3)
+            int providerIndex = 0;
+            switch (_aiSettings.SelectedProvider)
+            {
+                case AIProviderType.Mock: providerIndex = 0; break;
+                case AIProviderType.Anthropic: providerIndex = 1; break;
+                case AIProviderType.GitHubCopilot: providerIndex = 2; break;
+                case AIProviderType.Ollama: providerIndex = 3; break;
+                default: providerIndex = 0; break;
+            }
+            cmbAIProvider.SelectedIndex = providerIndex;
+
+            txtAIApiKey.Text = _aiSettings.GetCurrentApiKey();
+            txtOllamaServerUrl.Text = _aiSettings.OllamaServerUrl ?? "http://localhost:11434";
+
+            if (cmbOllamaModel.Items.Count > 0)
+            {
+                var ollamaModel = _aiSettings.OllamaModel ?? "llama3";
+                var modelIndex = cmbOllamaModel.FindStringExact(ollamaModel);
+                cmbOllamaModel.SelectedIndex = modelIndex >= 0 ? modelIndex : 0;
+            }
+
+            if (cmbAIModel.Items.Count > 0)
+            {
+                var currentModel = _aiSettings.GetCurrentModel();
+                var modelIndex = cmbAIModel.FindStringExact(currentModel);
+                if (modelIndex >= 0)
+                    cmbAIModel.SelectedIndex = modelIndex;
+                else
+                    cmbAIModel.SelectedIndex = 0;
+            }
+
+            trackAITemperature.Value = (int)(_aiSettings.Temperature * 10);
+            lblAITemperatureValue.Text = _aiSettings.Temperature.ToString("0.0");
+            numAIMaxTokens.Value = Math.Max(100, Math.Min(200000, _aiSettings.MaxTokens));
+            chkAIStreaming.Checked = _aiSettings.EnableStreaming;
+            chkAIRedactData.Checked = _aiSettings.RedactSensitiveData;
+            chkAIRememberConversation.Checked = _aiSettings.RememberConversation;
+            numAIMaxMessages.Value = Math.Max(5, Math.Min(100, _aiSettings.MaxConversationMessages));
+
+            UpdateAIProviderFields();
+            UpdateAIControlsState();
         }
 
         private void OkButton_Click()
@@ -437,6 +811,10 @@ namespace Cad3PLogBrowser
             // Reflect the resolved value back into the text box so the user can
             // see that the blank field was replaced with the default.
             txtManifestUrl.Text = _settings.UpdateManifestUrl;
+
+            // Save AI Settings
+            SaveAISettings();
+            AISettingsService.Save(_aiSettings);
 
             _settings.Save();
         }
@@ -557,7 +935,7 @@ namespace Cad3PLogBrowser
                 Size      = new Size(500, 18),
                 Text      = "Leave as default unless you host your own update server.",
                 ForeColor = SystemColors.GrayText,
-                Font      = new Font("Segoe UI", 8f)
+                Font      = new Font("Segoe UI", 8.5f)
             };
             tp.Controls.Add(hint);
 
@@ -600,80 +978,385 @@ namespace Cad3PLogBrowser
             return tp;
         }
 
+        // ── TAB: AI Settings ──────────────────────────────────────────────────
+        private TabPage BuildAISettingsTab()
+        {
+            var tp = Tab("AI Settings");
+
+            // Enable AI checkbox
+            chkEnableAI = new CheckBox
+            {
+                Text = "Enable AI Features",
+                Location = new Point(12, 22),
+                Size = new Size(200, 20),
+                Checked = true
+            };
+            chkEnableAI.CheckedChanged += (s, e) => UpdateAIControlsState();
+            tp.Controls.Add(chkEnableAI);
+
+            // Provider selection
+            cmbAIProvider = AddRow(tp, "AI Provider:", 52, out _);
+            cmbAIProvider.Items.AddRange(new object[] 
+            { 
+                "Mock (Testing)", 
+                "Anthropic Claude", 
+                "GitHub Copilot",
+                "Ollama (Self-Hosted)",
+                "OpenAI (Coming Soon)", 
+                "Azure OpenAI (Coming Soon)", 
+                "Google Gemini (Coming Soon)" 
+            });
+            cmbAIProvider.SelectedIndex = 0;
+            cmbAIProvider.SelectedIndexChanged += (s, e) => UpdateAIProviderFields();
+
+            // API Key for cloud providers
+            Lbl(tp, "API Key:", 12, 91);
+            txtAIApiKey = new TextBox
+            {
+                Location = new Point(175, 88),
+                Size = new Size(270, 23),
+                UseSystemPasswordChar = true
+            };
+            tp.Controls.Add(txtAIApiKey);
+
+            btnShowHideAIKey = Btn("Show", 450, 88, 50, 25);
+            btnShowHideAIKey.Font = new Font("Segoe UI", 8f);
+            btnShowHideAIKey.Click += (s, e) =>
+            {
+                txtAIApiKey.UseSystemPasswordChar = !txtAIApiKey.UseSystemPasswordChar;
+                btnShowHideAIKey.Text = txtAIApiKey.UseSystemPasswordChar ? "Show" : "Hide";
+            };
+            tp.Controls.Add(btnShowHideAIKey);
+
+            // Ollama server URL (shown only for Ollama provider)
+            Lbl(tp, "Ollama Server:", 12, 127);
+            txtOllamaServerUrl = new TextBox
+            {
+                Location = new Point(175, 124),
+                Size = new Size(320, 23),
+                Text = "http://localhost:11434",
+                Visible = false
+            };
+            tp.Controls.Add(txtOllamaServerUrl);
+
+            // Ollama model selection
+            Lbl(tp, "Ollama Model:", 12, 163);
+            cmbOllamaModel = new ComboBox
+            {
+                Location = new Point(175, 160),
+                Size = new Size(180, 24),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Visible = false
+            };
+            cmbOllamaModel.Items.AddRange(new object[] { "llama3", "codellama", "mistral", "phi3" });
+            cmbOllamaModel.SelectedIndex = 0;
+            tp.Controls.Add(cmbOllamaModel);
+
+            // Model for cloud providers
+            cmbAIModel = AddRow(tp, "Model:", 124, out _);
+            cmbAIModel.Items.Add("(Select provider first)");
+            cmbAIModel.SelectedIndex = 0;
+
+            // Temperature
+            Lbl(tp, "Temperature:", 12, 163);
+            trackAITemperature = new TrackBar
+            {
+                Location = new Point(175, 158),
+                Size = new Size(270, 45),
+                Minimum = 0,
+                Maximum = 20,
+                Value = 7,
+                TickFrequency = 1
+            };
+            trackAITemperature.ValueChanged += (s, e) =>
+            {
+                lblAITemperatureValue.Text = (trackAITemperature.Value / 10.0).ToString("0.0");
+            };
+            tp.Controls.Add(trackAITemperature);
+
+            lblAITemperatureValue = new Label
+            {
+                Text = "0.7",
+                Location = new Point(450, 163),
+                Size = new Size(45, 20),
+                TextAlign = ContentAlignment.MiddleRight
+            };
+            tp.Controls.Add(lblAITemperatureValue);
+
+            // Max tokens
+            numAIMaxTokens = AddNud(tp, "Max Tokens:", 204, 100, 200000, 4096);
+            numAIMaxTokens.Increment = 100;
+
+            // Streaming
+            chkAIStreaming = new CheckBox
+            {
+                Text = "Enable streaming responses",
+                Location = new Point(175, 236),
+                Size = new Size(300, 20),
+                Checked = true
+            };
+            tp.Controls.Add(chkAIStreaming);
+
+            // Privacy - Redact data
+            chkAIRedactData = new CheckBox
+            {
+                Text = "Redact sensitive data (emails, IPs, paths)",
+                Location = new Point(12, 268),
+                Size = new Size(400, 20),
+                Checked = true
+            };
+            tp.Controls.Add(chkAIRedactData);
+
+            // Conversation settings
+            chkAIRememberConversation = new CheckBox
+            {
+                Text = "Remember conversation history",
+                Location = new Point(12, 296),
+                Size = new Size(250, 20),
+                Checked = true
+            };
+            chkAIRememberConversation.CheckedChanged += (s, e) => UpdateAIControlsState();
+            tp.Controls.Add(chkAIRememberConversation);
+
+            numAIMaxMessages = AddNud(tp, "Max messages:", 324, 5, 100, 20);
+
+            // Test connection button
+            btnTestAIConnection = Btn("Test Connection", 12, 352, 130, 28);
+            btnTestAIConnection.Click += async (s, e) => await TestAIConnection();
+            tp.Controls.Add(btnTestAIConnection);
+
+            // Status label
+            lblAIStatus = new Label
+            {
+                Text = "",
+                Location = new Point(150, 357),
+                Size = new Size(360, 20),
+                ForeColor = Color.DarkGreen
+            };
+            tp.Controls.Add(lblAIStatus);
+
+            return tp;
+        }
+
+        private void SaveAISettings()
+        {
+            _aiSettings.EnableAI = chkEnableAI.Checked;
+
+            // Map combo index to AIProviderType
+            var providerIndex = cmbAIProvider.SelectedIndex;
+            if (providerIndex == 0) _aiSettings.SelectedProvider = AIProviderType.Mock;
+            else if (providerIndex == 1) _aiSettings.SelectedProvider = AIProviderType.Anthropic;
+            else if (providerIndex == 2) _aiSettings.SelectedProvider = AIProviderType.GitHubCopilot;
+            else if (providerIndex == 3) _aiSettings.SelectedProvider = AIProviderType.Ollama;
+            else _aiSettings.SelectedProvider = AIProviderType.None;
+
+            _aiSettings.Temperature = trackAITemperature.Value / 10.0;
+            _aiSettings.MaxTokens = (int)numAIMaxTokens.Value;
+            _aiSettings.EnableStreaming = chkAIStreaming.Checked;
+            _aiSettings.RedactSensitiveData = chkAIRedactData.Checked;
+            _aiSettings.RememberConversation = chkAIRememberConversation.Checked;
+            _aiSettings.MaxConversationMessages = (int)numAIMaxMessages.Value;
+
+            // Save provider-specific settings
+            switch (_aiSettings.SelectedProvider)
+            {
+                case AIProviderType.Anthropic:
+                    _aiSettings.AnthropicApiKey = txtAIApiKey.Text.Trim();
+                    _aiSettings.AnthropicModel = cmbAIModel.Text;
+                    break;
+
+                case AIProviderType.GitHubCopilot:
+                    _aiSettings.GitHubCopilotApiToken = txtAIApiKey.Text.Trim();
+                    _aiSettings.GitHubCopilotModel = cmbAIModel.Text;
+                    break;
+
+                case AIProviderType.Ollama:
+                    _aiSettings.OllamaServerUrl = txtOllamaServerUrl.Text.Trim();
+                    _aiSettings.OllamaModel = cmbOllamaModel.Text;
+                    break;
+            }
+        }
+
+        private void UpdateAIControlsState()
+        {
+            bool enabled = chkEnableAI.Checked;
+            cmbAIProvider.Enabled = enabled;
+
+            bool isOllama = cmbAIProvider.SelectedIndex == 3;
+            bool needsApiKey = enabled && cmbAIProvider.SelectedIndex > 0 && !isOllama;
+
+            txtAIApiKey.Enabled = needsApiKey;
+            btnShowHideAIKey.Enabled = needsApiKey;
+            txtOllamaServerUrl.Visible = enabled && isOllama;
+            cmbOllamaModel.Visible = enabled && isOllama;
+
+            cmbAIModel.Enabled = enabled && !isOllama;
+            cmbAIModel.Visible = !isOllama;
+            trackAITemperature.Enabled = enabled;
+            numAIMaxTokens.Enabled = enabled;
+            chkAIStreaming.Enabled = enabled;
+            chkAIRedactData.Enabled = enabled;
+            chkAIRememberConversation.Enabled = enabled;
+            numAIMaxMessages.Enabled = enabled && chkAIRememberConversation.Checked;
+            btnTestAIConnection.Enabled = enabled;
+        }
+
+        private void UpdateAIProviderFields()
+        {
+            var providerIndex = cmbAIProvider.SelectedIndex;
+
+            // Map combo index to AIProviderType (accounting for Ollama at index 3)
+            AIProviderType provider;
+            if (providerIndex == 0) provider = AIProviderType.Mock;
+            else if (providerIndex == 1) provider = AIProviderType.Anthropic;
+            else if (providerIndex == 2) provider = AIProviderType.GitHubCopilot;
+            else if (providerIndex == 3) provider = AIProviderType.Ollama;
+            else provider = AIProviderType.None;
+
+            cmbAIModel.Items.Clear();
+
+            bool isOllama = providerIndex == 3;
+            txtOllamaServerUrl.Visible = isOllama;
+            cmbOllamaModel.Visible = isOllama;
+            cmbAIModel.Visible = !isOllama;
+
+            switch (provider)
+            {
+                case AIProviderType.Mock:
+                    txtAIApiKey.Text = "";
+                    cmbAIModel.Items.Add("mock-model-1.0");
+                    break;
+
+                case AIProviderType.Anthropic:
+                    txtAIApiKey.Text = _aiSettings.AnthropicApiKey;
+                    cmbAIModel.Items.AddRange(new object[] 
+                    { 
+                        "claude-3-5-sonnet-20241022",
+                        "claude-3-opus-latest",
+                        "claude-3-haiku-latest"
+                    });
+                    break;
+
+                case AIProviderType.GitHubCopilot:
+                    txtAIApiKey.Text = _aiSettings.GitHubCopilotApiToken;
+                    cmbAIModel.Items.AddRange(new object[] 
+                    { 
+                        "gpt-4",
+                        "gpt-4-turbo",
+                        "gpt-3.5-turbo"
+                    });
+                    break;
+
+                case AIProviderType.Ollama:
+                    txtAIApiKey.Text = "";
+                    txtOllamaServerUrl.Text = _aiSettings.OllamaServerUrl ?? "http://localhost:11434";
+                    // Ollama uses separate combo
+                    break;
+
+                default:
+                    txtAIApiKey.Text = "";
+                    cmbAIModel.Items.Add("(Coming soon)");
+                    break;
+            }
+
+            if (cmbAIModel.Items.Count > 0)
+                cmbAIModel.SelectedIndex = 0;
+
+            UpdateAIControlsState();
+        }
+
+        private async System.Threading.Tasks.Task TestAIConnection()
+        {
+            SaveAISettings();
+
+            var aiService = new AIService(_aiSettings);
+
+            if (!aiService.IsEnabled)
+            {
+                lblAIStatus.ForeColor = Color.DarkOrange;
+                lblAIStatus.Text = "⚠ AI is disabled or not configured";
+                return;
+            }
+
+            btnTestAIConnection.Enabled = false;
+            btnTestAIConnection.Text = "Testing...";
+            lblAIStatus.Text = "Testing connection...";
+            lblAIStatus.ForeColor = Color.Blue;
+            Cursor = Cursors.WaitCursor;
+
+            try
+            {
+                var (success, message) = await aiService.TestConnectionAsync();
+
+                if (success)
+                {
+                    lblAIStatus.ForeColor = Color.DarkGreen;
+                    lblAIStatus.Text = "✓ Connection successful!";
+                }
+                else
+                {
+                    lblAIStatus.ForeColor = Color.DarkRed;
+                    lblAIStatus.Text = "✗ Connection failed: " + message;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblAIStatus.ForeColor = Color.DarkRed;
+                lblAIStatus.Text = "✗ Error: " + ex.Message;
+            }
+            finally
+            {
+                btnTestAIConnection.Enabled = true;
+                btnTestAIConnection.Text = "Test Connection";
+                Cursor = Cursors.Default;
+            }
+        }
+
         // ── Build helpers ─────────────────────────────────────────────────────
         private static TabPage Tab(string text)
         {
-            return new TabPage(text) { Padding = new Padding(10), UseVisualStyleBackColor = true };
+            return new TabPage(text) { 
+                Padding = new Padding(10), 
+                UseVisualStyleBackColor = true,
+                Font = new Font("Segoe UI", 9f)
+            };
         }
         private static ComboBox AddRow(TabPage tp, string label, int y, out Label lbl)
         {
             lbl = Lbl(tp, label, 12, y + 3);
 
-            Debug.WriteLine("DefaultFont = " + Control.DefaultFont);
-
-            if (Control.DefaultFont != null)
-            {
-                Debug.WriteLine(Control.DefaultFont.Name);
-                Debug.WriteLine(Control.DefaultFont.Size);
-                Debug.WriteLine(Control.DefaultFont.Style);
-            }
-
-            using (var f = SystemFonts.MessageBoxFont)
-            {
-                Debug.WriteLine("MessageBoxFont = " + f.Name);
-            }
-
-            try
-            {
-                using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
-                {
-                    Debug.WriteLine("Graphics OK");
-
-                    Debug.WriteLine(Control.DefaultFont.GetHeight(g));
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Graphics FAILED");
-                Debug.WriteLine(ex.ToString());
-            }
-
-            try
-            {
-                Debug.WriteLine(Control.DefaultFont.Height);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Font.Height failed");
-                Debug.WriteLine(ex.ToString());
-            }
-
-            Debug.WriteLine(Object.ReferenceEquals(Control.DefaultFont,SystemFonts.DefaultFont));
-            Debug.WriteLine(Control.DefaultFont.Equals(SystemFonts.DefaultFont));
-            Debug.WriteLine(Control.DefaultFont.GetHashCode());
-            Debug.WriteLine(SystemFonts.DefaultFont.GetHashCode());
-
-            Debug.WriteLine("Creating ComboBox...");
             var cmb = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 FormattingEnabled = true,
                 Location = new Point(175, y),
-                Size = new Size(180, 24)
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
             };
             tp.Controls.Add(cmb);
             return cmb;
         }
         private static Label Lbl(TabPage tp, string text, int x, int y)
         {
-            var l = new Label { AutoSize = true, Location = new Point(x, y), Text = text };
+            var l = new Label { 
+                AutoSize = true, 
+                Location = new Point(x, y), 
+                Text = text,
+                Font = new Font("Segoe UI", 9f)
+            };
             tp.Controls.Add(l);
             return l;
         }
         private static CheckBox Chk(GroupBox grp, string text, int x, int y)
         {
-            var c = new CheckBox { AutoSize = true, Location = new Point(x, y),
-                Text = text, Checked = true, CheckState = CheckState.Checked };
+            var c = new CheckBox { 
+                AutoSize = true, 
+                Location = new Point(x, y),
+                Text = text, 
+                Checked = true, 
+                CheckState = CheckState.Checked,
+                Font = new Font("Segoe UI", 9f)
+            };
             grp.Controls.Add(c);
             return c;
         }
@@ -682,8 +1365,12 @@ namespace Cad3PLogBrowser
             Lbl(tp, label, 12, y + 3);
             var n = new NumericUpDown
             {
-                Location = new Point(175, y), Size = new Size(100, 23),
-                Minimum = min, Maximum = max, Value = val
+                Location = new Point(175, y), 
+                Size = new Size(100, 23),
+                Minimum = min, 
+                Maximum = max, 
+                Value = val,
+                Font = new Font("Segoe UI", 9f)
             };
             tp.Controls.Add(n);
             return n;
@@ -691,7 +1378,12 @@ namespace Cad3PLogBrowser
         private static TextBox AddTxt(TabPage tp, string label, int y, string def, int w)
         {
             Lbl(tp, label, 12, y + 3);
-            var t = new TextBox { Location = new Point(175, y), Size = new Size(w, 23), Text = def };
+            var t = new TextBox { 
+                Location = new Point(175, y), 
+                Size = new Size(w, 23), 
+                Text = def,
+                Font = new Font("Segoe UI", 9f)
+            };
             tp.Controls.Add(t);
             return t;
         }
@@ -699,8 +1391,11 @@ namespace Cad3PLogBrowser
         {
             return new Button
             {
-                Text = text, Location = new Point(x, y), Size = new Size(w, h),
-                UseVisualStyleBackColor = true
+                Text = text, 
+                Location = new Point(x, y), 
+                Size = new Size(w, h),
+                UseVisualStyleBackColor = true,
+                Font = new Font("Segoe UI", 9f)
             };
         }
     }
