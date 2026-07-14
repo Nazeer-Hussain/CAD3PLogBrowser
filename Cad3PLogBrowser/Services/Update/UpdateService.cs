@@ -61,7 +61,7 @@
         public UpdateService(string manifestUrl)
         {
             if (string.IsNullOrWhiteSpace(manifestUrl))
-                throw new ArgumentNullException("manifestUrl");
+                throw new ArgumentNullException(UpdateServiceStrings.ErrorManifestUrlNullOrEmpty);
             _manifestUrl = manifestUrl;
         }
 
@@ -73,13 +73,13 @@
         /// </summary>
         public UpdateManifest FetchManifest()
         {
-            UpdateLogger.Log("FetchManifest: starting — URL={0}", _manifestUrl);
+            UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestStarting, _manifestUrl);
             Exception lastEx = null;
             for (int attempt = 0; attempt <= FetchRetryCount; attempt++)
             {
                 if (attempt > 0)
                 {
-                    UpdateLogger.Log("FetchManifest: retry {0}/{1} after {2}s (last error: {3})",
+                    UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestRetry,
                         attempt, FetchRetryCount, FetchRetryDelaySeconds,
                         lastEx != null ? lastEx.Message : "?");
                     Thread.Sleep(FetchRetryDelaySeconds * 1000);
@@ -97,21 +97,21 @@
                     using (var reader   = new StreamReader(stream, Encoding.UTF8))
                     {
                         string json = reader.ReadToEnd();
-                        UpdateLogger.Log("FetchManifest: HTTP {0} — received {1} bytes",
+                        UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestHttpResponse,
                             (int)response.StatusCode, json.Length);
                         var manifest = DeserializeManifest(json);
-                        UpdateLogger.Log("FetchManifest: parsed OK — remote version={0}", manifest.Version);
+                        UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestParsedOk, manifest.Version);
                         return manifest;
                     }
                 }
                 catch (Exception ex)
                 {
                     lastEx = ex;
-                    UpdateLogger.Log("FetchManifest: attempt {0} failed — {1}", attempt, ex.Message);
+                    UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestAttemptFailed, attempt, ex.Message);
                 }
             }
 
-            UpdateLogger.Log("FetchManifest: all retries exhausted — returning null");
+            UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestRetriesExhausted);
             return null;
         }
 
@@ -129,21 +129,21 @@
         {
             if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
             {
-                UpdateLogger.Log("IsUpdateAvailable: manifest is null or has no version — returning false");
+                UpdateLogger.Log(UpdateServiceStrings.LogIsUpdateAvailableManifestNull);
                 return false;
             }
 
             Version remote;
             if (!Version.TryParse(manifest.Version, out remote))
             {
-                UpdateLogger.Log("IsUpdateAvailable: could not parse remote version '{0}' — returning false",
+                UpdateLogger.Log(UpdateServiceStrings.LogIsUpdateAvailableCannotParseVersion,
                     manifest.Version);
                 return false;
             }
 
             Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             bool available  = remote > current;
-            UpdateLogger.Log("IsUpdateAvailable: remote={0}  current={1}  available={2}",
+            UpdateLogger.Log(UpdateServiceStrings.LogIsUpdateAvailableResult,
                 remote, current, available);
             return available;
         }
@@ -187,7 +187,7 @@
             return Task.Run<string>(() =>
             {
                 string tempPath = Path.Combine(Path.GetTempPath(),
-                    "Cad3PLogBrowser_update_" + Guid.NewGuid().ToString("N") + ".exe");
+                    UpdateServiceStrings.UpdateFileNamePrefix + Guid.NewGuid().ToString("N") + UpdateServiceStrings.UpdateFileNameSuffix);
 
                 try
                 {
@@ -196,7 +196,6 @@
                         _activeClient.Headers[HttpRequestHeader.UserAgent] = GetUserAgent();
 
                         // Speed tracking
-                        long   lastBytes     = 0;
                         var    speedTimer    = System.Diagnostics.Stopwatch.StartNew();
 
                         _activeClient.DownloadProgressChanged += (s, e) =>
@@ -284,30 +283,15 @@
         public string ApplyUpdate(string currentExePath, string newExePath, int currentPid)
         {
             string scriptPath = Path.Combine(Path.GetTempPath(),
-                "Cad3PLogBrowser_updater_" + Guid.NewGuid().ToString("N") + ".bat");
+                UpdateServiceStrings.UpdaterScriptNamePrefix + Guid.NewGuid().ToString("N") + UpdateServiceStrings.UpdaterScriptNameSuffix);
 
             // BUG-3: escape % as %% in the SET value (paths can contain %)
-            string safeTarget = currentExePath.Replace("%", "%%");
-            string safeNew    = newExePath.Replace("%", "%%");
+            string safeTarget = currentExePath.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
+            string safeNew    = newExePath.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
 
             // BUG-4: add a counter so the wait loop terminates after the limit
             string script = string.Format(
-                "@echo off\r\n" +
-                "set TARGET={0}\r\n" +
-                "set NEWEXE={1}\r\n" +
-                "set PID={2}\r\n" +
-                "set /a WAIT=0\r\n" +
-                ":WAITLOOP\r\n" +
-                "tasklist /FI \"PID eq %PID%\" 2>NUL | find /I \"%PID%\" >NUL\r\n" +
-                "if not errorlevel 1 (\r\n" +
-                "    timeout /T 1 /NOBREAK >NUL\r\n" +
-                "    set /a WAIT+=1\r\n" +
-                "    if %WAIT% lss {3} goto WAITLOOP\r\n" +
-                ")\r\n" +
-                "copy /Y \"%NEWEXE%\" \"%TARGET%\" >NUL\r\n" +
-                "del \"%NEWEXE%\" >NUL 2>&1\r\n" +
-                "start \"\" \"%TARGET%\"\r\n" +
-                "del \"%~f0\"\r\n",
+                UpdateServiceStrings.BatchScriptTemplate,
                 safeTarget,
                 safeNew,
                 currentPid,
@@ -317,8 +301,8 @@
 
             var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName        = "cmd.exe",
-                Arguments       = string.Format("/C \"{0}\"", scriptPath),
+                FileName        = UpdateServiceStrings.CmdExecutable,
+                Arguments       = string.Format(UpdateServiceStrings.CmdArgumentsFormat, scriptPath),
                 WindowStyle     = System.Diagnostics.ProcessWindowStyle.Hidden,
                 CreateNoWindow  = true,
                 UseShellExecute = false
@@ -341,7 +325,7 @@
         private static string GetUserAgent()
         {
             var ver = Assembly.GetExecutingAssembly().GetName().Version;
-            return string.Format("Cad3PLogBrowser/{0} (Windows; .NET Framework 4.8)", ver.ToString(3));
+            return string.Format(UpdateServiceStrings.UserAgentFormat, ver.ToString(3));
         }
 
         private static void TryDeleteFile(string path)
@@ -383,7 +367,7 @@
                 byte[] hash = sha.ComputeHash(fs);
                 var sb = new StringBuilder(hash.Length * 2);
                 foreach (byte b in hash)
-                    sb.AppendFormat("{0:x2}", b);
+                    sb.AppendFormat(UpdateServiceStrings.Sha256HexFormat, b);
                 return sb.ToString();
             }
         }

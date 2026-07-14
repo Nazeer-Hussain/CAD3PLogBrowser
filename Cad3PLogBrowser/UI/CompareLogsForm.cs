@@ -371,11 +371,32 @@ namespace Cad3PLogBrowser.UI
 
         private void optionsButton_Click(object sender, EventArgs e)
         {
-            using (var optionsDialog = new CompareOptionsDialog(_compareOptions))
+            // Find the MainForm to pass to SettingsForm
+            var mainForm = Application.OpenForms.OfType<MainForm>().FirstOrDefault();
+            if (mainForm == null)
             {
-                if (optionsDialog.ShowDialog(this) == DialogResult.OK)
+                // Fallback: use the old CompareOptionsDialog if MainForm is not available
+                using (var optionsDialog = new CompareOptionsDialog(_compareOptions))
                 {
-                    _compareOptions = optionsDialog.Options;
+                    if (optionsDialog.ShowDialog(this) == DialogResult.OK)
+                    {
+                        _compareOptions = optionsDialog.Options;
+
+                        if (leftTreeView.Nodes.Count > 0 && rightTreeView.Nodes.Count > 0)
+                        {
+                            PerformComparison();
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Use the unified SettingsForm with the Comparison tab
+            using (var settingsDialog = new SettingsForm(mainForm, SettingsForm.TabIndexComparison))
+            {
+                if (settingsDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    _compareOptions = settingsDialog.CompareOptions;
 
                     if (leftTreeView.Nodes.Count > 0 && rightTreeView.Nodes.Count > 0)
                     {

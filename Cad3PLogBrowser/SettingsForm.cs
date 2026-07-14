@@ -1,7 +1,8 @@
-﻿using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Services;
 using Cad3PLogBrowser.AI.Models;
 using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
+using Cad3PLogBrowser.UI;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -11,45 +12,51 @@ using System.Windows.Forms;
 namespace Cad3PLogBrowser
 {
     /// <summary>
-    /// Application settings dialog — TabControl layout with six organised pages.
+    /// Application settings dialog � TabControl layout with eight organised pages.
     /// Every AppSettings property has a corresponding control here, every control
     /// has a default, and all values are saved then restored on next startup.
     /// </summary>
     public partial class SettingsForm : Form
     {
+        // -- Tab Indices -------------------------------------------------------
+        public const int TabIndexSettings = 0;
+        public const int TabIndexAIIntegration = 2;
+        public const int TabIndexComparison = 3;
+        public const int TabIndexUpdates = 4;
+
         private readonly MainForm    _mainForm;
         private readonly AppSettings _settings;
 
-        // ── Appearance ────────────────────────────────────────────────────────
+        // -- Appearance --------------------------------------------------------
         private ComboBox  cmbTheme, cmbIconSize, cmbHighlightColor;
         private CheckBox  chkShowToolbar;
         private Panel     panelColorPreview;
 
-        // ── Tabs & Layout ─────────────────────────────────────────────────────
-        private CheckBox  chkShowLog, chkShowRaw, chkShowPerformance, chkShowLogDetails;
+        // -- Tabs & Layout -----------------------------------------------------
+        private CheckBox  chkShowLog, chkShowPerformance, chkShowLogDetails;
         private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline, chkShowAiTab;
         private ComboBox  cmbInitialView;
         private ComboBox  cmbDefaultTreeView;
 
-        // ── Log Font ──────────────────────────────────────────────────────────
+        // -- Log Font ----------------------------------------------------------
         private ComboBox       cmbFontFamily;
         private NumericUpDown  nudFontSize;
         private CheckBox       chkFontBold, chkFontItalic;
 
-        // ── Files & Behavior ──────────────────────────────────────────────────
+        // -- Files & Behavior --------------------------------------------------
         private TextBox        txtInitialDir;
         private NumericUpDown  nudMaxRecentFiles;
         private TextBox        txtSnippetSuffix;
 
-        // ── Performance ───────────────────────────────────────────────────────
+        // -- Performance -------------------------------------------------------
         private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
         private CheckBox       chkFilterPerfOnTreeSelect;
 
-        // ── Integration ───────────────────────────────────────────────────────
+        // -- Integration -------------------------------------------------------
         private TextBox   txtGrokUrl, txtClaudeApiKey;
         private CheckBox  chkUseClaudeApi;
 
-        // ── AI Settings ───────────────────────────────────────────────────────
+        // -- AI Settings -------------------------------------------------------
         private CheckBox chkEnableAI;
         private ComboBox cmbAIProvider;
         private TextBox txtAIApiKey;
@@ -68,26 +75,61 @@ namespace Cad3PLogBrowser
         private Label lblAIStatus;
         private AISettings _aiSettings;
 
-        // ── Updates (ENH-4) ───────────────────────────────────────────────────
+        // -- Updates (ENH-4) ---------------------------------------------------
         private CheckBox      chkCheckOnStartup;
         private NumericUpDown nudUpdateIntervalDays;
         private TextBox       txtManifestUrl;
         private Label         lblLastChecked;
         private Label         lblSkippedVersion;
 
-        // ── Buttons ───────────────────────────────────────────────────────────
+        // -- Comparison Settings -----------------------------------------------
+        private CheckBox chkIgnoreCase;
+        private CheckBox chkIgnoreWhitespace;
+        private CheckBox chkIgnoreTimestamps;
+        private CheckBox chkIgnoreGuids;
+        private CheckBox chkTrimText;
+        private CheckBox chkUseRegex;
+        private TextBox txtRegexPattern;
+        private Models.Comparison.CompareOptions _compareOptions;
+
+        // -- Buttons -----------------------------------------------------------
         private Button OkButton, CancelBtn, btnResetDefaults;
 
-        // ─────────────────────────────────────────────────────────────────────
-        public SettingsForm(MainForm mainForm)
+        // -- Tab Control Reference ---------------------------------------------
+        private TabControl _tabControl;
+
+        // -- Public Properties --------------------------------------------------
+        /// <summary>
+        /// Gets the current comparison options configured in the dialog.
+        /// </summary>
+        public Models.Comparison.CompareOptions CompareOptions => _compareOptions;
+
+        // ---------------------------------------------------------------------
+        public SettingsForm(MainForm mainForm) : this(mainForm, -1)
+        {
+        }
+
+        /// <summary>
+        /// Constructor with optional initial tab selection.
+        /// </summary>
+        /// <param name="mainForm">The main form instance</param>
+        /// <param name="initialTabIndex">Index of tab to show initially, or -1 for default</param>
+        public SettingsForm(MainForm mainForm, int initialTabIndex)
         {
             InitializeComponent();
 
             _mainForm = mainForm;
             _settings = mainForm.AppSettings;
             _aiSettings = AISettingsService.Load();
+            _compareOptions = Models.Comparison.CompareOptions.CreateDefaultLogOptions();
             BuildUi();
             LoadCurrentSettings();
+
+            // Select initial tab if specified
+            if (initialTabIndex >= 0 && initialTabIndex < _tabControl.TabPages.Count)
+            {
+                _tabControl.SelectedIndex = initialTabIndex;
+            }
 
             // NOTE: ThemeManager.ApplyTheme moved to OnShown to avoid premature handle creation.
             // UpdateColourPreview is also called in OnShown after theme application.
@@ -105,11 +147,10 @@ namespace Cad3PLogBrowser
             UpdateColourPreview();
         }
 
-        // ── UI Construction ───────────────────────────────────────────────────
+        // -- UI Construction ---------------------------------------------------
         private void BuildUi()
         {
-            Text             = "Settings";
-            ClientSize       = new Size(556, 600);
+            Text             = SettingsDialogStrings.DialogTitle;
             FormBorderStyle  = FormBorderStyle.FixedDialog;
             MaximizeBox      = false;
             MinimizeBox      = false;
@@ -119,24 +160,27 @@ namespace Cad3PLogBrowser
             AutoScaleDimensions = new SizeF(8f, 16f);
             Font             = new Font("Segoe UI", 9f);
 
-            var tabs = new TabControl
+            _tabControl = new TabControl
             {
                 Location = new Point(12, 10),
-                Size     = new Size(532, 540),
+                Size     = new Size(580, 532),
+                Font     = new Font("Segoe UI", 9f)
             };
 
-            tabs.TabPages.Add(BuildAppearanceTab());
-            tabs.TabPages.Add(BuildTabsLayoutTab());
-            tabs.TabPages.Add(BuildFontTab());
-            tabs.TabPages.Add(BuildFilesTab());
-            tabs.TabPages.Add(BuildPerformanceTab());
-            tabs.TabPages.Add(BuildAIAndIntegrationTab());
-            tabs.TabPages.Add(BuildUpdatesTab());   // ENH-4
+            _tabControl.TabPages.Add(BuildSettingsTab());
+            _tabControl.TabPages.Add(BuildFilesTab());
+            _tabControl.TabPages.Add(BuildAIAndIntegrationTab());
+            _tabControl.TabPages.Add(BuildComparisonTab());  // New Comparison tab
+            _tabControl.TabPages.Add(BuildUpdatesTab());     // ENH-4
+
+            var bottomY = _tabControl.Bottom + 8;
+            var cancelX = _tabControl.Right - 90;
+            var okX = cancelX - 10 - 90;
 
             // Bottom buttons
-            btnResetDefaults = Btn("Reset to Defaults", 12,   564, 140, 28);
-            OkButton         = Btn("&OK",               338,  564,  90, 28);
-            CancelBtn        = Btn("&Cancel",            438,  564,  90, 28);
+            btnResetDefaults = Btn(SettingsDialogStrings.ButtonResetDefaults, 12, bottomY, 140, 28);
+            OkButton         = Btn(SettingsDialogStrings.ButtonOk,            okX, bottomY,  90, 28);
+            CancelBtn        = Btn(SettingsDialogStrings.ButtonCancel,         cancelX, bottomY,  90, 28);
 
             OkButton.DialogResult     = DialogResult.OK;
             CancelBtn.DialogResult    = DialogResult.Cancel;
@@ -146,34 +190,334 @@ namespace Cad3PLogBrowser
             AcceptButton = OkButton;
             CancelButton = CancelBtn;
 
-            Controls.Add(tabs);
+            Controls.Add(_tabControl);
             Controls.Add(btnResetDefaults);
             Controls.Add(OkButton);
             Controls.Add(CancelBtn);
+
+            ClientSize = new Size(
+                Math.Max(_tabControl.Right, CancelBtn.Right) + 12,
+                Math.Max(_tabControl.Bottom, CancelBtn.Bottom) + 10);
         }
 
-        // ── TAB: Appearance ───────────────────────────────────────────────────
+        // -- TAB: Settings (Unified: Appearance + Tabs & Layout + Font) ------
+        private TabPage BuildSettingsTab()
+        {
+            var tp = Tab("Settings");
+
+            // -------------------------------------------------------------------
+            // APPEARANCE SECTION
+            // -------------------------------------------------------------------
+            var grpAppearance = new GroupBox
+            {
+                Text = "Appearance",
+                Location = new Point(12, 10),
+                Size = new Size(560, 145),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            // Theme
+            var lblTheme = new Label
+            {
+                Text = SettingsDialogStrings.LabelTheme,
+                Location = new Point(12, 25),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpAppearance.Controls.Add(lblTheme);
+
+            cmbTheme = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 22),
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            cmbTheme.Items.AddRange(new object[] { SettingsDialogStrings.ThemeLight, SettingsDialogStrings.ThemeDark });
+            grpAppearance.Controls.Add(cmbTheme);
+
+            // Icon Size
+            var lblIconSize = new Label
+            {
+                Text = SettingsDialogStrings.LabelToolbarIconSize,
+                Location = new Point(12, 55),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpAppearance.Controls.Add(lblIconSize);
+
+            cmbIconSize = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 52),
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            cmbIconSize.Items.AddRange(new object[] { SettingsDialogStrings.IconSizeSmall, SettingsDialogStrings.IconSizeMedium, SettingsDialogStrings.IconSizeLarge });
+            grpAppearance.Controls.Add(cmbIconSize);
+
+            // Show Toolbar
+            var lblToolbar = new Label
+            {
+                Text = SettingsDialogStrings.LabelToolbarVisible,
+                Location = new Point(12, 85),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpAppearance.Controls.Add(lblToolbar);
+
+            chkShowToolbar = new CheckBox
+            {
+                Text = SettingsDialogStrings.CheckboxShowToolbar,
+                Location = new Point(175, 82),
+                Size = new Size(180, 22),
+                Checked = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpAppearance.Controls.Add(chkShowToolbar);
+
+            // Highlight Color
+            var lblHighlight = new Label
+            {
+                Text = SettingsDialogStrings.LabelHighlightColor,
+                Location = new Point(12, 115),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpAppearance.Controls.Add(lblHighlight);
+
+            cmbHighlightColor = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 112),
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            foreach (string n in new[] { 
+                SettingsDialogStrings.ColorYellow,
+                SettingsDialogStrings.ColorCyan,
+                SettingsDialogStrings.ColorLimeGreen,
+                SettingsDialogStrings.ColorOrange,
+                SettingsDialogStrings.ColorHotPink,
+                SettingsDialogStrings.ColorLightBlue,
+                SettingsDialogStrings.ColorPlum,
+                SettingsDialogStrings.ColorGold
+            })
+                cmbHighlightColor.Items.Add(n);
+            cmbHighlightColor.SelectedIndexChanged += (s, e) => UpdateColourPreview();
+            grpAppearance.Controls.Add(cmbHighlightColor);
+
+            panelColorPreview = new Panel
+            {
+                BorderStyle = BorderStyle.FixedSingle,
+                Location = new Point(365, 112),
+                Size = new Size(52, 24)
+            };
+            grpAppearance.Controls.Add(panelColorPreview);
+
+            tp.Controls.Add(grpAppearance);
+
+            // -------------------------------------------------------------------
+            // TABS & LAYOUT SECTION
+            // -------------------------------------------------------------------
+            var grpTabs = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupVisibleTabs,
+                Location = new Point(12, 165),
+                Size = new Size(560, 115),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            // Row 1: Log, Performance, Log Details
+            chkShowLog = Chk(grpTabs, SettingsDialogStrings.CheckboxLogView, 14, 24);
+            chkShowPerformance = Chk(grpTabs, SettingsDialogStrings.CheckboxPerformance, 160, 24);
+            chkShowLogDetails = Chk(grpTabs, SettingsDialogStrings.CheckboxLogDetails, 300, 24);
+            // Row 2: Call Graph, Flame Graph, Timeline
+            chkShowCallGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxCallGraph, 14, 52);
+            chkShowFlameGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxFlameGraph, 160, 52);
+            chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 300, 52);
+            // Row 3: AI Assistant
+            chkShowAiTab = Chk(grpTabs, SettingsDialogStrings.CheckboxAIAssistant, 14, 80);
+
+            tp.Controls.Add(grpTabs);
+
+            // Startup Tab
+            var lblStartup = new Label
+            {
+                Text = SettingsDialogStrings.LabelStartupTab,
+                Location = new Point(12, 295),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            tp.Controls.Add(lblStartup);
+
+            cmbInitialView = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 292),
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            cmbInitialView.Items.AddRange(new object[]
+            {
+                SettingsDialogStrings.ViewLog,
+                SettingsDialogStrings.ViewRaw,
+                SettingsDialogStrings.ViewPerformance,
+                SettingsDialogStrings.ViewLogDetails,
+                SettingsDialogStrings.ViewCallGraph,
+                SettingsDialogStrings.ViewFlameGraph,
+                SettingsDialogStrings.ViewTimeline,
+                SettingsDialogStrings.ViewAIAssistant
+            });
+            tp.Controls.Add(cmbInitialView);
+
+            // Default Tree View
+            var lblTreeView = new Label
+            {
+                Text = SettingsDialogStrings.LabelDefaultTreeView,
+                Location = new Point(12, 325),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            tp.Controls.Add(lblTreeView);
+
+            cmbDefaultTreeView = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 322),
+                Size = new Size(130, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            cmbDefaultTreeView.Items.AddRange(new object[] { SettingsDialogStrings.TreeViewCall, SettingsDialogStrings.TreeViewAPI });
+            tp.Controls.Add(cmbDefaultTreeView);
+
+            // -------------------------------------------------------------------
+            // FONT SECTION
+            // -------------------------------------------------------------------
+            var grpFont = new GroupBox
+            {
+                Text = "Log Font",
+                Location = new Point(12, 360),
+                Size = new Size(560, 145),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            // Font Family
+            var lblFontFamily = new Label
+            {
+                Text = SettingsDialogStrings.LabelFontFamily,
+                Location = new Point(12, 25),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpFont.Controls.Add(lblFontFamily);
+
+            cmbFontFamily = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(175, 22),
+                Size = new Size(180, 24),
+                Font = new Font("Segoe UI", 9f)
+            };
+            foreach (var f in new[] {
+                SettingsDialogStrings.FontConsolas,
+                SettingsDialogStrings.FontCourierNew,
+                SettingsDialogStrings.FontLucidaConsole,
+                SettingsDialogStrings.FontDejaVuSansMono,
+                SettingsDialogStrings.FontSourceCodePro
+            })
+                cmbFontFamily.Items.Add(f);
+            grpFont.Controls.Add(cmbFontFamily);
+
+            // Font Size
+            var lblFontSize = new Label
+            {
+                Text = SettingsDialogStrings.LabelFontSize,
+                Location = new Point(12, 55),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpFont.Controls.Add(lblFontSize);
+
+            nudFontSize = new NumericUpDown
+            {
+                Location = new Point(175, 52),
+                Size = new Size(72, 23),
+                DecimalPlaces = 1,
+                Increment = 0.5m,
+                Minimum = 6,
+                Maximum = 24,
+                Value = 9,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpFont.Controls.Add(nudFontSize);
+
+            // Font Style
+            chkFontBold = new CheckBox
+            {
+                Text = SettingsDialogStrings.CheckboxBold,
+                Location = new Point(175, 85),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpFont.Controls.Add(chkFontBold);
+
+            chkFontItalic = new CheckBox
+            {
+                Text = SettingsDialogStrings.CheckboxItalic,
+                Location = new Point(255, 85),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpFont.Controls.Add(chkFontItalic);
+
+            // Preview Button
+            var btnPreview = new Button
+            {
+                Text = SettingsDialogStrings.ButtonPreviewFont,
+                Location = new Point(175, 110),
+                Size = new Size(160, 28),
+                Font = new Font("Segoe UI", 9f)
+            };
+            btnPreview.Click += (s, e) => PreviewFont();
+            grpFont.Controls.Add(btnPreview);
+
+            tp.Controls.Add(grpFont);
+
+            return tp;
+        }
+
+        // -- TAB: Appearance ---------------------------------------------------
         private TabPage BuildAppearanceTab()
         {
-            var tp = Tab("Appearance");
+            var tp = Tab(SettingsDialogStrings.TabAppearance);
 
-            cmbTheme = AddRow(tp, "Theme:", 22, out _);
-            cmbTheme.Items.AddRange(new object[] { "Light", "Dark" });
+            cmbTheme = AddRow(tp, SettingsDialogStrings.LabelTheme, 22, out _);
+            cmbTheme.Items.AddRange(new object[] { SettingsDialogStrings.ThemeLight, SettingsDialogStrings.ThemeDark });
 
-            cmbIconSize = AddRow(tp, "Toolbar icon size:", 58, out _);
-            cmbIconSize.Items.AddRange(new object[] { "Small", "Medium", "Large" });
+            cmbIconSize = AddRow(tp, SettingsDialogStrings.LabelToolbarIconSize, 58, out _);
+            cmbIconSize.Items.AddRange(new object[] { SettingsDialogStrings.IconSizeSmall, SettingsDialogStrings.IconSizeMedium, SettingsDialogStrings.IconSizeLarge });
 
             // Show toolbar on its own row, aligned with the control column
             chkShowToolbar = new CheckBox
             {
-                AutoSize = true, Text = "Show toolbar", Checked = true,
+                AutoSize = true, Text = SettingsDialogStrings.CheckboxShowToolbar, Checked = true,
                 Location = new Point(175, 94)
             };
             tp.Controls.Add(chkShowToolbar);
-            Lbl(tp, "Toolbar visible:", 12, 97);
+            Lbl(tp, SettingsDialogStrings.LabelToolbarVisible, 12, 97);
 
-            cmbHighlightColor = AddRow(tp, "Highlight colour:", 130, out _);
-            foreach (string n in new[] { "Yellow","Cyan","LimeGreen","Orange","HotPink","LightBlue","Plum","Gold" })
+            cmbHighlightColor = AddRow(tp, SettingsDialogStrings.LabelHighlightColor, 130, out _);
+            foreach (string n in new[] { 
+                SettingsDialogStrings.ColorYellow,
+                SettingsDialogStrings.ColorCyan,
+                SettingsDialogStrings.ColorLimeGreen,
+                SettingsDialogStrings.ColorOrange,
+                SettingsDialogStrings.ColorHotPink,
+                SettingsDialogStrings.ColorLightBlue,
+                SettingsDialogStrings.ColorPlum,
+                SettingsDialogStrings.ColorGold
+            })
                 cmbHighlightColor.Items.Add(n);
             cmbHighlightColor.SelectedIndexChanged += (s, e) => UpdateColourPreview();
 
@@ -188,146 +532,168 @@ namespace Cad3PLogBrowser
             return tp;
         }
 
-        // ── TAB: Tabs & Layout ────────────────────────────────────────────────
+        // -- TAB: Tabs & Layout ------------------------------------------------
         private TabPage BuildTabsLayoutTab()
         {
-            var tp = Tab("Tabs & Layout");
+            var tp = Tab(SettingsDialogStrings.TabTabsAndLayout);
 
             var grp = new GroupBox { 
-                Text = "Visible Tabs",
+                Text = SettingsDialogStrings.GroupVisibleTabs,
                 Location = new Point(12, 10), 
-                Size = new Size(498, 136), 
+                Size = new Size(560, 115), 
                 TabStop = false,
                 Font = new Font("Segoe UI", 9f)
             };
 
-            // Row 1: Log, Raw, Performance, Log Details
-            chkShowLog         = Chk(grp, "Log View",      14,  24);
-            chkShowRaw         = Chk(grp, "Raw",           120,  24);
-            chkShowPerformance = Chk(grp, "Performance",   200,  24);
-            chkShowLogDetails  = Chk(grp, "Log Details",   330,  24);
+            // Row 1: Log, Performance, Log Details
+            chkShowLog         = Chk(grp, SettingsDialogStrings.CheckboxLogView,      14,  24);
+            chkShowPerformance = Chk(grp, SettingsDialogStrings.CheckboxPerformance,   160,  24);
+            chkShowLogDetails  = Chk(grp, SettingsDialogStrings.CheckboxLogDetails,   300,  24);
             // Row 2: Call Graph, Flame Graph, Timeline
-            chkShowCallGraph   = Chk(grp, "Call Graph",     14,  58);
-            chkShowFlameGraph  = Chk(grp, "Flame Graph",   120,  58);
-            chkShowTimeline    = Chk(grp, "Timeline",       250,  58);
+            chkShowCallGraph   = Chk(grp, SettingsDialogStrings.CheckboxCallGraph,     14,  52);
+            chkShowFlameGraph  = Chk(grp, SettingsDialogStrings.CheckboxFlameGraph,   160,  52);
+            chkShowTimeline    = Chk(grp, SettingsDialogStrings.CheckboxTimeline,     300,  52);
             // Row 3: AI Assistant
-            chkShowAiTab       = Chk(grp, "AI Assistant",   14,  92);
+            chkShowAiTab       = Chk(grp, SettingsDialogStrings.CheckboxAIAssistant,   14,  80);
             tp.Controls.Add(grp);
 
-            cmbInitialView = AddRow(tp, "Start-up tab:", 160, out _);
+            cmbInitialView = AddRow(tp, SettingsDialogStrings.LabelStartupTab, 160, out _);
             cmbInitialView.Items.AddRange(new object[]
             {
-                "Log", "Raw", "Performance", "Log Details",
-                "Call Graph", "Flame Graph", "Timeline", "AI Assistant"
+                SettingsDialogStrings.ViewLog, 
+                SettingsDialogStrings.ViewRaw, 
+                SettingsDialogStrings.ViewPerformance, 
+                SettingsDialogStrings.ViewLogDetails,
+                SettingsDialogStrings.ViewCallGraph, 
+                SettingsDialogStrings.ViewFlameGraph, 
+                SettingsDialogStrings.ViewTimeline, 
+                SettingsDialogStrings.ViewAIAssistant
             });
 
-            cmbDefaultTreeView = AddRow(tp, "Default tree view:", 196, out _);
-            cmbDefaultTreeView.Items.AddRange(new object[] { "Call Tree", "API Tree" });
+            cmbDefaultTreeView = AddRow(tp, SettingsDialogStrings.LabelDefaultTreeView, 196, out _);
+            cmbDefaultTreeView.Items.AddRange(new object[] { SettingsDialogStrings.TreeViewCall, SettingsDialogStrings.TreeViewAPI });
             cmbDefaultTreeView.Size = new Size(130, 24);
 
             return tp;
         }
 
-        // ── TAB: Log Font ─────────────────────────────────────────────────────
+        // -- TAB: Log Font -----------------------------------------------------
         private TabPage BuildFontTab()
         {
-            var tp = Tab("Log Font");
+            var tp = Tab(SettingsDialogStrings.TabLogFont);
 
-            cmbFontFamily = AddRow(tp, "Font family:", 22, out _);
-            foreach (var f in new[] { "Consolas","Courier New","Lucida Console","DejaVu Sans Mono","Source Code Pro" })
+            cmbFontFamily = AddRow(tp, SettingsDialogStrings.LabelFontFamily, 22, out _);
+            foreach (var f in new[] { 
+                SettingsDialogStrings.FontConsolas,
+                SettingsDialogStrings.FontCourierNew,
+                SettingsDialogStrings.FontLucidaConsole,
+                SettingsDialogStrings.FontDejaVuSansMono,
+                SettingsDialogStrings.FontSourceCodePro 
+            })
                 cmbFontFamily.Items.Add(f);
 
             nudFontSize = new NumericUpDown { Location = new Point(175, 55), Size = new Size(72, 23),
                 DecimalPlaces = 1, Increment = 0.5m, Minimum = 6, Maximum = 24, Value = 9 };
-            Lbl(tp, "Font size (pt):", 12, 58);
+            Lbl(tp, SettingsDialogStrings.LabelFontSize, 12, 58);
             tp.Controls.Add(nudFontSize);
 
-            chkFontBold   = new CheckBox { AutoSize = true, Text = "Bold",   Location = new Point(175, 92) };
-            chkFontItalic = new CheckBox { AutoSize = true, Text = "Italic", Location = new Point(255, 92) };
+            chkFontBold   = new CheckBox { AutoSize = true, Text = SettingsDialogStrings.CheckboxBold,   Location = new Point(175, 92) };
+            chkFontItalic = new CheckBox { AutoSize = true, Text = SettingsDialogStrings.CheckboxItalic, Location = new Point(255, 92) };
             tp.Controls.Add(chkFontBold);
             tp.Controls.Add(chkFontItalic);
 
-            var btnPrev = Btn("Preview Font...", 175, 126, 160, 28);
+            var btnPrev = Btn(SettingsDialogStrings.ButtonPreviewFont, 175, 126, 160, 28);
             btnPrev.Click += (s, e) => PreviewFont();
             tp.Controls.Add(btnPrev);
 
             return tp;
         }
 
-        // ── TAB: Files & Behavior ─────────────────────────────────────────────
+        // -- TAB: Files & Behavior ---------------------------------------------
         private TabPage BuildFilesTab()
         {
-            var tp = Tab("Files & Behavior");
+            var tp = Tab(SettingsDialogStrings.TabFilesAndBehavior);
 
-            Lbl(tp, "Default open folder:", 12, 26);
+            var grpFiles = new GroupBox
+            {
+                Text = SettingsDialogStrings.TabFilesAndBehavior,
+                Location = new Point(12, 10),
+                Size = new Size(560, 130),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            Lbl(grpFiles, SettingsDialogStrings.LabelDefaultOpenFolder, 12, 26);
             txtInitialDir = new TextBox { Location = new Point(175, 22), Size = new Size(248, 23) };
-            tp.Controls.Add(txtInitialDir);
+            grpFiles.Controls.Add(txtInitialDir);
 
-            var btnBrowse = Btn("Browse…", 432, 21, 68, 25);
+            var btnBrowse = Btn(SettingsDialogStrings.ButtonBrowse, 432, 21, 68, 25);
             btnBrowse.Click += (s, e) => BrowseFolder();
-            tp.Controls.Add(btnBrowse);
+            grpFiles.Controls.Add(btnBrowse);
 
-            nudMaxRecentFiles = AddNud(tp, "Max recent files:", 58, 5, 20, 10);
-            txtSnippetSuffix  = AddTxt(tp, "Snippet file suffix:", 94, "_snippet", 160);
+            nudMaxRecentFiles = AddNud(grpFiles, SettingsDialogStrings.LabelMaxRecentFiles, 58, 5, 20, 10);
+            txtSnippetSuffix  = AddTxt(grpFiles, SettingsDialogStrings.LabelSnippetFileSuffix, 94, SettingsDialogStrings.DefaultSnippetSuffix, 160);
 
-            return tp;
-        }
+            tp.Controls.Add(grpFiles);
 
-        // ── TAB: Performance ──────────────────────────────────────────────────
-        private TabPage BuildPerformanceTab()
-        {
-            var tp = Tab("Performance");
+            var grpPerformance = new GroupBox
+            {
+                Text = SettingsDialogStrings.TabPerformance,
+                Location = new Point(12, 150),
+                Size = new Size(560, 220),
+                Font = new Font("Segoe UI", 9f)
+            };
 
-            nudFastCallMs = AddNud(tp, "Fast call threshold:", 22, 1, 60000, 100);
-            Lbl(tp, "ms   (green — below this is fast)", 290, 26);
+            nudFastCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelFastCallThreshold, 24, 1, 60000, 100);
+            Lbl(grpPerformance, SettingsDialogStrings.HintFastCallMs, 290, 28);
 
-            nudSlowCallMs = AddNud(tp, "Slow call threshold:", 58, 10, 60000, 1000);
-            Lbl(tp, "ms   (red — above this is slow, amber is in between)", 290, 62);
+            nudSlowCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelSlowCallThreshold, 60, 10, 60000, 1000);
+            Lbl(grpPerformance, SettingsDialogStrings.HintSlowCallMs, 290, 64);
 
-            nudMaxFileMb = AddNud(tp, "Skip list view if file >", 94, 1, 2000, 50);
-            Lbl(tp, "MB   (use Raw tab for very large files)", 290, 98);
+            nudMaxFileMb = AddNud(grpPerformance, SettingsDialogStrings.LabelSkipListViewIfFileGreater, 96, 1, 2000, 50);
+            Lbl(grpPerformance, SettingsDialogStrings.HintMaxFileMb, 290, 100);
 
             chkFilterPerfOnTreeSelect = new CheckBox
             {
                 AutoSize = true,
                 Location = new Point(12, 136),
-                Text     = "Auto-filter Performance tab when a Call Tree node is selected",
+                Text = SettingsDialogStrings.CheckboxAutoFilterPerformance,
             };
-            Lbl(tp, "", 12, 140); // spacer
-            tp.Controls.Add(chkFilterPerfOnTreeSelect);
+            grpPerformance.Controls.Add(chkFilterPerfOnTreeSelect);
 
             var hint = new Label
             {
-                AutoSize  = false,
-                Location  = new Point(30, 160),
-                Size      = new Size(480, 34),
-                Text      = "When OFF, use the Call Tree right-click menu to filter manually.",
+                AutoSize = false,
+                Location = new Point(30, 160),
+                Size = new Size(500, 34),
+                Text = SettingsDialogStrings.HintAutoFilterOff,
                 ForeColor = SystemColors.GrayText,
-                Font      = new Font("Segoe UI", 8.5f)
+                Font = new Font("Segoe UI", 8.5f)
             };
-            tp.Controls.Add(hint);
+            grpPerformance.Controls.Add(hint);
+
+            tp.Controls.Add(grpPerformance);
 
             return tp;
         }
 
-        // ── TAB: AI & Integration ─────────────────────────────────────────────
+        // -- TAB: AI & Integration ---------------------------------------------
         private TabPage BuildAIAndIntegrationTab()
         {
-            var tp = Tab("AI & Integration");
+            var tp = Tab(SettingsDialogStrings.TabAIAndIntegration);
 
-            // ═══ AI Settings Section ═══
+            // --- AI Settings Section ---
             var grpAI = new GroupBox 
             { 
-                Text = "AI Provider", 
+                Text = SettingsDialogStrings.GroupAIProvider, 
                 Location = new Point(12, 10), 
-                Size = new Size(498, 165),
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+                Size = new Size(540, 165),
+                Font = new Font("Segoe UI", 9f)
             };
 
             // Enable AI checkbox
             chkEnableAI = new CheckBox
             {
-                Text = "Enable AI Features",
+                Text = SettingsDialogStrings.CheckboxEnableAI,
                 Location = new Point(10, 22),
                 Size = new Size(200, 20),
                 Checked = true
@@ -337,7 +703,7 @@ namespace Cad3PLogBrowser
 
             // Provider selection
             grpAI.Controls.Add(new Label { 
-                Text = "Provider:", 
+                Text = SettingsDialogStrings.LabelProvider, 
                 Location = new Point(10, 51), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -350,13 +716,13 @@ namespace Cad3PLogBrowser
             };
             cmbAIProvider.Items.AddRange(new object[] 
             { 
-                "Mock (Testing)", 
-                "Anthropic Claude", 
-                "GitHub Copilot",
-                "Ollama (Self-Hosted)",
-                "OpenAI (Coming Soon)", 
-                "Azure OpenAI (Coming Soon)", 
-                "Google Gemini (Coming Soon)" 
+                SettingsDialogStrings.ProviderMock, 
+                SettingsDialogStrings.ProviderAnthropic, 
+                SettingsDialogStrings.ProviderGitHubCopilot,
+                SettingsDialogStrings.ProviderOllama,
+                SettingsDialogStrings.ProviderOpenAI, 
+                SettingsDialogStrings.ProviderAzureOpenAI, 
+                SettingsDialogStrings.ProviderGoogleGemini 
             });
             cmbAIProvider.SelectedIndex = 0;
             cmbAIProvider.SelectedIndexChanged += (s, e) => UpdateAIProviderFields();
@@ -364,7 +730,7 @@ namespace Cad3PLogBrowser
 
             // API Key for cloud providers
             grpAI.Controls.Add(new Label { 
-                Text = "API Key:", 
+                Text = SettingsDialogStrings.LabelAPIKey, 
                 Location = new Point(10, 81), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -379,7 +745,7 @@ namespace Cad3PLogBrowser
 
             btnShowHideAIKey = new Button
             {
-                Text = "Show",
+                Text = SettingsDialogStrings.ButtonShow,
                 Location = new Point(435, 78),
                 Size = new Size(50, 25),
                 FlatStyle = FlatStyle.Flat,
@@ -388,13 +754,13 @@ namespace Cad3PLogBrowser
             btnShowHideAIKey.Click += (s, e) =>
             {
                 txtAIApiKey.UseSystemPasswordChar = !txtAIApiKey.UseSystemPasswordChar;
-                btnShowHideAIKey.Text = txtAIApiKey.UseSystemPasswordChar ? "Show" : "Hide";
+                btnShowHideAIKey.Text = txtAIApiKey.UseSystemPasswordChar ? SettingsDialogStrings.ButtonShow : SettingsDialogStrings.ButtonHide;
             };
             grpAI.Controls.Add(btnShowHideAIKey);
 
             // Ollama server URL (shown only for Ollama provider)
             grpAI.Controls.Add(new Label { 
-                Text = "Server URL:", 
+                Text = SettingsDialogStrings.LabelServerURL, 
                 Location = new Point(10, 111), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -403,14 +769,14 @@ namespace Cad3PLogBrowser
             {
                 Location = new Point(100, 108),
                 Size = new Size(380, 23),
-                Text = "http://localhost:11434",
+                Text = SettingsDialogStrings.DefaultOllamaServerUrl,
                 Visible = false
             };
             grpAI.Controls.Add(txtOllamaServerUrl);
 
             // Ollama model selection
             grpAI.Controls.Add(new Label { 
-                Text = "Model:", 
+                Text = SettingsDialogStrings.LabelModel, 
                 Location = new Point(10, 141), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -422,7 +788,12 @@ namespace Cad3PLogBrowser
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Visible = false
             };
-            cmbOllamaModel.Items.AddRange(new object[] { "llama3", "codellama", "mistral", "phi3" });
+            cmbOllamaModel.Items.AddRange(new object[] { 
+                SettingsDialogStrings.ModelLlama3, 
+                SettingsDialogStrings.ModelCodeLlama, 
+                SettingsDialogStrings.ModelMistral, 
+                SettingsDialogStrings.ModelPhi3 
+            });
             cmbOllamaModel.SelectedIndex = 0;
             grpAI.Controls.Add(cmbOllamaModel);
 
@@ -433,24 +804,24 @@ namespace Cad3PLogBrowser
                 Size = new Size(200, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cmbAIModel.Items.Add("(Select provider first)");
+            cmbAIModel.Items.Add(SettingsDialogStrings.ModelPlaceholder);
             cmbAIModel.SelectedIndex = 0;
             grpAI.Controls.Add(cmbAIModel);
 
             tp.Controls.Add(grpAI);
 
-            // ═══ Model Configuration Section ═══
+            // --- Model Configuration Section ---
             var grpModel = new GroupBox 
             { 
-                Text = "Model Configuration", 
-                Location = new Point(12, 182), 
-                Size = new Size(498, 110),
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+                Text = SettingsDialogStrings.GroupModelConfiguration, 
+                Location = new Point(12, 178), 
+                Size = new Size(540, 106),
+                Font = new Font("Segoe UI", 9f)
             };
 
             // Temperature
             grpModel.Controls.Add(new Label { 
-                Text = "Temperature:", 
+                Text = SettingsDialogStrings.LabelTemperature, 
                 Location = new Point(10, 25), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -481,9 +852,9 @@ namespace Cad3PLogBrowser
 
             var lblTempHelp = new Label
             {
-                Text = "Lower = focused, Higher = creative",
+                Text = SettingsDialogStrings.HintTemperature,
                 Location = new Point(100, 62),
-                Size = new Size(380, 18),
+                Size = new Size(380, 16),
                 ForeColor = SystemColors.GrayText,
                 Font = new Font("Segoe UI", 8.5f)
             };
@@ -491,7 +862,7 @@ namespace Cad3PLogBrowser
 
             // Max tokens
             grpModel.Controls.Add(new Label { 
-                Text = "Max Tokens:", 
+                Text = SettingsDialogStrings.LabelMaxTokens, 
                 Location = new Point(10, 85), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
@@ -510,7 +881,7 @@ namespace Cad3PLogBrowser
             // Streaming
             chkAIStreaming = new CheckBox
             {
-                Text = "Enable streaming",
+                Text = SettingsDialogStrings.CheckboxEnableStreaming,
                 Location = new Point(210, 84),
                 Size = new Size(140, 20),
                 Checked = true
@@ -519,19 +890,19 @@ namespace Cad3PLogBrowser
 
             tp.Controls.Add(grpModel);
 
-            // ═══ Privacy & Conversation Section ═══
+            // --- Privacy & Conversation Section ---
             var grpPrivacy = new GroupBox 
             { 
-                Text = "Privacy & Conversation", 
-                Location = new Point(12, 299), 
-                Size = new Size(498, 75),
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+                Text = SettingsDialogStrings.GroupPrivacyAndConversation, 
+                Location = new Point(12, 289),
+                Size = new Size(540, 72),
+                Font = new Font("Segoe UI", 9f)
             };
 
             chkAIRedactData = new CheckBox
             {
-                Text = "Redact sensitive data (emails, IPs, paths)",
-                Location = new Point(10, 22),
+                Text = SettingsDialogStrings.CheckboxRedactSensitiveData,
+                Location = new Point(10, 20),
                 Size = new Size(400, 20),
                 Checked = true
             };
@@ -539,8 +910,8 @@ namespace Cad3PLogBrowser
 
             chkAIRememberConversation = new CheckBox
             {
-                Text = "Remember conversation history",
-                Location = new Point(10, 47),
+                Text = SettingsDialogStrings.CheckboxRememberConversation,
+                Location = new Point(10, 45),
                 Size = new Size(220, 20),
                 Checked = true
             };
@@ -548,14 +919,14 @@ namespace Cad3PLogBrowser
             grpPrivacy.Controls.Add(chkAIRememberConversation);
 
             grpPrivacy.Controls.Add(new Label { 
-                Text = "Max messages:", 
-                Location = new Point(240, 49), 
+                Text = SettingsDialogStrings.LabelMaxMessages, 
+                Location = new Point(240, 47), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             });
             numAIMaxMessages = new NumericUpDown
             {
-                Location = new Point(345, 46),
+                Location = new Point(345, 44),
                 Size = new Size(70, 23),
                 Minimum = 5,
                 Maximum = 100,
@@ -565,68 +936,80 @@ namespace Cad3PLogBrowser
 
             tp.Controls.Add(grpPrivacy);
 
-            // ═══ Legacy Integration Section ═══
-            var grpLegacy = new GroupBox 
-            { 
-                Text = "Legacy Integration (Deprecated)", 
-                Location = new Point(12, 381), 
-                Size = new Size(498, 100),
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            // --- Source Integration Section ---
+            var grpSource = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupSourceIntegration,
+                Location = new Point(12, 368),
+                Size = new Size(264, 92),
+                Font = new Font("Segoe UI", 9f)
             };
 
-            grpLegacy.Controls.Add(new Label { 
-                Text = "Grok URL:", 
-                Location = new Point(10, 25), 
+            grpSource.Controls.Add(new Label
+            {
+                Text = SettingsDialogStrings.LabelGrokURL,
+                Location = new Point(10, 28),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             });
             txtGrokUrl = new TextBox
-            { 
-                Location = new Point(100, 22), 
-                Size = new Size(380, 23) 
+            {
+                Location = new Point(70, 25),
+                Size = new Size(184, 23)
             };
-            grpLegacy.Controls.Add(txtGrokUrl);
+            grpSource.Controls.Add(txtGrokUrl);
+
+            tp.Controls.Add(grpSource);
+
+            // --- Legacy Integration Section ---
+            var grpLegacy = new GroupBox 
+            { 
+                Text = SettingsDialogStrings.GroupLegacyIntegration, 
+                Location = new Point(288, 368),
+                Size = new Size(264, 92),
+                Font = new Font("Segoe UI", 9f)
+            };
 
             grpLegacy.Controls.Add(new Label { 
-                Text = "Claude Key:", 
-                Location = new Point(10, 55), 
+                Text = SettingsDialogStrings.LabelClaudeKey, 
+                Location = new Point(10, 27), 
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             });
             txtClaudeApiKey = new TextBox
             {
-                Location = new Point(100, 52),
-                Size = new Size(380, 23),
+                Location = new Point(84, 25),
+                Size = new Size(170, 23),
                 UseSystemPasswordChar = true
             };
             grpLegacy.Controls.Add(txtClaudeApiKey);
 
             chkUseClaudeApi = new CheckBox
             {
-                Text = "Enable legacy Claude integration",
-                Location = new Point(100, 77),
-                Size = new Size(380, 20)
+                Text = SettingsDialogStrings.CheckboxEnableLegacyClaude,
+                Location = new Point(10, 50),
+                Size = new Size(246, 18)
             };
             grpLegacy.Controls.Add(chkUseClaudeApi);
 
             var lblDeprecated = new Label
             {
-                Text = "WARNING: Use 'Anthropic Claude' provider above instead",
-                Location = new Point(10, 77),
+                Text = SettingsDialogStrings.HintLegacyWarning,
+                Location = new Point(10, 68),
                 AutoSize = false,
-                Size = new Size(480, 20),
+                Size = new Size(246, 20),
                 ForeColor = Color.DarkOrange,
-                Font = new Font("Segoe UI", 8f)
+                Font = new Font("Segoe UI", 7.5f)
             };
             grpLegacy.Controls.Add(lblDeprecated);
 
             tp.Controls.Add(grpLegacy);
 
-            // ═══ Connection Testing ═══
+            // --- Connection Testing ---
             btnTestAIConnection = new Button
             {
-                Text = "Test AI Connection",
-                Location = new Point(12, 488),
+                Text = SettingsDialogStrings.ButtonTestConnection,
+                Location = new Point(12, 468),
                 Size = new Size(140, 28)
             };
             btnTestAIConnection.Click += async (s, e) => await TestAIConnection();
@@ -635,8 +1018,8 @@ namespace Cad3PLogBrowser
             lblAIStatus = new Label
             {
                 Text = "",
-                Location = new Point(160, 493),
-                Size = new Size(350, 20),
+                Location = new Point(160, 473),
+                Size = new Size(392, 20),
                 ForeColor = Color.DarkGreen
             };
             tp.Controls.Add(lblAIStatus);
@@ -644,7 +1027,7 @@ namespace Cad3PLogBrowser
             return tp;
         }
 
-        // ── Load / Save ───────────────────────────────────────────────────────
+        // -- Load / Save -------------------------------------------------------
         private void LoadCurrentSettings()
         {
             // Appearance
@@ -659,7 +1042,6 @@ namespace Cad3PLogBrowser
 
             // Tabs & Layout
             chkShowLog.Checked         = _mainForm.IsTabVisible(MainForm.TabId.Log);
-            chkShowRaw.Checked         = _mainForm.IsTabVisible(MainForm.TabId.Raw);
             chkShowPerformance.Checked = _mainForm.IsTabVisible(MainForm.TabId.Performance);
             chkShowLogDetails.Checked  = _mainForm.IsTabVisible(MainForm.TabId.LogDetails);
             chkShowCallGraph.Checked   = _mainForm.IsTabVisible(MainForm.TabId.CallGraph);
@@ -753,6 +1135,21 @@ namespace Cad3PLogBrowser
 
             UpdateAIProviderFields();
             UpdateAIControlsState();
+
+            // Comparison
+            LoadComparisonSettings();
+        }
+
+        private void LoadComparisonSettings()
+        {
+            chkIgnoreCase.Checked = _compareOptions.IgnoreCase;
+            chkIgnoreWhitespace.Checked = _compareOptions.IgnoreWhitespace;
+            chkIgnoreTimestamps.Checked = _compareOptions.IgnoreTimestamps;
+            chkIgnoreGuids.Checked = _compareOptions.IgnoreGuids;
+            chkTrimText.Checked = _compareOptions.TrimText;
+            chkUseRegex.Checked = _compareOptions.UseRegexIgnorePatterns;
+            txtRegexPattern.Text = _compareOptions.RegexIgnorePattern ?? string.Empty;
+            txtRegexPattern.Enabled = _compareOptions.UseRegexIgnorePatterns;
         }
 
         private void OkButton_Click()
@@ -765,7 +1162,6 @@ namespace Cad3PLogBrowser
 
             // Tabs & Layout
             _settings.ShowLogTab         = chkShowLog.Checked;
-            _settings.ShowRawTab         = chkShowRaw.Checked;
             _settings.ShowPerformanceTab = chkShowPerformance.Checked;
             _settings.ShowLogDetailsTab  = chkShowLogDetails.Checked;
             _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
@@ -802,7 +1198,7 @@ namespace Cad3PLogBrowser
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
             _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
-            // Guard: never persist an empty URL — fall back to the default so the
+            // Guard: never persist an empty URL � fall back to the default so the
             // UpdateService constructor (which throws on whitespace) can never crash.
             string manifestUrl = txtManifestUrl.Text.Trim();
             _settings.UpdateManifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
@@ -816,7 +1212,25 @@ namespace Cad3PLogBrowser
             SaveAISettings();
             AISettingsService.Save(_aiSettings);
 
+            // Save Comparison Settings
+            SaveComparisonSettings();
+
             _settings.Save();
+        }
+
+        private void SaveComparisonSettings()
+        {
+            _compareOptions.IgnoreCase = chkIgnoreCase.Checked;
+            _compareOptions.IgnoreWhitespace = chkIgnoreWhitespace.Checked;
+            _compareOptions.IgnoreTimestamps = chkIgnoreTimestamps.Checked;
+            _compareOptions.IgnoreGuids = chkIgnoreGuids.Checked;
+            _compareOptions.TrimText = chkTrimText.Checked;
+            _compareOptions.UseRegexIgnorePatterns = chkUseRegex.Checked;
+            _compareOptions.RegexIgnorePattern = txtRegexPattern.Text;
+
+            // Note: CompareOptions are not persisted to AppSettings currently.
+            // They are only used during the session. To persist them, you would need to
+            // add properties to AppSettings and save/load them there.
         }
 
         private void ResetToDefaults()
@@ -834,7 +1248,6 @@ namespace Cad3PLogBrowser
             _settings.ShowToolbar         = def.ShowToolbar;
             _settings.HighlightColorName  = def.HighlightColorName;
             _settings.ShowLogTab          = def.ShowLogTab;
-            _settings.ShowRawTab          = def.ShowRawTab;
             _settings.ShowPerformanceTab  = def.ShowPerformanceTab;
             _settings.ShowLogDetailsTab   = def.ShowLogDetailsTab;
             _settings.ShowCallGraphTab    = def.ShowCallGraphTab;
@@ -855,14 +1268,14 @@ namespace Cad3PLogBrowser
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
-            // Updates — reset to defaults but preserve LastUpdateCheck and SkippedVersion
+            // Updates � reset to defaults but preserve LastUpdateCheck and SkippedVersion
             _settings.CheckForUpdatesOnStartup = def.CheckForUpdatesOnStartup;
             _settings.UpdateCheckIntervalDays  = def.UpdateCheckIntervalDays;
             _settings.UpdateManifestUrl        = def.UpdateManifestUrl;
             LoadCurrentSettings();
         }
 
-        // ── Event handlers ────────────────────────────────────────────────────
+        // -- Event handlers ----------------------------------------------------
         private void UpdateColourPreview()
         {
             if (cmbHighlightColor.SelectedItem == null) return;
@@ -893,7 +1306,7 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=",
-                        "Font Preview — " + f.Name,
+                        "Font Preview � " + f.Name,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -904,23 +1317,23 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // ── TAB: Updates (ENH-4) ──────────────────────────────────────────────
+        // -- TAB: Updates (ENH-4) ----------------------------------------------
         private TabPage BuildUpdatesTab()
         {
-            var tp = Tab("Updates");
+            var tp = Tab(SettingsDialogStrings.TabUpdates);
 
             chkCheckOnStartup = new CheckBox
             {
                 AutoSize = true,
                 Location = new Point(12, 22),
-                Text     = "Check for updates automatically on startup"
+                Text     = SettingsDialogStrings.CheckboxCheckOnStartup
             };
             tp.Controls.Add(chkCheckOnStartup);
 
-            nudUpdateIntervalDays = AddNud(tp, "Check interval (days):", 58, 0, 365, 1);
-            Lbl(tp, "  0 = every launch", 290, 62);
+            nudUpdateIntervalDays = AddNud(tp, SettingsDialogStrings.LabelCheckInterval, 58, 0, 365, 1);
+            Lbl(tp, SettingsDialogStrings.HintCheckInterval, 290, 62);
 
-            Lbl(tp, "Manifest URL:", 12, 98);
+            Lbl(tp, SettingsDialogStrings.LabelManifestURL, 12, 98);
             txtManifestUrl = new TextBox
             {
                 Location = new Point(12, 114),
@@ -933,7 +1346,7 @@ namespace Cad3PLogBrowser
                 AutoSize  = false,
                 Location  = new Point(12, 142),
                 Size      = new Size(500, 18),
-                Text      = "Leave as default unless you host your own update server.",
+                Text      = SettingsDialogStrings.HintManifestURL,
                 ForeColor = SystemColors.GrayText,
                 Font      = new Font("Segoe UI", 8.5f)
             };
@@ -955,15 +1368,15 @@ namespace Cad3PLogBrowser
             };
             tp.Controls.Add(lblSkippedVersion);
 
-            var btnClearSkip = Btn("Clear Skipped Version", 12, 216, 160, 26);
+            var btnClearSkip = Btn(SettingsDialogStrings.ButtonClearSkippedVersion, 12, 216, 160, 26);
             btnClearSkip.Click += (s, e) =>
             {
                 _settings.SkippedVersion  = "";
-                lblSkippedVersion.Text    = "Skipped version:  (none)";
+                lblSkippedVersion.Text    = SettingsDialogStrings.LabelSkippedVersionNone;
             };
             tp.Controls.Add(btnClearSkip);
 
-            var btnCheckNow = Btn("Check Now", 186, 216, 100, 26);
+            var btnCheckNow = Btn(SettingsDialogStrings.ButtonCheckNow, 186, 216, 100, 26);
             btnCheckNow.Click += (s, e) =>
             {
                 DialogResult = DialogResult.OK;
@@ -978,7 +1391,145 @@ namespace Cad3PLogBrowser
             return tp;
         }
 
-        // ── TAB: AI Settings ──────────────────────────────────────────────────
+        // -- TAB: Comparison ---------------------------------------------------
+        private TabPage BuildComparisonTab()
+        {
+            var tp = Tab("Comparison");
+
+            var grpOptions = new GroupBox
+            {
+                Text = "Comparison Options",
+                Location = new Point(12, 10),
+                Size = new Size(552, 240),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            // Ignore Case
+            chkIgnoreCase = new CheckBox
+            {
+                Text = "Ignore case (case-insensitive comparison)",
+                Location = new Point(20, 25),
+                Size = new Size(520, 22),
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(chkIgnoreCase);
+
+            // Ignore Whitespace
+            chkIgnoreWhitespace = new CheckBox
+            {
+                Text = "Ignore whitespace differences (normalize spaces)",
+                Location = new Point(20, 55),
+                Size = new Size(520, 22),
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(chkIgnoreWhitespace);
+
+            // Ignore Timestamps
+            chkIgnoreTimestamps = new CheckBox
+            {
+                Text = "Ignore timestamps and durations (essential for log file comparison)",
+                Location = new Point(20, 85),
+                Size = new Size(520, 22),
+                Checked = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(chkIgnoreTimestamps);
+
+            // Ignore GUIDs
+            chkIgnoreGuids = new CheckBox
+            {
+                Text = "Ignore GUIDs (useful for session IDs, transaction IDs)",
+                Location = new Point(20, 115),
+                Size = new Size(520, 22),
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(chkIgnoreGuids);
+
+            // Trim Text
+            chkTrimText = new CheckBox
+            {
+                Text = "Trim leading and trailing whitespace before comparing",
+                Location = new Point(20, 145),
+                Size = new Size(520, 22),
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(chkTrimText);
+
+            // Use Regex
+            chkUseRegex = new CheckBox
+            {
+                Text = "Use custom regex pattern to ignore text",
+                Location = new Point(20, 175),
+                Size = new Size(520, 22),
+                Font = new Font("Segoe UI", 9f)
+            };
+            chkUseRegex.CheckedChanged += (s, e) => txtRegexPattern.Enabled = chkUseRegex.Checked;
+            grpOptions.Controls.Add(chkUseRegex);
+
+            // Regex Pattern
+            var lblRegexPattern = new Label
+            {
+                Text = "Regex Pattern:",
+                Location = new Point(40, 205),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(lblRegexPattern);
+
+            txtRegexPattern = new TextBox
+            {
+                Location = new Point(160, 202),
+                Size = new Size(460, 23),
+                Enabled = false,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpOptions.Controls.Add(txtRegexPattern);
+
+            tp.Controls.Add(grpOptions);
+
+            // Preset Buttons
+            var grpPresets = new GroupBox
+            {
+                Text = "Presets",
+                Location = new Point(12, 260),
+                Size = new Size(552, 70),
+                Font = new Font("Segoe UI", 9f)
+            };
+
+            var btnDefaultPreset = Btn("Default (Recommended for Logs)", 20, 25, 250, 30);
+            btnDefaultPreset.Click += (s, e) =>
+            {
+                _compareOptions = Models.Comparison.CompareOptions.CreateDefaultLogOptions();
+                LoadComparisonSettings();
+            };
+            grpPresets.Controls.Add(btnDefaultPreset);
+
+            var btnStrictPreset = Btn("Strict (Consider Everything)", 280, 25, 250, 30);
+            btnStrictPreset.Click += (s, e) =>
+            {
+                _compareOptions = Models.Comparison.CompareOptions.CreateStrictOptions();
+                LoadComparisonSettings();
+            };
+            grpPresets.Controls.Add(btnStrictPreset);
+
+            tp.Controls.Add(grpPresets);
+
+            // Help text
+            var lblHelp = new Label
+            {
+                Text = "These settings control how log files are compared when using the Difference functionality.\n" +
+                       "The default preset is recommended for comparing log files with timestamps and session IDs.",
+                Location = new Point(12, 345),
+                Size = new Size(552, 45),
+                ForeColor = SystemColors.GrayText,
+                Font = new Font("Segoe UI", 8.5f)
+            };
+            tp.Controls.Add(lblHelp);
+
+            return tp;
+        }
+
+        // -- TAB: AI Settings --------------------------------------------------
         private TabPage BuildAISettingsTab()
         {
             var tp = Tab("AI Settings");
@@ -1274,7 +1825,7 @@ namespace Cad3PLogBrowser
             if (!aiService.IsEnabled)
             {
                 lblAIStatus.ForeColor = Color.DarkOrange;
-                lblAIStatus.Text = "⚠ AI is disabled or not configured";
+                lblAIStatus.Text = "? AI is disabled or not configured";
                 return;
             }
 
@@ -1291,18 +1842,18 @@ namespace Cad3PLogBrowser
                 if (success)
                 {
                     lblAIStatus.ForeColor = Color.DarkGreen;
-                    lblAIStatus.Text = "✓ Connection successful!";
+                    lblAIStatus.Text = "? Connection successful!";
                 }
                 else
                 {
                     lblAIStatus.ForeColor = Color.DarkRed;
-                    lblAIStatus.Text = "✗ Connection failed: " + message;
+                    lblAIStatus.Text = "? Connection failed: " + message;
                 }
             }
             catch (Exception ex)
             {
                 lblAIStatus.ForeColor = Color.DarkRed;
-                lblAIStatus.Text = "✗ Error: " + ex.Message;
+                lblAIStatus.Text = "? Error: " + ex.Message;
             }
             finally
             {
@@ -1312,7 +1863,7 @@ namespace Cad3PLogBrowser
             }
         }
 
-        // ── Build helpers ─────────────────────────────────────────────────────
+        // -- Build helpers -----------------------------------------------------
         private static TabPage Tab(string text)
         {
             return new TabPage(text) { 
@@ -1340,11 +1891,24 @@ namespace Cad3PLogBrowser
         {
             var l = new Label { 
                 AutoSize = true, 
-                Location = new Point(x, y), 
+                Location = new Point(x, y),
                 Text = text,
                 Font = new Font("Segoe UI", 9f)
             };
             tp.Controls.Add(l);
+            return l;
+        }
+
+        private static Label Lbl(Control parent, string text, int x, int y)
+        {
+            var l = new Label
+            {
+                AutoSize = true,
+                Location = new Point(x, y),
+                Text = text,
+                Font = new Font("Segoe UI", 9f)
+            };
+            parent.Controls.Add(l);
             return l;
         }
         private static CheckBox Chk(GroupBox grp, string text, int x, int y)
@@ -1375,6 +1939,22 @@ namespace Cad3PLogBrowser
             tp.Controls.Add(n);
             return n;
         }
+
+        private static NumericUpDown AddNud(Control parent, string label, int y, decimal min, decimal max, decimal val)
+        {
+            Lbl(parent, label, 12, y + 3);
+            var n = new NumericUpDown
+            {
+                Location = new Point(175, y),
+                Size = new Size(100, 23),
+                Minimum = min,
+                Maximum = max,
+                Value = val,
+                Font = new Font("Segoe UI", 9f)
+            };
+            parent.Controls.Add(n);
+            return n;
+        }
         private static TextBox AddTxt(TabPage tp, string label, int y, string def, int w)
         {
             Lbl(tp, label, 12, y + 3);
@@ -1385,6 +1965,20 @@ namespace Cad3PLogBrowser
                 Font = new Font("Segoe UI", 9f)
             };
             tp.Controls.Add(t);
+            return t;
+        }
+
+        private static TextBox AddTxt(Control parent, string label, int y, string def, int w)
+        {
+            Lbl(parent, label, 12, y + 3);
+            var t = new TextBox
+            {
+                Location = new Point(175, y),
+                Size = new Size(w, 23),
+                Text = def,
+                Font = new Font("Segoe UI", 9f)
+            };
+            parent.Controls.Add(t);
             return t;
         }
         private static Button Btn(string text, int x, int y, int w, int h)
@@ -1400,3 +1994,26 @@ namespace Cad3PLogBrowser
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

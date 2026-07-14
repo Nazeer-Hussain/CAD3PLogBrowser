@@ -26,7 +26,6 @@ namespace Cad3PLogBrowser.Services
         public string  SaveSnippetSuffix    { get; set; } = "_snippet";
         public int     SplitterDistance     { get; set; } = 285;
         public bool    ShowLogTab           { get; set; } = true;
-        public bool    ShowRawTab            { get; set; } = true;
         public bool    ShowPerformanceTab   { get; set; } = true;
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
@@ -63,7 +62,7 @@ namespace Cad3PLogBrowser.Services
         // Calls between Fast..Slow are amber; calls above Slow are red.
         public int     FastCallThresholdMs      { get; set; } = 100;
         /// <summary>
-        /// Maximum number of characters to load into RichTextBox controls (Raw tab, detail views).
+        /// Maximum number of characters to load into RichTextBox controls (detail views).
         /// RichTextBox has a hard limit around 2GB but realistically becomes unstable above 32MB.
         /// Default: 10 million characters (~10MB of text).
         /// </summary>

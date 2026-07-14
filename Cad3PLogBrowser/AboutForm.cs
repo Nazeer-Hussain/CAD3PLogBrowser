@@ -28,7 +28,7 @@ namespace Cad3PLogBrowser
             const int formW  = lx + lw + margin;                              // 488
             const int formH  = ly + gap * 4 + descH + margin + btnH + margin; // ~272
 
-            Text            = string.Format("About {0}", AssemblyTitle);
+            Text            = string.Format(UI.AppStrings.AboutFormTitle, AssemblyTitle);
             ClientSize      = new Size(formW, formH);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox     = false;
@@ -49,10 +49,10 @@ namespace Cad3PLogBrowser
             catch { /* no icon - leave blank */ }
 
             // ?? Info labels ???????????????????????????????????????????????????
-            var lblProduct = MakeLabel(AssemblyProduct,                lx, ly,              lw, bold: true);
-            var lblVersion = MakeLabel("Version " + AssemblyVersion,   lx, ly + gap,        lw);
-            var lblCopy    = MakeLabel(AssemblyCopyright,              lx, ly + gap * 2,    lw);
-            var lblCompany = MakeLabel(AssemblyCompany,                lx, ly + gap * 3,    lw);
+            var lblProduct = MakeLabel(AssemblyProduct,                                  lx, ly,              lw, bold: true);
+            var lblVersion = MakeLabel(string.Format(UI.AppStrings.AboutLabelVersion, AssemblyVersion), lx, ly + gap,        lw);
+            var lblCopy    = MakeLabel(AssemblyCopyright,                                lx, ly + gap * 2,    lw);
+            var lblCompany = MakeLabel(AssemblyCompany,                                  lx, ly + gap * 3,    lw);
 
             // Description — Label is used instead of TextBox/RichTextBox because
             // TextBoxBase..ctor() calls Font.GetHeight()->GetDC(NULL) which throws
@@ -69,7 +69,7 @@ namespace Cad3PLogBrowser
             // ?? OK button (bottom-right) ??????????????????????????????????????
             var btnOk = new Button
             {
-                Text         = "&OK",
+                Text         = UI.AppStrings.AboutButtonOK,
                 DialogResult = DialogResult.Cancel,
                 Size         = new Size(btnW, btnH),
                 Location     = new Point(formW - margin - btnW, formH - margin - btnH),

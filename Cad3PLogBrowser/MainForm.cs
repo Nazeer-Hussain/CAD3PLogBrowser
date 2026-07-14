@@ -131,7 +131,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Raw, Performance, LogDetails, CallGraph, FlameGraph, Timeline }
+        public enum TabId { Log, Performance, LogDetails, CallGraph, FlameGraph, Timeline }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -152,7 +152,6 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return logTab;
-                case TabId.Raw:         return rawTab;
                 case TabId.Performance: return performanceTab;
                 case TabId.LogDetails:  return logDetailTab;
                 case TabId.CallGraph:   return callGraphTab;
@@ -167,7 +166,6 @@ namespace Cad3PLogBrowser
             switch (id)
             {
                 case TabId.Log:         return showLogTabMenuItem;
-                case TabId.Raw:         return showRawTabMenuItem;
                 case TabId.Performance: return showPerformanceTabMenuItem;
                 case TabId.LogDetails:  return showLogDetailsTabMenuItem;
                 case TabId.CallGraph:   return showCallGraphMenuItem;
@@ -180,7 +178,7 @@ namespace Cad3PLogBrowser
         /// <summary>Returns the canonical tab order so re-shown tabs land at their original position.</summary>
         private TabPage[] GetCanonicalTabOrder() => new[]
         {
-            logTab, rawTab, performanceTab, logDetailTab,
+            logTab, performanceTab, logDetailTab,
             callGraphTab, flameGraphTab, timelineTab, _aiTab
         };
 
@@ -211,7 +209,6 @@ namespace Cad3PLogBrowser
             if (mainTabControl.TabPages.Count <= 1)
             {
                 if (ReferenceEquals(tab, logTab))         showLogTabMenuItem.Checked         = true;
-                if (ReferenceEquals(tab, rawTab))         showRawTabMenuItem.Checked         = true;
                 if (ReferenceEquals(tab, performanceTab)) showPerformanceTabMenuItem.Checked = true;
                 if (ReferenceEquals(tab, logDetailTab))   showLogDetailsTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
@@ -232,9 +229,6 @@ namespace Cad3PLogBrowser
 
         private void showLogTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
             SetTabVisible(logTab,         showLogTabMenuItem.Checked);
-
-        private void showRawTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
-            SetTabVisible(rawTab,         showRawTabMenuItem.Checked);
 
         private void showPerformanceTabMenuItem_CheckedChanged(object sender, EventArgs e) =>
             SetTabVisible(performanceTab, showPerformanceTabMenuItem.Checked);
@@ -684,7 +678,7 @@ namespace Cad3PLogBrowser
                 Height    = 1,
                 BackColor = SystemColors.ControlDark,
             };
-            
+
             // Add in reverse dock order: Fill panel last so it takes all remaining space
             logDetailTab.Controls.Add(_apiDetailsPanel);
             logDetailTab.Controls.Add(_apiDetailsDivider);
@@ -699,7 +693,7 @@ namespace Cad3PLogBrowser
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
-            
+
             RestoreSettings();
             InitTreeViews();
             InitAiPanel();
@@ -713,10 +707,10 @@ namespace Cad3PLogBrowser
 
             // Ensure search box is on top (above trees)
             treeSearchTextBox.BringToFront();
-            
+
             // Load saved font preferences
             LoadLogFont();
- 
+
             // Initialize tree search placeholder
             InitializeTreeSearchBox();
 
@@ -909,14 +903,6 @@ namespace Cad3PLogBrowser
                 if (logListView.VirtualMode && _virtualLines.Count > 0)
                     RefreshVirtualLineColours();
 
-                // Apply theme to raw text view
-                if (rawTextBox != null)
-                {
-                    bool isDark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
-                    rawTextBox.BackColor = ThemeManager.ControlBackgroundColor;
-                    rawTextBox.ForeColor = ThemeManager.ForegroundColor;
-                }
-
                 // Refresh the call graph panel
                 if (callGraphPanel != null)
                 {
@@ -1081,7 +1067,6 @@ namespace Cad3PLogBrowser
             switch (_appSettings.InitialView ?? "Log")
             {
                 case "Log":         target = logTab;          break;
-                case "Raw":         target = rawTab;          break;
                 case "Performance": target = performanceTab;  break;
                 case "Log Details": target = logDetailTab;    break;
                 case "Call Graph":  target = callGraphTab;    break;
@@ -2805,7 +2790,6 @@ namespace Cad3PLogBrowser
                 // D-01: restore scroll position now that VirtualListSize is set.
                 if (restoreTopIndex > 0 && restoreTopIndex < _virtualLines.Count)
                     logListView.EnsureVisible(restoreTopIndex);
-                PopulateRawView(_allLines);
 
                 UpdateStatusProgress(35, Resources.STATUS_BUILDING_CALL_TREE);
                 await Task.Delay(10);
@@ -2855,39 +2839,6 @@ namespace Cad3PLogBrowser
         }
 
         // ── #7: Virtual mode population ───────────────────────────────────────
-        /// <summary>
-        /// Builds the backing store for virtual mode. No ListViewItems are created here —
-        /// items are produced on demand in RetrieveVirtualItem. This makes loading
-        /// 500k-line files near-instant.
-        /// </summary>
-        private void PopulateRawView(IList<string> lines)
-        {
-            if (rawTextBox == null) return;
-            const int MaxRawLines = 50_000;
-            bool truncated = lines.Count > MaxRawLines;
-            int count = Math.Min(lines.Count, MaxRawLines);
-
-            // P-03: build the text then load into the RTB with WM_SETREDRAW suppressed
-            // and use AppendText instead of .Text= so the control parses the RTF once
-            // rather than re-parsing the whole document on every incremental append.
-            var sb = new System.Text.StringBuilder(count * 80);
-            for (int i = 0; i < count; i++) sb.AppendLine(lines[i]);
-            if (truncated)
-                sb.AppendLine(string.Format("[... {0:N0} more lines not shown — file exceeds raw view limit ...]",
-                              lines.Count - MaxRawLines));
-
-            Services.NativeMethods.SuppressRedraw(rawTextBox);
-            try
-            {
-                rawTextBox.Clear();
-                rawTextBox.AppendText(sb.ToString());
-            }
-            finally
-            {
-                Services.NativeMethods.ResumeRedraw(rawTextBox);
-            }
-        }
-
         private void PopulateVirtualListView(IList<string> lines)
         {
             _virtualLines = new List<VirtualLogLine>(lines.Count);
@@ -3096,7 +3047,6 @@ namespace Cad3PLogBrowser
             selectFontMenuItem.Image       = IconGenerator.CreateFontIcon(msz);
             showToolbarMenuItem.Image      = IconGenerator.CreateToolbarIcon(msz);
             showLogTabMenuItem.Image          = IconGenerator.CreateTabLogIcon(msz);
-            showRawTabMenuItem.Image          = IconGenerator.CreateTabRawIcon(msz);
             showPerformanceTabMenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
             showLogDetailsTabMenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
             showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
@@ -3155,9 +3105,7 @@ namespace Cad3PLogBrowser
 
             // Index 0 – Log
             il.Images.Add("log",        IconGenerator.CreateTabLogIcon(sz));
-            // Index 1 – Raw
-            il.Images.Add("raw",        IconGenerator.CreateTabRawIcon(sz));
-            // Index 2 – Performance
+            // Index 1 – Performance
             il.Images.Add("perf",       IconGenerator.CreateTabPerformanceIcon(sz));
             // Index 3 – Log Details
             il.Images.Add("details",    IconGenerator.CreateTabLogDetailsIcon(sz));
@@ -3179,7 +3127,6 @@ namespace Cad3PLogBrowser
 
             // Assign by key so order-independence is guaranteed
             logTab.ImageKey         = "log";
-            rawTab.ImageKey         = "raw";
             performanceTab.ImageKey = "perf";
             logDetailTab.ImageKey   = "details";
             callGraphTab.ImageKey   = "callgraph";
@@ -4732,7 +4679,6 @@ namespace Cad3PLogBrowser
                 if (settingsDialog.ShowDialog(this) == DialogResult.OK)
                 {
                     SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
-                    SetTabVisible(TabId.Raw,         _appSettings.ShowRawTab);
                     SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
                     SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
@@ -5202,7 +5148,6 @@ namespace Cad3PLogBrowser
             // else: RestoreSettings already set the splitter distance from saved value
 
             logTab.Text         = Resources.TAB_LOG;
-            rawTab.Text         = Resources.TAB_RAW;
             performanceTab.Text = Resources.TAB_PERFORMANCE;
             logDetailTab.Text   = Resources.TAB_LOG_DETAILS;
             callGraphTab.Text   = Resources.TAB_CALL_GRAPH;
@@ -7199,7 +7144,6 @@ namespace Cad3PLogBrowser
                 {
                     // Apply updated settings (same as settingsMenuItem_Click)
                     SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
-                    SetTabVisible(TabId.Raw,         _appSettings.ShowRawTab);
                     SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
                     SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
