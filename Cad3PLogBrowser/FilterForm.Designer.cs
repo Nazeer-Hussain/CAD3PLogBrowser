@@ -49,7 +49,7 @@ namespace Cad3PLogBrowser
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(160, 17);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Show only lines containing:";
+            this.label1.Text = UI.AppStrings.FilterLabelSearchText;
             // 
             // FilterTextBox
             // 
@@ -66,7 +66,7 @@ namespace Cad3PLogBrowser
             this.MatchCaseCheckBox.Name = "MatchCaseCheckBox";
             this.MatchCaseCheckBox.Size = new System.Drawing.Size(100, 21);
             this.MatchCaseCheckBox.TabIndex = 2;
-            this.MatchCaseCheckBox.Text = "Match case";
+            this.MatchCaseCheckBox.Text = UI.AppStrings.FilterCheckMatchCase;
             // 
             // grpDuration
             // 
@@ -189,7 +189,7 @@ namespace Cad3PLogBrowser
             this.lblThreadId.Name = "lblThreadId";
             this.lblThreadId.Size = new System.Drawing.Size(75, 17);
             this.lblThreadId.TabIndex = 0;
-            this.lblThreadId.Text = "Thread ID:";
+            this.lblThreadId.Text = UI.AppStrings.FilterLabelThreadId;
             // 
             // txtThreadId
             // 
@@ -205,7 +205,7 @@ namespace Cad3PLogBrowser
             this.lblLogLevel.Name = "lblLogLevel";
             this.lblLogLevel.Size = new System.Drawing.Size(75, 17);
             this.lblLogLevel.TabIndex = 2;
-            this.lblLogLevel.Text = "Log Level:";
+            this.lblLogLevel.Text = UI.AppStrings.FilterLabelLogLevel;
             // 
             // cmbLogLevel
             // 
@@ -229,7 +229,7 @@ namespace Cad3PLogBrowser
             this.ApplyButton.Name = "ApplyButton";
             this.ApplyButton.Size = new System.Drawing.Size(95, 35);
             this.ApplyButton.TabIndex = 6;
-            this.ApplyButton.Text = "&Apply";
+            this.ApplyButton.Text = UI.AppStrings.FilterButtonApply;
             this.ApplyButton.UseVisualStyleBackColor = true;
             this.ApplyButton.Click += new System.EventHandler(this.ApplyButton_Click);
             // 
@@ -239,7 +239,7 @@ namespace Cad3PLogBrowser
             this.ClearButton.Name = "ClearButton";
             this.ClearButton.Size = new System.Drawing.Size(95, 35);
             this.ClearButton.TabIndex = 7;
-            this.ClearButton.Text = "&Clear";
+            this.ClearButton.Text = UI.AppStrings.FilterButtonClear;
             this.ClearButton.UseVisualStyleBackColor = true;
             this.ClearButton.Click += new System.EventHandler(this.ClearButton_Click);
             // 
@@ -250,7 +250,7 @@ namespace Cad3PLogBrowser
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(95, 35);
             this.buttonClose.TabIndex = 8;
-            this.buttonClose.Text = "&Close";
+            this.buttonClose.Text = UI.AppStrings.FilterButtonClose;
             this.buttonClose.UseVisualStyleBackColor = true;
             this.buttonClose.Click += new System.EventHandler(this.CloseButton_Click);
             // 
@@ -276,7 +276,7 @@ namespace Cad3PLogBrowser
             this.Name = "FilterForm";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Filter Log";
+            this.Text = UI.AppStrings.FilterFormTitle;
             this.Load += new System.EventHandler(this.FilterForm_Load);
             this.grpDuration.ResumeLayout(false);
             this.grpDuration.PerformLayout();

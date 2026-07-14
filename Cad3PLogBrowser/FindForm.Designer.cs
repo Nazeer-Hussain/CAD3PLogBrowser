@@ -30,7 +30,7 @@ namespace Cad3PLogBrowser
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(76, 17);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Find What:";
+            this.label1.Text = UI.AppStrings.FindLabelSearchFor;
             // 
             // SearchTextBox
             // 
@@ -48,7 +48,7 @@ namespace Cad3PLogBrowser
             this.MatchCaseCheckBox.Name = "MatchCaseCheckBox";
             this.MatchCaseCheckBox.Size = new System.Drawing.Size(100, 21);
             this.MatchCaseCheckBox.TabIndex = 2;
-            this.MatchCaseCheckBox.Text = "Match case";
+            this.MatchCaseCheckBox.Text = UI.AppStrings.FindCheckMatchCase;
             // 
             // UseRegexCheckBox
             // 
@@ -57,7 +57,7 @@ namespace Cad3PLogBrowser
             this.UseRegexCheckBox.Name = "UseRegexCheckBox";
             this.UseRegexCheckBox.Size = new System.Drawing.Size(170, 21);
             this.UseRegexCheckBox.TabIndex = 3;
-            this.UseRegexCheckBox.Text = "Use regular expression";
+            this.UseRegexCheckBox.Text = UI.AppStrings.FindCheckUseRegex;
             // 
             // FindNextButton
             // 
@@ -65,7 +65,7 @@ namespace Cad3PLogBrowser
             this.FindNextButton.Name = "FindNextButton";
             this.FindNextButton.Size = new System.Drawing.Size(95, 35);
             this.FindNextButton.TabIndex = 4;
-            this.FindNextButton.Text = "&Find Next";
+            this.FindNextButton.Text = UI.AppStrings.FindButtonFindNext;
             this.FindNextButton.UseVisualStyleBackColor = true;
             this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
             // 
@@ -76,7 +76,7 @@ namespace Cad3PLogBrowser
             this.CloseButton.Name = "CloseButton";
             this.CloseButton.Size = new System.Drawing.Size(95, 35);
             this.CloseButton.TabIndex = 5;
-            this.CloseButton.Text = "&Close";
+            this.CloseButton.Text = UI.AppStrings.FindButtonClose;
             this.CloseButton.UseVisualStyleBackColor = true;
             this.CloseButton.Click += new System.EventHandler(this.CloseButton_Click);
             // 
@@ -100,7 +100,7 @@ namespace Cad3PLogBrowser
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.Text = "Find";
+            this.Text = UI.AppStrings.FindFormTitle;
             this.TopMost = true;
             this.Load += new System.EventHandler(this.FindForm_Load);
             this.ResumeLayout(false);

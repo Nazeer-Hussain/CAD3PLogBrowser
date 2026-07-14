@@ -81,7 +81,6 @@
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showRawTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogDetailsTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -111,7 +110,6 @@
             this.logListView = new System.Windows.Forms.ListView();
             this.colLineNumber = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colLogText = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.rawTab = new System.Windows.Forms.TabPage();
             this.performanceTab = new System.Windows.Forms.TabPage();
             this.logDetailTab = new System.Windows.Forms.TabPage();
             this.callGraphTab = new System.Windows.Forms.TabPage();
@@ -225,7 +223,7 @@
             this.exitMenuItem});
             this.fileMenuItem.Name = "fileMenuItem";
             this.fileMenuItem.Size = new System.Drawing.Size(40, 22);
-            this.fileMenuItem.Text = "&File";
+            this.fileMenuItem.Text = UI.AppStrings.MenuFile;
             // 
             // openMenuItem
             // 
@@ -235,7 +233,7 @@
             this.openMenuItem.ShortcutKeyDisplayString = "";
             this.openMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
             this.openMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.openMenuItem.Text = "&Open ...";
+            this.openMenuItem.Text = UI.AppStrings.MenuFileOpen;
             this.openMenuItem.TextImageRelation = System.Windows.Forms.TextImageRelation.Overlay;
             this.openMenuItem.Click += new System.EventHandler(this.openMenuItem_Click);
             // 
@@ -245,7 +243,7 @@
             this.saveAsMenuItem.Name = "saveAsMenuItem";
             this.saveAsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.saveAsMenuItem.Text = "Save &Selected...";
+            this.saveAsMenuItem.Text = UI.AppStrings.MenuFileSaveAs;
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
             // 
             // exportFilteredLogsMenuItem
@@ -253,42 +251,42 @@
             this.exportFilteredLogsMenuItem.Name = "exportFilteredLogsMenuItem";
             this.exportFilteredLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.E)));
             this.exportFilteredLogsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportFilteredLogsMenuItem.Text = "Save to &XLS...";
+            this.exportFilteredLogsMenuItem.Text = UI.AppStrings.MenuFileExportFiltered;
             this.exportFilteredLogsMenuItem.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
             // 
             // exportPerformanceMenuItem
             // 
             this.exportPerformanceMenuItem.Name = "exportPerformanceMenuItem";
             this.exportPerformanceMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportPerformanceMenuItem.Text = "Export &Performance to CSV...";
+            this.exportPerformanceMenuItem.Text = UI.AppStrings.MenuFileExportPerformance;
             this.exportPerformanceMenuItem.Click += new System.EventHandler(this.exportPerformanceMenuItem_Click);
             // 
             // exportTreeJsonMenuItem
             // 
             this.exportTreeJsonMenuItem.Name = "exportTreeJsonMenuItem";
             this.exportTreeJsonMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportTreeJsonMenuItem.Text = "Export Tree as &JSON...";
+            this.exportTreeJsonMenuItem.Text = UI.AppStrings.MenuFileExportTreeJson;
             this.exportTreeJsonMenuItem.Click += new System.EventHandler(this.exportTreeJsonMenuItem_Click);
             // 
             // exportTreeXmlMenuItem
             // 
             this.exportTreeXmlMenuItem.Name = "exportTreeXmlMenuItem";
             this.exportTreeXmlMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportTreeXmlMenuItem.Text = "Export Tree as X&ML...";
+            this.exportTreeXmlMenuItem.Text = UI.AppStrings.MenuFileExportTreeXml;
             this.exportTreeXmlMenuItem.Click += new System.EventHandler(this.exportTreeXmlMenuItem_Click);
             // 
             // exportTimelineMenuItem
             // 
             this.exportTimelineMenuItem.Name = "exportTimelineMenuItem";
             this.exportTimelineMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportTimelineMenuItem.Text = "Export &Timeline as Image...";
+            this.exportTimelineMenuItem.Text = UI.AppStrings.MenuFileExportTimeline;
             this.exportTimelineMenuItem.Click += new System.EventHandler(this.exportTimelineMenuItem_Click);
             // 
             // exportFlameGraphMenuItem
             // 
             this.exportFlameGraphMenuItem.Name = "exportFlameGraphMenuItem";
             this.exportFlameGraphMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exportFlameGraphMenuItem.Text = "Export &Flame Graph as Image...";
+            this.exportFlameGraphMenuItem.Text = UI.AppStrings.MenuFileExportFlameGraph;
             this.exportFlameGraphMenuItem.Click += new System.EventHandler(this.exportFlameGraphMenuItem_Click);
             // 
             // fileSeparatorAfterOpen
@@ -311,7 +309,7 @@
             this.mergeLogsMenuItem.Name = "mergeLogsMenuItem";
             this.mergeLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
             this.mergeLogsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.mergeLogsMenuItem.Text = "&Merge Log Files...";
+            this.mergeLogsMenuItem.Text = UI.AppStrings.MenuFileMergeLogs;
             this.mergeLogsMenuItem.Click += new System.EventHandler(this.mergeLogsMenuItem_Click);
             // 
             // compareLogsMenuItem
@@ -319,7 +317,7 @@
             this.compareLogsMenuItem.Name = "compareLogsMenuItem";
             this.compareLogsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
             this.compareLogsMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.compareLogsMenuItem.Text = "Compare &Logs...";
+            this.compareLogsMenuItem.Text = UI.AppStrings.MenuFileCompareLogs;
             this.compareLogsMenuItem.Click += new System.EventHandler(this.compareLogsMenuItem_Click);
             // 
             // reloadMenuItem
@@ -328,7 +326,7 @@
             this.reloadMenuItem.Name = "reloadMenuItem";
             this.reloadMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
             this.reloadMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.reloadMenuItem.Text = "&Reload from Disk";
+            this.reloadMenuItem.Text = UI.AppStrings.MenuFileReload;
             this.reloadMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
             // 
             // fileSeparatorBeforeExit
@@ -341,7 +339,7 @@
             this.exitMenuItem.Name = "exitMenuItem";
             this.exitMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
             this.exitMenuItem.Size = new System.Drawing.Size(260, 22);
-            this.exitMenuItem.Text = "E&xit";
+            this.exitMenuItem.Text = UI.AppStrings.MenuFileExit;
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
             // editMenuItem
@@ -370,7 +368,7 @@
             this.clearBookmarksMenuItem});
             this.editMenuItem.Name = "editMenuItem";
             this.editMenuItem.Size = new System.Drawing.Size(43, 22);
-            this.editMenuItem.Text = "&Edit";
+            this.editMenuItem.Text = UI.AppStrings.MenuEdit;
             // 
             // copyMenuItem
             // 
@@ -378,7 +376,7 @@
             this.copyMenuItem.Name = "copyMenuItem";
             this.copyMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
             this.copyMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.copyMenuItem.Text = "&Copy";
+            this.copyMenuItem.Text = UI.AppStrings.MenuEditCopy;
             this.copyMenuItem.Click += new System.EventHandler(this.copyMenuItem_Click);
             // 
             // findMenuItem
@@ -387,7 +385,7 @@
             this.findMenuItem.Name = "findMenuItem";
             this.findMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.F)));
             this.findMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.findMenuItem.Text = "&Find";
+            this.findMenuItem.Text = UI.AppStrings.MenuEditFind;
             this.findMenuItem.Click += new System.EventHandler(this.findMenuItem_Click);
             // 
             // findNextMenuItem
@@ -395,14 +393,14 @@
             this.findNextMenuItem.Name = "findNextMenuItem";
             this.findNextMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F3;
             this.findNextMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.findNextMenuItem.Text = "Find &Next";
+            this.findNextMenuItem.Text = UI.AppStrings.MenuEditFindNext;
             // 
             // findAllMenuItem
             // 
             this.findAllMenuItem.Name = "findAllMenuItem";
             this.findAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Alt) | System.Windows.Forms.Keys.F));
             this.findAllMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.findAllMenuItem.Text = "Find &All...";
+            this.findAllMenuItem.Text = UI.AppStrings.MenuEditFindAll;
             this.findAllMenuItem.Click += new System.EventHandler(this.findAllMenuItem_Click);
             // 
             // filterMenuItem
@@ -411,7 +409,7 @@
             this.filterMenuItem.Name = "filterMenuItem";
             this.filterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
             this.filterMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.filterMenuItem.Text = "Fil&ter...";
+            this.filterMenuItem.Text = UI.AppStrings.MenuEditFilter;
             this.filterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
             // 
             // editSeparatorAfterFilter
@@ -424,7 +422,7 @@
             this.expandAllMenuItem.Name = "expandAllMenuItem";
             this.expandAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.E)));
             this.expandAllMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.expandAllMenuItem.Text = "&Expand All";
+            this.expandAllMenuItem.Text = UI.AppStrings.MenuEditExpandAll;
             this.expandAllMenuItem.Click += new System.EventHandler(this.expandAllMenuItem_Click);
             // 
             // collapseAllMenuItem
@@ -432,7 +430,7 @@
             this.collapseAllMenuItem.Name = "collapseAllMenuItem";
             this.collapseAllMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
             this.collapseAllMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.collapseAllMenuItem.Text = "&Collapse All";
+            this.collapseAllMenuItem.Text = UI.AppStrings.MenuEditCollapseAll;
             this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
             // 
             // editSeparatorAfterCollapse
@@ -445,7 +443,7 @@
             this.jumpToMatchingMenuItem.Name = "jumpToMatchingMenuItem";
             this.jumpToMatchingMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
             this.jumpToMatchingMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.jumpToMatchingMenuItem.Text = "&Jump to Matching Enter/Exit";
+            this.jumpToMatchingMenuItem.Text = UI.AppStrings.MenuEditJumpToMatching;
             this.jumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
             // 
             // editSeparatorBeforeBookmarks
@@ -458,7 +456,7 @@
             this.toggleBookmarkMenuItem.Name = "toggleBookmarkMenuItem";
             this.toggleBookmarkMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.B)));
             this.toggleBookmarkMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.toggleBookmarkMenuItem.Text = "Toggle &Bookmark";
+            this.toggleBookmarkMenuItem.Text = UI.AppStrings.MenuEditToggleBookmark;
             this.toggleBookmarkMenuItem.Click += new System.EventHandler(this.toggleBookmarkMenuItem_Click);
             // 
             // nextBookmarkMenuItem
@@ -466,7 +464,7 @@
             this.nextBookmarkMenuItem.Name = "nextBookmarkMenuItem";
             this.nextBookmarkMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F2;
             this.nextBookmarkMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.nextBookmarkMenuItem.Text = "&Next Bookmark";
+            this.nextBookmarkMenuItem.Text = UI.AppStrings.MenuEditNextBookmark;
             this.nextBookmarkMenuItem.Click += new System.EventHandler(this.nextBookmarkMenuItem_Click);
             // 
             // previousBookmarkMenuItem
@@ -474,7 +472,7 @@
             this.previousBookmarkMenuItem.Name = "previousBookmarkMenuItem";
             this.previousBookmarkMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Shift | System.Windows.Forms.Keys.F2)));
             this.previousBookmarkMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.previousBookmarkMenuItem.Text = "&Previous Bookmark";
+            this.previousBookmarkMenuItem.Text = UI.AppStrings.MenuEditPreviousBookmark;
             this.previousBookmarkMenuItem.Click += new System.EventHandler(this.previousBookmarkMenuItem_Click);
             // 
             // showBookmarksMenuItem
@@ -482,7 +480,7 @@
             this.showBookmarksMenuItem.Name = "showBookmarksMenuItem";
             this.showBookmarksMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.B)));
             this.showBookmarksMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.showBookmarksMenuItem.Text = "Show &All Bookmarks";
+            this.showBookmarksMenuItem.Text = UI.AppStrings.MenuEditShowBookmarks;
             this.showBookmarksMenuItem.Click += new System.EventHandler(this.showBookmarksMenuItem_Click);
             // 
             // clearBookmarksMenuItem
@@ -490,7 +488,7 @@
             this.clearBookmarksMenuItem.Name = "clearBookmarksMenuItem";
             this.clearBookmarksMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.Delete)));
             this.clearBookmarksMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.clearBookmarksMenuItem.Text = "&Clear All Bookmarks";
+            this.clearBookmarksMenuItem.Text = UI.AppStrings.MenuEditClearBookmarks;
             this.clearBookmarksMenuItem.Click += new System.EventHandler(this.clearBookmarksMenuItem_Click);
             // 
             // editSeparatorAfterCopy
@@ -503,7 +501,7 @@
             this.copyWithHeadersMenuItem.Name = "copyWithHeadersMenuItem";
             this.copyWithHeadersMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.C)));
             this.copyWithHeadersMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.copyWithHeadersMenuItem.Text = "Copy with &Headers";
+            this.copyWithHeadersMenuItem.Text = UI.AppStrings.MenuEditCopyWithHeaders;
             this.copyWithHeadersMenuItem.Click += new System.EventHandler(this.copyWithHeadersMenuItem_Click);
             // 
             // clearFilterMenuItem
@@ -511,7 +509,7 @@
             this.clearFilterMenuItem.Name = "clearFilterMenuItem";
             this.clearFilterMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.F)));
             this.clearFilterMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.clearFilterMenuItem.Text = "C&lear Filter";
+            this.clearFilterMenuItem.Text = UI.AppStrings.MenuEditClearFilter;
             this.clearFilterMenuItem.Click += new System.EventHandler(this.clearFilterMenuItem_Click);
             // 
             // editSeparatorAfterFind
@@ -524,7 +522,7 @@
             this.jumpToLineMenuItem.Name = "jumpToLineMenuItem";
             this.jumpToLineMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
             this.jumpToLineMenuItem.Size = new System.Drawing.Size(258, 22);
-            this.jumpToLineMenuItem.Text = "Jump to &Line...";
+            this.jumpToLineMenuItem.Text = UI.AppStrings.MenuEditJumpToLine;
             this.jumpToLineMenuItem.Click += new System.EventHandler(this.jumpToLineMenuItem_Click);
             // 
             // optionsMenuItem
@@ -533,7 +531,7 @@
             this.settingsMenuItem});
             this.optionsMenuItem.Name = "optionsMenuItem";
             this.optionsMenuItem.Size = new System.Drawing.Size(69, 22);
-            this.optionsMenuItem.Text = "&Options";
+            this.optionsMenuItem.Text = UI.AppStrings.MenuOptions;
             // 
             // settingsMenuItem
             // 
@@ -541,7 +539,7 @@
             this.settingsMenuItem.Name = "settingsMenuItem";
             this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.S));
             this.settingsMenuItem.Size = new System.Drawing.Size(218, 22);
-            this.settingsMenuItem.Text = "&Settings";
+            this.settingsMenuItem.Text = UI.AppStrings.MenuOptionsSettings;
             this.settingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
             // viewMenuItem
@@ -556,7 +554,7 @@
             this.showStatusBarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
-            this.viewMenuItem.Text = "&View";
+            this.viewMenuItem.Text = UI.AppStrings.MenuView;
             // 
             // showCallTreeMenuItem
             // 
@@ -564,7 +562,7 @@
             this.showCallTreeMenuItem.Checked = true;
             this.showCallTreeMenuItem.Name = "showCallTreeMenuItem";
             this.showCallTreeMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showCallTreeMenuItem.Text = "Show &Call Tree";
+            this.showCallTreeMenuItem.Text = UI.AppStrings.MenuViewShowCallTree;
             this.showCallTreeMenuItem.CheckedChanged += new System.EventHandler(this.showCallTreeMenuItem_CheckedChanged);
             // 
             // showApiTreeMenuItem
@@ -573,14 +571,13 @@
             this.showApiTreeMenuItem.Checked = false;
             this.showApiTreeMenuItem.Name = "showApiTreeMenuItem";
             this.showApiTreeMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showApiTreeMenuItem.Text = "Show &API Tree";
+            this.showApiTreeMenuItem.Text = UI.AppStrings.MenuViewShowApiTree;
             this.showApiTreeMenuItem.CheckedChanged += new System.EventHandler(this.showApiTreeMenuItem_CheckedChanged);
             // 
             // tabsMenuItem
             // 
             this.tabsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showLogTabMenuItem,
-            this.showRawTabMenuItem,
             this.showPerformanceTabMenuItem,
             this.showLogDetailsTabMenuItem,
             this.showCallGraphMenuItem,
@@ -588,7 +585,7 @@
             this.showTimelineTabMenuItem});
             this.tabsMenuItem.Name = "tabsMenuItem";
             this.tabsMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.tabsMenuItem.Text = "Show &Tabs";
+            this.tabsMenuItem.Text = UI.AppStrings.MenuViewTabs;
             // 
             // showLogTabMenuItem - LogView
             // 
@@ -598,15 +595,6 @@
             this.showLogTabMenuItem.Size = new System.Drawing.Size(180, 22);
             this.showLogTabMenuItem.Text = "&LogView";
             this.showLogTabMenuItem.CheckedChanged += new System.EventHandler(this.showLogTabMenuItem_CheckedChanged);
-            // 
-            // showRawTabMenuItem - Raw
-            // 
-            this.showRawTabMenuItem.CheckOnClick = true;
-            this.showRawTabMenuItem.Checked = true;
-            this.showRawTabMenuItem.Name = "showRawTabMenuItem";
-            this.showRawTabMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showRawTabMenuItem.Text = "&Raw";
-            this.showRawTabMenuItem.CheckedChanged += new System.EventHandler(this.showRawTabMenuItem_CheckedChanged);
             // 
             // showPerformanceTabMenuItem - Performance
             // 
@@ -662,7 +650,7 @@
             // 
             this.selectFontMenuItem.Name = "selectFontMenuItem";
             this.selectFontMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.selectFontMenuItem.Text = "Select &Font...";
+            this.selectFontMenuItem.Text = UI.AppStrings.MenuViewSelectFont;
             this.selectFontMenuItem.Click += new System.EventHandler(this.selectFontMenuItem_Click);
             // 
             // showToolbarMenuItem
@@ -671,7 +659,7 @@
             this.showToolbarMenuItem.CheckOnClick = true;
             this.showToolbarMenuItem.Name = "showToolbarMenuItem";
             this.showToolbarMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showToolbarMenuItem.Text = "Show &Toolbar";
+            this.showToolbarMenuItem.Text = UI.AppStrings.MenuViewShowToolbar;
             this.showToolbarMenuItem.CheckedChanged += new System.EventHandler(this.showToolbarMenuItem_CheckedChanged);
             // 
             // showStatusBarMenuItem
@@ -680,7 +668,7 @@
             this.showStatusBarMenuItem.CheckOnClick = true;
             this.showStatusBarMenuItem.Name = "showStatusBarMenuItem";
             this.showStatusBarMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.showStatusBarMenuItem.Text = "Show &Status Bar";
+            this.showStatusBarMenuItem.Text = UI.AppStrings.MenuViewShowStatusBar;
             this.showStatusBarMenuItem.CheckedChanged += new System.EventHandler(this.showStatusBarMenuItem_CheckedChanged);
             // 
             // helpMenuItem
@@ -695,7 +683,7 @@
             this.reportErrorsMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
-            this.helpMenuItem.Text = "&Help";
+            this.helpMenuItem.Text = UI.AppStrings.MenuHelp;
             // 
             // viewHelpMenuItem
             // 
@@ -703,7 +691,7 @@
             this.viewHelpMenuItem.Name = "viewHelpMenuItem";
             this.viewHelpMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
             this.viewHelpMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.viewHelpMenuItem.Text = "&User Guide";
+            this.viewHelpMenuItem.Text = UI.AppStrings.MenuHelpViewHelp;
             this.viewHelpMenuItem.Click += new System.EventHandler(this.viewHelpMenuItem_Click);
             // 
             // keyboardShortcutsMenuItem
@@ -711,7 +699,7 @@
             this.keyboardShortcutsMenuItem.Name = "keyboardShortcutsMenuItem";
             this.keyboardShortcutsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
             this.keyboardShortcutsMenuItem.Size = new System.Drawing.Size(220, 22);
-            this.keyboardShortcutsMenuItem.Text = "&Keyboard Shortcuts";
+            this.keyboardShortcutsMenuItem.Text = UI.AppStrings.MenuHelpKeyboardShortcuts;
             this.keyboardShortcutsMenuItem.Click += new System.EventHandler(this.keyboardShortcutsMenuItem_Click);
             // 
             // helpSeparator1
@@ -723,28 +711,28 @@
             // 
             this.aboutMenuItem.Name = "aboutMenuItem";
             this.aboutMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.aboutMenuItem.Text = "&About";
+            this.aboutMenuItem.Text = UI.AppStrings.MenuHelpAbout;
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
             // 
             // checkForUpdatesMenuItem
             // 
             this.checkForUpdatesMenuItem.Name = "checkForUpdatesMenuItem";
             this.checkForUpdatesMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.checkForUpdatesMenuItem.Text = "&Check for Updates";
+            this.checkForUpdatesMenuItem.Text = UI.AppStrings.MenuHelpCheckForUpdates;
             this.checkForUpdatesMenuItem.Click += new System.EventHandler(this.checkForUpdatesMenuItem_Click);
             // 
             // viewUpdateLogMenuItem
             // 
             this.viewUpdateLogMenuItem.Name = "viewUpdateLogMenuItem";
             this.viewUpdateLogMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.viewUpdateLogMenuItem.Text = "View Update &Log...";
+            this.viewUpdateLogMenuItem.Text = UI.AppStrings.MenuHelpViewUpdateLog;
             this.viewUpdateLogMenuItem.Click += new System.EventHandler(this.viewUpdateLogMenuItem_Click);
             // 
             // reportErrorsMenuItem
             // 
             this.reportErrorsMenuItem.Name = "reportErrorsMenuItem";
             this.reportErrorsMenuItem.Size = new System.Drawing.Size(200, 22);
-            this.reportErrorsMenuItem.Text = "&Report Errors...";
+            this.reportErrorsMenuItem.Text = UI.AppStrings.MenuHelpReportErrors;
             this.reportErrorsMenuItem.Click += new System.EventHandler(this.reportErrorsMenuItem_Click);
             // 
             // mainStatusStrip
@@ -882,7 +870,6 @@
             // mainTabControl
             // 
             this.mainTabControl.Controls.Add(this.logTab);
-            this.mainTabControl.Controls.Add(this.rawTab);
             this.mainTabControl.Controls.Add(this.performanceTab);
             this.mainTabControl.Controls.Add(this.logDetailTab);
             this.mainTabControl.Controls.Add(this.callGraphTab);
@@ -937,27 +924,7 @@
             // 
             this.colLogText.Text = "Log Text";
             this.colLogText.Width = 600;
-            // 
-            // rawTab
-            // 
-            this.rawTextBox = new System.Windows.Forms.RichTextBox();
-            this.rawTextBox.Dock      = System.Windows.Forms.DockStyle.Fill;
-            this.rawTextBox.ReadOnly  = true;
-            this.rawTextBox.WordWrap  = false;
-            this.rawTextBox.Font      = new System.Drawing.Font("Consolas", 9.75F);
-            this.rawTextBox.BackColor = System.Drawing.SystemColors.Window;
-            this.rawTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Both;
-            this.rawTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.rawTextBox.Name      = "rawTextBox";
-            this.rawTextBox.MaxLength = 10_000_000; // Memory safety: prevent OutOfMemoryException
-            this.rawTab.Controls.Add(this.rawTextBox);
-            this.rawTab.Location = new System.Drawing.Point(4, 25);
-            this.rawTab.Name = "rawTab";
-            this.rawTab.Padding = new System.Windows.Forms.Padding(3);
-            this.rawTab.Size = new System.Drawing.Size(688, 494);
-            this.rawTab.TabIndex = 1;
-            this.rawTab.Text = "Raw";
-            this.rawTab.UseVisualStyleBackColor = true;
+
             // 
             // performanceTab � Performance
             // 
@@ -1647,8 +1614,6 @@
         private Managers.FlameGraphPanel flameGraphPanel;
         private Managers.TimelinePanel timelinePanel;
         private System.Windows.Forms.TabPage logTab;
-        private System.Windows.Forms.TabPage rawTab;
-        private System.Windows.Forms.RichTextBox rawTextBox;
         private System.Windows.Forms.TabPage performanceTab;
         private System.Windows.Forms.TabPage logDetailTab;
         private System.Windows.Forms.TabPage callGraphTab;
@@ -1721,7 +1686,6 @@
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showRawTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;

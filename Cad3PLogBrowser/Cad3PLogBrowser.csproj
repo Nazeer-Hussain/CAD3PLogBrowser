@@ -157,6 +157,7 @@
     <Compile Include="Services\Update\UpdateLogger.cs" />
     <Compile Include="Services\Update\UpdateManifest.cs" />
     <Compile Include="Services\Update\UpdateService.cs" />
+    <Compile Include="Services\Update\UpdateServiceStrings.cs" />
     <Compile Include="SettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -199,6 +200,7 @@
     <Compile Include="UI\AI\AISettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UI\AppStrings.cs" />
     <Compile Include="UI\CompareLogsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -209,6 +211,7 @@
     <Compile Include="UI\LineInspectorPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UI\SettingsDialogStrings.cs" />
     <Compile Include="UpdateAvailableForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -238,226 +241,6 @@
     </Compile>
     <None Include="AI\Providers\Ollama\ollama.config" />
     <None Include="app.config" />
-    <None Include="..\documentation\.prbody.md" />
-    <None Include="..\documentation\100_PERCENT_CELEBRATION.md" />
-    <None Include="..\documentation\ACCESSIBILITY_AUDIT.md" />
-    <None Include="..\documentation\ACCESSIBILITY_COMPLETE_AUDIT.md" />
-    <None Include="..\documentation\ACTUAL_MISSING_FEATURES.md" />
-    <None Include="..\documentation\ADD_ALL_RESOURCES_FIRST.md" />
-    <None Include="..\documentation\AI_ASSISTANT_BUTTON_TEXT_FIX.md" />
-    <None Include="..\documentation\AI_ASSISTANT_COMPLETE_V2.3.0.md" />
-    <None Include="..\documentation\AI_ASSISTANT_QUICK_GUIDE.md" />
-    <None Include="..\documentation\AI_ASSISTANT_UPDATES.md" />
-    <None Include="..\documentation\AI_IMPROVEMENTS_GUIDE.md" />
-    <None Include="..\documentation\AI_MARKDOWN_RENDERING.md" />
-    <None Include="..\documentation\ALL_BUGS_FIXED_SUMMARY.md" />
-    <None Include="..\documentation\ALL_ENHANCEMENTS_COMPLETE.md" />
-    <None Include="..\documentation\ALL_PHASES_COMPLETE.md" />
-    <None Include="..\documentation\ALL_TASKS_100_PERCENT_COMPLETE.md" />
-    <None Include="..\documentation\ARCHITECTURE.md" />
-    <None Include="..\documentation\BRANDING_STANDARDIZATION.md" />
-    <None Include="..\documentation\BUGFIX_NULL_REFERENCE_EXCEPTION.md" />
-    <None Include="..\documentation\BUGFIX_NULLREF_HIGHLIGHTING.md" />
-    <None Include="..\documentation\BUGFIX_SETTINGS_NOT_SAVING.md" />
-    <None Include="..\documentation\BUILD_ERROR_FIX.md" />
-    <None Include="..\documentation\BUILD_ERROR_FIXED.md" />
-    <None Include="..\documentation\BUILD_SUCCESS.md" />
-    <None Include="..\documentation\CHECKLIST.md" />
-    <None Include="..\documentation\CODE_CHANGES_REFERENCE.md" />
-    <None Include="..\documentation\CODE_OPTIMIZATION_TREE_TOGGLE.md" />
-    <None Include="..\documentation\COMPARISON_FEATURE_README.md" />
-    <None Include="..\documentation\COMPLETE_ICON_SET_REPLACEMENT.md" />
-    <None Include="..\documentation\COMPLETE_PR_DESCRIPTION.md" />
-    <None Include="..\documentation\COMPLETE_PROJECT_DOCUMENTATION.md" />
-    <None Include="..\documentation\COMPLETE_PROJECT_ORGANIZATION_FINAL.md" />
-    <None Include="..\documentation\COMPLETE_REFACTORING_SUMMARY.md" />
-    <None Include="..\documentation\COMPLETE_RESOURCE_CLEANUP_GUIDE.md" />
-    <None Include="..\documentation\COMPLETE_SESSION_SUMMARY.md" />
-    <None Include="..\documentation\COMPLETE_STRING_AUDIT.md" />
-    <None Include="..\documentation\COMPLETE_UI_ACCESS_SUMMARY.md" />
-    <None Include="..\documentation\COMPREHENSIVE_FEATURE_CHECKLIST.md" />
-    <None Include="..\documentation\COMPREHENSIVE_STATUS_REPORT.md" />
-    <None Include="..\documentation\CRITICAL_FIXES_EMOJI_AND_BOUNDARIES.md" />
-    <None Include="..\documentation\CURRENT_STATUS.md" />
-    <None Include="..\documentation\DEBUG_LOGS_REMOVED.md" />
-    <None Include="..\documentation\DELIVERABLES.md" />
-    <None Include="..\documentation\DEPENDENCY_GRAPH_ACTIVATED.md" />
-    <None Include="..\documentation\DEPENDENCY_GRAPH_LIVE_V2.2.1.md" />
-    <None Include="..\documentation\DEVELOPER_INTEGRATION_GUIDE.md" />
-    <None Include="..\documentation\DIALOG_HEIGHT_FIX.md" />
-    <None Include="..\documentation\DOCUMENTATION_INDEX.md" />
-    <None Include="..\documentation\DOCUMENTATION_INDEX2.md" />
-    <None Include="..\documentation\END_USER_GUIDE.md" />
-    <None Include="..\documentation\ENHANCEMENT_RECOMMENDATION.md" />
-    <None Include="..\documentation\EXECUTE.md" />
-    <None Include="..\documentation\EXECUTE_NOW.md" />
-    <None Include="..\documentation\EXIT_PERFORMANCE_FIX.md" />
-    <None Include="..\documentation\EXTERNALIZATION_IMPLEMENTATION_GUIDE.md" />
-    <None Include="..\documentation\FAST_CLOSE_SUMMARY.md" />
-    <None Include="..\documentation\FEATURE_B10_COMPLETE.md" />
-    <None Include="..\documentation\FEATURE_B10_PLAN.md" />
-    <None Include="..\documentation\FEATURE_C1_COMPLETE.md" />
-    <None Include="..\documentation\FEATURE_C6_COMPLETE.md" />
-    <None Include="..\documentation\FEATURE_G4_COMPLETE.md" />
-    <None Include="..\documentation\FEATURE_PROGRESS_INDICATORS.md" />
-    <None Include="..\documentation\FEATURES_C6_I1_B8_COMPLETE.md" />
-    <None Include="..\documentation\FEATURES_C6_J3_COMPLETE.md" />
-    <None Include="..\documentation\FEATURES_IMPLEMENTATION_COMPLETE.md" />
-    <None Include="..\documentation\FEATURES_IMPLEMENTED.md" />
-    <None Include="..\documentation\FINAL_CHECKLIST_98_PERCENT.md" />
-    <None Include="..\documentation\FINAL_CLEANUP_COMPLETE.md" />
-    <None Include="..\documentation\FINAL_COMPLETION_100_PERCENT.md" />
-    <None Include="..\documentation\FINAL_RESOURCE_CLEANUP.md" />
-    <None Include="..\documentation\FINAL_SESSION_SUMMARY.md" />
-    <None Include="..\documentation\FINAL_STATUS_93_PERCENT.md" />
-    <None Include="..\documentation\FINAL_STATUS_REPORT_COMPLETE.md" />
-    <None Include="..\documentation\FINAL_SUCCESS_V2.3.0_COMPLETE.md" />
-    <None Include="..\documentation\FINAL_VERIFICATION_REPORT.md" />
-    <None Include="..\documentation\FLAME_GRAPH_FEATURE.md" />
-    <None Include="..\documentation\FONT_SELECTION_COMPLETE.md" />
-    <None Include="..\documentation\FORMATTING_FIX.md" />
-    <None Include="..\documentation\GIT_COMMIT_AND_PR.md" />
-    <None Include="..\documentation\GIT_WORKFLOW_COMPLETE_READY_TO_MERGE.md" />
-    <None Include="..\documentation\GIT_WORKFLOW_STEPS.md" />
-    <None Include="..\documentation\GITHUB_COPILOT_ANALYSIS.md" />
-    <None Include="..\documentation\GITHUB_COPILOT_INTEGRATION.md" />
-    <None Include="..\documentation\HELP_FILE_COMPLETE.md" />
-    <None Include="..\documentation\HELP_IMPLEMENTATION_COMPLETE.md" />
-    <None Include="..\documentation\HOW_TO_ENABLE_DEPENDENCY_GRAPH_AND_AI.md" />
-    <None Include="..\documentation\ICON_ENHANCEMENTS_COMPLETE.md" />
-    <None Include="..\documentation\IMPLEMENTATION_COMPLETE.md" />
-    <None Include="..\documentation\IMPLEMENTATION_COMPLETE_MAINFORM.md" />
-    <None Include="..\documentation\IMPLEMENTATION_SCRIPT.md" />
-    <None Include="..\documentation\IMPLEMENTATION_SUMMARY.md" />
-    <None Include="..\documentation\INSTALLATION.md" />
-    <None Include="..\documentation\INTEGRATION_COMPLETE.md" />
-    <None Include="..\documentation\LAYOUT_AUDIT.md" />
-    <None Include="..\documentation\MARKDOWN_COMPLETE_FIX.md" />
-    <None Include="..\documentation\MARKDOWN_VISUAL_GUIDE.md" />
-    <None Include="..\documentation\MASTER_INDEX.md" />
-    <None Include="..\documentation\MEMORY_FIX_INSTRUCTIONS.md" />
-    <None Include="..\documentation\MEMORY_FIX_PATCH.md" />
-    <None Include="..\documentation\MEMORY_FIX_SUMMARY.md" />
-    <None Include="..\documentation\MEMORY_SAFETY_IMPLEMENTATION.md" />
-    <None Include="..\documentation\MERGE_COMPLETE_SUCCESS.md" />
-    <None Include="..\documentation\MERGE_SUCCESS.md" />
-    <None Include="..\documentation\MERGE_TO_MASTER_GUIDE.md" />
-    <None Include="..\documentation\MERGED_TAB_GUIDE.md" />
-    <None Include="..\documentation\MISSING_FEATURES_COMPLETE.md" />
-    <None Include="..\documentation\MISSING_FEATURES_IMPLEMENTATION_PLAN.md" />
-    <None Include="..\documentation\MISSING_SPACES_DIAGNOSTIC.md" />
-    <None Include="..\documentation\MISSING_SPACES_SOLUTION.md" />
-    <None Include="..\documentation\NEXT_ENHANCEMENTS.md" />
-    <None Include="..\documentation\NEXT_ENHANCEMENTS_PLAN.md" />
-    <None Include="..\documentation\NEXT_LEVEL_IMPROVEMENTS_2026-04-22.md" />
-    <None Include="..\documentation\PERFORMANCE_FIX_FAST_CLOSE.md" />
-    <None Include="..\documentation\PHASE_4_MAINFORM_REFACTORING_GUIDE.md" />
-    <None Include="..\documentation\PHASE_5_CLEANUP_COMPLETE.md" />
-    <None Include="..\documentation\PHASE_5_CLEANUP_PLAN.md" />
-    <None Include="..\documentation\PHASE_D_COMPLETE.md" />
-    <None Include="..\documentation\PHASES_ABC_COMPLETE.md" />
-    <None Include="..\documentation\PR_BODY.md" />
-    <None Include="..\documentation\PR_DESCRIPTION.md" />
-    <None Include="..\documentation\PROGRESS_BARS_COMPLETE.md" />
-    <None Include="..\documentation\PROJECT_COMPLETION_CERTIFICATE.md" />
-    <None Include="..\documentation\PROJECT_ORGANIZATION_COMPLETE.md" />
-    <None Include="..\documentation\PTC_GITHUB_COPILOT_GUIDE.md" />
-    <None Include="..\documentation\PULL_REQUEST_DESCRIPTION.md" />
-    <None Include="..\documentation\PULL_REQUEST_UI_REVAMP.md" />
-    <None Include="..\documentation\QUICK_FIX_SUMMARY.md" />
-    <None Include="..\documentation\QUICK_IMPLEMENTATION.md" />
-    <None Include="..\documentation\QUICK_REFERENCE.md" />
-    <None Include="..\documentation\QUICK_REFERENCE_C6_I1_B8.md" />
-    <None Include="..\documentation\QUICK_REFERENCE_MAINTENANCE.md" />
-    <None Include="..\documentation\QUICK_START_RESOURCE_CLEANUP.md" />
-    <None Include="..\documentation\QUICKSTART (2).md" />
-    <None Include="..\documentation\QUICKSTART.md" />
-    <None Include="..\documentation\README (2).md" />
-    <None Include="..\documentation\README.md" />
-    <None Include="..\documentation\README_AI.md" />
-    <None Include="..\documentation\README_HELP_FILE.md" />
-    <None Include="..\documentation\README_IMAGES.md" />
-    <None Include="..\documentation\README_UI_REVAMP.md" />
-    <None Include="..\documentation\READY_TO_COMPLETE.md" />
-    <None Include="..\documentation\READY_TO_IMPLEMENT.md" />
-    <None Include="..\documentation\REFACTOR_V5_COMPLETE_WITH_INSTRUCTIONS.md" />
-    <None Include="..\documentation\REFACTOR_V5_CURRENT_STATUS.md" />
-    <None Include="..\documentation\REFACTOR_V5_FEATURE_LIST.md" />
-    <None Include="..\documentation\REFACTOR_V5_FINAL_STATUS.md" />
-    <None Include="..\documentation\REFACTOR_V5_MILESTONE_ACHIEVED.md" />
-    <None Include="..\documentation\REFACTOR_V5_PR_DESCRIPTION.md" />
-    <None Include="..\documentation\REFACTOR_V5_PROGRESS.md" />
-    <None Include="..\documentation\REFACTOR_V5_SESSION_COMPLETE.md" />
-    <None Include="..\documentation\REFACTORING_COMMITTED.md" />
-    <None Include="..\documentation\REFACTORING_FINAL_SUMMARY.md" />
-    <None Include="..\documentation\REFACTORING_PHASE_1_COMPLETE.md" />
-    <None Include="..\documentation\REFACTORING_PHASE_3_COMPLETE.md" />
-    <None Include="..\documentation\REFACTORING_PHASES_2_3_4_PROGRESS.md" />
-    <None Include="..\documentation\REFACTORING_PLAN.md" />
-    <None Include="..\documentation\REFACTORING_PROGRESS_REPORT.md" />
-    <None Include="..\documentation\REFACTORING_PROJECT_COMPLETE.md" />
-    <None Include="..\documentation\REFACTORING_SESSION_1_SUMMARY.md" />
-    <None Include="..\documentation\REGISTRY_REMOVED.md" />
-    <None Include="..\documentation\REGISTRY_TO_JSON_MIGRATION.md" />
-    <None Include="..\documentation\REMAINING_FEATURES_COMPLETE.md" />
-    <None Include="..\documentation\RESOURCE_CLEANUP_ANALYSIS.md" />
-    <None Include="..\documentation\SESSION_COMPLETE.md" />
-    <None Include="..\documentation\SESSION_SUMMARY.md" />
-    <None Include="..\documentation\SESSION_SUMMARY_C6_I1_B8.md" />
-    <None Include="..\documentation\SETTINGS_DIALOG_FIX_SUMMARY.md" />
-    <None Include="..\documentation\SETTINGS_FIX_SUMMARY.md" />
-    <None Include="..\documentation\SETTINGS_INTEGRATION_SUMMARY.md" />
-    <None Include="..\documentation\SETTINGS_UI_GUIDE.md" />
-    <None Include="..\documentation\SETUP_GUIDE.md" />
-    <None Include="..\documentation\SINGLE_SOURCE_OF_TRUTH.md" />
-    <None Include="..\documentation\SPACING_FIX_COMPLETE.md" />
-    <None Include="..\documentation\SPEEDSCOPE_INTEGRATION.md" />
-    <None Include="..\documentation\SPLITTER_DEBUG_GUIDE.md" />
-    <None Include="..\documentation\SPLITTER_DEBUG_READY.md" />
-    <None Include="..\documentation\SPLITTER_FINAL_BEGININVOKE_FIX.md" />
-    <None Include="..\documentation\SPLITTER_FINAL_FIX.md" />
-    <None Include="..\documentation\SPRINT_1_PROGRESS.md" />
-    <None Include="..\documentation\START_HERE.md" />
-    <None Include="..\documentation\STATUS_C1_G4_B10.md" />
-    <None Include="..\documentation\STEP_1_ADD_STRING_RESOURCES.md" />
-    <None Include="..\documentation\STEP_2_UPDATE_CODE.md" />
-    <None Include="..\documentation\STEP_3_VERIFY.md" />
-    <None Include="..\documentation\STEP_4_REMOVE_UNUSED.md" />
-    <None Include="..\documentation\STRING_EXTERNALIZATION_100_PERCENT_COMPLETE.md" />
-    <None Include="..\documentation\STRING_EXTERNALIZATION_COMPLETE.md" />
-    <None Include="..\documentation\STRING_EXTERNALIZATION_FINAL_SUMMARY.md" />
-    <None Include="..\documentation\STRING_EXTERNALIZATION_GUIDE.md" />
-    <None Include="..\documentation\STRING_REPLACEMENT_EXAMPLES.md" />
-    <None Include="..\documentation\SUMMARY (2).md" />
-    <None Include="..\documentation\SUMMARY.md" />
-    <None Include="..\documentation\TAB_MERGE_SUMMARY.md" />
-    <None Include="..\documentation\THE_COMPLETE_CHRONICLE.md" />
-    <None Include="..\documentation\ThemeManager_Crash_Fix_Summary.md" />
-    <None Include="..\documentation\TODO_vs_IMPLEMENTED_COMPARISON.md" />
-    <None Include="..\documentation\TOOLBAR_IMAGE_OPTIMIZATION.md" />
-    <None Include="..\documentation\TREE_VISIBILITY_FIX.md" />
-    <None Include="..\documentation\TROUBLESHOOTING.md" />
-    <None Include="..\documentation\UI_ACCESS_AUDIT.md" />
-    <None Include="..\documentation\UI_ENHANCEMENTS_WINDOW_STATE.md" />
-    <None Include="..\documentation\UI_FIXES_TREES_LISTVIEW_GRAPH.md" />
-    <None Include="..\documentation\UI_INTEGRATION_COMPLETE.md" />
-    <None Include="..\documentation\UI_REVAMP_01_DARK_THEME_IMPROVEMENT.md" />
-    <None Include="..\documentation\UI_REVAMP_02_COMPLETE_SETTINGS_DIALOG.md" />
-    <None Include="..\documentation\UI_REVAMP_03_FILTER_DIALOG_FIX.md" />
-    <None Include="..\documentation\UI_REVAMP_04_FIND_DIALOG_FIX.md" />
-    <None Include="..\documentation\UI_REVAMP_10_HELP_INTEGRATION_COMPLETE.md" />
-    <None Include="..\documentation\UI_REVAMP_COMPLETE_SUMMARY.md" />
-    <None Include="..\documentation\UI_REVAMP_CRITICAL_FIX_TOOLBAR_OVERLAP.md" />
-    <None Include="..\documentation\UI_REVAMP_CRITICAL_FIX_TREE_DOCK_ORDER.md" />
-    <None Include="..\documentation\UI_REVAMP_DEFINITIVE_FIX_TREE_LAYOUT.md" />
-    <None Include="..\documentation\UI_REVAMP_FINAL_FIX_TREE_ZORDER.md" />
-    <None Include="..\documentation\UI_REVAMP_FINAL_STATUS_REPORT.md" />
-    <None Include="..\documentation\UI_REVAMP_FLAMEGRAPH_TIMELINE_ENHANCEMENT.md" />
-    <None Include="..\documentation\UI_REVAMP_HOTFIX_DARK_THEME_PANELS.md" />
-    <None Include="..\documentation\UI_REVAMP_HOTFIX2_TREE_DOCK_FIX.md" />
-    <None Include="..\documentation\UI_REVAMP_HOTFIX2_TREE_ISSUES.md" />
-    <None Include="..\documentation\UI_REVAMP_LAYOUT_AUDIT_COMPLETE.md" />
-    <None Include="..\documentation\UI_REVAMP_PROJECT_100_PERCENT_COMPLETE.md" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -483,56 +266,6 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="cad3plog.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -544,6 +277,11 @@
       <Link>Help\UserGuide.html</Link>
       <LogicalName>Cad3PLogBrowser.Help.UserGuide.html</LogicalName>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\documentation\**\*.*">
+      <Link>Documentation\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
