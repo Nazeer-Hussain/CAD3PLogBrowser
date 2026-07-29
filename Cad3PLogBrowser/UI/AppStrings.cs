@@ -22,6 +22,7 @@ namespace Cad3PLogBrowser.UI
         public const string MenuFileSaveAs = "Save &As...";
         public const string MenuFileExportFiltered = "Export &Filtered Logs...";
         public const string MenuFileExportPerformance = "Export &Performance Data...";
+        public const string MenuFileExportApiCsv = "Export &API Summary to CSV...";
         public const string MenuFileExportTreeJson = "Export Tree as &JSON...";
         public const string MenuFileExportTreeXml = "Export Tree as &XML...";
         public const string MenuFileExportTimeline = "Export &Timeline...";
@@ -207,7 +208,7 @@ namespace Cad3PLogBrowser.UI
         public const string AboutButtonOK = "&OK";
         public const string AboutLabelVersion = "Version {0}";
         public const string AboutProductName = "CAD 3P Log Browser";
-        public const string AboutCopyright = "Copyright © 2024 PTC Inc.";
+        public const string AboutCopyright = "Copyright ï¿½ 2024 PTC Inc.";
         public const string AboutCompany = "PTC Inc.";
         public const string AboutDescription = "A powerful log file viewer and analyzer for CAD applications with advanced search, filtering, and AI-powered analysis capabilities.";
 

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
-using Cad3PLogBrowser.Services.Analysis;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser.Managers
 {
@@ -28,7 +28,7 @@ namespace Cad3PLogBrowser.Managers
             BackColor      = Color.FromArgb(30, 30, 35);
         }
 
-        public void LoadData(List<PerformanceStatistics> stats)
+        public void LoadData(List<ApiPerfStats> stats)
         {
             _cells.Clear();
             if (stats == null || stats.Count == 0) { Invalidate(); return; }
@@ -62,7 +62,7 @@ namespace Cad3PLogBrowser.Managers
 
                 _cells.Add(new HeatCell
                 {
-                    ApiName = s.MethodName,
+                    ApiName = s.ApiName,
                     Bounds  = new Rectangle(x, y, w, h),
                     Heat    = heat,
                     Stats   = s
@@ -167,7 +167,7 @@ namespace Cad3PLogBrowser.Managers
                     _tip.SetToolTip(this, string.Format(
                         "{0}\nCalls: {1}  Total: {2} ms  Avg: {3} ms",
                         hit.ApiName, hit.Stats.CallCount,
-                        hit.Stats.TotalDurationMs, hit.Stats.AverageMs));
+                        hit.Stats.TotalDurationMs, hit.Stats.AvgDurationMs));
                 Invalidate();
             }
         }
@@ -181,10 +181,10 @@ namespace Cad3PLogBrowser.Managers
 
         private class HeatCell
         {
-            public string              ApiName { get; set; }
-            public Rectangle           Bounds  { get; set; }
-            public float               Heat    { get; set; }
-            public PerformanceStatistics Stats { get; set; }
+            public string       ApiName { get; set; }
+            public Rectangle    Bounds  { get; set; }
+            public float        Heat    { get; set; }
+            public ApiPerfStats Stats   { get; set; }
         }
     }
 }

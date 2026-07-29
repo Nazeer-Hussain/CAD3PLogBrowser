@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cad3PLogBrowser.Services.Core;
 
 namespace Cad3PLogBrowser.Services
 {
@@ -36,6 +37,18 @@ namespace Cad3PLogBrowser.Services
         /// <param name="progressCallback">Optional callback for progress updates (percentage 0-100, message)</param>
         public Task<List<string>> ReadLinesAsync(string filePath, Action<int, string> progressCallback = null)
         {
+            // A7: .gz/.zip logs are transparently decompressed before parsing.
+            if (CompressedLogService.IsCompressed(filePath))
+            {
+                return Task.Run(() =>
+                {
+                    progressCallback?.Invoke(50, "Decompressing...");
+                    var lines = new CompressedLogService().ReadLines(filePath);
+                    progressCallback?.Invoke(100, $"Reading: {lines.Count:N0} lines");
+                    return lines;
+                });
+            }
+
             return Task.Run(() =>
             {
                 var fileInfo = new FileInfo(filePath);

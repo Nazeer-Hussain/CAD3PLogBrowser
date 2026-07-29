@@ -22,6 +22,9 @@ namespace Cad3PLogBrowser.UI
         private List<TreeDifference> _differences;
         private string _leftFilePath;
         private string _rightFilePath;
+        private readonly Services.Analysis.LogDiffService _diffService;
+        private List<Services.LogEntry> _leftEntries;
+        private List<Services.LogEntry> _rightEntries;
 
         public CompareLogsForm()
         {
@@ -31,6 +34,7 @@ namespace Cad3PLogBrowser.UI
             _compareOptions = CompareOptions.CreateDefaultLogOptions();
             _comparer = new TreeComparer();
             _differences = new List<TreeDifference>();
+            _diffService = new Services.Analysis.LogDiffService();
 
             InitializeNavigator();
             ConfigureTreeViews();
@@ -166,17 +170,18 @@ namespace Cad3PLogBrowser.UI
 
                 leftTreeView.Nodes.Clear();
                 var leftLines = File.ReadAllLines(leftPath);
-                var leftEntries = _parserService.Parse(leftLines);
-                var leftCallTree = _parserService.BuildCallTree(leftEntries);
+                _leftEntries = _parserService.Parse(leftLines);
+                var leftCallTree = _parserService.BuildCallTree(_leftEntries);
                 PopulateTreeView(leftTreeView, leftCallTree);
 
                 rightTreeView.Nodes.Clear();
                 var rightLines = File.ReadAllLines(rightPath);
-                var rightEntries = _parserService.Parse(rightLines);
-                var rightCallTree = _parserService.BuildCallTree(rightEntries);
+                _rightEntries = _parserService.Parse(rightLines);
+                var rightCallTree = _parserService.BuildCallTree(_rightEntries);
                 PopulateTreeView(rightTreeView, rightCallTree);
 
                 PerformComparison();
+                UpdatePerformanceDiff();
             }
             catch (Exception ex)
             {
@@ -334,6 +339,64 @@ namespace Cad3PLogBrowser.UI
                 extraInRightCount,
                 childCountMismatchCount,
                 _differences.Count);
+        }
+
+        // ── E6: Performance Delta (log comparison / diff) ─────────────────────
+        private void UpdatePerformanceDiff()
+        {
+            if (_leftEntries == null || _rightEntries == null) return;
+
+            string labelA = string.IsNullOrEmpty(_leftFilePath) ? "Left" : Path.GetFileName(_leftFilePath);
+            string labelB = string.IsNullOrEmpty(_rightFilePath) ? "Right" : Path.GetFileName(_rightFilePath);
+            var result = _diffService.Compare(_leftEntries, labelA, _rightEntries, labelB);
+
+            perfDiffListView.BeginUpdate();
+            try
+            {
+                perfDiffListView.Items.Clear();
+
+                int faster = 0, slower = 0;
+                foreach (var entry in result.InBoth)
+                {
+                    string status = entry.AvgTimeDeltaMs > 0 ? "Slower" : entry.AvgTimeDeltaMs < 0 ? "Faster" : "Unchanged";
+                    if (entry.AvgTimeDeltaMs > 0) slower++; else if (entry.AvgTimeDeltaMs < 0) faster++;
+
+                    var item = new ListViewItem(new[]
+                    {
+                        entry.ApiName,
+                        entry.StatsA.AvgDurationMs.ToString(),
+                        entry.StatsB.AvgDurationMs.ToString(),
+                        (entry.AvgTimeDeltaMs > 0 ? "+" : "") + entry.AvgTimeDeltaMs,
+                        status
+                    });
+                    item.BackColor = entry.AvgTimeDeltaMs > 0 ? Color.FromArgb(255, 220, 220)
+                                    : entry.AvgTimeDeltaMs < 0 ? Color.FromArgb(220, 255, 220)
+                                    : Color.White;
+                    perfDiffListView.Items.Add(item);
+                }
+
+                foreach (var entry in result.OnlyInA)
+                {
+                    var item = new ListViewItem(new[] { entry.ApiName, entry.StatsA.AvgDurationMs.ToString(), "—", "—", "Removed" });
+                    item.BackColor = Color.FromArgb(230, 230, 230);
+                    perfDiffListView.Items.Add(item);
+                }
+
+                foreach (var entry in result.OnlyInB)
+                {
+                    var item = new ListViewItem(new[] { entry.ApiName, "—", entry.StatsB.AvgDurationMs.ToString(), "—", "New" });
+                    item.BackColor = Color.FromArgb(220, 235, 255);
+                    perfDiffListView.Items.Add(item);
+                }
+
+                perfDiffSummaryLabel.Text = string.Format(
+                    "Comparing {0} vs {1}: {2} method(s) slower, {3} faster, {4} new, {5} removed.",
+                    labelA, labelB, slower, faster, result.OnlyInB.Count, result.OnlyInA.Count);
+            }
+            finally
+            {
+                perfDiffListView.EndUpdate();
+            }
         }
 
         private void UpdateNavigationButtons()

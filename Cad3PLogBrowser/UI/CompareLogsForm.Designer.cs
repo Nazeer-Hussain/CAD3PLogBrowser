@@ -67,6 +67,16 @@ namespace Cad3PLogBrowser.UI
             this.colPath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colLeftValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colRightValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.bottomTabControl = new System.Windows.Forms.TabControl();
+            this.structuralDiffTabPage = new System.Windows.Forms.TabPage();
+            this.performanceDiffTabPage = new System.Windows.Forms.TabPage();
+            this.perfDiffSummaryLabel = new System.Windows.Forms.Label();
+            this.perfDiffListView = new System.Windows.Forms.ListView();
+            this.colPerfMethod = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfBaseline = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfCurrent = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfDelta = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.menuStrip.SuspendLayout();
             this.toolStrip.SuspendLayout();
@@ -398,8 +408,8 @@ namespace Cad3PLogBrowser.UI
             this.mainSplitContainer.Panel1.Controls.Add(this.topSplitContainer);
             // 
             // mainSplitContainer.Panel2
-            // 
-            this.mainSplitContainer.Panel2.Controls.Add(this.differenceListView);
+            //
+            this.mainSplitContainer.Panel2.Controls.Add(this.bottomTabControl);
             this.mainSplitContainer.Size = new System.Drawing.Size(1400, 727);
             this.mainSplitContainer.SplitterDistance = 500;
             this.mainSplitContainer.SplitterWidth = 6;
@@ -566,7 +576,99 @@ namespace Cad3PLogBrowser.UI
             // 
             this.colRightValue.Text = "Right Value";
             this.colRightValue.Width = 400;
-            // 
+            //
+            // bottomTabControl
+            //
+            this.bottomTabControl.Controls.Add(this.structuralDiffTabPage);
+            this.bottomTabControl.Controls.Add(this.performanceDiffTabPage);
+            this.bottomTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bottomTabControl.Location = new System.Drawing.Point(0, 0);
+            this.bottomTabControl.Name = "bottomTabControl";
+            this.bottomTabControl.SelectedIndex = 0;
+            this.bottomTabControl.Size = new System.Drawing.Size(1400, 221);
+            this.bottomTabControl.TabIndex = 1;
+            //
+            // structuralDiffTabPage
+            //
+            this.structuralDiffTabPage.Controls.Add(this.differenceListView);
+            this.structuralDiffTabPage.Location = new System.Drawing.Point(4, 22);
+            this.structuralDiffTabPage.Name = "structuralDiffTabPage";
+            this.structuralDiffTabPage.Padding = new System.Windows.Forms.Padding(3);
+            this.structuralDiffTabPage.Size = new System.Drawing.Size(1392, 195);
+            this.structuralDiffTabPage.TabIndex = 0;
+            this.structuralDiffTabPage.Text = "Structural Differences";
+            this.structuralDiffTabPage.UseVisualStyleBackColor = true;
+            //
+            // performanceDiffTabPage
+            //
+            this.performanceDiffTabPage.Controls.Add(this.perfDiffListView);
+            this.performanceDiffTabPage.Controls.Add(this.perfDiffSummaryLabel);
+            this.performanceDiffTabPage.Location = new System.Drawing.Point(4, 22);
+            this.performanceDiffTabPage.Name = "performanceDiffTabPage";
+            this.performanceDiffTabPage.Padding = new System.Windows.Forms.Padding(3);
+            this.performanceDiffTabPage.Size = new System.Drawing.Size(1392, 195);
+            this.performanceDiffTabPage.TabIndex = 1;
+            this.performanceDiffTabPage.Text = "Performance Delta";
+            this.performanceDiffTabPage.UseVisualStyleBackColor = true;
+            //
+            // perfDiffSummaryLabel
+            //
+            this.perfDiffSummaryLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.perfDiffSummaryLabel.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.perfDiffSummaryLabel.Location = new System.Drawing.Point(3, 3);
+            this.perfDiffSummaryLabel.Name = "perfDiffSummaryLabel";
+            this.perfDiffSummaryLabel.Padding = new System.Windows.Forms.Padding(4);
+            this.perfDiffSummaryLabel.Size = new System.Drawing.Size(1386, 40);
+            this.perfDiffSummaryLabel.TabIndex = 0;
+            this.perfDiffSummaryLabel.Text = "Compare two logs to see performance deltas.";
+            //
+            // perfDiffListView
+            //
+            this.perfDiffListView.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.perfDiffListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.colPerfMethod,
+            this.colPerfBaseline,
+            this.colPerfCurrent,
+            this.colPerfDelta,
+            this.colPerfStatus});
+            this.perfDiffListView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.perfDiffListView.Font = new System.Drawing.Font("Consolas", 9F);
+            this.perfDiffListView.FullRowSelect = true;
+            this.perfDiffListView.GridLines = true;
+            this.perfDiffListView.HideSelection = false;
+            this.perfDiffListView.Location = new System.Drawing.Point(3, 3);
+            this.perfDiffListView.MultiSelect = false;
+            this.perfDiffListView.Name = "perfDiffListView";
+            this.perfDiffListView.Size = new System.Drawing.Size(1386, 189);
+            this.perfDiffListView.TabIndex = 1;
+            this.perfDiffListView.UseCompatibleStateImageBehavior = false;
+            this.perfDiffListView.View = System.Windows.Forms.View.Details;
+            //
+            // colPerfMethod
+            //
+            this.colPerfMethod.Text = "Method";
+            this.colPerfMethod.Width = 500;
+            //
+            // colPerfBaseline
+            //
+            this.colPerfBaseline.Text = "Baseline Avg (ms)";
+            this.colPerfBaseline.Width = 150;
+            //
+            // colPerfCurrent
+            //
+            this.colPerfCurrent.Text = "Current Avg (ms)";
+            this.colPerfCurrent.Width = 150;
+            //
+            // colPerfDelta
+            //
+            this.colPerfDelta.Text = "Delta (ms)";
+            this.colPerfDelta.Width = 150;
+            //
+            // colPerfStatus
+            //
+            this.colPerfStatus.Text = "Status";
+            this.colPerfStatus.Width = 150;
+            //
             // openFileDialog
             // 
             this.openFileDialog.Filter = "Log Files (*.log;*.txt)|*.log;*.txt|All Files (*.*)|*.*";
@@ -662,6 +764,16 @@ namespace Cad3PLogBrowser.UI
         private System.Windows.Forms.ColumnHeader colPath;
         private System.Windows.Forms.ColumnHeader colLeftValue;
         private System.Windows.Forms.ColumnHeader colRightValue;
+        private System.Windows.Forms.TabControl bottomTabControl;
+        private System.Windows.Forms.TabPage structuralDiffTabPage;
+        private System.Windows.Forms.TabPage performanceDiffTabPage;
+        private System.Windows.Forms.Label perfDiffSummaryLabel;
+        private System.Windows.Forms.ListView perfDiffListView;
+        private System.Windows.Forms.ColumnHeader colPerfMethod;
+        private System.Windows.Forms.ColumnHeader colPerfBaseline;
+        private System.Windows.Forms.ColumnHeader colPerfCurrent;
+        private System.Windows.Forms.ColumnHeader colPerfDelta;
+        private System.Windows.Forms.ColumnHeader colPerfStatus;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }

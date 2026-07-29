@@ -31,6 +31,7 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowCallGraphTab     { get; set; } = true;
         public bool    ShowFlameGraphTab    { get; set; } = true;
         public bool    ShowTimelineTab      { get; set; } = true;
+        public bool    ShowHeatmapTab       { get; set; } = true;
         public bool    ShowAiTab            { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
@@ -45,6 +46,16 @@ namespace Cad3PLogBrowser.Services
 
         // ── Search history (Feature B6) ───────────────────────────────────────
         public List<string> SearchHistory   { get; set; } = new List<string>();
+
+        // ── Session restore (Feature A8) ──────────────────────────────────────
+        /// <summary>When true, the last-opened file is reopened automatically on startup.</summary>
+        public bool         RestoreSessionOnStartup { get; set; } = true;
+        /// <summary>Files that were open when the app was last closed.</summary>
+        public List<string> LastSessionFiles        { get; set; } = new List<string>();
+
+        // ── Jump to Source Code (Feature K4) ──────────────────────────────────
+        /// <summary>Path to a custom editor executable. Empty = auto-detect (VS Code, then Visual Studio, then Notepad).</summary>
+        public string       SourceEditorPath        { get; set; } = "";
 
         // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
         public int     WindowWidth          { get; set; } = 1024;

@@ -12,7 +12,7 @@ using System.Windows.Forms;
 namespace Cad3PLogBrowser
 {
     /// <summary>
-    /// Application settings dialog — TabControl layout with eight organised pages.
+    /// Application settings dialog ï¿½ TabControl layout with eight organised pages.
     /// Every AppSettings property has a corresponding control here, every control
     /// has a default, and all values are saved then restored on next startup.
     /// </summary>
@@ -47,6 +47,7 @@ namespace Cad3PLogBrowser
         private TextBox        txtInitialDir;
         private NumericUpDown  nudMaxRecentFiles;
         private TextBox        txtSnippetSuffix;
+        private CheckBox       chkRestoreSession;
 
         // -- Performance -------------------------------------------------------
         private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
@@ -618,7 +619,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabFilesAndBehavior,
                 Location = new Point(12, 10),
-                Size = new Size(560, 130),
+                Size = new Size(560, 160),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -632,6 +633,14 @@ namespace Cad3PLogBrowser
 
             nudMaxRecentFiles = AddNud(grpFiles, SettingsDialogStrings.LabelMaxRecentFiles, 58, 5, 20, 10);
             txtSnippetSuffix  = AddTxt(grpFiles, SettingsDialogStrings.LabelSnippetFileSuffix, 94, SettingsDialogStrings.DefaultSnippetSuffix, 160);
+
+            chkRestoreSession = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 128),
+                Text     = SettingsDialogStrings.CheckboxRestoreSession,
+            };
+            grpFiles.Controls.Add(chkRestoreSession);
 
             tp.Controls.Add(grpFiles);
 
@@ -1064,6 +1073,7 @@ namespace Cad3PLogBrowser
             txtInitialDir.Text         = _settings.InitialDirectory ?? "";
             nudMaxRecentFiles.Value    = Math.Max(5, Math.Min(20, _settings.MaxRecentFiles));
             txtSnippetSuffix.Text      = _settings.SaveSnippetSuffix ?? "_snippet";
+            chkRestoreSession.Checked  = _settings.RestoreSessionOnStartup;
 
             // Performance
             nudFastCallMs.Value = Math.Max(nudFastCallMs.Minimum,
@@ -1183,6 +1193,7 @@ namespace Cad3PLogBrowser
             _settings.InitialDirectory  = txtInitialDir.Text.Trim();
             _settings.MaxRecentFiles    = (int)nudMaxRecentFiles.Value;
             _settings.SaveSnippetSuffix = txtSnippetSuffix.Text.Trim();
+            _settings.RestoreSessionOnStartup = chkRestoreSession.Checked;
 
             // Performance
             _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
@@ -1198,7 +1209,7 @@ namespace Cad3PLogBrowser
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
             _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
-            // Guard: never persist an empty URL — fall back to the default so the
+            // Guard: never persist an empty URL ï¿½ fall back to the default so the
             // UpdateService constructor (which throws on whitespace) can never crash.
             string manifestUrl = txtManifestUrl.Text.Trim();
             _settings.UpdateManifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
@@ -1262,13 +1273,14 @@ namespace Cad3PLogBrowser
             _settings.InitialDirectory    = def.InitialDirectory;
             _settings.MaxRecentFiles      = def.MaxRecentFiles;
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
+            _settings.RestoreSessionOnStartup = def.RestoreSessionOnStartup;
             _settings.FastCallThresholdMs       = def.FastCallThresholdMs;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
-            // Updates — reset to defaults but preserve LastUpdateCheck and SkippedVersion
+            // Updates ï¿½ reset to defaults but preserve LastUpdateCheck and SkippedVersion
             _settings.CheckForUpdatesOnStartup = def.CheckForUpdatesOnStartup;
             _settings.UpdateCheckIntervalDays  = def.UpdateCheckIntervalDays;
             _settings.UpdateManifestUrl        = def.UpdateManifestUrl;
@@ -1306,7 +1318,7 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=",
-                        "Font Preview — " + f.Name,
+                        "Font Preview ï¿½ " + f.Name,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }

@@ -36,6 +36,7 @@
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTimelineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -86,6 +87,7 @@
             this.showCallGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showFlameGraphTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTimelineTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showHeatmapTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.keyboardShortcutsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -115,6 +117,7 @@
             this.callGraphTab = new System.Windows.Forms.TabPage();
             this.flameGraphTab = new System.Windows.Forms.TabPage();
             this.timelineTab = new System.Windows.Forms.TabPage();
+            this.heatmapTab = new System.Windows.Forms.TabPage();
             this.mainToolStrip = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
@@ -159,6 +162,7 @@
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.contextInspectLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextOpenInEditorMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextRefreshMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.treeContextCopyNodeNameMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -213,6 +217,7 @@
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
+            this.exportApiCsvMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
             this.exportTimelineMenuItem,
@@ -260,7 +265,14 @@
             this.exportPerformanceMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportPerformanceMenuItem.Text = UI.AppStrings.MenuFileExportPerformance;
             this.exportPerformanceMenuItem.Click += new System.EventHandler(this.exportPerformanceMenuItem_Click);
-            // 
+            //
+            // exportApiCsvMenuItem
+            //
+            this.exportApiCsvMenuItem.Name = "exportApiCsvMenuItem";
+            this.exportApiCsvMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportApiCsvMenuItem.Text = UI.AppStrings.MenuFileExportApiCsv;
+            this.exportApiCsvMenuItem.Click += new System.EventHandler(this.exportApiCsvMenuItem_Click);
+            //
             // exportTreeJsonMenuItem
             // 
             this.exportTreeJsonMenuItem.Name = "exportTreeJsonMenuItem";
@@ -582,7 +594,8 @@
             this.showLogDetailsTabMenuItem,
             this.showCallGraphMenuItem,
             this.showFlameGraphTabMenuItem,
-            this.showTimelineTabMenuItem});
+            this.showTimelineTabMenuItem,
+            this.showHeatmapTabMenuItem});
             this.tabsMenuItem.Name = "tabsMenuItem";
             this.tabsMenuItem.Size = new System.Drawing.Size(178, 22);
             this.tabsMenuItem.Text = UI.AppStrings.MenuViewTabs;
@@ -640,6 +653,15 @@
             this.showTimelineTabMenuItem.Size = new System.Drawing.Size(180, 22);
             this.showTimelineTabMenuItem.Text = "&Timeline";
             this.showTimelineTabMenuItem.CheckedChanged += new System.EventHandler(this.showTimelineTabMenuItem_CheckedChanged);
+            //
+            // showHeatmapTabMenuItem
+            //
+            this.showHeatmapTabMenuItem.CheckOnClick = true;
+            this.showHeatmapTabMenuItem.Checked = true;
+            this.showHeatmapTabMenuItem.Name = "showHeatmapTabMenuItem";
+            this.showHeatmapTabMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showHeatmapTabMenuItem.Text = "&Heatmap";
+            this.showHeatmapTabMenuItem.CheckedChanged += new System.EventHandler(this.showHeatmapTabMenuItem_CheckedChanged);
             // 
             // viewSeparator1
             // 
@@ -875,6 +897,7 @@
             this.mainTabControl.Controls.Add(this.callGraphTab);
             this.mainTabControl.Controls.Add(this.flameGraphTab);
             this.mainTabControl.Controls.Add(this.timelineTab);
+            this.mainTabControl.Controls.Add(this.heatmapTab);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
             this.mainTabControl.Multiline = false;
@@ -1035,6 +1058,19 @@
             this.timelineTab.TabIndex = 6;
             this.timelineTab.Text = "Timeline";
             this.timelineTab.UseVisualStyleBackColor = true;
+            //
+            // heatmapTab
+            //
+            this.heatmapPanel = new Cad3PLogBrowser.Managers.HeatmapPanel();
+            this.heatmapPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.heatmapTab.Controls.Add(this.heatmapPanel);
+            this.heatmapTab.Location = new System.Drawing.Point(4, 25);
+            this.heatmapTab.Name = "heatmapTab";
+            this.heatmapTab.Padding = new System.Windows.Forms.Padding(3);
+            this.heatmapTab.Size = new System.Drawing.Size(688, 494);
+            this.heatmapTab.TabIndex = 7;
+            this.heatmapTab.Text = "Heatmap";
+            this.heatmapTab.UseVisualStyleBackColor = true;
             this.callGraphResetButton.Text = "⟳ Reset View";
             this.callGraphResetButton.Location = new System.Drawing.Point(6, 6);
             this.callGraphResetButton.Size = new System.Drawing.Size(95, 26);
@@ -1310,7 +1346,7 @@
             // 
             // openLogFileDialog
             // 
-            this.openLogFileDialog.Filter = "log files (*.log) | *.log |log files (*.log.*)|*.log.*|All files (*.*)|*.*";
+            this.openLogFileDialog.Filter = "log files (*.log) | *.log |log files (*.log.*)|*.log.*|Compressed logs (*.gz;*.zip)|*.gz;*.zip|All files (*.*)|*.*";
             this.openLogFileDialog.FilterIndex = 2;
             // 
             // saveLogFileDialog
@@ -1340,6 +1376,7 @@
             this.contextJumpToMatchingMenuItem,
             this.contextSeparator3,
             this.contextInspectLineMenuItem,
+            this.contextOpenInEditorMenuItem,
             this.contextSeparator4,
             this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
@@ -1425,7 +1462,14 @@
             this.contextInspectLineMenuItem.Size = new System.Drawing.Size(280, 22);
             this.contextInspectLineMenuItem.Text = "&Inspect Line";
             this.contextInspectLineMenuItem.Click += new System.EventHandler(this.contextInspectLineMenuItem_Click);
-            // 
+            //
+            // contextOpenInEditorMenuItem
+            //
+            this.contextOpenInEditorMenuItem.Name = "contextOpenInEditorMenuItem";
+            this.contextOpenInEditorMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextOpenInEditorMenuItem.Text = "Open in &Editor";
+            this.contextOpenInEditorMenuItem.Click += new System.EventHandler(this.contextOpenInEditorMenuItem_Click);
+            //
             // contextSeparator4
             // 
             this.contextSeparator4.Name = "contextSeparator4";
@@ -1594,6 +1638,7 @@
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTimelineMenuItem;
@@ -1611,8 +1656,10 @@
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage flameGraphTab;
         private System.Windows.Forms.TabPage timelineTab;
+        private System.Windows.Forms.TabPage heatmapTab;
         private Managers.FlameGraphPanel flameGraphPanel;
         private Managers.TimelinePanel timelinePanel;
+        private Managers.HeatmapPanel heatmapPanel;
         private System.Windows.Forms.TabPage logTab;
         private System.Windows.Forms.TabPage performanceTab;
         private System.Windows.Forms.TabPage logDetailTab;
@@ -1690,6 +1737,7 @@
         private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTimelineTabMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showHeatmapTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallGraphMenuItem;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterOpen;
         private System.Windows.Forms.ToolStripSeparator fileSeparatorAfterSave;
@@ -1733,6 +1781,7 @@
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
         private System.Windows.Forms.ToolStripSeparator contextSeparator4;
         private System.Windows.Forms.ToolStripMenuItem  contextInspectLineMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem  contextOpenInEditorMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextRefreshMenuItem;
         private System.Windows.Forms.ContextMenuStrip treeContextMenu;
         private System.Windows.Forms.ToolStripMenuItem treeContextCopyNodeNameMenuItem;

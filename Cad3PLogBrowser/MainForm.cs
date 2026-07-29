@@ -29,6 +29,14 @@ namespace Cad3PLogBrowser
         private UI.LineInspectorPanel      _lineInspector;
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
+        private readonly Services.Core.SessionService _sessionService;
+        private bool _openedViaCommandLine = false;
+
+        // ── E5: Aggregate Statistics panel ──────────────────────────────────────
+        private Panel  _aggStatsPanel;
+        private Label  _aggStatsToggle;
+        private Label  _aggStatsContent;
+        private bool   _aggStatsCollapsed;
 
         // ── API Details panel (bottom section of logDetailTab) ────────────────
         private Panel       _apiDetailsPanel;
@@ -131,7 +139,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Performance, LogDetails, CallGraph, FlameGraph, Timeline }
+        public enum TabId { Log, Performance, LogDetails, CallGraph, FlameGraph, Timeline, Heatmap }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -157,6 +165,7 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return callGraphTab;
                 case TabId.FlameGraph:  return flameGraphTab;
                 case TabId.Timeline:    return timelineTab;
+                case TabId.Heatmap:     return heatmapTab;
                 default:                return logTab;
             }
         }
@@ -171,6 +180,7 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
+                case TabId.Heatmap:     return showHeatmapTabMenuItem;
                 default:                return null;
             }
         }
@@ -179,7 +189,7 @@ namespace Cad3PLogBrowser
         private TabPage[] GetCanonicalTabOrder() => new[]
         {
             logTab, performanceTab, logDetailTab,
-            callGraphTab, flameGraphTab, timelineTab, _aiTab
+            callGraphTab, flameGraphTab, timelineTab, heatmapTab, _aiTab
         };
 
         private void SetTabVisible(TabPage tab, bool visible)
@@ -214,6 +224,7 @@ namespace Cad3PLogBrowser
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
                 if (ReferenceEquals(tab, flameGraphTab))  showFlameGraphTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
+                if (ReferenceEquals(tab, heatmapTab))     showHeatmapTabMenuItem.Checked     = true;
                 // B10: guard the AI tab so closing it when it is the last visible tab
                 // does not leave the TabControl in a 0-tab state.
                 if (_aiTab != null && ReferenceEquals(tab, _aiTab))
@@ -692,11 +703,15 @@ namespace Cad3PLogBrowser
                 _appSettings.ClaudeApiKey, _appSettings.UseClaudeApi, _appSettings.ClaudeModel);
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
+            _sessionService   = new Services.Core.SessionService(_appSettings);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
+
+            BuildAggregateStatsPanel();
 
             RestoreSettings();
             InitTreeViews();
             InitAiPanel();
+            InitExceptionsTab();
             BuildMruMenu();
             AddThemeToggleButton();
             AddGoToLineControl();
@@ -818,8 +833,78 @@ namespace Cad3PLogBrowser
 
         public void OpenFilePath(string filePath)
         {
+            _openedViaCommandLine = true;
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 LoadFileAsync(filePath);
+        }
+
+        // ── E5: Aggregate Statistics panel ──────────────────────────────────────
+        private void BuildAggregateStatsPanel()
+        {
+            _aggStatsPanel = new Panel
+            {
+                Dock   = DockStyle.Top,
+                Height = 26,
+                Padding = new Padding(8, 4, 8, 4),
+            };
+
+            _aggStatsToggle = new Label
+            {
+                AutoSize  = true,
+                Location  = new Point(8, 5),
+                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Text      = "▾ Log Summary",
+                Cursor    = Cursors.Hand,
+            };
+            _aggStatsToggle.Click += (s, e) => ToggleAggregateStatsPanel();
+
+            _aggStatsContent = new Label
+            {
+                AutoSize  = true,
+                Location  = new Point(110, 5),
+                Font      = new Font("Segoe UI", 8.5f),
+                Text      = "No log loaded",
+            };
+
+            _aggStatsPanel.Controls.Add(_aggStatsToggle);
+            _aggStatsPanel.Controls.Add(_aggStatsContent);
+
+            this.Controls.Add(_aggStatsPanel);
+            // Dock=Top controls stack outward in the order they were added to Controls,
+            // with later-added controls ending up closer to the form's edge (mainMenuStrip
+            // was added last in InitializeComponent so it renders above mainToolStrip).
+            // Re-parenting to mainToolStrip's index pushes the toolbar/menu out one slot,
+            // landing this panel directly below the toolbar and above the split container.
+            this.Controls.SetChildIndex(_aggStatsPanel, this.Controls.GetChildIndex(mainToolStrip));
+
+            // F-08: auto-collapse on small screens so the summary doesn't eat vertical space.
+            if (Screen.FromControl(this).WorkingArea.Height < 800)
+                _aggStatsCollapsed = true;
+            ApplyAggregateStatsCollapsedState();
+        }
+
+        private void ToggleAggregateStatsPanel()
+        {
+            _aggStatsCollapsed = !_aggStatsCollapsed;
+            ApplyAggregateStatsCollapsedState();
+        }
+
+        private void ApplyAggregateStatsCollapsedState()
+        {
+            _aggStatsContent.Visible = !_aggStatsCollapsed;
+            _aggStatsToggle.Text = (_aggStatsCollapsed ? "▸ Log Summary" : "▾ Log Summary");
+        }
+
+        /// <summary>Refreshes the E5 summary bar immediately after a file finishes loading.</summary>
+        private void UpdateAggregateStatsPanel()
+        {
+            var (stats, _) = BuildAiContext();
+            if (stats == null) { _aggStatsContent.Text = "No log loaded"; return; }
+
+            _aggStatsContent.Text = string.Format(
+                "Lines: {0:N0}   |   Methods: {1:N0}   |   Duration: {2:N0} ms   |   Unique methods: {3:N0}   |   Errors: {4:N0}   |   Warnings: {5:N0}",
+                stats.TotalLines, stats.TotalApiCalls, stats.SessionDurationMs,
+                stats.UniqueApiCount, stats.ErrorCount, stats.WarningCount);
         }
 
         private void ApplyThemeWithOverlay()
@@ -1457,6 +1542,8 @@ namespace Cad3PLogBrowser
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, _allLines.Count);
+            UpdateAggregateStatsPanel();
+            UpdateExceptionsTab(entries);
 
             // Load call graph: per-file when available, otherwise single merged graph
             if (fileGraphs != null && fileGraphs.Count > 1)
@@ -1475,6 +1562,14 @@ namespace Cad3PLogBrowser
                 // accumulates duplicate handlers (N loads → N calls per timeline click).
                 timelinePanel.TimelineEntrySelected -= TimelinePanel_EntrySelected;
                 timelinePanel.TimelineEntrySelected += TimelinePanel_EntrySelected;
+            }
+
+            // F5: Heatmap — coloured by total time, sized by call count.
+            if (heatmapPanel != null)
+            {
+                heatmapPanel.LoadData(perfStats);
+                heatmapPanel.ApiSelected -= HeatmapPanel_ApiSelected;
+                heatmapPanel.ApiSelected += HeatmapPanel_ApiSelected;
             }
 
             // Feature 3a/3b: Auto-select topmost node after load
@@ -2480,6 +2575,86 @@ namespace Cad3PLogBrowser
 
         private void contextInspectLineMenuItem_Click(object sender, EventArgs e) =>
             InspectSelectedLine();
+
+        // ── K4: Jump to Source Code ────────────────────────────────────────────
+        private void contextOpenInEditorMenuItem_Click(object sender, EventArgs e) =>
+            OpenSelectedLineInEditor();
+
+        private void OpenSelectedLineInEditor()
+        {
+            if (logListView.SelectedIndices.Count == 0) return;
+            int idx = logListView.SelectedIndices[0];
+            if (idx < 0 || idx >= _virtualLines.Count) return;
+
+            var vl = _virtualLines[idx];
+            var single = new List<Services.LogEntry>
+            {
+                new Services.LogEntry { LineNumber = vl.LineNumber, RawText = vl.Text }
+            };
+            var refs = new Services.Analysis.ExceptionGroupingService().ExtractSourceReferences(single);
+            if (refs.Count == 0)
+            {
+                MessageBox.Show("No source file reference (path:line) found on this line.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var reference = refs[0];
+            if (!File.Exists(reference.FilePath))
+            {
+                MessageBox.Show(string.Format("Source file not found:\n{0}", reference.FilePath),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            OpenInEditor(reference.FilePath, reference.SourceLine);
+        }
+
+        /// <summary>Default order: user-configured editor → VS Code → Visual Studio → Notepad.</summary>
+        private void OpenInEditor(string filePath, int lineNumber)
+        {
+            string customEditor = _appSettings.SourceEditorPath;
+            if (!string.IsNullOrWhiteSpace(customEditor) && File.Exists(customEditor))
+            {
+                try
+                {
+                    Process.Start(customEditor, string.Format("\"{0}\"", filePath));
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Could not launch configured editor:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo("code", string.Format("--goto \"{0}:{1}\"", filePath, lineNumber))
+                    { UseShellExecute = true });
+            }
+            catch
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo("devenv", string.Format("/edit \"{0}\"", filePath))
+                        { UseShellExecute = true });
+                }
+                catch
+                {
+                    try
+                    {
+                        Process.Start("notepad.exe", string.Format("\"{0}\"", filePath));
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(string.Format("Could not open an editor:\n{0}", ex.Message),
+                            Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
 
         // ── #7: Virtual mode handler ──────────────────────────────────────────
         private void listView1_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
@@ -3584,23 +3759,24 @@ namespace Cad3PLogBrowser
         // ── Feature I1: Export Filtered Logs ──────────────────────────────────
         private void exportFilteredLogsMenuItem_Click(object sender, EventArgs e)
         {
-            // Export the Performance tab statistics to a SpreadsheetML (.xls) file.
-            if (_apiPerfStats == null || _apiPerfStats.Count == 0)
+            // Export exactly what's currently visible in the log view — the full
+            // file if no filter is active, or just the matching lines if one is.
+            if (_virtualLines == null || _virtualLines.Count == 0)
             {
-                MessageBox.Show("No performance data to export. Load a log file first.",
+                MessageBox.Show("No log data to export. Load a log file first.",
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             string baseName = string.IsNullOrEmpty(_currentFilePath)
-                ? "performance"
+                ? "log"
                 : GetSafeBaseName(_currentFilePath);
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Title  = "Export Performance to XLS";
-                dlg.Filter = "Excel Workbook (*.xls)|*.xls|All files (*.*)|*.*";
-                dlg.FileName = baseName + "_performance.xls";
+                dlg.Title  = "Export Filtered Log";
+                dlg.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+                dlg.FileName = baseName + "_filtered.txt";
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
@@ -3609,9 +3785,9 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    WritePerformanceXls(dlg.FileName, _apiPerfStats);
+                    WriteFilteredLog(dlg.FileName);
                     MessageBox.Show(
-                        $"Performance data exported to:\n{dlg.FileName}\n\n{_apiPerfStats.Count} rows written.",
+                        $"Filtered log exported to:\n{dlg.FileName}\n\n{_virtualLines.Count} lines written.",
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -3619,6 +3795,25 @@ namespace Cad3PLogBrowser
                     MessageBox.Show($"Export failed: {ex.Message}", Resources.TITLE,
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        /// <summary>Writes the currently-visible (post-filter) log lines to a text file with a metadata header.</summary>
+        private void WriteFilteredLog(string filePath)
+        {
+            using (var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8))
+            {
+                writer.WriteLine("================================================================");
+                writer.WriteLine("Exported from: CAD3PLogBrowser");
+                writer.WriteLine($"Export date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                writer.WriteLine($"Source file: {(string.IsNullOrEmpty(_currentFilePath) ? "N/A" : _currentFilePath)}");
+                writer.WriteLine($"Filters applied: {(string.IsNullOrEmpty(_activeFilterText) ? "None" : _activeFilterText)}");
+                writer.WriteLine($"Total lines exported: {_virtualLines.Count:N0}");
+                writer.WriteLine("================================================================");
+                writer.WriteLine();
+
+                foreach (var line in _virtualLines)
+                    writer.WriteLine(line.Text);
             }
         }
 
@@ -4684,6 +4879,7 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+                    SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
                     // AI tab is a dynamic TabPage — toggle directly
                     if (_aiTab != null && mainTabControl != null)
                     {
@@ -5195,6 +5391,15 @@ namespace Cad3PLogBrowser
             {
                 Services.Update.UpdateLogger.Log("Startup: auto-check disabled by user setting");
             }
+
+            // A8: restore the last-opened file, unless one was already given on the command line.
+            if (!_openedViaCommandLine && _appSettings.RestoreSessionOnStartup &&
+                string.IsNullOrEmpty(_currentFilePath))
+            {
+                var lastFiles = _sessionService.GetLastSessionFiles();
+                if (lastFiles.Count > 0)
+                    this.BeginInvoke((Action)(() => LoadFileAsync(lastFiles[0])));
+            }
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -5202,6 +5407,15 @@ namespace Cad3PLogBrowser
             try
             {
                 SaveSettings();
+            }
+            catch { /* Non-fatal */ }
+
+            try
+            {
+                // A8: remember the open file so it can be restored next launch.
+                _sessionService.SaveSession(string.IsNullOrEmpty(_currentFilePath)
+                    ? Array.Empty<string>()
+                    : new[] { _currentFilePath });
             }
             catch { /* Non-fatal */ }
 
@@ -6661,6 +6875,51 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // F5: clicking a heatmap cell selects that method in the API Tree.
+        private void HeatmapPanel_ApiSelected(object sender, string apiName)
+        {
+            if (!string.IsNullOrEmpty(apiName))
+                FindAndSelectApiTreeNode(apiName);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE D7: Export API Summary to CSV
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void exportApiCsvMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_apiNodes == null || _apiNodes.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = Resources.FILE_FILTER_CSV_FILES;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_api_summary.csv";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    new Services.Export.ApiExportService().ExportApiListToCsv(_apiNodes, dlg.FileName);
+                    MessageBox.Show(
+                        string.Format("API summary exported to:\n{0}\n\n{1} APIs written.", dlg.FileName, _apiNodes.Count),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_TREE_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════════════════
         // FEATURE: Export Tree as JSON/XML
         // ═══════════════════════════════════════════════════════════════════════
@@ -6910,6 +7169,11 @@ namespace Cad3PLogBrowser
             SetTabVisible(timelineTab, showTimelineTabMenuItem.Checked);
         }
 
+        private void showHeatmapTabMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            SetTabVisible(heatmapTab, showHeatmapTabMenuItem.Checked);
+        }
+
         // ═══════════════════════════════════════════════════════════════════════
         // FEATURE 5: Font Selection (H5)
         // ═══════════════════════════════════════════════════════════════════════
@@ -7113,6 +7377,150 @@ namespace Cad3PLogBrowser
             _aiPanel?.UpdateTheme();
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURES K2/K3: Exceptions & Correlation ID tab
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private TabPage  _exceptionsTab;
+        private ListView _exceptionGroupsListView;
+        private ListView _correlationIdsListView;
+        private ListView _correlationOccurrencesListView;
+        private readonly Services.Analysis.ExceptionGroupingService _exceptionGroupingService =
+            new Services.Analysis.ExceptionGroupingService();
+
+        private void InitExceptionsTab()
+        {
+            _exceptionsTab = new TabPage("Exceptions") { Name = "exceptionsTab", UseVisualStyleBackColor = true };
+
+            var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
+
+            // K2: Exception Groups (top)
+            _exceptionGroupsListView = new ListView
+            {
+                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
+                GridLines = true, Font = new Font("Consolas", 9f)
+            };
+            _exceptionGroupsListView.Columns.Add("Type", 220);
+            _exceptionGroupsListView.Columns.Add("Count", 70);
+            _exceptionGroupsListView.Columns.Add("First Seen (Line)", 130);
+            _exceptionGroupsListView.Columns.Add("Last Seen (Line)", 130);
+            _exceptionGroupsListView.DoubleClick += (s, e) =>
+            {
+                if (_exceptionGroupsListView.SelectedItems.Count == 0) return;
+                if (_exceptionGroupsListView.SelectedItems[0].Tag is Services.Analysis.ExceptionGroup grp)
+                    ScrollLogToLine(grp.StartLine);
+            };
+
+            var groupsPanel = new Panel { Dock = DockStyle.Fill };
+            var groupsHeader = new Label { Dock = DockStyle.Top, Height = 20, Text = "Exception Groups",
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0) };
+            groupsPanel.Controls.Add(_exceptionGroupsListView);
+            groupsPanel.Controls.Add(groupsHeader);
+            split.Panel1.Controls.Add(groupsPanel);
+
+            // K3: Correlation IDs (bottom) — ID list on the left, occurrences on the right
+            var correlationSplit = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical };
+
+            _correlationIdsListView = new ListView
+            {
+                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
+                GridLines = true, Font = new Font("Consolas", 9f)
+            };
+            _correlationIdsListView.Columns.Add("Correlation / Request ID", 220);
+            _correlationIdsListView.Columns.Add("Occurrences", 90);
+            _correlationIdsListView.SelectedIndexChanged += (s, e) => PopulateCorrelationOccurrences();
+
+            _correlationOccurrencesListView = new ListView
+            {
+                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
+                GridLines = true, Font = new Font("Consolas", 9f)
+            };
+            _correlationOccurrencesListView.Columns.Add("Line #", 80);
+            _correlationOccurrencesListView.Columns.Add("Log Text", 800);
+            _correlationOccurrencesListView.DoubleClick += (s, e) =>
+            {
+                if (_correlationOccurrencesListView.SelectedItems.Count == 0) return;
+                if (_correlationOccurrencesListView.SelectedItems[0].Tag is int lineNo)
+                    ScrollLogToLine(lineNo);
+            };
+
+            correlationSplit.Panel1.Controls.Add(_correlationIdsListView);
+            correlationSplit.Panel2.Controls.Add(_correlationOccurrencesListView);
+            correlationSplit.SplitterDistance = 260;
+
+            var correlationPanel = new Panel { Dock = DockStyle.Fill };
+            var correlationHeader = new Label { Dock = DockStyle.Top, Height = 20, Text = "Correlation / Request IDs — double-click a line to jump to it",
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0) };
+            correlationPanel.Controls.Add(correlationSplit);
+            correlationPanel.Controls.Add(correlationHeader);
+            split.Panel2.Controls.Add(correlationPanel);
+
+            split.SplitterDistance = 200;
+            _exceptionsTab.Controls.Add(split);
+
+            if (mainTabControl != null)
+                mainTabControl.TabPages.Add(_exceptionsTab);
+
+            var showExceptionsMenuItem = new ToolStripMenuItem("E&xceptions")
+            {
+                Name = "showExceptionsTabMenuItem", CheckOnClick = true, Checked = true
+            };
+            showExceptionsMenuItem.CheckedChanged += (s, e) =>
+            {
+                if (_exceptionsTab == null || mainTabControl == null) return;
+                if (showExceptionsMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(_exceptionsTab))
+                        mainTabControl.TabPages.Add(_exceptionsTab);
+                }
+                else if (mainTabControl.TabPages.Contains(_exceptionsTab))
+                {
+                    mainTabControl.TabPages.Remove(_exceptionsTab);
+                }
+            };
+            if (tabsMenuItem != null)
+                tabsMenuItem.DropDownItems.Add(showExceptionsMenuItem);
+        }
+
+        /// <summary>Refreshes the K2/K3 tab from the freshly-loaded log entries.</summary>
+        private void UpdateExceptionsTab(List<Services.LogEntry> entries)
+        {
+            _exceptionGroupsListView.Items.Clear();
+            _correlationIdsListView.Items.Clear();
+            _correlationOccurrencesListView.Items.Clear();
+
+            var groups = _exceptionGroupingService.GroupExceptions(entries);
+            foreach (var grp in groups)
+            {
+                var item = new ListViewItem(new[]
+                {
+                    grp.ExceptionType, grp.Count.ToString(), grp.StartLine.ToString(), grp.EndLine.ToString()
+                })
+                { Tag = grp };
+                _exceptionGroupsListView.Items.Add(item);
+            }
+
+            var correlations = _exceptionGroupingService.GroupByCorrelationId(entries);
+            foreach (var kv in correlations)
+            {
+                var item = new ListViewItem(new[] { kv.Key, kv.Value.Count.ToString() }) { Tag = kv.Value };
+                _correlationIdsListView.Items.Add(item);
+            }
+        }
+
+        private void PopulateCorrelationOccurrences()
+        {
+            _correlationOccurrencesListView.Items.Clear();
+            if (_correlationIdsListView.SelectedItems.Count == 0) return;
+            if (!(_correlationIdsListView.SelectedItems[0].Tag is List<int> lines)) return;
+
+            foreach (int lineNo in lines)
+            {
+                string text = (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "";
+                _correlationOccurrencesListView.Items.Add(new ListViewItem(new[] { lineNo.ToString(), text }) { Tag = lineNo });
+            }
+        }
+
         /// <summary>
         /// DEF-D08 / ENH-D01 / PERF-D01: Single helper that returns the cached
         /// AggregateStats and converted perf list for AI handlers.
@@ -7149,6 +7557,7 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
+                    SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
 
                     // AI tab is a dynamic TabPage — toggle directly
                     if (_aiTab != null && mainTabControl != null)
