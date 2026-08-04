@@ -60,6 +60,7 @@
             this.editSeparatorAfterFilter = new System.Windows.Forms.ToolStripSeparator();
             this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.expandToLevelMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSeparatorAfterCollapse = new System.Windows.Forms.ToolStripSeparator();
             this.jumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSeparatorBeforeBookmarks = new System.Windows.Forms.ToolStripSeparator();
@@ -369,6 +370,7 @@
             this.editSeparatorAfterFilter,
             this.expandAllMenuItem,
             this.collapseAllMenuItem,
+            this.expandToLevelMenuItem,
             this.editSeparatorAfterCollapse,
             this.jumpToMatchingMenuItem,
             this.jumpToLineMenuItem,
@@ -444,7 +446,14 @@
             this.collapseAllMenuItem.Size = new System.Drawing.Size(258, 22);
             this.collapseAllMenuItem.Text = UI.AppStrings.MenuEditCollapseAll;
             this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
-            // 
+            //
+            // expandToLevelMenuItem
+            //
+            this.expandToLevelMenuItem.Name = "expandToLevelMenuItem";
+            this.expandToLevelMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.expandToLevelMenuItem.Text = "Expand to &Level...";
+            this.expandToLevelMenuItem.Click += new System.EventHandler(this.expandToLevelMenuItem_Click);
+            //
             // editSeparatorAfterCollapse
             // 
             this.editSeparatorAfterCollapse.Name = "editSeparatorAfterCollapse";
@@ -1740,6 +1749,7 @@
         private System.Windows.Forms.ToolStripSeparator editSeparatorBeforeBookmarks;
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem expandToLevelMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMatchingMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToLineMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toggleBookmarkMenuItem;

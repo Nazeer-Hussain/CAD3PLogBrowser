@@ -1395,6 +1395,7 @@ namespace Cad3PLogBrowser
                 ApiTree.CollapseAll();
                 if (ApiTree.Nodes.Count > 0) ApiTree.Nodes[0].Expand();
             });
+            menu.Items.Add("Expand to Level...", null, (s, ev) => PromptAndExpandToLevel(bothTrees: false, singleTree: ApiTree));
 
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Resources.MENU_SHOW_IN_CALL_TREE, null, (s, ev) =>
@@ -4457,6 +4458,85 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // ── Feature C1: Expand to Level ──────────────────────────────────────
+        private void expandToLevelMenuItem_Click(object sender, EventArgs e) =>
+            PromptAndExpandToLevel(bothTrees: true);
+
+        /// <summary>
+        /// Prompts for a depth and applies it to either both trees (Edit menu) or
+        /// just the tree that was right-clicked (context menus).
+        /// </summary>
+        private void PromptAndExpandToLevel(bool bothTrees, TreeView singleTree = null)
+        {
+            string input = Microsoft.VisualBasic.Interaction.InputBox(
+                "Enter the depth to expand to (0 = root nodes only):",
+                "Expand to Level",
+                "2", -1, -1);
+
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            if (!int.TryParse(input.Trim(), out int level) || level < 0)
+            {
+                MessageBox.Show("Please enter a whole number of 0 or more.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (bothTrees)
+            {
+                ExpandTreeToLevel(CallTree, level);
+                ExpandTreeToLevel(ApiTree, level);
+            }
+            else if (singleTree != null)
+            {
+                ExpandTreeToLevel(singleTree, level);
+            }
+        }
+
+        private struct NodeDepth
+        {
+            public readonly TreeNode Node;
+            public readonly int Depth;
+            public NodeDepth(TreeNode node, int depth) { Node = node; Depth = depth; }
+        }
+
+        /// <summary>
+        /// Expands every node down to <paramref name="level"/> (0 = roots only,
+        /// collapsed) and collapses anything deeper, so the result is always exactly
+        /// "levels 0..level visible" regardless of the tree's previous state.
+        /// A BFS queue is used (not plain recursion) so that lazily-loaded placeholder
+        /// children — injected by BeforeExpand, same as Expand All — are picked up
+        /// as they're materialised instead of being invisible to a pre-built node list.
+        /// </summary>
+        private void ExpandTreeToLevel(TreeView tree, int level)
+        {
+            tree.BeginUpdate();
+            try
+            {
+                var queue = new Queue<NodeDepth>();
+                foreach (TreeNode root in tree.Nodes) queue.Enqueue(new NodeDepth(root, 0));
+
+                while (queue.Count > 0)
+                {
+                    var item = queue.Dequeue();
+                    if (item.Depth < level)
+                    {
+                        item.Node.Expand(); // fires BeforeExpand -> lazy children injected here
+                        foreach (TreeNode child in item.Node.Nodes)
+                            queue.Enqueue(new NodeDepth(child, item.Depth + 1));
+                    }
+                    else
+                    {
+                        item.Node.Collapse();
+                    }
+                }
+            }
+            finally
+            {
+                tree.EndUpdate();
+            }
+        }
+
         // Feature C1: Menu event handlers
         private void expandAllMenuItem_Click(object sender, EventArgs e) =>
             ExpandAllTrees();
@@ -5604,6 +5684,7 @@ namespace Cad3PLogBrowser
                 CallTree.CollapseAll();
                 if (CallTree.Nodes.Count > 0) CallTree.Nodes[0].Expand();
             });
+            menu.Items.Add("Expand to Level...", null, (s, ev) => PromptAndExpandToLevel(bothTrees: false, singleTree: CallTree));
 
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Resources.MENU_SHOW_IN_API_TREE, null, (s, ev) =>
