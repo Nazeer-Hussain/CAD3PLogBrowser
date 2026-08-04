@@ -59,6 +59,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System.Core" />
@@ -142,12 +144,21 @@
     <Compile Include="Models\SearchResult.cs" />
     <Compile Include="Services\Analysis\AiLogService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
+    <Compile Include="Services\Analysis\ExceptionGroupingService.cs" />
+    <Compile Include="Services\Analysis\LogDiffService.cs" />
     <Compile Include="Services\Comparison\DifferenceHighlighter.cs" />
     <Compile Include="Services\Comparison\DifferenceNavigator.cs" />
     <Compile Include="Services\Comparison\LogNodeFactory.cs" />
     <Compile Include="Services\Comparison\TreeComparer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
     <Compile Include="Services\Export\TreeExportService.cs" />
+    <Compile Include="Services\Export\ApiExportService.cs" />
+    <Compile Include="Services\CompressedLogService.cs" />
+    <Compile Include="Services\Core\SessionService.cs" />
+    <Compile Include="Services\Core\RecentFilesService.cs" />
+    <Compile Include="Managers\HeatmapPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Services\IconGenerator.cs" />
     <Compile Include="Services\Navigation\BookmarkService.cs" />
     <Compile Include="Services\Navigation\LogNavigationService.cs" />

@@ -15,7 +15,7 @@ namespace Cad3PLogBrowser.UI
         public const string ButtonOk = "&OK";
         public const string ButtonCancel = "&Cancel";
         public const string ButtonResetDefaults = "Reset to Defaults";
-        public const string ButtonBrowse = "Browse…";
+        public const string ButtonBrowse = "Browseï¿½";
         public const string ButtonPreviewFont = "Preview Font...";
         public const string ButtonShow = "Show";
         public const string ButtonHide = "Hide";
@@ -98,9 +98,13 @@ namespace Cad3PLogBrowser.UI
         public const string LabelSlowCallThreshold = "Slow call threshold:";
         public const string LabelSkipListViewIfFileGreater = "Skip list view if file >";
         public const string CheckboxAutoFilterPerformance = "Auto-filter Performance tab when a Call Tree node is selected";
+        public const string CheckboxRestoreSession = "Restore last session on startup";
+        public const string CheckboxWatchFileChanges = "Watch for file changes (auto-reload)";
+        public const string LabelAutoReloadDelay = "Auto-reload after (seconds):";
+        public const string HintAutoReloadDelay = "0 = ask before reloading";
 
-        public const string HintFastCallMs = "ms   (green — below this is fast)";
-        public const string HintSlowCallMs = "ms   (red — above this is slow, amber is in between)";
+        public const string HintFastCallMs = "ms   (green ï¿½ below this is fast)";
+        public const string HintSlowCallMs = "ms   (red ï¿½ above this is slow, amber is in between)";
         public const string HintMaxFileMb = "MB   (use Raw tab for very large files)";
         public const string HintAutoFilterOff = "When OFF, use the Call Tree right-click menu to filter manually.";
 
@@ -193,7 +197,7 @@ namespace Cad3PLogBrowser.UI
 
         public const string MessageBrowseFolderDescription = "Select default folder for opening log files";
 
-        public const string MessageFontPreviewTitle = "Font Preview — {0}";
+        public const string MessageFontPreviewTitle = "Font Preview ï¿½ {0}";
         public const string MessageFontPreviewText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=";
         public const string MessageCannotCreateFontFormat = "Cannot create font: {0}";
         public const string MessageCannotCreateFontTitle = "Error";

@@ -22,6 +22,18 @@ namespace Cad3PLogBrowser.UI
         private List<TreeDifference> _differences;
         private string _leftFilePath;
         private string _rightFilePath;
+        private readonly Services.Analysis.LogDiffService _diffService;
+        private readonly DifferenceHighlighter _highlighter = new DifferenceHighlighter();
+        private List<Services.LogEntry> _leftEntries;
+        private List<Services.LogEntry> _rightEntries;
+
+        // ── Synchronized scrolling ─────────────────────────────────────────────
+        // TreeView has no native "scrolled" event, so a lightweight poll is the
+        // simplest way to catch every cause of movement (wheel, scrollbar drag,
+        // keyboard, expand/collapse) uniformly.
+        private readonly System.Windows.Forms.Timer _scrollSyncTimer;
+        private TreeNode _lastLeftTopNode;
+        private TreeNode _lastRightTopNode;
 
         public CompareLogsForm()
         {
@@ -31,11 +43,145 @@ namespace Cad3PLogBrowser.UI
             _compareOptions = CompareOptions.CreateDefaultLogOptions();
             _comparer = new TreeComparer();
             _differences = new List<TreeDifference>();
+            _diffService = new Services.Analysis.LogDiffService();
 
             InitializeNavigator();
             ConfigureTreeViews();
             UpdateNavigationButtons();
             SetFormIcon();
+            ApplyIcons();
+            AddHeaderAccentBars();
+
+            _scrollSyncTimer = new System.Windows.Forms.Timer { Interval = 80 };
+            _scrollSyncTimer.Tick += ScrollSyncTimer_Tick;
+            _scrollSyncTimer.Start();
+            this.FormClosed += (s, e) => _scrollSyncTimer.Stop();
+        }
+
+        /// <summary>
+        /// Keeps the left and right trees scrolled to the same visible row position.
+        /// Runs continuously but only acts while "Synchronize Scrolling" is checked.
+        /// </summary>
+        private void ScrollSyncTimer_Tick(object sender, EventArgs e)
+        {
+            if (leftTreeView.Nodes.Count == 0 || rightTreeView.Nodes.Count == 0) return;
+
+            if (!syncScrollMenuItem.Checked)
+            {
+                _lastLeftTopNode  = leftTreeView.TopNode;
+                _lastRightTopNode = rightTreeView.TopNode;
+                return;
+            }
+
+            if (!ReferenceEquals(leftTreeView.TopNode, _lastLeftTopNode))
+            {
+                int idx = VisibleIndexOf(leftTreeView, leftTreeView.TopNode);
+                var target = NodeAtVisibleIndex(rightTreeView, idx);
+                if (target != null) rightTreeView.TopNode = target;
+            }
+            else if (!ReferenceEquals(rightTreeView.TopNode, _lastRightTopNode))
+            {
+                int idx = VisibleIndexOf(rightTreeView, rightTreeView.TopNode);
+                var target = NodeAtVisibleIndex(leftTreeView, idx);
+                if (target != null) leftTreeView.TopNode = target;
+            }
+
+            _lastLeftTopNode  = leftTreeView.TopNode;
+            _lastRightTopNode = rightTreeView.TopNode;
+        }
+
+        /// <summary>Counts visible (non-collapsed-away) nodes from the top of the tree down to <paramref name="target"/>.</summary>
+        private static int VisibleIndexOf(TreeView tv, TreeNode target)
+        {
+            if (target == null || tv.Nodes.Count == 0) return 0;
+            int idx = 0;
+            var node = tv.Nodes[0];
+            while (node != null && node != target)
+            {
+                node = node.NextVisibleNode;
+                idx++;
+            }
+            return idx;
+        }
+
+        /// <summary>The node at the given visible row offset from the top of the tree, or the last node if the tree is shorter.</summary>
+        private static TreeNode NodeAtVisibleIndex(TreeView tv, int index)
+        {
+            if (tv.Nodes.Count == 0) return null;
+            var node = tv.Nodes[0];
+            while (node.NextVisibleNode != null && index > 0)
+            {
+                node = node.NextVisibleNode;
+                index--;
+            }
+            return node;
+        }
+
+        /// <summary>
+        /// Thin colour-coded strip above each header label — a familiar diff-tool
+        /// cue that distinguishes the Left/Right sides at a glance (matches the
+        /// app's existing accent palette: blue for primary, amber for secondary).
+        /// </summary>
+        private void AddHeaderAccentBars()
+        {
+            leftHeaderPanel.Controls.Add(new Panel
+            {
+                Dock = DockStyle.Top, Height = 3,
+                BackColor = Color.FromArgb(0, 122, 204)
+            });
+            rightHeaderPanel.Controls.Add(new Panel
+            {
+                Dock = DockStyle.Top, Height = 3,
+                BackColor = Color.FromArgb(215, 140, 20)
+            });
+        }
+
+        /// <summary>Assigns generated toolbar/menu icons — mirrors MainForm's icon-application convention.</summary>
+        private void ApplyIcons()
+        {
+            var sz  = IconGenerator.IconSize.Medium; // toolbar
+            var msz = IconGenerator.IconSize.Small;  // menu
+
+            // Toolbar
+            browseLeftButton.Image  = IconGenerator.CreateOpenIcon(sz);
+            browseRightButton.Image = IconGenerator.CreateOpenIcon(sz);
+            compareButton.Image     = IconGenerator.CreateCompareIcon(sz);
+            firstDiffButton.Image   = IconGenerator.CreateDiffFirstIcon(sz);
+            prevDiffButton.Image    = IconGenerator.CreateDiffPrevIcon(sz);
+            nextDiffButton.Image    = IconGenerator.CreateDiffNextIcon(sz);
+            lastDiffButton.Image    = IconGenerator.CreateDiffLastIcon(sz);
+            optionsButton.Image     = IconGenerator.CreateSettingsIcon(sz);
+
+            // File menu
+            browseLeftMenuItem.Image  = IconGenerator.CreateOpenIcon(msz);
+            browseRightMenuItem.Image = IconGenerator.CreateOpenIcon(msz);
+            compareMenuItem.Image     = IconGenerator.CreateCompareIcon(msz);
+            swapFilesMenuItem.Image   = IconGenerator.CreateSwapIcon(msz);
+            closeMenuItem.Image       = IconGenerator.CreateExitIcon(msz);
+
+            // Navigation menu
+            firstDiffMenuItem.Image = IconGenerator.CreateDiffFirstIcon(msz);
+            prevDiffMenuItem.Image  = IconGenerator.CreateDiffPrevIcon(msz);
+            nextDiffMenuItem.Image  = IconGenerator.CreateDiffNextIcon(msz);
+            lastDiffMenuItem.Image  = IconGenerator.CreateDiffLastIcon(msz);
+
+            // View menu
+            expandAllMenuItem.Image   = IconGenerator.CreateExpandIcon(msz);
+            collapseAllMenuItem.Image = IconGenerator.CreateCollapseIcon(msz);
+            optionsMenuItem.Image     = IconGenerator.CreateSettingsIcon(msz);
+        }
+
+        /// <summary>Opens the comparison window pre-loaded with two known file paths and runs the comparison immediately.</summary>
+        public CompareLogsForm(string leftFilePath, string rightFilePath)
+            : this()
+        {
+            _leftFilePath  = leftFilePath;
+            _rightFilePath = rightFilePath;
+            leftTitleLabel.Text  = string.Format("Left: {0}", Path.GetFileName(leftFilePath));
+            rightTitleLabel.Text = string.Format("Right: {0}", Path.GetFileName(rightFilePath));
+            UpdateCompareButtonState();
+
+            LoadAndCompareFiles(leftFilePath, rightFilePath);
         }
 
         public CompareLogsForm(TreeView leftTreeView, TreeView rightTreeView, string leftTitle, string rightTitle)
@@ -166,17 +312,18 @@ namespace Cad3PLogBrowser.UI
 
                 leftTreeView.Nodes.Clear();
                 var leftLines = File.ReadAllLines(leftPath);
-                var leftEntries = _parserService.Parse(leftLines);
-                var leftCallTree = _parserService.BuildCallTree(leftEntries);
+                _leftEntries = _parserService.Parse(leftLines);
+                var leftCallTree = _parserService.BuildCallTree(_leftEntries);
                 PopulateTreeView(leftTreeView, leftCallTree);
 
                 rightTreeView.Nodes.Clear();
                 var rightLines = File.ReadAllLines(rightPath);
-                var rightEntries = _parserService.Parse(rightLines);
-                var rightCallTree = _parserService.BuildCallTree(rightEntries);
+                _rightEntries = _parserService.Parse(rightLines);
+                var rightCallTree = _parserService.BuildCallTree(_rightEntries);
                 PopulateTreeView(rightTreeView, rightCallTree);
 
                 PerformComparison();
+                UpdatePerformanceDiff();
             }
             catch (Exception ex)
             {
@@ -235,6 +382,12 @@ namespace Cad3PLogBrowser.UI
                 _differences = _comparer.Compare(leftLogNode, rightLogNode, _compareOptions);
 
                 LogNodeFactory.MapTreeNodesToDifferences(_differences);
+
+                // Colour each tree node to match its difference type — same palette
+                // already used in the difference list below, so the two views agree.
+                _highlighter.ClearHighlighting(leftTreeView);
+                _highlighter.ClearHighlighting(rightTreeView);
+                _highlighter.HighlightDifferences(_differences);
 
                 _navigator.Differences = _differences;
 
@@ -336,6 +489,64 @@ namespace Cad3PLogBrowser.UI
                 _differences.Count);
         }
 
+        // ── E6: Performance Delta (log comparison / diff) ─────────────────────
+        private void UpdatePerformanceDiff()
+        {
+            if (_leftEntries == null || _rightEntries == null) return;
+
+            string labelA = string.IsNullOrEmpty(_leftFilePath) ? "Left" : Path.GetFileName(_leftFilePath);
+            string labelB = string.IsNullOrEmpty(_rightFilePath) ? "Right" : Path.GetFileName(_rightFilePath);
+            var result = _diffService.Compare(_leftEntries, labelA, _rightEntries, labelB);
+
+            perfDiffListView.BeginUpdate();
+            try
+            {
+                perfDiffListView.Items.Clear();
+
+                int faster = 0, slower = 0;
+                foreach (var entry in result.InBoth)
+                {
+                    string status = entry.AvgTimeDeltaMs > 0 ? "Slower" : entry.AvgTimeDeltaMs < 0 ? "Faster" : "Unchanged";
+                    if (entry.AvgTimeDeltaMs > 0) slower++; else if (entry.AvgTimeDeltaMs < 0) faster++;
+
+                    var item = new ListViewItem(new[]
+                    {
+                        entry.ApiName,
+                        entry.StatsA.AvgDurationMs.ToString(),
+                        entry.StatsB.AvgDurationMs.ToString(),
+                        (entry.AvgTimeDeltaMs > 0 ? "+" : "") + entry.AvgTimeDeltaMs,
+                        status
+                    });
+                    item.BackColor = entry.AvgTimeDeltaMs > 0 ? Color.FromArgb(255, 220, 220)
+                                    : entry.AvgTimeDeltaMs < 0 ? Color.FromArgb(220, 255, 220)
+                                    : Color.White;
+                    perfDiffListView.Items.Add(item);
+                }
+
+                foreach (var entry in result.OnlyInA)
+                {
+                    var item = new ListViewItem(new[] { entry.ApiName, entry.StatsA.AvgDurationMs.ToString(), "—", "—", "Removed" });
+                    item.BackColor = Color.FromArgb(230, 230, 230);
+                    perfDiffListView.Items.Add(item);
+                }
+
+                foreach (var entry in result.OnlyInB)
+                {
+                    var item = new ListViewItem(new[] { entry.ApiName, "—", entry.StatsB.AvgDurationMs.ToString(), "—", "New" });
+                    item.BackColor = Color.FromArgb(220, 235, 255);
+                    perfDiffListView.Items.Add(item);
+                }
+
+                perfDiffSummaryLabel.Text = string.Format(
+                    "Comparing {0} vs {1}: {2} method(s) slower, {3} faster, {4} new, {5} removed.",
+                    labelA, labelB, slower, faster, result.OnlyInB.Count, result.OnlyInA.Count);
+            }
+            finally
+            {
+                perfDiffListView.EndUpdate();
+            }
+        }
+
         private void UpdateNavigationButtons()
         {
             bool hasDifferences = _differences != null && _differences.Count > 0;
@@ -432,6 +643,12 @@ namespace Cad3PLogBrowser.UI
                 differenceListView.Items[e.Index].EnsureVisible();
                 differenceListView.Focus();
             }
+
+            // Difference navigation already positions both trees on the matching
+            // diff node — rebaseline so the scroll-sync timer doesn't immediately
+            // try to "correct" one side using a stale visible-row index.
+            _lastLeftTopNode  = leftTreeView.TopNode;
+            _lastRightTopNode = rightTreeView.TopNode;
         }
 
         private void TreeView_AfterSelect(object sender, TreeViewEventArgs e)

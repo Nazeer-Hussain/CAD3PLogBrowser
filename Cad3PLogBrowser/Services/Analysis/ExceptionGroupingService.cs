@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Cad3PLogBrowser.Models;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser.Services.Analysis
 {

@@ -24,7 +24,7 @@ namespace Cad3PLogBrowser
             var mainForm = new MainForm();
 
             if (args.Length > 0)
-                mainForm.OpenFilePath(args[0]);
+                mainForm.OpenFilePaths(args);
 
             Application.Run(mainForm);
             }
@@ -67,7 +67,7 @@ namespace Cad3PLogBrowser
             }
             catch
             {
-                // Last resort – swallow if even the error handler fails.
+                // Last resort ï¿½ swallow if even the error handler fails.
             }
         }
     }

@@ -12,7 +12,7 @@ using System.Windows.Forms;
 namespace Cad3PLogBrowser
 {
     /// <summary>
-    /// Application settings dialog — TabControl layout with eight organised pages.
+    /// Application settings dialog ï¿½ TabControl layout with eight organised pages.
     /// Every AppSettings property has a corresponding control here, every control
     /// has a default, and all values are saved then restored on next startup.
     /// </summary>
@@ -34,7 +34,7 @@ namespace Cad3PLogBrowser
 
         // -- Tabs & Layout -----------------------------------------------------
         private CheckBox  chkShowLog, chkShowPerformance, chkShowLogDetails;
-        private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline, chkShowAiTab;
+        private CheckBox  chkShowCallGraph, chkShowTimeline, chkShowAiTab;
         private ComboBox  cmbInitialView;
         private ComboBox  cmbDefaultTreeView;
 
@@ -47,6 +47,9 @@ namespace Cad3PLogBrowser
         private TextBox        txtInitialDir;
         private NumericUpDown  nudMaxRecentFiles;
         private TextBox        txtSnippetSuffix;
+        private CheckBox       chkRestoreSession;
+        private CheckBox       chkWatchFileChanges;
+        private NumericUpDown  nudAutoReloadDelay;
 
         // -- Performance -------------------------------------------------------
         private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
@@ -334,8 +337,7 @@ namespace Cad3PLogBrowser
             chkShowLogDetails = Chk(grpTabs, SettingsDialogStrings.CheckboxLogDetails, 300, 24);
             // Row 2: Call Graph, Flame Graph, Timeline
             chkShowCallGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxCallGraph, 14, 52);
-            chkShowFlameGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxFlameGraph, 160, 52);
-            chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 300, 52);
+            chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 160, 52);
             // Row 3: AI Assistant
             chkShowAiTab = Chk(grpTabs, SettingsDialogStrings.CheckboxAIAssistant, 14, 80);
 
@@ -551,8 +553,7 @@ namespace Cad3PLogBrowser
             chkShowLogDetails  = Chk(grp, SettingsDialogStrings.CheckboxLogDetails,   300,  24);
             // Row 2: Call Graph, Flame Graph, Timeline
             chkShowCallGraph   = Chk(grp, SettingsDialogStrings.CheckboxCallGraph,     14,  52);
-            chkShowFlameGraph  = Chk(grp, SettingsDialogStrings.CheckboxFlameGraph,   160,  52);
-            chkShowTimeline    = Chk(grp, SettingsDialogStrings.CheckboxTimeline,     300,  52);
+            chkShowTimeline    = Chk(grp, SettingsDialogStrings.CheckboxTimeline,     160,  52);
             // Row 3: AI Assistant
             chkShowAiTab       = Chk(grp, SettingsDialogStrings.CheckboxAIAssistant,   14,  80);
             tp.Controls.Add(grp);
@@ -618,7 +619,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabFilesAndBehavior,
                 Location = new Point(12, 10),
-                Size = new Size(560, 130),
+                Size = new Size(560, 225),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -633,12 +634,32 @@ namespace Cad3PLogBrowser
             nudMaxRecentFiles = AddNud(grpFiles, SettingsDialogStrings.LabelMaxRecentFiles, 58, 5, 20, 10);
             txtSnippetSuffix  = AddTxt(grpFiles, SettingsDialogStrings.LabelSnippetFileSuffix, 94, SettingsDialogStrings.DefaultSnippetSuffix, 160);
 
+            chkRestoreSession = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 128),
+                Text     = SettingsDialogStrings.CheckboxRestoreSession,
+            };
+            grpFiles.Controls.Add(chkRestoreSession);
+
+            // A4: Auto-Reload / Tail Mode
+            chkWatchFileChanges = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 154),
+                Text     = SettingsDialogStrings.CheckboxWatchFileChanges,
+            };
+            grpFiles.Controls.Add(chkWatchFileChanges);
+
+            nudAutoReloadDelay = AddNud(grpFiles, SettingsDialogStrings.LabelAutoReloadDelay, 184, 0, 3600, 0);
+            Lbl(grpFiles, SettingsDialogStrings.HintAutoReloadDelay, 290, 188);
+
             tp.Controls.Add(grpFiles);
 
             var grpPerformance = new GroupBox
             {
                 Text = SettingsDialogStrings.TabPerformance,
-                Location = new Point(12, 150),
+                Location = new Point(12, 245),
                 Size = new Size(560, 220),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1045,7 +1066,6 @@ namespace Cad3PLogBrowser
             chkShowPerformance.Checked = _mainForm.IsTabVisible(MainForm.TabId.Performance);
             chkShowLogDetails.Checked  = _mainForm.IsTabVisible(MainForm.TabId.LogDetails);
             chkShowCallGraph.Checked   = _mainForm.IsTabVisible(MainForm.TabId.CallGraph);
-            chkShowFlameGraph.Checked  = _mainForm.IsTabVisible(MainForm.TabId.FlameGraph);
             chkShowTimeline.Checked    = _mainForm.IsTabVisible(MainForm.TabId.Timeline);
             chkShowAiTab.Checked       = _settings.ShowAiTab;
             cmbInitialView.SelectedItem = _settings.InitialView ?? "Log";
@@ -1064,6 +1084,10 @@ namespace Cad3PLogBrowser
             txtInitialDir.Text         = _settings.InitialDirectory ?? "";
             nudMaxRecentFiles.Value    = Math.Max(5, Math.Min(20, _settings.MaxRecentFiles));
             txtSnippetSuffix.Text      = _settings.SaveSnippetSuffix ?? "_snippet";
+            chkRestoreSession.Checked  = _settings.RestoreSessionOnStartup;
+            chkWatchFileChanges.Checked = _settings.WatchFileChanges;
+            nudAutoReloadDelay.Value    = Math.Max(nudAutoReloadDelay.Minimum,
+                Math.Min(nudAutoReloadDelay.Maximum, _settings.AutoReloadDelaySeconds));
 
             // Performance
             nudFastCallMs.Value = Math.Max(nudFastCallMs.Minimum,
@@ -1165,7 +1189,6 @@ namespace Cad3PLogBrowser
             _settings.ShowPerformanceTab = chkShowPerformance.Checked;
             _settings.ShowLogDetailsTab  = chkShowLogDetails.Checked;
             _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
-            _settings.ShowFlameGraphTab  = chkShowFlameGraph.Checked;
             _settings.ShowTimelineTab    = chkShowTimeline.Checked;
             _settings.ShowAiTab          = chkShowAiTab.Checked;
             _settings.InitialView        = cmbInitialView.SelectedItem?.ToString() ?? "Log";
@@ -1183,6 +1206,9 @@ namespace Cad3PLogBrowser
             _settings.InitialDirectory  = txtInitialDir.Text.Trim();
             _settings.MaxRecentFiles    = (int)nudMaxRecentFiles.Value;
             _settings.SaveSnippetSuffix = txtSnippetSuffix.Text.Trim();
+            _settings.RestoreSessionOnStartup = chkRestoreSession.Checked;
+            _settings.WatchFileChanges         = chkWatchFileChanges.Checked;
+            _settings.AutoReloadDelaySeconds   = (int)nudAutoReloadDelay.Value;
 
             // Performance
             _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
@@ -1198,7 +1224,7 @@ namespace Cad3PLogBrowser
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
             _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
-            // Guard: never persist an empty URL — fall back to the default so the
+            // Guard: never persist an empty URL ï¿½ fall back to the default so the
             // UpdateService constructor (which throws on whitespace) can never crash.
             string manifestUrl = txtManifestUrl.Text.Trim();
             _settings.UpdateManifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
@@ -1251,7 +1277,6 @@ namespace Cad3PLogBrowser
             _settings.ShowPerformanceTab  = def.ShowPerformanceTab;
             _settings.ShowLogDetailsTab   = def.ShowLogDetailsTab;
             _settings.ShowCallGraphTab    = def.ShowCallGraphTab;
-            _settings.ShowFlameGraphTab   = def.ShowFlameGraphTab;
             _settings.ShowTimelineTab     = def.ShowTimelineTab;
             _settings.ShowAiTab           = def.ShowAiTab;
             _settings.InitialView         = def.InitialView;
@@ -1262,13 +1287,16 @@ namespace Cad3PLogBrowser
             _settings.InitialDirectory    = def.InitialDirectory;
             _settings.MaxRecentFiles      = def.MaxRecentFiles;
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
+            _settings.RestoreSessionOnStartup = def.RestoreSessionOnStartup;
+            _settings.WatchFileChanges         = def.WatchFileChanges;
+            _settings.AutoReloadDelaySeconds   = def.AutoReloadDelaySeconds;
             _settings.FastCallThresholdMs       = def.FastCallThresholdMs;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
-            // Updates — reset to defaults but preserve LastUpdateCheck and SkippedVersion
+            // Updates ï¿½ reset to defaults but preserve LastUpdateCheck and SkippedVersion
             _settings.CheckForUpdatesOnStartup = def.CheckForUpdatesOnStartup;
             _settings.UpdateCheckIntervalDays  = def.UpdateCheckIntervalDays;
             _settings.UpdateManifestUrl        = def.UpdateManifestUrl;
@@ -1306,7 +1334,7 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=",
-                        "Font Preview — " + f.Name,
+                        "Font Preview ï¿½ " + f.Name,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }

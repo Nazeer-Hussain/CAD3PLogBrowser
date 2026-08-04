@@ -36,6 +36,8 @@ namespace Cad3PLogBrowser.UI
             this.expandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.syncScrollMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip = new System.Windows.Forms.ToolStrip();
             this.browseLeftButton = new System.Windows.Forms.ToolStripButton();
             this.browseRightButton = new System.Windows.Forms.ToolStripButton();
@@ -67,6 +69,16 @@ namespace Cad3PLogBrowser.UI
             this.colPath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colLeftValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colRightValue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.bottomTabControl = new System.Windows.Forms.TabControl();
+            this.structuralDiffTabPage = new System.Windows.Forms.TabPage();
+            this.performanceDiffTabPage = new System.Windows.Forms.TabPage();
+            this.perfDiffSummaryLabel = new System.Windows.Forms.Label();
+            this.perfDiffListView = new System.Windows.Forms.ListView();
+            this.colPerfMethod = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfBaseline = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfCurrent = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfDelta = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colPerfStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.menuStrip.SuspendLayout();
             this.toolStrip.SuspendLayout();
@@ -223,6 +235,8 @@ namespace Cad3PLogBrowser.UI
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.expandAllMenuItem,
             this.collapseAllMenuItem,
+            this.viewSeparator1,
+            this.syncScrollMenuItem,
             this.optionsMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(44, 20);
@@ -243,7 +257,20 @@ namespace Cad3PLogBrowser.UI
             this.collapseAllMenuItem.Size = new System.Drawing.Size(196, 22);
             this.collapseAllMenuItem.Text = "&Collapse All";
             this.collapseAllMenuItem.Click += new System.EventHandler(this.collapseAllMenuItem_Click);
-            // 
+            //
+            // viewSeparator1
+            //
+            this.viewSeparator1.Name = "viewSeparator1";
+            this.viewSeparator1.Size = new System.Drawing.Size(196, 6);
+            //
+            // syncScrollMenuItem
+            //
+            this.syncScrollMenuItem.CheckOnClick = true;
+            this.syncScrollMenuItem.Checked = true;
+            this.syncScrollMenuItem.Name = "syncScrollMenuItem";
+            this.syncScrollMenuItem.Size = new System.Drawing.Size(196, 22);
+            this.syncScrollMenuItem.Text = "&Synchronize Scrolling";
+            //
             // optionsMenuItem
             // 
             this.optionsMenuItem.Name = "optionsMenuItem";
@@ -254,7 +281,7 @@ namespace Cad3PLogBrowser.UI
             // toolStrip
             // 
             this.toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.toolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.toolStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.browseLeftButton,
             this.browseRightButton,
@@ -269,96 +296,100 @@ namespace Cad3PLogBrowser.UI
             this.optionsButton});
             this.toolStrip.Location = new System.Drawing.Point(0, 24);
             this.toolStrip.Name = "toolStrip";
-            this.toolStrip.Padding = new System.Windows.Forms.Padding(4, 2, 1, 2);
+            this.toolStrip.Padding = new System.Windows.Forms.Padding(6, 3, 3, 3);
             this.toolStrip.Size = new System.Drawing.Size(1400, 27);
             this.toolStrip.TabIndex = 1;
             // 
             // browseLeftButton
-            // 
-            this.browseLeftButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.browseLeftButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.browseLeftButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.browseLeftButton.Name = "browseLeftButton";
-            this.browseLeftButton.Size = new System.Drawing.Size(64, 20);
+            this.browseLeftButton.Size = new System.Drawing.Size(84, 24);
             this.browseLeftButton.Text = "Left File...";
             this.browseLeftButton.Click += new System.EventHandler(this.browseLeftButton_Click);
-            // 
+            //
             // browseRightButton
-            // 
-            this.browseRightButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.browseRightButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.browseRightButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.browseRightButton.Name = "browseRightButton";
-            this.browseRightButton.Size = new System.Drawing.Size(72, 20);
+            this.browseRightButton.Size = new System.Drawing.Size(90, 24);
             this.browseRightButton.Text = "Right File...";
             this.browseRightButton.Click += new System.EventHandler(this.browseRightButton_Click);
-            // 
+            //
             // toolStripSeparator4
-            // 
+            //
             this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 23);
-            // 
+            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 27);
+            //
             // compareButton
-            // 
-            this.compareButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.compareButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.compareButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.compareButton.Enabled = false;
             this.compareButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.compareButton.Name = "compareButton";
-            this.compareButton.Size = new System.Drawing.Size(63, 20);
+            this.compareButton.Size = new System.Drawing.Size(85, 24);
             this.compareButton.Text = "Compare";
             this.compareButton.Click += new System.EventHandler(this.compareButton_Click);
-            // 
+            //
             // toolStripSeparator5
-            // 
+            //
             this.toolStripSeparator5.Name = "toolStripSeparator5";
-            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 23);
-            // 
+            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 27);
+            //
             // firstDiffButton
-            // 
-            this.firstDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.firstDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.firstDiffButton.Enabled = false;
             this.firstDiffButton.Name = "firstDiffButton";
-            this.firstDiffButton.Size = new System.Drawing.Size(36, 20);
-            this.firstDiffButton.Text = "|?";
+            this.firstDiffButton.Size = new System.Drawing.Size(28, 24);
+            this.firstDiffButton.Text = "First Difference";
             this.firstDiffButton.ToolTipText = "First Difference";
             this.firstDiffButton.Click += new System.EventHandler(this.firstDiffButton_Click);
-            // 
+            //
             // prevDiffButton
-            // 
-            this.prevDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.prevDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.prevDiffButton.Enabled = false;
             this.prevDiffButton.Name = "prevDiffButton";
-            this.prevDiffButton.Size = new System.Drawing.Size(23, 20);
-            this.prevDiffButton.Text = "?";
+            this.prevDiffButton.Size = new System.Drawing.Size(28, 24);
+            this.prevDiffButton.Text = "Previous Difference";
             this.prevDiffButton.ToolTipText = "Previous Difference (F7)";
             this.prevDiffButton.Click += new System.EventHandler(this.prevDiffButton_Click);
-            // 
+            //
             // nextDiffButton
-            // 
-            this.nextDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.nextDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.nextDiffButton.Enabled = false;
             this.nextDiffButton.Name = "nextDiffButton";
-            this.nextDiffButton.Size = new System.Drawing.Size(23, 20);
-            this.nextDiffButton.Text = "?";
+            this.nextDiffButton.Size = new System.Drawing.Size(28, 24);
+            this.nextDiffButton.Text = "Next Difference";
             this.nextDiffButton.ToolTipText = "Next Difference (F8)";
             this.nextDiffButton.Click += new System.EventHandler(this.nextDiffButton_Click);
-            // 
+            //
             // lastDiffButton
-            // 
-            this.lastDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.lastDiffButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.lastDiffButton.Enabled = false;
             this.lastDiffButton.Name = "lastDiffButton";
-            this.lastDiffButton.Size = new System.Drawing.Size(36, 20);
-            this.lastDiffButton.Text = "?|";
+            this.lastDiffButton.Size = new System.Drawing.Size(28, 24);
+            this.lastDiffButton.Text = "Last Difference";
             this.lastDiffButton.ToolTipText = "Last Difference";
             this.lastDiffButton.Click += new System.EventHandler(this.lastDiffButton_Click);
-            // 
+            //
             // toolStripSeparator6
-            // 
+            //
             this.toolStripSeparator6.Name = "toolStripSeparator6";
-            this.toolStripSeparator6.Size = new System.Drawing.Size(6, 23);
-            // 
+            this.toolStripSeparator6.Size = new System.Drawing.Size(6, 27);
+            //
             // optionsButton
-            // 
-            this.optionsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            //
+            this.optionsButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.optionsButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.optionsButton.Name = "optionsButton";
-            this.optionsButton.Size = new System.Drawing.Size(62, 20);
+            this.optionsButton.Size = new System.Drawing.Size(85, 24);
             this.optionsButton.Text = "Options...";
             this.optionsButton.Click += new System.EventHandler(this.optionsButton_Click);
             // 
@@ -398,8 +429,8 @@ namespace Cad3PLogBrowser.UI
             this.mainSplitContainer.Panel1.Controls.Add(this.topSplitContainer);
             // 
             // mainSplitContainer.Panel2
-            // 
-            this.mainSplitContainer.Panel2.Controls.Add(this.differenceListView);
+            //
+            this.mainSplitContainer.Panel2.Controls.Add(this.bottomTabControl);
             this.mainSplitContainer.Size = new System.Drawing.Size(1400, 727);
             this.mainSplitContainer.SplitterDistance = 500;
             this.mainSplitContainer.SplitterWidth = 6;
@@ -566,7 +597,99 @@ namespace Cad3PLogBrowser.UI
             // 
             this.colRightValue.Text = "Right Value";
             this.colRightValue.Width = 400;
-            // 
+            //
+            // bottomTabControl
+            //
+            this.bottomTabControl.Controls.Add(this.structuralDiffTabPage);
+            this.bottomTabControl.Controls.Add(this.performanceDiffTabPage);
+            this.bottomTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bottomTabControl.Location = new System.Drawing.Point(0, 0);
+            this.bottomTabControl.Name = "bottomTabControl";
+            this.bottomTabControl.SelectedIndex = 0;
+            this.bottomTabControl.Size = new System.Drawing.Size(1400, 221);
+            this.bottomTabControl.TabIndex = 1;
+            //
+            // structuralDiffTabPage
+            //
+            this.structuralDiffTabPage.Controls.Add(this.differenceListView);
+            this.structuralDiffTabPage.Location = new System.Drawing.Point(4, 22);
+            this.structuralDiffTabPage.Name = "structuralDiffTabPage";
+            this.structuralDiffTabPage.Padding = new System.Windows.Forms.Padding(3);
+            this.structuralDiffTabPage.Size = new System.Drawing.Size(1392, 195);
+            this.structuralDiffTabPage.TabIndex = 0;
+            this.structuralDiffTabPage.Text = "Structural Differences";
+            this.structuralDiffTabPage.UseVisualStyleBackColor = true;
+            //
+            // performanceDiffTabPage
+            //
+            this.performanceDiffTabPage.Controls.Add(this.perfDiffListView);
+            this.performanceDiffTabPage.Controls.Add(this.perfDiffSummaryLabel);
+            this.performanceDiffTabPage.Location = new System.Drawing.Point(4, 22);
+            this.performanceDiffTabPage.Name = "performanceDiffTabPage";
+            this.performanceDiffTabPage.Padding = new System.Windows.Forms.Padding(3);
+            this.performanceDiffTabPage.Size = new System.Drawing.Size(1392, 195);
+            this.performanceDiffTabPage.TabIndex = 1;
+            this.performanceDiffTabPage.Text = "Performance Delta";
+            this.performanceDiffTabPage.UseVisualStyleBackColor = true;
+            //
+            // perfDiffSummaryLabel
+            //
+            this.perfDiffSummaryLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.perfDiffSummaryLabel.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.perfDiffSummaryLabel.Location = new System.Drawing.Point(3, 3);
+            this.perfDiffSummaryLabel.Name = "perfDiffSummaryLabel";
+            this.perfDiffSummaryLabel.Padding = new System.Windows.Forms.Padding(4);
+            this.perfDiffSummaryLabel.Size = new System.Drawing.Size(1386, 40);
+            this.perfDiffSummaryLabel.TabIndex = 0;
+            this.perfDiffSummaryLabel.Text = "Compare two logs to see performance deltas.";
+            //
+            // perfDiffListView
+            //
+            this.perfDiffListView.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.perfDiffListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.colPerfMethod,
+            this.colPerfBaseline,
+            this.colPerfCurrent,
+            this.colPerfDelta,
+            this.colPerfStatus});
+            this.perfDiffListView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.perfDiffListView.Font = new System.Drawing.Font("Consolas", 9F);
+            this.perfDiffListView.FullRowSelect = true;
+            this.perfDiffListView.GridLines = true;
+            this.perfDiffListView.HideSelection = false;
+            this.perfDiffListView.Location = new System.Drawing.Point(3, 3);
+            this.perfDiffListView.MultiSelect = false;
+            this.perfDiffListView.Name = "perfDiffListView";
+            this.perfDiffListView.Size = new System.Drawing.Size(1386, 189);
+            this.perfDiffListView.TabIndex = 1;
+            this.perfDiffListView.UseCompatibleStateImageBehavior = false;
+            this.perfDiffListView.View = System.Windows.Forms.View.Details;
+            //
+            // colPerfMethod
+            //
+            this.colPerfMethod.Text = "Method";
+            this.colPerfMethod.Width = 500;
+            //
+            // colPerfBaseline
+            //
+            this.colPerfBaseline.Text = "Baseline Avg (ms)";
+            this.colPerfBaseline.Width = 150;
+            //
+            // colPerfCurrent
+            //
+            this.colPerfCurrent.Text = "Current Avg (ms)";
+            this.colPerfCurrent.Width = 150;
+            //
+            // colPerfDelta
+            //
+            this.colPerfDelta.Text = "Delta (ms)";
+            this.colPerfDelta.Width = 150;
+            //
+            // colPerfStatus
+            //
+            this.colPerfStatus.Text = "Status";
+            this.colPerfStatus.Width = 150;
+            //
             // openFileDialog
             // 
             this.openFileDialog.Filter = "Log Files (*.log;*.txt)|*.log;*.txt|All Files (*.*)|*.*";
@@ -631,6 +754,8 @@ namespace Cad3PLogBrowser.UI
         private System.Windows.Forms.ToolStripMenuItem expandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem collapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem syncScrollMenuItem;
         private System.Windows.Forms.ToolStrip toolStrip;
         private System.Windows.Forms.ToolStripButton browseLeftButton;
         private System.Windows.Forms.ToolStripButton browseRightButton;
@@ -662,6 +787,16 @@ namespace Cad3PLogBrowser.UI
         private System.Windows.Forms.ColumnHeader colPath;
         private System.Windows.Forms.ColumnHeader colLeftValue;
         private System.Windows.Forms.ColumnHeader colRightValue;
+        private System.Windows.Forms.TabControl bottomTabControl;
+        private System.Windows.Forms.TabPage structuralDiffTabPage;
+        private System.Windows.Forms.TabPage performanceDiffTabPage;
+        private System.Windows.Forms.Label perfDiffSummaryLabel;
+        private System.Windows.Forms.ListView perfDiffListView;
+        private System.Windows.Forms.ColumnHeader colPerfMethod;
+        private System.Windows.Forms.ColumnHeader colPerfBaseline;
+        private System.Windows.Forms.ColumnHeader colPerfCurrent;
+        private System.Windows.Forms.ColumnHeader colPerfDelta;
+        private System.Windows.Forms.ColumnHeader colPerfStatus;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }

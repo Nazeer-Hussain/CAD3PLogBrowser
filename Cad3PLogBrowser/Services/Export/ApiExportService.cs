@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Cad3PLogBrowser.Models;
+using Cad3PLogBrowser.Services;
 
 namespace Cad3PLogBrowser.Services.Export
 {
