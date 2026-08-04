@@ -79,13 +79,13 @@
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.watchFileChangesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogDetailsTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showFlameGraphTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showTimelineTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showHeatmapTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -593,7 +593,6 @@
             this.showPerformanceTabMenuItem,
             this.showLogDetailsTabMenuItem,
             this.showCallGraphMenuItem,
-            this.showFlameGraphTabMenuItem,
             this.showTimelineTabMenuItem,
             this.showHeatmapTabMenuItem});
             this.tabsMenuItem.Name = "tabsMenuItem";
@@ -636,22 +635,13 @@
             this.showCallGraphMenuItem.Text = "&Call Graph";
             this.showCallGraphMenuItem.CheckedChanged += new System.EventHandler(this.showCallGraphMenuItem_CheckedChanged);
             // 
-            // showFlameGraphTabMenuItem
-            // 
-            this.showFlameGraphTabMenuItem.CheckOnClick = true;
-            this.showFlameGraphTabMenuItem.Checked = true;
-            this.showFlameGraphTabMenuItem.Name = "showFlameGraphTabMenuItem";
-            this.showFlameGraphTabMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showFlameGraphTabMenuItem.Text = "&Flame Graph";
-            this.showFlameGraphTabMenuItem.CheckedChanged += new System.EventHandler(this.showFlameGraphTabMenuItem_CheckedChanged);
-            // 
             // showTimelineTabMenuItem
-            // 
+            //
             this.showTimelineTabMenuItem.CheckOnClick = true;
             this.showTimelineTabMenuItem.Checked = true;
             this.showTimelineTabMenuItem.Name = "showTimelineTabMenuItem";
             this.showTimelineTabMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showTimelineTabMenuItem.Text = "&Timeline";
+            this.showTimelineTabMenuItem.Text = "&Timeline / Flame Graph";
             this.showTimelineTabMenuItem.CheckedChanged += new System.EventHandler(this.showTimelineTabMenuItem_CheckedChanged);
             //
             // showHeatmapTabMenuItem
@@ -1730,12 +1720,12 @@
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem watchFileChangesMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem showFlameGraphTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTimelineTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showHeatmapTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallGraphMenuItem;

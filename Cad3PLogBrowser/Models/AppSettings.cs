@@ -29,7 +29,6 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowPerformanceTab   { get; set; } = true;
         public bool    ShowLogDetailsTab    { get; set; } = true;
         public bool    ShowCallGraphTab     { get; set; } = true;
-        public bool    ShowFlameGraphTab    { get; set; } = true;
         public bool    ShowTimelineTab      { get; set; } = true;
         public bool    ShowHeatmapTab       { get; set; } = true;
         public bool    ShowAiTab            { get; set; } = true;

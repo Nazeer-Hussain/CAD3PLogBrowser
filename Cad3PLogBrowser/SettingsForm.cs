@@ -34,7 +34,7 @@ namespace Cad3PLogBrowser
 
         // -- Tabs & Layout -----------------------------------------------------
         private CheckBox  chkShowLog, chkShowPerformance, chkShowLogDetails;
-        private CheckBox  chkShowCallGraph, chkShowFlameGraph, chkShowTimeline, chkShowAiTab;
+        private CheckBox  chkShowCallGraph, chkShowTimeline, chkShowAiTab;
         private ComboBox  cmbInitialView;
         private ComboBox  cmbDefaultTreeView;
 
@@ -335,8 +335,7 @@ namespace Cad3PLogBrowser
             chkShowLogDetails = Chk(grpTabs, SettingsDialogStrings.CheckboxLogDetails, 300, 24);
             // Row 2: Call Graph, Flame Graph, Timeline
             chkShowCallGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxCallGraph, 14, 52);
-            chkShowFlameGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxFlameGraph, 160, 52);
-            chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 300, 52);
+            chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 160, 52);
             // Row 3: AI Assistant
             chkShowAiTab = Chk(grpTabs, SettingsDialogStrings.CheckboxAIAssistant, 14, 80);
 
@@ -552,8 +551,7 @@ namespace Cad3PLogBrowser
             chkShowLogDetails  = Chk(grp, SettingsDialogStrings.CheckboxLogDetails,   300,  24);
             // Row 2: Call Graph, Flame Graph, Timeline
             chkShowCallGraph   = Chk(grp, SettingsDialogStrings.CheckboxCallGraph,     14,  52);
-            chkShowFlameGraph  = Chk(grp, SettingsDialogStrings.CheckboxFlameGraph,   160,  52);
-            chkShowTimeline    = Chk(grp, SettingsDialogStrings.CheckboxTimeline,     300,  52);
+            chkShowTimeline    = Chk(grp, SettingsDialogStrings.CheckboxTimeline,     160,  52);
             // Row 3: AI Assistant
             chkShowAiTab       = Chk(grp, SettingsDialogStrings.CheckboxAIAssistant,   14,  80);
             tp.Controls.Add(grp);
@@ -1054,7 +1052,6 @@ namespace Cad3PLogBrowser
             chkShowPerformance.Checked = _mainForm.IsTabVisible(MainForm.TabId.Performance);
             chkShowLogDetails.Checked  = _mainForm.IsTabVisible(MainForm.TabId.LogDetails);
             chkShowCallGraph.Checked   = _mainForm.IsTabVisible(MainForm.TabId.CallGraph);
-            chkShowFlameGraph.Checked  = _mainForm.IsTabVisible(MainForm.TabId.FlameGraph);
             chkShowTimeline.Checked    = _mainForm.IsTabVisible(MainForm.TabId.Timeline);
             chkShowAiTab.Checked       = _settings.ShowAiTab;
             cmbInitialView.SelectedItem = _settings.InitialView ?? "Log";
@@ -1175,7 +1172,6 @@ namespace Cad3PLogBrowser
             _settings.ShowPerformanceTab = chkShowPerformance.Checked;
             _settings.ShowLogDetailsTab  = chkShowLogDetails.Checked;
             _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
-            _settings.ShowFlameGraphTab  = chkShowFlameGraph.Checked;
             _settings.ShowTimelineTab    = chkShowTimeline.Checked;
             _settings.ShowAiTab          = chkShowAiTab.Checked;
             _settings.InitialView        = cmbInitialView.SelectedItem?.ToString() ?? "Log";
@@ -1262,7 +1258,6 @@ namespace Cad3PLogBrowser
             _settings.ShowPerformanceTab  = def.ShowPerformanceTab;
             _settings.ShowLogDetailsTab   = def.ShowLogDetailsTab;
             _settings.ShowCallGraphTab    = def.ShowCallGraphTab;
-            _settings.ShowFlameGraphTab   = def.ShowFlameGraphTab;
             _settings.ShowTimelineTab     = def.ShowTimelineTab;
             _settings.ShowAiTab           = def.ShowAiTab;
             _settings.InitialView         = def.InitialView;

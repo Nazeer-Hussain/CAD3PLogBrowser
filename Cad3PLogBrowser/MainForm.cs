@@ -139,7 +139,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Performance, LogDetails, CallGraph, FlameGraph, Timeline, Heatmap }
+        public enum TabId { Log, Performance, LogDetails, CallGraph, Timeline, Heatmap }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -163,7 +163,6 @@ namespace Cad3PLogBrowser
                 case TabId.Performance: return performanceTab;
                 case TabId.LogDetails:  return logDetailTab;
                 case TabId.CallGraph:   return callGraphTab;
-                case TabId.FlameGraph:  return flameGraphTab;
                 case TabId.Timeline:    return timelineTab;
                 case TabId.Heatmap:     return heatmapTab;
                 default:                return logTab;
@@ -178,7 +177,6 @@ namespace Cad3PLogBrowser
                 case TabId.Performance: return showPerformanceTabMenuItem;
                 case TabId.LogDetails:  return showLogDetailsTabMenuItem;
                 case TabId.CallGraph:   return showCallGraphMenuItem;
-                case TabId.FlameGraph:  return showFlameGraphTabMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
                 case TabId.Heatmap:     return showHeatmapTabMenuItem;
                 default:                return null;
@@ -189,7 +187,7 @@ namespace Cad3PLogBrowser
         private TabPage[] GetCanonicalTabOrder() => new[]
         {
             logTab, performanceTab, logDetailTab,
-            callGraphTab, flameGraphTab, timelineTab, heatmapTab, _aiTab
+            callGraphTab, timelineTab, heatmapTab, _aiTab
         };
 
         private void SetTabVisible(TabPage tab, bool visible)
@@ -222,7 +220,6 @@ namespace Cad3PLogBrowser
                 if (ReferenceEquals(tab, performanceTab)) showPerformanceTabMenuItem.Checked = true;
                 if (ReferenceEquals(tab, logDetailTab))   showLogDetailsTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
-                if (ReferenceEquals(tab, flameGraphTab))  showFlameGraphTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
                 if (ReferenceEquals(tab, heatmapTab))     showHeatmapTabMenuItem.Checked     = true;
                 // B10: guard the AI tab so closing it when it is the last visible tab
@@ -813,10 +810,8 @@ namespace Cad3PLogBrowser
                 section = "performance";
             else if (mainTabControl.SelectedTab == callGraphTab)
                 section = "call-graph";
-            else if (mainTabControl.SelectedTab == flameGraphTab)
-                section = "flame-graph";
             else if (mainTabControl.SelectedTab == timelineTab)
-                section = "timeline";
+                section = (flameGraphPanel != null && flameGraphPanel.Visible) ? "flame-graph" : "timeline";
             else if (mainTabControl.SelectedTab == logDetailTab)
                 section = "log-details";
 
@@ -942,6 +937,8 @@ namespace Cad3PLogBrowser
                 // Manually update visualization panels (they handle their own child controls)
                 flameGraphPanel?.UpdateTheme();
                 timelinePanel?.UpdateTheme();
+                heatmapPanel?.UpdateTheme();
+                UpdateVisualizationModeButtons();
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
@@ -1155,7 +1152,7 @@ namespace Cad3PLogBrowser
                 case "Performance": target = performanceTab;  break;
                 case "Log Details": target = logDetailTab;    break;
                 case "Call Graph":  target = callGraphTab;    break;
-                case "Flame Graph": target = flameGraphTab;   break;
+                case "Flame Graph": target = timelineTab;     SetVisualizationMode(showFlameGraph: true); break;
                 case "Timeline":    target = timelineTab;     break;
                 case "AI Assistant": target = _aiTab;          break;
                 // Legacy values saved by older builds
@@ -3225,7 +3222,6 @@ namespace Cad3PLogBrowser
             showPerformanceTabMenuItem.Image          = IconGenerator.CreateTabPerformanceIcon(msz);
             showLogDetailsTabMenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
             showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
-            showFlameGraphTabMenuItem.Image = IconGenerator.CreateTabFlameGraphIcon(msz);
             showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
@@ -3305,7 +3301,6 @@ namespace Cad3PLogBrowser
             performanceTab.ImageKey = "perf";
             logDetailTab.ImageKey   = "details";
             callGraphTab.ImageKey   = "callgraph";
-            flameGraphTab.ImageKey  = "flame";
             timelineTab.ImageKey    = "timeline";
 
             // Dynamic tabs added at runtime
@@ -7157,12 +7152,6 @@ namespace Cad3PLogBrowser
         // TAB VISIBILITY HANDLERS
         // ═══════════════════════════════════════════════════════════════════════
 
-        private void showFlameGraphTabMenuItem_CheckedChanged(object sender, EventArgs e)
-        {
-            // BUG-08: use the shared SetTabVisible helper instead of duplicating add/remove logic
-            SetTabVisible(flameGraphTab, showFlameGraphTabMenuItem.Checked);
-        }
-
         private void showTimelineTabMenuItem_CheckedChanged(object sender, EventArgs e)
         {
             // BUG-08: use the shared SetTabVisible helper instead of duplicating add/remove logic
@@ -7519,6 +7508,259 @@ namespace Cad3PLogBrowser
                 string text = (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "";
                 _correlationOccurrencesListView.Items.Add(new ListViewItem(new[] { lineNo.ToString(), text }) { Tag = lineNo });
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Timeline / Flame Graph — merged into one tab
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private Button _timelineModeButton;
+        private Button _flameGraphModeButton;
+
+        /// <summary>
+        /// Timeline and Flame Graph used to be separate tabs showing the same call
+        /// tree with nearly identical rendering. They're now one tab with a mode
+        /// switch: same data, same toolbar/status-bar chrome per panel, just no
+        /// second tab for what is fundamentally one visualization of one dataset.
+        /// </summary>
+        private void MergeTimelineAndFlameGraphTabs()
+        {
+            timelineTab.Text = "Timeline / Flame Graph";
+
+            flameGraphTab.Controls.Remove(flameGraphPanel);
+            flameGraphPanel.Dock    = DockStyle.Fill;
+            flameGraphPanel.Visible = false;
+            timelineTab.Controls.Add(flameGraphPanel);
+
+            if (mainTabControl.TabPages.Contains(flameGraphTab))
+                mainTabControl.TabPages.Remove(flameGraphTab);
+
+            var modeBar = new Panel
+            {
+                Dock      = DockStyle.Top,
+                Height    = 34,
+                BackColor = ThemeManager.ControlBackgroundColor
+            };
+
+            _timelineModeButton = new Button
+            {
+                Text     = "Timeline",
+                Location = new Point(8, 4),
+                Size     = new Size(100, 26),
+                FlatStyle = FlatStyle.Flat
+            };
+            _flameGraphModeButton = new Button
+            {
+                Text     = "Flame Graph",
+                Location = new Point(112, 4),
+                Size     = new Size(100, 26),
+                FlatStyle = FlatStyle.Flat
+            };
+            _timelineModeButton.Click     += (s, e) => SetVisualizationMode(showFlameGraph: false);
+            _flameGraphModeButton.Click   += (s, e) => SetVisualizationMode(showFlameGraph: true);
+
+            modeBar.Controls.Add(_timelineModeButton);
+            modeBar.Controls.Add(_flameGraphModeButton);
+            timelineTab.Controls.Add(modeBar);
+
+            UpdateVisualizationModeButtons();
+        }
+
+        /// <summary>Switches the merged tab between the Timeline and Flame Graph panels.</summary>
+        private void SetVisualizationMode(bool showFlameGraph)
+        {
+            flameGraphPanel.Visible = showFlameGraph;
+            timelinePanel.Visible   = !showFlameGraph;
+            UpdateVisualizationModeButtons();
+        }
+
+        private void UpdateVisualizationModeButtons()
+        {
+            if (_timelineModeButton == null || _flameGraphModeButton == null) return;
+            bool flame = flameGraphPanel.Visible;
+
+            _timelineModeButton.BackColor   = flame ? ThemeManager.ControlBackgroundColor : ThemeManager.HighlightColor;
+            _timelineModeButton.ForeColor   = flame ? ThemeManager.ForegroundColor        : ThemeManager.HighlightTextColor;
+            _flameGraphModeButton.BackColor = flame ? ThemeManager.HighlightColor         : ThemeManager.ControlBackgroundColor;
+            _flameGraphModeButton.ForeColor = flame ? ThemeManager.HighlightTextColor     : ThemeManager.ForegroundColor;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE K1: Thread-wise View
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private TabPage  _threadViewTab;
+        private ComboBox _threadACombo;
+        private ComboBox _threadBCombo;
+        private TreeView _threadATree;
+        private TreeView _threadBTree;
+        private Label    _threadAHeader;
+        private Label    _threadBHeader;
+        private List<Services.LogEntry> _threadViewEntries;
+
+        private void InitThreadViewTab()
+        {
+            _threadViewTab = new TabPage("Thread View") { Name = "threadViewTab", UseVisualStyleBackColor = true };
+
+            var comboBar = new Panel { Dock = DockStyle.Top, Height = 34 };
+
+            var lblA = new Label { Text = "Thread A:", AutoSize = true, Location = new Point(8, 10) };
+            _threadACombo = new ComboBox
+            {
+                Location = new Point(72, 6), Size = new Size(160, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            var lblB = new Label { Text = "Thread B:", AutoSize = true, Location = new Point(250, 10) };
+            _threadBCombo = new ComboBox
+            {
+                Location = new Point(314, 6), Size = new Size(160, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _threadACombo.SelectedIndexChanged += (s, e) => PopulateThreadTree(_threadACombo, _threadATree, _threadAHeader, "Thread A");
+            _threadBCombo.SelectedIndexChanged += (s, e) => PopulateThreadTree(_threadBCombo, _threadBTree, _threadBHeader, "Thread B");
+
+            comboBar.Controls.Add(lblA);
+            comboBar.Controls.Add(_threadACombo);
+            comboBar.Controls.Add(lblB);
+            comboBar.Controls.Add(_threadBCombo);
+
+            var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical, SplitterDistance = 400 };
+
+            var leftPanel = new Panel { Dock = DockStyle.Fill };
+            _threadAHeader = new Label
+            {
+                Dock = DockStyle.Top, Height = 20, Text = "Thread A",
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0)
+            };
+            _threadATree = new TreeView
+            {
+                Dock = DockStyle.Fill, Font = new Font("Consolas", 9f),
+                HideSelection = false, ShowLines = true, ShowRootLines = true
+            };
+            _threadATree.AfterSelect += (s, e) => ScrollLogToLine(e.Node.Tag);
+            leftPanel.Controls.Add(_threadATree);
+            leftPanel.Controls.Add(_threadAHeader);
+
+            var rightPanel = new Panel { Dock = DockStyle.Fill };
+            _threadBHeader = new Label
+            {
+                Dock = DockStyle.Top, Height = 20, Text = "Thread B",
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0)
+            };
+            _threadBTree = new TreeView
+            {
+                Dock = DockStyle.Fill, Font = new Font("Consolas", 9f),
+                HideSelection = false, ShowLines = true, ShowRootLines = true
+            };
+            _threadBTree.AfterSelect += (s, e) => ScrollLogToLine(e.Node.Tag);
+            rightPanel.Controls.Add(_threadBTree);
+            rightPanel.Controls.Add(_threadBHeader);
+
+            split.Panel1.Controls.Add(leftPanel);
+            split.Panel2.Controls.Add(rightPanel);
+
+            _threadViewTab.Controls.Add(split);
+            _threadViewTab.Controls.Add(comboBar);
+
+            if (mainTabControl != null)
+                mainTabControl.TabPages.Add(_threadViewTab);
+
+            var showThreadViewMenuItem = new ToolStripMenuItem("&Thread View")
+            {
+                Name = "showThreadViewTabMenuItem", CheckOnClick = true, Checked = true
+            };
+            showThreadViewMenuItem.CheckedChanged += (s, e) =>
+            {
+                if (_threadViewTab == null || mainTabControl == null) return;
+                if (showThreadViewMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(_threadViewTab))
+                        mainTabControl.TabPages.Add(_threadViewTab);
+                }
+                else if (mainTabControl.TabPages.Contains(_threadViewTab))
+                {
+                    mainTabControl.TabPages.Remove(_threadViewTab);
+                }
+            };
+            if (tabsMenuItem != null)
+                tabsMenuItem.DropDownItems.Add(showThreadViewMenuItem);
+        }
+
+        /// <summary>Refreshes the K1 thread combos from the freshly-loaded log entries.</summary>
+        private void UpdateThreadViewTab(List<Services.LogEntry> entries)
+        {
+            _threadViewEntries = entries;
+
+            var threadIds = entries
+                .Where(e => !string.IsNullOrEmpty(e.ThreadId))
+                .Select(e => e.ThreadId)
+                .Distinct()
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            PopulateThreadCombo(_threadACombo, threadIds, includeNone: false);
+            PopulateThreadCombo(_threadBCombo, threadIds, includeNone: true);
+
+            PopulateThreadTree(_threadACombo, _threadATree, _threadAHeader, "Thread A");
+            PopulateThreadTree(_threadBCombo, _threadBTree, _threadBHeader, "Thread B");
+        }
+
+        private static void PopulateThreadCombo(ComboBox combo, List<string> threadIds, bool includeNone)
+        {
+            string previous = combo.SelectedItem as string;
+            combo.Items.Clear();
+            if (includeNone) combo.Items.Add("(None)");
+            foreach (var t in threadIds) combo.Items.Add(t);
+
+            if (previous != null && combo.Items.Contains(previous))
+                combo.SelectedItem = previous;
+            else if (combo.Items.Count > 0)
+                combo.SelectedIndex = 0;
+        }
+
+        /// <summary>
+        /// Rebuilds one side's call tree scoped to a single thread. Filtering by
+        /// ThreadId before calling BuildCallTree removes cross-thread interleaving,
+        /// so each side shows a clean, correctly-nested tree for that thread alone.
+        /// </summary>
+        private void PopulateThreadTree(ComboBox combo, TreeView tree, Label header, string fallbackTitle)
+        {
+            tree.Nodes.Clear();
+            string threadId = combo.SelectedItem as string;
+
+            if (string.IsNullOrEmpty(threadId) || threadId == "(None)" || _threadViewEntries == null)
+            {
+                header.Text = fallbackTitle;
+                return;
+            }
+
+            var filtered = _threadViewEntries.Where(e => e.ThreadId == threadId).ToList();
+            var callTree = _parserService.BuildCallTree(filtered);
+
+            tree.BeginUpdate();
+            try
+            {
+                foreach (var root in callTree)
+                    tree.Nodes.Add(BuildThreadTreeNode(root));
+            }
+            finally
+            {
+                tree.EndUpdate();
+            }
+
+            int callCount = filtered.Count(e => e.IsApiCall && e.IsCallEnter);
+            header.Text = string.Format("Thread {0}  ({1} calls)", threadId, callCount);
+        }
+
+        private static TreeNode BuildThreadTreeNode(CallStackNode node)
+        {
+            string text = node.DurationMs > 0
+                ? string.Format("{0}  [{1} ms]", node.Label, node.DurationMs)
+                : node.Label;
+            var treeNode = new TreeNode(text) { Tag = node.LineNumber };
+            foreach (var child in node.Children)
+                treeNode.Nodes.Add(BuildThreadTreeNode(child));
+            return treeNode;
         }
 
         /// <summary>
