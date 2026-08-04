@@ -571,6 +571,7 @@
             this.tabsMenuItem,
             this.viewSeparator1,
             this.selectFontMenuItem,
+            this.watchFileChangesMenuItem,
             this.showToolbarMenuItem,
             this.showStatusBarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
@@ -673,7 +674,16 @@
             this.selectFontMenuItem.Size = new System.Drawing.Size(178, 22);
             this.selectFontMenuItem.Text = UI.AppStrings.MenuViewSelectFont;
             this.selectFontMenuItem.Click += new System.EventHandler(this.selectFontMenuItem_Click);
-            // 
+            //
+            // watchFileChangesMenuItem
+            //
+            this.watchFileChangesMenuItem.CheckOnClick = true;
+            this.watchFileChangesMenuItem.Checked = true;
+            this.watchFileChangesMenuItem.Name = "watchFileChangesMenuItem";
+            this.watchFileChangesMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.watchFileChangesMenuItem.Text = "&Watch for File Changes";
+            this.watchFileChangesMenuItem.CheckedChanged += new System.EventHandler(this.watchFileChangesMenuItem_CheckedChanged);
+            //
             // showToolbarMenuItem
             // 
             this.showToolbarMenuItem.Checked = true;

@@ -30,6 +30,7 @@ namespace Cad3PLogBrowser
         private TabPage _aiTab;
         private readonly BookmarkService   _bookmarkService;
         private readonly Services.Core.SessionService _sessionService;
+        private readonly Services.Core.RecentFilesService _recentFilesService = new Services.Core.RecentFilesService();
         private bool _openedViaCommandLine = false;
 
         // ── E5: Aggregate Statistics panel ──────────────────────────────────────
@@ -97,6 +98,8 @@ namespace Cad3PLogBrowser
         // _fileChangedDebounce coalesces rapid events into a single notification.
         private System.Windows.Forms.Timer _fileChangedDebounce;
         private bool                        _fileChangedPending = false;
+        // A4: one-shot countdown used when AutoReloadDelaySeconds > 0 (silent auto-reload).
+        private System.Windows.Forms.Timer _autoReloadCountdownTimer;
 
         // PERF-D01: AggregateStats is deterministic for a given file load.
         // Cache it here and invalidate in PopulateTreesFromData so every AI
@@ -520,16 +523,16 @@ namespace Cad3PLogBrowser
                 _recentFilesSeparator = null;
             }
 
-            if (_appSettings.RecentFiles.Count == 0) return;
+            if (_recentFilesService.RecentFiles.Count == 0) return;
 
             // Create separator and Recent Files submenu
             _recentFilesSeparator = new ToolStripSeparator();
             _recentFilesMenuItem = new ToolStripMenuItem(Resources.MENU_RECENT_FILES);
 
             // Add each recent file
-            for (int i = 0; i < _appSettings.RecentFiles.Count && i < 10; i++)
+            for (int i = 0; i < _recentFilesService.RecentFiles.Count && i < 10; i++)
             {
-                string filePath = _appSettings.RecentFiles[i];
+                string filePath = _recentFilesService.RecentFiles[i];
                 string fileName = Path.GetFileName(filePath);
                 string menuText = string.Format("{0}. {1}", i + 1, fileName);
 
@@ -549,8 +552,7 @@ namespace Cad3PLogBrowser
                 var clearItem = new ToolStripMenuItem(Resources.MENU_CLEAR_RECENT_FILES);
                 clearItem.Click += (s, e) =>
                 {
-                    _appSettings.RecentFiles.Clear();
-                    _appSettings.Save();
+                    _recentFilesService.ClearRecentFiles();
                     BuildMruMenu();
                 };
                 _recentFilesMenuItem.DropDownItems.Add(clearItem);
@@ -578,8 +580,7 @@ namespace Cad3PLogBrowser
                     MessageBox.Show(
                         string.Format(Resources.MSG_FILE_NOT_FOUND_REMOVED, filePath),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    _appSettings.RecentFiles.Remove(filePath);
-                    _appSettings.Save();
+                    _recentFilesService.RemoveRecentFile(filePath);
                     BuildMruMenu();
                 }
             }
@@ -703,12 +704,17 @@ namespace Cad3PLogBrowser
             _sessionService   = new Services.Core.SessionService(_appSettings);
             _logFileService.FileChangedOnDisk += OnFileChangedOnDisk;
 
+            _recentFilesService.MaxRecentFiles = _appSettings.MaxRecentFiles;
+            _recentFilesService.Load();
+
             BuildAggregateStatsPanel();
 
             RestoreSettings();
             InitTreeViews();
             InitAiPanel();
             InitExceptionsTab();
+            InitThreadViewTab();
+            MergeTimelineAndFlameGraphTabs();
             BuildMruMenu();
             AddThemeToggleButton();
             AddGoToLineControl();
@@ -733,6 +739,9 @@ namespace Cad3PLogBrowser
             // Apply status bar visibility from settings
             showStatusBarMenuItem.Checked = _appSettings.ShowStatusBar;
             mainStatusStrip.Visible = _appSettings.ShowStatusBar;
+
+            // A4: reflect the saved watch-for-changes preference in the View menu
+            watchFileChangesMenuItem.Checked = _appSettings.WatchFileChanges;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -826,11 +835,103 @@ namespace Cad3PLogBrowser
         public string ActiveFilePath { get { return _currentFilePath; } }
         public AppSettings AppSettings { get { return _appSettings; } }
 
-        public void OpenFilePath(string filePath)
+        public void OpenFilePath(string filePath) => OpenFilePaths(new[] { filePath });
+
+        /// <summary>
+        /// Feature A2: entry point for files passed on the command line. Validates every
+        /// path up front (reporting every problem found, not just the first) and, for two
+        /// or more valid files, offers the same Merge/Compare/Open-First choice as dropping
+        /// them onto the form (A1).
+        /// </summary>
+        public void OpenFilePaths(string[] filePaths)
         {
             _openedViaCommandLine = true;
-            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-                LoadFileAsync(filePath);
+            if (filePaths == null || filePaths.Length == 0) return;
+
+            _pendingCommandLineArgs = filePaths;
+            // Defer validation/dialogs until the message loop is pumping so error
+            // MessageBoxes render correctly instead of racing the form's first Show().
+            this.Load += MainForm_ProcessCommandLineArgs;
+        }
+
+        private string[] _pendingCommandLineArgs;
+
+        private void MainForm_ProcessCommandLineArgs(object sender, EventArgs e)
+        {
+            this.Load -= MainForm_ProcessCommandLineArgs;
+            var paths = _pendingCommandLineArgs;
+            _pendingCommandLineArgs = null;
+            if (paths == null || paths.Length == 0) return;
+
+            this.BeginInvoke((Action)(() => ProcessCommandLineArgsAsync(paths)));
+        }
+
+        private async void ProcessCommandLineArgsAsync(string[] paths)
+        {
+            var valid  = new List<string>();
+            var errors = new List<string>();
+
+            foreach (var path in paths)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(path))
+                    {
+                        errors.Add("(blank argument ignored)");
+                    }
+                    else if (Directory.Exists(path))
+                    {
+                        errors.Add(string.Format("'{0}' is a folder, not a log file.", path));
+                    }
+                    else if (!File.Exists(path))
+                    {
+                        errors.Add(string.Format("File not found: {0}", path));
+                    }
+                    else
+                    {
+                        // Confirm read access now so we can report a clear, specific error
+                        // up front instead of a generic one mid-load later.
+                        using (File.OpenRead(path)) { }
+                        valid.Add(path);
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    errors.Add(string.Format("Access denied: {0}", path));
+                }
+                catch (PathTooLongException)
+                {
+                    errors.Add(string.Format("Path is too long: {0}", path));
+                }
+                catch (NotSupportedException)
+                {
+                    errors.Add(string.Format("Not a valid file path: {0}", path));
+                }
+                catch (IOException ex)
+                {
+                    errors.Add(string.Format("Could not open '{0}': {1}", path, ex.Message));
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(string.Format("Unexpected error opening '{0}': {1}", path, ex.Message));
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                MessageBox.Show(
+                    string.Join(Environment.NewLine, errors),
+                    "Command-Line Open",
+                    MessageBoxButtons.OK,
+                    valid.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Error);
+            }
+
+            if (valid.Count == 0) return;
+
+            if (valid.Count == 1)
+                LoadFileAsync(valid[0]);
+            else
+                await HandleMultiFileDropAsync(valid.ToArray());
         }
 
         // ── E5: Aggregate Statistics panel ──────────────────────────────────────
@@ -1542,6 +1643,7 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, _allLines.Count);
             UpdateAggregateStatsPanel();
             UpdateExceptionsTab(entries);
+            UpdateThreadViewTab(entries);
 
             // Load call graph: per-file when available, otherwise single merged graph
             if (fileGraphs != null && fileGraphs.Count > 1)
@@ -2739,6 +2841,12 @@ namespace Cad3PLogBrowser
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
+            if (files.Length > 1)
+            {
+                _ = HandleMultiFileDropAsync(files);
+                return;
+            }
+
             string droppedFile = files[0];
 
             // If no file is currently open, just open the dropped file directly
@@ -2806,6 +2914,98 @@ namespace Cad3PLogBrowser
                 {
                     // Merge dropped file into the already-open file
                     MergeDroppedFileAsync(droppedFile);
+                }
+                // Cancel: do nothing
+            }
+        }
+
+        /// <summary>
+        /// Feature A1: two or more files dropped (or passed on the command line) at once.
+        /// Offers Merge (always), Compare (only when exactly two files), or opening just
+        /// the first file — regardless of whatever is currently open.
+        /// </summary>
+        private async Task HandleMultiFileDropAsync(string[] files)
+        {
+            bool canCompare = files.Length == 2;
+            string firstName = Path.GetFileName(files[0]);
+
+            using (var dlg = new Form())
+            {
+                dlg.Text            = "Multiple Files Dropped";
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition   = FormStartPosition.CenterParent;
+                dlg.MinimizeBox     = false;
+                dlg.MaximizeBox     = false;
+                dlg.ClientSize      = new Size(430, 190);
+
+                var lbl = new Label
+                {
+                    Text     = string.Format("{0} files were dropped. What would you like to do?", files.Length),
+                    AutoSize = false,
+                    Size     = new Size(400, 40),
+                    Location = new Point(15, 12)
+                };
+
+                var btnMerge = new Button
+                {
+                    Text         = string.Format("Merge All ({0} files)", files.Length),
+                    Size         = new Size(canCompare ? 195 : 400, 32),
+                    Location     = new Point(15, 60),
+                    DialogResult = DialogResult.Yes
+                };
+
+                Button btnCompare = null;
+                if (canCompare)
+                {
+                    btnCompare = new Button
+                    {
+                        Text         = "Compare (2 files)",
+                        Size         = new Size(195, 32),
+                        Location     = new Point(220, 60),
+                        DialogResult = DialogResult.Retry
+                    };
+                }
+
+                // Default action: open just the first dropped file, name shown explicitly.
+                var btnOpenFirst = new Button
+                {
+                    Text         = string.Format("Open First File Only ({0})", firstName),
+                    Size         = new Size(400, 32),
+                    Location     = new Point(15, 102),
+                    DialogResult = DialogResult.No,
+                    Font         = new Font(dlg.Font, FontStyle.Bold)
+                };
+
+                var btnCancel = new Button
+                {
+                    Text         = "Cancel",
+                    Size         = new Size(400, 30),
+                    Location     = new Point(15, 144),
+                    DialogResult = DialogResult.Cancel
+                };
+
+                dlg.Controls.Add(lbl);
+                dlg.Controls.Add(btnMerge);
+                if (btnCompare != null) dlg.Controls.Add(btnCompare);
+                dlg.Controls.Add(btnOpenFirst);
+                dlg.Controls.Add(btnCancel);
+                dlg.AcceptButton = btnOpenFirst;
+                dlg.CancelButton = btnCancel;
+
+                var result = dlg.ShowDialog(this);
+
+                if (result == DialogResult.Yes)
+                {
+                    await MergeFilesAsync(files);
+                }
+                else if (canCompare && result == DialogResult.Retry)
+                {
+                    using (var compareForm = new UI.CompareLogsForm(files[0], files[1]))
+                        compareForm.ShowDialog(this);
+                }
+                else if (result == DialogResult.No)
+                {
+                    LoadFileAsync(files[0]);
                 }
                 // Cancel: do nothing
             }
@@ -2991,9 +3191,10 @@ namespace Cad3PLogBrowser
                 FileStatus.Image       = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
                 FileStatus.ToolTipText = string.Empty;
                 _fileChangedPending    = false;
-                _logFileService.WatchFile(filePath);
+                if (_appSettings.WatchFileChanges)
+                    _logFileService.WatchFile(filePath);
                 UpdateStatusBar();
-                _appSettings.AddRecentFile(filePath);
+                _recentFilesService.AddRecentFile(filePath);
                 BuildMruMenu();
             }
             catch (UnauthorizedAccessException ex) { ShowLoadError(filePath, Resources.LOAD_ERROR_ACCESS_DENIED, ex.Message); }
@@ -3436,7 +3637,35 @@ namespace Cad3PLogBrowser
             // Show a distinct orange "changed" icon and a tooltip so hovering reveals the cause.
             FileStatus.Image       = IconGenerator.CreateStatusChangedIcon(IconGenerator.IconSize.Small);
             FileStatus.ToolTipText = Resources.TOOLTIP_FILE_CHANGED_ON_DISK;
-            StatusFileName.Text    = Resources.STATUS_FILE_CHANGED_ON_DISK;
+
+            // A4: if configured, reload automatically after N seconds instead of prompting.
+            if (_appSettings.AutoReloadDelaySeconds > 0)
+            {
+                StatusFileName.Text = string.Format(
+                    "File changed on disk — auto-reloading in {0}s (click to reload now)",
+                    _appSettings.AutoReloadDelaySeconds);
+
+                _autoReloadCountdownTimer?.Stop();
+                _autoReloadCountdownTimer?.Dispose();
+                _autoReloadCountdownTimer = new System.Windows.Forms.Timer
+                {
+                    Interval = Math.Max(1, _appSettings.AutoReloadDelaySeconds) * 1000
+                };
+                _autoReloadCountdownTimer.Tick += (s, ev) =>
+                {
+                    _autoReloadCountdownTimer.Stop();
+                    if (_fileChangedPending && !_isLoading && File.Exists(_currentFilePath))
+                    {
+                        _fileChangedPending    = false;
+                        FileStatus.ToolTipText = string.Empty;
+                        LoadFileAsync(_currentFilePath);
+                    }
+                };
+                _autoReloadCountdownTimer.Start();
+                return;
+            }
+
+            StatusFileName.Text = Resources.STATUS_FILE_CHANGED_ON_DISK;
 
             // Ask the user whether to reload; keep it non-intrusive with a status-bar
             // message first and an explicit Yes/No dialog so background work is not lost.
@@ -3655,77 +3884,89 @@ namespace Cad3PLogBrowser
                     return;
                 }
 
-                // Feature A6: Merge logs implementation
-                StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, dlg.FileNames.Length));
+                await MergeFilesAsync(dlg.FileNames);
+            }
+        }
 
-                try
-                {
-                    // Step 1 of 5: Read and sort files (background)
-                    UpdateStatusProgress(5, string.Format("Reading {0} files...", dlg.FileNames.Length));
-                    var merged = await _mergeLogService.MergeAsync(dlg.FileNames);
+        /// <summary>
+        /// Feature A6: merges an arbitrary set of log files together and populates every view.
+        /// Shared by File &gt; Merge Log Files..., multi-file drag-drop, and command-line multi-file open.
+        /// </summary>
+        private async Task MergeFilesAsync(IList<string> filePaths)
+        {
+            if (_isLoading) return;
+            _isLoading = true;
+            StartOperation(string.Format(Resources.OPERATION_MERGING_FILES, filePaths.Count));
 
-                    // Update current file path to show merged state
-                    _currentFilePath = "[Merged: " + string.Join(", ",
-                        System.Array.ConvertAll(dlg.FileNames,
-                            p => System.IO.Path.GetFileName(p))) + "]";
-                    // Track real paths so subsequent drop-merges can re-merge from disk
-                    _mergedSourcePaths = new List<string>(dlg.FileNames);
+            try
+            {
+                // Step 1 of 5: Read and sort files (background)
+                UpdateStatusProgress(5, string.Format("Reading {0} files...", filePaths.Count));
+                var merged = await _mergeLogService.MergeAsync(filePaths);
 
-                    _allLines = merged;
-                    _searchService.Reset();
-                    ClearHighlighting();
+                // Update current file path to show merged state
+                _currentFilePath = "[Merged: " + string.Join(", ",
+                    filePaths.Select(Path.GetFileName)) + "]";
+                // Track real paths so subsequent drop-merges can re-merge from disk
+                _mergedSourcePaths = new List<string>(filePaths);
 
-                    // Step 2 of 5: Populate log list
-                    UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
-                    await Task.Delay(10);
-                    PopulateVirtualListView(_allLines);
+                _allLines = merged;
+                _searchService.Reset();
+                ClearHighlighting();
 
-                    // Step 3 of 5: Parse log entries
-                    UpdateStatusProgress(40, Resources.STATUS_BUILDING_MERGED_TREE);
-                    await Task.Delay(10);
-                    var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
+                // Step 2 of 5: Populate log list
+                UpdateStatusProgress(25, Resources.STATUS_PROCESSING_MERGED_DATA);
+                await Task.Delay(10);
+                PopulateVirtualListView(_allLines);
 
-                    // Step 4 of 5: Build trees and graphs in parallel
-                    UpdateStatusProgress(60, "Building call trees and graphs...");
-                    var mApiTask  = Task.Run(() => _parserService.BuildApiList(mergeEntries));
-                    var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
-                    await Task.WhenAll(mApiTask, mCallTask);
-                    var mCallTree  = mCallTask.Result;
-                    // BUG-B01: mirror the BUG-A05 fix — keep _lastCallTree current so the
-                    // performance subtree filter and JSON/XML export always reflect the
-                    // most recently merged data, not the previous single-file load.
-                    _lastCallTree        = mCallTree;
-                    _callStackNodeByLine = BuildCallStackNodeIndex(mCallTree);
-                    var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
+                // Step 3 of 5: Parse log entries
+                UpdateStatusProgress(40, Resources.STATUS_BUILDING_MERGED_TREE);
+                await Task.Delay(10);
+                var mergeEntries  = await Task.Run(() => _parserService.Parse(_allLines));
 
-                    // Step 5 of 5: Build call graph and populate UI
-                    UpdateStatusProgress(80, "Building call graph...");
-                    var mFileGraphs = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
-                    var mGraph      = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
+                // Step 4 of 5: Build trees and graphs in parallel
+                UpdateStatusProgress(60, "Building call trees and graphs...");
+                var mApiTask  = Task.Run(() => _parserService.BuildApiList(mergeEntries));
+                var mCallTask = Task.Run(() => _parserService.BuildCallTreeGroupedByFile(mergeEntries));
+                await Task.WhenAll(mApiTask, mCallTask);
+                var mCallTree  = mCallTask.Result;
+                // BUG-B01: mirror the BUG-A05 fix — keep _lastCallTree current so the
+                // performance subtree filter and JSON/XML export always reflect the
+                // most recently merged data, not the previous single-file load.
+                _lastCallTree        = mCallTree;
+                _callStackNodeByLine = BuildCallStackNodeIndex(mCallTree);
+                var mPerfStats = await Task.Run(() => _parserService.BuildPerformanceStatsGroupedByFile(mergeEntries));
 
-                    UpdateStatusProgress(95, "Populating views...");
-                    PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
-                    UpdateStatusProgress(100, "Merge complete.");
+                // Step 5 of 5: Build call graph and populate UI
+                UpdateStatusProgress(80, "Building call graph...");
+                var mFileGraphs = await Task.Run(() => _callGraphService.BuildGroupedByFile(mergeEntries));
+                var mGraph      = mFileGraphs.Count == 1 ? mFileGraphs[0].Graph : _callGraphService.Build(mergeEntries);
 
-                    SetDocumentLoaded(true);
-                    FileStatus.Image = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
-                    UpdateStatusBar();
+                UpdateStatusProgress(95, "Populating views...");
+                PopulateTreesFromData(mergeEntries, mApiTask.Result, mCallTree, mPerfStats, mGraph, mFileGraphs);
+                UpdateStatusProgress(100, "Merge complete.");
 
-                    MessageBox.Show(
-                        string.Format(Resources.MSG_MERGE_SUCCESSFUL,
-                            dlg.FileNames.Length, merged.Count),
-                        Resources.DIALOG_TITLE_MERGE_COMPLETE, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        string.Format(Resources.MSG_MERGE_FAILED, ex.Message),
-                        Resources.DIALOG_TITLE_MERGE_LOGS, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    EndOperation();
-                }
+                SetDocumentLoaded(true);
+                FileStatus.Image      = IconGenerator.CreateStatusOkIcon(IconGenerator.IconSize.Small);
+                FileStatus.ToolTipText = string.Empty;
+                _fileChangedPending    = false;
+                UpdateStatusBar();
+
+                MessageBox.Show(
+                    string.Format(Resources.MSG_MERGE_SUCCESSFUL,
+                        filePaths.Count, merged.Count),
+                    Resources.DIALOG_TITLE_MERGE_COMPLETE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    string.Format(Resources.MSG_MERGE_FAILED, ex.Message),
+                    Resources.DIALOG_TITLE_MERGE_LOGS, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+                EndOperation();
             }
         }
 
@@ -4230,7 +4471,18 @@ namespace Cad3PLogBrowser
                 && !string.IsNullOrEmpty(_currentFilePath)
                 && System.IO.File.Exists(_currentFilePath))
             {
-                ShowFileChangedNotification();
+                if (_autoReloadCountdownTimer != null && _autoReloadCountdownTimer.Enabled)
+                {
+                    // A4: a silent auto-reload is already counting down — clicking jumps the queue.
+                    _autoReloadCountdownTimer.Stop();
+                    _fileChangedPending    = false;
+                    FileStatus.ToolTipText = string.Empty;
+                    LoadFileAsync(_currentFilePath);
+                }
+                else
+                {
+                    ShowFileChangedNotification();
+                }
             }
         }
 
@@ -4948,11 +5200,12 @@ namespace Cad3PLogBrowser
             {
                 if (settingsDialog.ShowDialog(this) == DialogResult.OK)
                 {
+                    _recentFilesService.MaxRecentFiles = _appSettings.MaxRecentFiles;
+                    watchFileChangesMenuItem.Checked    = _appSettings.WatchFileChanges;
                     SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
                     SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
                     SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
-                    SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
                     SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
                     // AI tab is a dynamic TabPage — toggle directly
@@ -6228,6 +6481,27 @@ namespace Cad3PLogBrowser
         {
             mainStatusStrip.Visible = showStatusBarMenuItem.Checked;
             _appSettings.ShowStatusBar = showStatusBarMenuItem.Checked;
+        }
+
+        // A4: master on/off toggle for the file-change watcher.
+        private void watchFileChangesMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            _appSettings.WatchFileChanges = watchFileChangesMenuItem.Checked;
+            _appSettings.Save();
+
+            if (watchFileChangesMenuItem.Checked)
+            {
+                if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+                    _logFileService.WatchFile(_currentFilePath);
+            }
+            else
+            {
+                _logFileService.StopWatching();
+                _autoReloadCountdownTimer?.Stop();
+                _fileChangedPending = false;
+                if (FileStatus.ToolTipText == Resources.TOOLTIP_FILE_CHANGED_ON_DISK)
+                    FileStatus.ToolTipText = string.Empty;
+            }
         }
 
         // ── Feature B7: Find All Results Window ──────────────────────────────
@@ -7874,11 +8148,12 @@ namespace Cad3PLogBrowser
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     // Apply updated settings (same as settingsMenuItem_Click)
+                    _recentFilesService.MaxRecentFiles = _appSettings.MaxRecentFiles;
+                    watchFileChangesMenuItem.Checked    = _appSettings.WatchFileChanges;
                     SetTabVisible(TabId.Log,         _appSettings.ShowLogTab);
                     SetTabVisible(TabId.Performance, _appSettings.ShowPerformanceTab);
                     SetTabVisible(TabId.LogDetails,  _appSettings.ShowLogDetailsTab);
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
-                    SetTabVisible(TabId.FlameGraph,  _appSettings.ShowFlameGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
                     SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
 

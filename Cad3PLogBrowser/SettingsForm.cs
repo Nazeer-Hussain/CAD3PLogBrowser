@@ -48,6 +48,8 @@ namespace Cad3PLogBrowser
         private NumericUpDown  nudMaxRecentFiles;
         private TextBox        txtSnippetSuffix;
         private CheckBox       chkRestoreSession;
+        private CheckBox       chkWatchFileChanges;
+        private NumericUpDown  nudAutoReloadDelay;
 
         // -- Performance -------------------------------------------------------
         private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
@@ -617,7 +619,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabFilesAndBehavior,
                 Location = new Point(12, 10),
-                Size = new Size(560, 160),
+                Size = new Size(560, 225),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -640,12 +642,24 @@ namespace Cad3PLogBrowser
             };
             grpFiles.Controls.Add(chkRestoreSession);
 
+            // A4: Auto-Reload / Tail Mode
+            chkWatchFileChanges = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(12, 154),
+                Text     = SettingsDialogStrings.CheckboxWatchFileChanges,
+            };
+            grpFiles.Controls.Add(chkWatchFileChanges);
+
+            nudAutoReloadDelay = AddNud(grpFiles, SettingsDialogStrings.LabelAutoReloadDelay, 184, 0, 3600, 0);
+            Lbl(grpFiles, SettingsDialogStrings.HintAutoReloadDelay, 290, 188);
+
             tp.Controls.Add(grpFiles);
 
             var grpPerformance = new GroupBox
             {
                 Text = SettingsDialogStrings.TabPerformance,
-                Location = new Point(12, 150),
+                Location = new Point(12, 245),
                 Size = new Size(560, 220),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1071,6 +1085,9 @@ namespace Cad3PLogBrowser
             nudMaxRecentFiles.Value    = Math.Max(5, Math.Min(20, _settings.MaxRecentFiles));
             txtSnippetSuffix.Text      = _settings.SaveSnippetSuffix ?? "_snippet";
             chkRestoreSession.Checked  = _settings.RestoreSessionOnStartup;
+            chkWatchFileChanges.Checked = _settings.WatchFileChanges;
+            nudAutoReloadDelay.Value    = Math.Max(nudAutoReloadDelay.Minimum,
+                Math.Min(nudAutoReloadDelay.Maximum, _settings.AutoReloadDelaySeconds));
 
             // Performance
             nudFastCallMs.Value = Math.Max(nudFastCallMs.Minimum,
@@ -1190,6 +1207,8 @@ namespace Cad3PLogBrowser
             _settings.MaxRecentFiles    = (int)nudMaxRecentFiles.Value;
             _settings.SaveSnippetSuffix = txtSnippetSuffix.Text.Trim();
             _settings.RestoreSessionOnStartup = chkRestoreSession.Checked;
+            _settings.WatchFileChanges         = chkWatchFileChanges.Checked;
+            _settings.AutoReloadDelaySeconds   = (int)nudAutoReloadDelay.Value;
 
             // Performance
             _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
@@ -1269,6 +1288,8 @@ namespace Cad3PLogBrowser
             _settings.MaxRecentFiles      = def.MaxRecentFiles;
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
             _settings.RestoreSessionOnStartup = def.RestoreSessionOnStartup;
+            _settings.WatchFileChanges         = def.WatchFileChanges;
+            _settings.AutoReloadDelaySeconds   = def.AutoReloadDelaySeconds;
             _settings.FastCallThresholdMs       = def.FastCallThresholdMs;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;

@@ -99,6 +99,9 @@ namespace Cad3PLogBrowser.UI
         public const string LabelSkipListViewIfFileGreater = "Skip list view if file >";
         public const string CheckboxAutoFilterPerformance = "Auto-filter Performance tab when a Call Tree node is selected";
         public const string CheckboxRestoreSession = "Restore last session on startup";
+        public const string CheckboxWatchFileChanges = "Watch for file changes (auto-reload)";
+        public const string LabelAutoReloadDelay = "Auto-reload after (seconds):";
+        public const string HintAutoReloadDelay = "0 = ask before reloading";
 
         public const string HintFastCallMs = "ms   (green � below this is fast)";
         public const string HintSlowCallMs = "ms   (red � above this is slow, amber is in between)";

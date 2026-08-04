@@ -16,7 +16,8 @@ namespace Cad3PLogBrowser.Services
     public class AppSettings
     {
         // ── File handling ─────────────────────────────────────────────────────
-        public List<string> RecentFiles      { get; set; } = new List<string>();
+        // A3: the recent-files list itself lives in recentfiles.json (see
+        // Services.Core.RecentFilesService), not here — only the preference below does.
         public int          MaxRecentFiles   { get; set; } = 10;
         public string       InitialDirectory { get; set; } = "";
 
@@ -47,10 +48,19 @@ namespace Cad3PLogBrowser.Services
         public List<string> SearchHistory   { get; set; } = new List<string>();
 
         // ── Session restore (Feature A8) ──────────────────────────────────────
-        /// <summary>When true, the last-opened file is reopened automatically on startup.</summary>
-        public bool         RestoreSessionOnStartup { get; set; } = true;
+        /// <summary>When true, the last-opened file is reopened automatically on startup. Off by default.</summary>
+        public bool         RestoreSessionOnStartup { get; set; } = false;
         /// <summary>Files that were open when the app was last closed.</summary>
         public List<string> LastSessionFiles        { get; set; } = new List<string>();
+
+        // ── Auto-Reload / Tail Mode (Feature A4) ──────────────────────────────
+        /// <summary>Master toggle for watching the open file for changes on disk. Mirrored by the View menu.</summary>
+        public bool WatchFileChanges     { get; set; } = true;
+        /// <summary>
+        /// Seconds to wait after a change is detected before reloading automatically, with no prompt.
+        /// 0 = manual: ask the user (Yes/No) instead of reloading automatically.
+        /// </summary>
+        public int  AutoReloadDelaySeconds { get; set; } = 0;
 
         // ── Jump to Source Code (Feature K4) ──────────────────────────────────
         /// <summary>Path to a custom editor executable. Empty = auto-detect (VS Code, then Visual Studio, then Notepad).</summary>
@@ -172,12 +182,5 @@ namespace Cad3PLogBrowser.Services
             catch { /* Non-fatal */ }
         }
 
-        public void AddRecentFile(string filePath)
-        {
-            RecentFiles.Remove(filePath);
-            RecentFiles.Insert(0, filePath);
-            while (RecentFiles.Count > MaxRecentFiles)
-                RecentFiles.RemoveAt(RecentFiles.Count - 1);
-        }
     }
 }
