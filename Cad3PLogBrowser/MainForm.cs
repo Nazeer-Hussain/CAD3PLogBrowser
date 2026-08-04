@@ -1567,7 +1567,7 @@ namespace Cad3PLogBrowser
             // F5: Heatmap — coloured by total time, sized by call count.
             if (heatmapPanel != null)
             {
-                heatmapPanel.LoadData(perfStats);
+                heatmapPanel.LoadData(callTree);
                 heatmapPanel.ApiSelected -= HeatmapPanel_ApiSelected;
                 heatmapPanel.ApiSelected += HeatmapPanel_ApiSelected;
             }
