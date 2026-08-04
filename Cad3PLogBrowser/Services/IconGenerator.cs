@@ -291,6 +291,138 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateWarningIcon(IconSize sz) => Render(IconWarning, sz, AccentAmber);
 
         // ??????????????????????????????????????????????????????????????????????
+        // COMPARE LOGS DIALOG  — flat vector shapes (no icon-font dependency, so
+        // these can never fall back to a missing-glyph "?" box on an odd system).
+        // ??????????????????????????????????????????????????????????????????????
+
+        /// <summary>Left-pointing triangle — "Previous Difference".</summary>
+        public static Bitmap CreateDiffPrevIcon(IconSize sz) => RenderDiffArrow(sz, pointLeft: true, withBar: false);
+
+        /// <summary>Right-pointing triangle — "Next Difference".</summary>
+        public static Bitmap CreateDiffNextIcon(IconSize sz) => RenderDiffArrow(sz, pointLeft: false, withBar: false);
+
+        /// <summary>Left-pointing triangle with a leading bar — "First Difference".</summary>
+        public static Bitmap CreateDiffFirstIcon(IconSize sz) => RenderDiffArrow(sz, pointLeft: true, withBar: true);
+
+        /// <summary>Right-pointing triangle with a trailing bar — "Last Difference".</summary>
+        public static Bitmap CreateDiffLastIcon(IconSize sz) => RenderDiffArrow(sz, pointLeft: false, withBar: true);
+
+        private static Bitmap RenderDiffArrow(IconSize sz, bool pointLeft, bool withBar)
+        {
+            int s = (int)sz;
+            var bmp = new Bitmap(s, s);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+
+                float top = s * 0.22f, bottom = s * 0.78f;
+                float triW = s * 0.30f;
+                float barW = s * 0.11f;
+                float barGap = withBar ? s * 0.14f : 0f;
+
+                using (var brush = new SolidBrush(AccentBlue))
+                {
+                    if (withBar)
+                    {
+                        float barX = pointLeft ? s * 0.20f : s - s * 0.20f - barW;
+                        g.FillRectangle(brush, barX, top, barW, bottom - top);
+                    }
+
+                    float triLeft = pointLeft
+                        ? s * 0.20f + barGap
+                        : s - s * 0.20f - triW - barGap;
+
+                    PointF p1, p2, p3;
+                    if (pointLeft)
+                    {
+                        p1 = new PointF(triLeft + triW, top);
+                        p2 = new PointF(triLeft + triW, bottom);
+                        p3 = new PointF(triLeft, (top + bottom) / 2f);
+                    }
+                    else
+                    {
+                        p1 = new PointF(triLeft, top);
+                        p2 = new PointF(triLeft, bottom);
+                        p3 = new PointF(triLeft + triW, (top + bottom) / 2f);
+                    }
+                    g.FillPolygon(brush, new[] { p1, p2, p3 });
+                }
+            }
+            return bmp;
+        }
+
+        /// <summary>Two overlapping documents — "Compare Logs".</summary>
+        public static Bitmap CreateCompareIcon(IconSize sz)
+        {
+            int s = (int)sz;
+            var bmp = new Bitmap(s, s);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+
+                float w = s * 0.52f, h = s * 0.62f;
+                float backX = s * 0.10f, backY = s * 0.12f;
+                float frontX = s * 0.38f, frontY = s * 0.26f;
+
+                using (var backBrush = new SolidBrush(Color.FromArgb(90, GlyphColor)))
+                using (var backPen = new Pen(GlyphColor, 1.3f))
+                {
+                    g.FillRectangle(backBrush, backX, backY, w, h);
+                    g.DrawRectangle(backPen, backX, backY, w, h);
+                }
+
+                using (var frontBrush = new SolidBrush(AccentBlue))
+                using (var frontPen = new Pen(Color.White, 1.3f))
+                {
+                    g.FillRectangle(frontBrush, frontX, frontY, w, h);
+                    g.DrawRectangle(frontPen, frontX, frontY, w, h);
+                }
+            }
+            return bmp;
+        }
+
+        /// <summary>Two opposing horizontal arrows — "Swap Left/Right".</summary>
+        public static Bitmap CreateSwapIcon(IconSize sz)
+        {
+            int s = (int)sz;
+            var bmp = new Bitmap(s, s);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+
+                float topY = s * 0.36f, botY = s * 0.64f;
+                float left = s * 0.18f, right = s * 0.82f;
+                float penW = Math.Max(1.4f, s * 0.09f);
+
+                using (var pen = new Pen(GlyphColor, penW) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                {
+                    g.DrawLine(pen, left, topY, right, topY);
+                    g.DrawLine(pen, left, botY, right, botY);
+                }
+                using (var brush = new SolidBrush(GlyphColor))
+                {
+                    float ah = s * 0.13f;
+                    g.FillPolygon(brush, new[]
+                    {
+                        new PointF(right, topY - ah * 0.7f),
+                        new PointF(right, topY + ah * 0.7f),
+                        new PointF(right + ah, topY)
+                    });
+                    g.FillPolygon(brush, new[]
+                    {
+                        new PointF(left, botY - ah * 0.7f),
+                        new PointF(left, botY + ah * 0.7f),
+                        new PointF(left - ah, botY)
+                    });
+                }
+            }
+            return bmp;
+        }
+
+        // ??????????????????????????????????????????????????????????????????????
         // STATUS BAR INDICATOR ICONS  — coloured circle + white glyph inside
         // ??????????????????????????????????????????????????????????????????????
 
