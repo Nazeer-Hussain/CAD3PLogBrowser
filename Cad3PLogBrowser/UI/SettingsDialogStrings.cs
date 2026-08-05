@@ -102,7 +102,7 @@ namespace Cad3PLogBrowser.UI
         public const string CheckboxRestoreSession = "Restore last session on startup";
         public const string CheckboxWatchFileChanges = "Watch for file changes (auto-reload)";
         public const string LabelAutoReloadDelay = "Auto-reload after (seconds):";
-        public const string HintAutoReloadDelay = "0 = ask before reloading";
+        public const string HintAutoReloadDelay = "0 = click status bar to reload";
 
         public const string HintFastCallMs = "ms  (below = green)";
         public const string HintSlowCallMs = "ms  (above = red, else amber)";

@@ -215,7 +215,7 @@ namespace Cad3PLogBrowser
             {
                 Text = "Appearance",
                 Location = new Point(12, 10),
-                Size = new Size(560, 145),
+                Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -327,7 +327,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.GroupVisibleTabs,
                 Location = new Point(12, 165),
-                Size = new Size(560, 115),
+                Size = new Size(530, 115),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -400,7 +400,7 @@ namespace Cad3PLogBrowser
             {
                 Text = "Log Font",
                 Location = new Point(12, 360),
-                Size = new Size(560, 145),
+                Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -622,7 +622,7 @@ namespace Cad3PLogBrowser
                 // it here so the box title doesn't silently drop the ampersand.
                 Text = SettingsDialogStrings.TabFilesAndBehavior.Replace("&", "&&"),
                 Location = new Point(12, 10),
-                Size = new Size(560, 225),
+                Size = new Size(530, 225),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -663,7 +663,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabPerformance,
                 Location = new Point(12, 245),
-                Size = new Size(560, 256),
+                Size = new Size(530, 256),
                 Font = new Font("Segoe UI", 9f)
             };
 
