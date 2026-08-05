@@ -158,6 +158,14 @@ namespace Cad3PLogBrowser
             else SetTabVisible(tab, visible);
         }
 
+        /// <summary>G4: makes the given tab visible (if it was hidden) and selects it,
+        /// for the "jump straight to this view" keyboard shortcuts.</summary>
+        public void SwitchToTab(TabId id)
+        {
+            if (!IsTabVisible(id)) SetTabVisible(id, true);
+            mainTabControl.SelectedTab = GetTab(id);
+        }
+
         private TabPage GetTab(TabId id)
         {
             switch (id)
@@ -4915,6 +4923,17 @@ namespace Cad3PLogBrowser
                     ThemeToggleButton_Click(this, EventArgs.Empty);
                     return true;
 
+                // G4: jump straight to a tab. Spec called for Ctrl+D / Ctrl+Shift+C,
+                // but those are already Compare Logs and Copy with Headers respectively
+                // — reassigning either would break existing muscle memory, so these use
+                // Ctrl+Alt+ instead and auto-show the tab first if it's currently hidden.
+                case Keys.Control | Keys.Alt | Keys.D:           // Jump to Performance tab
+                    SwitchToTab(TabId.Performance);
+                    return true;
+                case Keys.Control | Keys.Alt | Keys.C:           // Jump to Call Graph tab
+                    SwitchToTab(TabId.CallGraph);
+                    return true;
+
                 case Keys.F3:                                    // Find Next (BUG-09)
                     if (_findForm != null && !_findForm.IsDisposed)
                         _findForm.TriggerFindNext();
@@ -6081,53 +6100,84 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
-        /// Generates keyboard shortcuts content.
+        /// Generates keyboard shortcuts content by walking the real menu tree, so this
+        /// can never drift out of sync with the actual ShortcutKeys the way a hand-typed
+        /// list did (G4) — it had accumulated a "Ctrl+R" entry for an action that no
+        /// longer exists, and was missing shortcuts added after the list was last updated.
         /// Shared between Quick Help and Keyboard Shortcuts dialogs to avoid duplication.
         /// </summary>
         private string GetKeyboardShortcutsContent()
         {
-            return "FILE OPERATIONS\r\n" +
-                   "Ctrl+O              Open log file\r\n" +
-                   "Ctrl+S              Save As (selection or all visible lines)\r\n" +
-                   "Ctrl+Shift+E        Export Filtered Logs\r\n" +
-                   "F5                  Refresh (reload, keep scroll position)\r\n" +
-                   "Ctrl+R              Reload File from Disk\r\n" +
-                   "Alt+F4              Exit\r\n\r\n" +
-                   "EDITING & SEARCH\r\n" +
-                   "Ctrl+C              Copy selected lines\r\n" +
-                   "Ctrl+F              Find / Search\r\n" +
-                   "F3                  Find Next\r\n" +
-                   "Ctrl+I              Filter log entries\r\n\r\n" +
-                   "TREE NAVIGATION\r\n" +
-                   "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
-                   "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
-                   "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n" +
-                   "Ctrl+J              Jump to line number\r\n\r\n" +
-                   "ERROR & WARNING NAVIGATION\r\n" +
-                   "F8                  Next Error\r\n" +
-                   "Shift+F8            Previous Error\r\n" +
-                   "Ctrl+F8             Next Warning\r\n" +
-                   "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
-                   "BOOKMARKS\r\n" +
-                   "Ctrl+B              Toggle bookmark on current line\r\n" +
-                   "F2                  Next bookmark\r\n" +
-                   "Shift+F2            Previous bookmark\r\n" +
-                   "Ctrl+Shift+B        Show all bookmarks\r\n" +
-                   "Ctrl+Shift+Del      Clear all bookmarks\r\n\r\n" +
-                   "VIEW OPTIONS\r\n" +
-                   "Ctrl+T              Toggle theme (Dark/Light)\r\n" +
-                   "Ctrl+1              Show Call Tree\r\n" +
-                   "Ctrl+2              Show API Tree\r\n\r\n" +
-                   "HELP\r\n" +
-                   "F1                  View Help / User Guide\r\n" +
-                   "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
-                   "CALL GRAPH TAB\r\n" +
-                   "Scroll Wheel        Zoom in/out\r\n" +
-                   "Click & Drag        Pan view\r\n" +
-                   "Hover Node          Highlight edges\r\n" +
-                   "Edge Thickness      = Call frequency\r\n" +
-                   "Reset View Button   Restore default zoom/pan\r\n\r\n";
+            var sb = new System.Text.StringBuilder();
+
+            foreach (ToolStripMenuItem topMenu in mainMenuStrip.Items.OfType<ToolStripMenuItem>())
+            {
+                var lines = new List<string>();
+                CollectShortcuts(topMenu.DropDownItems, lines);
+                if (lines.Count == 0) continue;
+
+                sb.Append(StripMnemonic(topMenu.Text).ToUpperInvariant()).Append("\r\n");
+                foreach (var line in lines) sb.Append(line).Append("\r\n");
+                sb.Append("\r\n");
+            }
+
+            // These act globally (ProcessCmdKey) rather than through a menu item, so the
+            // walk above can't see them — kept to a short, hand-verified list.
+            sb.Append("OTHER SHORTCUTS\r\n");
+            sb.Append(FormatShortcutLine("F8", "Next Error")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Shift+F8", "Previous Error")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+F8", "Next Warning")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Shift+F8", "Previous Warning")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+T", "Toggle theme (Dark/Light)")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Alt+D", "Jump to Performance tab")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Alt+C", "Jump to Call Graph tab")).Append("\r\n\r\n");
+
+            sb.Append("CALL GRAPH TAB\r\n");
+            sb.Append(FormatShortcutLine("Scroll Wheel", "Zoom in/out")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Click & Drag", "Pan view")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Hover Node", "Highlight edges")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Edge Thickness", "= Call frequency")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Reset View Button", "Restore default zoom/pan")).Append("\r\n\r\n");
+
+            return sb.ToString();
         }
+
+        /// <summary>Recursively collects "Shortcut  Label" lines for every menu item
+        /// (at any submenu depth) that has a ShortcutKeys value assigned.</summary>
+        private void CollectShortcuts(ToolStripItemCollection items, List<string> lines)
+        {
+            foreach (ToolStripItem item in items)
+            {
+                var menuItem = item as ToolStripMenuItem;
+                if (menuItem == null) continue; // skips separators
+
+                if (menuItem.ShortcutKeys != Keys.None)
+                    lines.Add(FormatShortcutLine(FormatShortcutKeys(menuItem.ShortcutKeys), StripMnemonic(menuItem.Text)));
+
+                if (menuItem.HasDropDownItems)
+                    CollectShortcuts(menuItem.DropDownItems, lines);
+            }
+        }
+
+        private static string FormatShortcutLine(string shortcut, string label) =>
+            string.Format("{0,-20}{1}", shortcut, label);
+
+        /// <summary>Converts a ShortcutKeys value to display text ("Ctrl+Shift+F8").
+        /// ToolStripMenuItem.ShortcutKeyDisplayString is null unless explicitly
+        /// overridden — it does NOT return the auto-generated text WinForms itself
+        /// paints on the menu, so it can't be used here.</summary>
+        private static string FormatShortcutKeys(Keys keys)
+        {
+            var parts = new List<string>();
+            if ((keys & Keys.Control) == Keys.Control) parts.Add("Ctrl");
+            if ((keys & Keys.Alt)     == Keys.Alt)     parts.Add("Alt");
+            if ((keys & Keys.Shift)   == Keys.Shift)   parts.Add("Shift");
+            parts.Add(new KeysConverter().ConvertToString(keys & Keys.KeyCode));
+            return string.Join("+", parts);
+        }
+
+        private static string StripMnemonic(string text) =>
+            (text ?? string.Empty).Replace("&", string.Empty).TrimEnd('.', ' ');
 
         // ── Form lifecycle ────────────────────────────────────────────────────
         // Feature B10: Keyboard shortcuts for error/warning navigation
