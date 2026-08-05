@@ -1379,6 +1379,36 @@ namespace Cad3PLogBrowser
                     _errorLines.Count, _warningLines.Count);
             }
 
+            // G5: persistent amber warning once the loaded log crosses the configurable
+            // size guard (Settings > Files & Behavior > "Skip list view if file >").
+            bool isLargeLog = false;
+            try
+            {
+                long totalBytes = 0;
+                if (_currentFilePath.StartsWith("[Merged:") && _mergedSourcePaths.Count > 0)
+                {
+                    foreach (var p in _mergedSourcePaths)
+                        if (File.Exists(p)) totalBytes += new FileInfo(p).Length;
+                }
+                else if (File.Exists(_currentFilePath))
+                {
+                    totalBytes = new FileInfo(_currentFilePath).Length;
+                }
+                isLargeLog = totalBytes > _appSettings.MaxFileSizeMbForListView * 1024L * 1024L;
+            }
+            catch { /* best-effort — never block the status bar on a file-size check */ }
+
+            if (isLargeLog)
+            {
+                fileInfo += string.Format("   ⚠ Large log ({0}+ MB) — performance updates may be slow",
+                    _appSettings.MaxFileSizeMbForListView);
+                StatusFileName.ForeColor = Color.DarkOrange;
+            }
+            else
+            {
+                StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            }
+
             StatusFileName.Text = fileInfo;
 
             int total   = _allLines.Count;
@@ -1405,8 +1435,21 @@ namespace Cad3PLogBrowser
             if (logListView.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
             int idx = logListView.SelectedIndices[0];
 
-            // Feature G5: Show selected line info with more detail
-            string lineNum = _virtualLines[idx].LineNumber.ToString();
+            // G5: when the selected line is a call-tree ENTER we know the method name
+            // and duration for (via the same index the tree itself uses), show that —
+            // "MethodName  142ms  Line 304" — instead of a raw text preview.
+            int lineNumber = _virtualLines[idx].LineNumber;
+            CallStackNode csNode;
+            if (_callStackNodeByLine != null && _callStackNodeByLine.TryGetValue(lineNumber, out csNode))
+            {
+                string durationText = csNode.DurationMs > 0 ? string.Format("{0}ms", csNode.DurationMs)
+                                    : csNode.ExitLineNumber > 0 ? "<1ms"
+                                    : "?ms";
+                StatusSelection.Text = string.Format("{0}  {1}  Line {2}", csNode.Label, durationText, lineNumber);
+                return;
+            }
+
+            string lineNum = lineNumber.ToString();
             string preview = _virtualLines[idx].Text;
             if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
 
