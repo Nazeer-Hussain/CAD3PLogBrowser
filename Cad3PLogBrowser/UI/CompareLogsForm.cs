@@ -56,6 +56,11 @@ namespace Cad3PLogBrowser.UI
             _scrollSyncTimer.Tick += ScrollSyncTimer_Tick;
             _scrollSyncTimer.Start();
             this.FormClosed += (s, e) => _scrollSyncTimer.Stop();
+
+            // G2: this window never applied the app's Light/Dark theme at all —
+            // Load (not the constructor) so the handle/controls exist first, same
+            // guard used by every other themed dialog in the app.
+            this.Load += (s, e) => ThemeManager.ApplyTheme(this);
         }
 
         /// <summary>

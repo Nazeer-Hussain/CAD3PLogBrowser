@@ -81,6 +81,7 @@
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.watchFileChangesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.darkModeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -572,6 +573,7 @@
             this.viewSeparator1,
             this.selectFontMenuItem,
             this.watchFileChangesMenuItem,
+            this.darkModeMenuItem,
             this.showToolbarMenuItem,
             this.showStatusBarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
@@ -683,6 +685,14 @@
             this.watchFileChangesMenuItem.Size = new System.Drawing.Size(178, 22);
             this.watchFileChangesMenuItem.Text = "&Watch for File Changes";
             this.watchFileChangesMenuItem.CheckedChanged += new System.EventHandler(this.watchFileChangesMenuItem_CheckedChanged);
+            //
+            // darkModeMenuItem
+            //
+            this.darkModeMenuItem.CheckOnClick = true;
+            this.darkModeMenuItem.Name = "darkModeMenuItem";
+            this.darkModeMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.darkModeMenuItem.Text = "&Dark Mode";
+            this.darkModeMenuItem.Click += new System.EventHandler(this.darkModeMenuItem_Click);
             //
             // showToolbarMenuItem
             // 
@@ -1762,6 +1772,7 @@
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
         private System.Windows.Forms.ToolStripMenuItem watchFileChangesMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem darkModeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;

@@ -316,6 +316,22 @@ namespace Cad3PLogBrowser
             _appSettings.Theme = _appSettings.Theme == "Dark" ? "Light" : "Dark";
             ApplyThemeWithOverlay();
             UpdateThemeButtonIcon();
+
+            // G2: the Settings-dialog theme picker saves immediately; this toggle
+            // (and its Ctrl+T shortcut) previously only persisted on a clean exit,
+            // so a crash/kill between toggling and closing silently lost the choice.
+            _appSettings.Save();
+        }
+
+        /// <summary>G2: View menu Dark Mode toggle — the spec's required entry point,
+        /// previously only reachable via the toolbar button, Ctrl+T, or Settings.
+        /// CheckOnClick already flipped darkModeMenuItem.Checked before this runs.</summary>
+        private void darkModeMenuItem_Click(object sender, EventArgs e)
+        {
+            _appSettings.Theme = darkModeMenuItem.Checked ? "Dark" : "Light";
+            ApplyThemeWithOverlay();
+            UpdateThemeButtonIcon();
+            _appSettings.Save();
         }
 
         private Bitmap _sunIcon;
@@ -1041,6 +1057,13 @@ namespace Cad3PLogBrowser
                 var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
                 ThemeManager.SetTheme(theme);
 
+                // G2: keep the View menu toggle in sync regardless of which of the
+                // three other entry points (toolbar button, Ctrl+T, Settings dialog)
+                // actually changed the theme. Assigning .Checked here does not itself
+                // raise darkModeMenuItem's Click event, so this can't re-enter.
+                if (darkModeMenuItem != null)
+                    darkModeMenuItem.Checked = theme == ThemeManager.Theme.Dark;
+
                 // Apply to main form (WM_SETREDRAW suppressed inside ApplyTheme)
                 ThemeManager.ApplyTheme(this);
 
@@ -1053,6 +1076,12 @@ namespace Cad3PLogBrowser
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
+
+                // G2: _findForm is a cached singleton (Show/Hide, never re-created), so
+                // its own one-time Load-event theming goes stale the moment the user
+                // toggles the theme while it exists.
+                if (_findForm != null && !_findForm.IsDisposed)
+                    ThemeManager.ApplyTheme(_findForm);
 
                 // Apply theme to the API Details panel
                 if (_apiDetailsPanel != null)
