@@ -35,7 +35,15 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
 
         public Dictionary<string, object> Metadata => _metadata;
 
-        public async Task<IAIResponse> SendMessageAsync(string userMessage, 
+        /// <summary>
+        /// L2/L6: history budget passed to <see cref="TrimToTokenLimit"/> before every
+        /// send. Reserves half the model's context window for prior turns, leaving room
+        /// for the system prompt (which may include injected log context), the new
+        /// message, and the response.
+        /// </summary>
+        private int MaxHistoryTokens => _provider.MaxContextTokens / 2;
+
+        public async Task<IAIResponse> SendMessageAsync(string userMessage,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(userMessage))
@@ -49,6 +57,10 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
                 Timestamp = DateTime.UtcNow
             };
             _messages.Add(userMsg);
+
+            // L2/L6: cap history growth instead of sending the entire unbounded
+            // conversation every turn.
+            TrimToTokenLimit(MaxHistoryTokens);
 
             // Build request with conversation history
             var request = new AIRequest
@@ -96,6 +108,10 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
                     Timestamp = DateTime.UtcNow
                 };
                 _messages.Add(userMsg);
+
+                // L2/L6: cap history growth instead of sending the entire unbounded
+                // conversation every turn.
+                TrimToTokenLimit(MaxHistoryTokens);
 
                 // Build request with conversation history
                 var request = new AIRequest
