@@ -881,6 +881,12 @@
             this.ApiTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ApiTree_AfterSelect);
             this.ApiTree.Click += new System.EventHandler(this.ApiTree_Click);
             this.ApiTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.ApiTree_MouseClick);
+            // A1: docked child controls sit on top of the form and don't forward OS drag
+            // notifications to it — each one needs its own AllowDrop + handlers to accept
+            // files dropped directly over the tree/log panel, not just the form background.
+            this.ApiTree.AllowDrop = true;
+            this.ApiTree.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
+            this.ApiTree.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             // ApiTree.MouseUp handler added in code for sorting context menu
             // 
             // CallTree
@@ -897,6 +903,10 @@
             this.CallTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.CallTree_AfterSelect);
             this.CallTree.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseClick);
             this.CallTree.MouseUp += new System.Windows.Forms.MouseEventHandler(this.CallTree_MouseUp);
+            // A1: see ApiTree — accept file drops directly over the Call Tree too.
+            this.CallTree.AllowDrop = true;
+            this.CallTree.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
+            this.CallTree.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             // 
             // mainTabControl
             // 
@@ -945,6 +955,10 @@
             this.logListView.View = System.Windows.Forms.View.Details;
             this.logListView.SelectedIndexChanged += new System.EventHandler(this.listView1_SelectedIndexChanged);
             this.logListView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseUp_1);
+            // A1: see ApiTree — accept file drops directly over the log panel too.
+            this.logListView.AllowDrop = true;
+            this.logListView.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
+            this.logListView.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             this.logListView.Resize += new System.EventHandler(this.logListView_Resize);
             // 
             // colLineNumber
