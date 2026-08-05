@@ -4054,32 +4054,12 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            StatusFileName.Text = Resources.STATUS_FILE_CHANGED_ON_DISK;
-
-            // Ask the user whether to reload; keep it non-intrusive with a status-bar
-            // message first and an explicit Yes/No dialog so background work is not lost.
-            var result = MessageBox.Show(
-                string.Format(Resources.PROMPT_FILE_CHANGED_RELOAD,
-                    System.IO.Path.GetFileName(_currentFilePath)),
-                Resources.TITLE,
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button1);
-
-            if (result == DialogResult.Yes)
-            {
-                _fileChangedPending = false;
-                FileStatus.ToolTipText = string.Empty;
-                LoadFileAsync(_currentFilePath);
-            }
-            else
-            {
-                // User declined: keep the warning icon so they can see the file is stale.
-                // Clicking the FileStatus icon will re-offer the reload.
-                StatusFileName.Text = string.Format(
-                    Resources.STATUS_FILE_CHANGED_DECLINED,
-                    System.IO.Path.GetFileName(_currentFilePath));
-            }
+            // A4: no blocking MessageBox — a non-blocking status-bar notice with
+            // click-to-reload, same as the auto-reload-delay path above just without
+            // a countdown. The warning icon stays until the user clicks it or reloads.
+            StatusFileName.Text = string.Format(
+                "File changed on disk — click to reload ({0})",
+                System.IO.Path.GetFileName(_currentFilePath));
         }
 
         // ── UI state ──────────────────────────────────────────────────────────
@@ -4854,24 +4834,18 @@ namespace Cad3PLogBrowser
 
         private void FileStatus_Click(object sender, EventArgs e)
         {
-            // If the file changed on disk and the user has not yet reloaded,
-            // clicking the warning icon re-offers the reload prompt.
+            // If the file changed on disk and the user has not yet reloaded, clicking
+            // the warning icon reloads immediately — whether that's jumping an
+            // in-progress auto-reload countdown, or reloading straight away when no
+            // countdown is running (AutoReloadDelaySeconds == 0).
             if (_fileChangedPending && !_isLoading
                 && !string.IsNullOrEmpty(_currentFilePath)
                 && System.IO.File.Exists(_currentFilePath))
             {
-                if (_autoReloadCountdownTimer != null && _autoReloadCountdownTimer.Enabled)
-                {
-                    // A4: a silent auto-reload is already counting down — clicking jumps the queue.
-                    _autoReloadCountdownTimer.Stop();
-                    _fileChangedPending    = false;
-                    FileStatus.ToolTipText = string.Empty;
-                    LoadFileAsync(_currentFilePath);
-                }
-                else
-                {
-                    ShowFileChangedNotification();
-                }
+                _autoReloadCountdownTimer?.Stop();
+                _fileChangedPending    = false;
+                FileStatus.ToolTipText = string.Empty;
+                LoadFileAsync(_currentFilePath);
             }
         }
 
