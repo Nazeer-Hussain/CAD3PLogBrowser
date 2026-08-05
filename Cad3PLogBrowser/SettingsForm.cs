@@ -617,7 +617,10 @@ namespace Cad3PLogBrowser
 
             var grpFiles = new GroupBox
             {
-                Text = SettingsDialogStrings.TabFilesAndBehavior,
+                // GroupBox.Text treats a lone "&" as a mnemonic prefix and hides it
+                // (unlike the TabPage header, which renders it literally) — escape
+                // it here so the box title doesn't silently drop the ampersand.
+                Text = SettingsDialogStrings.TabFilesAndBehavior.Replace("&", "&&"),
                 Location = new Point(12, 10),
                 Size = new Size(560, 225),
                 Font = new Font("Segoe UI", 9f)
@@ -916,9 +919,9 @@ namespace Cad3PLogBrowser
             tp.Controls.Add(grpModel);
 
             // --- Privacy & Conversation Section ---
-            var grpPrivacy = new GroupBox 
-            { 
-                Text = SettingsDialogStrings.GroupPrivacyAndConversation, 
+            var grpPrivacy = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupPrivacyAndConversation.Replace("&", "&&"),
                 Location = new Point(12, 289),
                 Size = new Size(540, 72),
                 Font = new Font("Segoe UI", 9f)
@@ -1342,7 +1345,7 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=",
-                        "Font Preview � " + f.Name,
+                        "Font Preview - " + f.Name,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
