@@ -1,6 +1,7 @@
 namespace Cad3PLogBrowser.Models
 {
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Encapsulates all filter criteria that can be applied to log entries.
@@ -95,15 +96,16 @@ namespace Cad3PLogBrowser.Models
         public string ThreadId { get; set; }
 
         /// <summary>
-        /// Gets or sets the log level to filter by.
-        /// Null means no log level filtering is applied (show all levels).
+        /// Gets or sets the set of log levels to filter by.
+        /// Null or empty means no log level filtering is applied (show all levels).
         /// </summary>
         /// <remarks>
-        /// Only shows entries matching the specified log level.
-        /// Example: If set to <see cref="LogLevel.Error"/>, only error lines are shown.
+        /// B6: independent checkboxes let the user combine any subset of levels — e.g.
+        /// Warning + Error together — rather than picking exactly one from a dropdown.
+        /// A line matches if its parsed level is contained in this set.
         /// </remarks>
         /// <seealso cref="LogLevel"/>
-        public LogLevel? Level { get; set; }
+        public HashSet<LogLevel> Levels { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether any filter is currently active.
@@ -121,7 +123,7 @@ namespace Cad3PLogBrowser.Models
                        FromTime.HasValue ||
                        ToTime.HasValue ||
                        !string.IsNullOrWhiteSpace(ThreadId) ||
-                       Level.HasValue;
+                       (Levels != null && Levels.Count > 0);
             }
         }
 
@@ -178,8 +180,8 @@ namespace Cad3PLogBrowser.Models
             if (!string.IsNullOrWhiteSpace(ThreadId))
                 parts.Add($"Thread: {ThreadId}");
 
-            if (Level.HasValue)
-                parts.Add($"Level: {Level.Value}");
+            if (Levels != null && Levels.Count > 0)
+                parts.Add($"Level: {string.Join("+", Levels)}");
 
             return string.Join(", ", parts);
         }
@@ -205,7 +207,7 @@ namespace Cad3PLogBrowser.Models
             FromTime = null;
             ToTime = null;
             ThreadId = null;
-            Level = null;
+            Levels = null;
         }
 
         /// <summary>

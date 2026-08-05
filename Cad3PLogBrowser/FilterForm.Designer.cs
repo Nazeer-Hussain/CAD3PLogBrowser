@@ -32,7 +32,10 @@ namespace Cad3PLogBrowser
             this.lblThreadId = new System.Windows.Forms.Label();
             this.txtThreadId = new System.Windows.Forms.TextBox();
             this.lblLogLevel = new System.Windows.Forms.Label();
-            this.cmbLogLevel = new System.Windows.Forms.ComboBox();
+            this.chkLevelDebug = new System.Windows.Forms.CheckBox();
+            this.chkLevelInfo = new System.Windows.Forms.CheckBox();
+            this.chkLevelWarning = new System.Windows.Forms.CheckBox();
+            this.chkLevelError = new System.Windows.Forms.CheckBox();
             this.ApplyButton = new System.Windows.Forms.Button();
             this.ClearButton = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
@@ -174,7 +177,10 @@ namespace Cad3PLogBrowser
             this.grpThreadLevel.Controls.Add(this.lblThreadId);
             this.grpThreadLevel.Controls.Add(this.txtThreadId);
             this.grpThreadLevel.Controls.Add(this.lblLogLevel);
-            this.grpThreadLevel.Controls.Add(this.cmbLogLevel);
+            this.grpThreadLevel.Controls.Add(this.chkLevelDebug);
+            this.grpThreadLevel.Controls.Add(this.chkLevelInfo);
+            this.grpThreadLevel.Controls.Add(this.chkLevelWarning);
+            this.grpThreadLevel.Controls.Add(this.chkLevelError);
             this.grpThreadLevel.Location = new System.Drawing.Point(15, 253);
             this.grpThreadLevel.Name = "grpThreadLevel";
             this.grpThreadLevel.Size = new System.Drawing.Size(510, 95);
@@ -207,22 +213,44 @@ namespace Cad3PLogBrowser
             this.lblLogLevel.TabIndex = 2;
             this.lblLogLevel.Text = UI.AppStrings.FilterLabelLogLevel;
             // 
-            // cmbLogLevel
-            // 
-            this.cmbLogLevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbLogLevel.FormattingEnabled = true;
-            this.cmbLogLevel.Items.AddRange(new object[] {
-            "(All)",
-            "Debug",
-            "Info",
-            "Warning",
-            "Error"});
-            this.cmbLogLevel.Location = new System.Drawing.Point(105, 57);
-            this.cmbLogLevel.Name = "cmbLogLevel";
-            this.cmbLogLevel.Size = new System.Drawing.Size(180, 24);
-            this.cmbLogLevel.TabIndex = 3;
-            this.cmbLogLevel.SelectedIndex = 0;
-            // 
+            // chkLevelDebug
+            //
+            // B6: independent checkboxes replace the single-select dropdown so any
+            // combination of levels (e.g. Warning + Error) can be shown at once.
+            this.chkLevelDebug.AutoSize = true;
+            this.chkLevelDebug.Location = new System.Drawing.Point(105, 58);
+            this.chkLevelDebug.Name = "chkLevelDebug";
+            this.chkLevelDebug.Size = new System.Drawing.Size(70, 21);
+            this.chkLevelDebug.TabIndex = 3;
+            this.chkLevelDebug.Text = "Debug";
+            //
+            // chkLevelInfo
+            //
+            this.chkLevelInfo.AutoSize = true;
+            this.chkLevelInfo.Location = new System.Drawing.Point(180, 58);
+            this.chkLevelInfo.Name = "chkLevelInfo";
+            this.chkLevelInfo.Size = new System.Drawing.Size(60, 21);
+            this.chkLevelInfo.TabIndex = 4;
+            this.chkLevelInfo.Text = "Info";
+            //
+            // chkLevelWarning
+            //
+            this.chkLevelWarning.AutoSize = true;
+            this.chkLevelWarning.Location = new System.Drawing.Point(250, 58);
+            this.chkLevelWarning.Name = "chkLevelWarning";
+            this.chkLevelWarning.Size = new System.Drawing.Size(85, 21);
+            this.chkLevelWarning.TabIndex = 5;
+            this.chkLevelWarning.Text = "Warning";
+            //
+            // chkLevelError
+            //
+            this.chkLevelError.AutoSize = true;
+            this.chkLevelError.Location = new System.Drawing.Point(345, 58);
+            this.chkLevelError.Name = "chkLevelError";
+            this.chkLevelError.Size = new System.Drawing.Size(70, 21);
+            this.chkLevelError.TabIndex = 6;
+            this.chkLevelError.Text = "Error";
+            //
             // ApplyButton
             // 
             this.ApplyButton.Location = new System.Drawing.Point(217, 363);
@@ -308,7 +336,10 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.Label lblThreadId;
         private System.Windows.Forms.TextBox txtThreadId;
         private System.Windows.Forms.Label lblLogLevel;
-        private System.Windows.Forms.ComboBox cmbLogLevel;
+        private System.Windows.Forms.CheckBox chkLevelDebug;
+        private System.Windows.Forms.CheckBox chkLevelInfo;
+        private System.Windows.Forms.CheckBox chkLevelWarning;
+        private System.Windows.Forms.CheckBox chkLevelError;
         private System.Windows.Forms.Button ApplyButton;
         private System.Windows.Forms.Button ClearButton;
         private System.Windows.Forms.Button buttonClose;

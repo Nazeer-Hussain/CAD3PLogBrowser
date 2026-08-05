@@ -121,10 +121,10 @@ namespace Cad3PLogBrowser.Services.Search
                     return false;
             }
 
-            // Log level filter
-            if (criteria.Level.HasValue)
+            // Log level filter (B6: any combination of levels)
+            if (criteria.Levels != null && criteria.Levels.Count > 0)
             {
-                if (entry.Level != criteria.Level.Value)
+                if (!criteria.Levels.Contains(entry.Level))
                     return false;
             }
 
@@ -148,7 +148,7 @@ namespace Cad3PLogBrowser.Services.Search
 
             if (useRegex)
             {
-                // Regex matching — use cached instance to avoid recompiling on every entry
+                // Regex matching ï¿½ use cached instance to avoid recompiling on every entry
                 var options = caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
                 try
                 {
@@ -307,12 +307,12 @@ namespace Cad3PLogBrowser.Services.Search
                 counts["thread"] = threadMatches;
             }
 
-            if (criteria.Level.HasValue)
+            if (criteria.Levels != null && criteria.Levels.Count > 0)
             {
                 int levelMatches = 0;
                 foreach (var e in allEntries)
                 {
-                    if (e.Level == criteria.Level.Value)
+                    if (criteria.Levels.Contains(e.Level))
                         levelMatches++;
                 }
                 counts["level"] = levelMatches;

@@ -5541,10 +5541,10 @@ namespace Cad3PLogBrowser
                     return false;
             }
 
-            // ── Log level filter ──────────────────────────────────────────────
-            if (criteria.Level.HasValue)
+            // ── Log level filter (B6: any combination of levels via checkboxes) ─
+            if (criteria.Levels != null && criteria.Levels.Count > 0)
             {
-                if (ParseLogLevel(line) != criteria.Level.Value)
+                if (!criteria.Levels.Contains(ParseLogLevel(line)))
                     return false;
             }
 
