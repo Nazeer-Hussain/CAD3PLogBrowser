@@ -1691,6 +1691,14 @@ namespace Cad3PLogBrowser
             // Pre-compute matched status for all APIs in one O(N) pass
             _matchedApiCache = BuildMatchedApiCache(entries);
 
+            // G6: index perfStats by name here (before PopulatePerformanceTab assigns
+            // _apiPerfStats further down) so PopulateApiTree can show count/avg/min/max
+            // in each API node's tooltip using the same numbers the Performance tab shows.
+            _apiPerfStatsByName = new Dictionary<string, ApiPerfStats>(
+                perfStats.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (var stat in perfStats)
+                _apiPerfStatsByName[stat.ApiName] = stat;
+
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, _allLines.Count);
@@ -1794,6 +1802,21 @@ namespace Cad3PLogBrowser
                     ImageIndex      = allMatched ? 0 : 1,
                     SelectedImageIndex = allMatched ? 0 : 1
                 };
+
+                // G6: count/avg/min/max, reusing the same stats the Performance tab shows.
+                ApiPerfStats stats;
+                if (_apiPerfStatsByName.TryGetValue(node.ApiName, out stats) && stats.TimedCallCount > 0)
+                {
+                    apiRoot.ToolTipText = string.Format(
+                        "{0}\nCalls: {1}\nAvg: {2} ms\nMin: {3} ms\nMax: {4} ms",
+                        node.ApiName, stats.CallCount, stats.AvgDurationMs, stats.MinDurationMs, stats.MaxDurationMs);
+                }
+                else
+                {
+                    apiRoot.ToolTipText = string.Format("{0}\nCalls: {1}\n(no matched ENTER/EXIT pairs to time)",
+                        node.ApiName, totalCalls);
+                }
+
                 _apiNameToTreeNode[node.ApiName] = apiRoot; // PERF-E01: O(1) cache
 
                 // Children: one per ENTER invocation
@@ -1997,7 +2020,8 @@ namespace Cad3PLogBrowser
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
                 matched ? csNode.ExitLineNumber.ToString() : Resources.TREE_NODE_EXIT_NOT_FOUND,
-                csNode.DurationMs);
+                csNode.DurationMs,
+                csNode.Depth);
 
             // ImageIndex: 0 = checkmark (matched), 1 = cross (unmatched)
             int imgIdx = matched ? 0 : 1;
@@ -2259,6 +2283,9 @@ namespace Cad3PLogBrowser
 
         private bool _perfHeaderWired = false;
         private List<ApiPerfStats> _apiPerfStats = new List<ApiPerfStats>();
+        // G6: name -> stats lookup for API Tree tooltips (count/avg/min/max), built
+        // once per file load — see PopulateTreesFromData.
+        private Dictionary<string, ApiPerfStats> _apiPerfStatsByName = new Dictionary<string, ApiPerfStats>();
         private int _lastTotalLines = 0;
 
         private void PerformanceView_ColumnClick(object sender, ColumnClickEventArgs e)

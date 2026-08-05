@@ -1156,6 +1156,7 @@
             this.OpenButton.Name = "OpenButton";
             this.OpenButton.Size = new System.Drawing.Size(23, 22);
             this.OpenButton.Text = "Open";
+            this.OpenButton.ToolTipText = "Open a log file (Ctrl+O)";
             this.OpenButton.Click += new System.EventHandler(this.OpenButton_Click);
             // 
             // SaveButton
@@ -1166,6 +1167,7 @@
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(23, 22);
             this.SaveButton.Text = "Save Selected";
+            this.SaveButton.ToolTipText = "Save the selected Call Tree node's log lines to a file (Ctrl+S)";
             this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
             // 
             // ExportFilteredLogButton
@@ -1187,6 +1189,7 @@
             this.RefreshButton.Name = "RefreshButton";
             this.RefreshButton.Size = new System.Drawing.Size(23, 22);
             this.RefreshButton.Text = "Reload from Disk";
+            this.RefreshButton.ToolTipText = "Reload the current file, keeping scroll position (F5)";
             this.RefreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
             // 
             // separatorAfterRefresh
@@ -1202,6 +1205,7 @@
             this.CopyButton.Name = "CopyButton";
             this.CopyButton.Size = new System.Drawing.Size(23, 22);
             this.CopyButton.Text = "Copy";
+            this.CopyButton.ToolTipText = "Copy the selected log lines to the clipboard (Ctrl+C)";
             this.CopyButton.Click += new System.EventHandler(this.CopyButton_Click);
             // 
             // FindButton
@@ -1212,6 +1216,7 @@
             this.FindButton.Name = "FindButton";
             this.FindButton.Size = new System.Drawing.Size(23, 22);
             this.FindButton.Text = "Find";
+            this.FindButton.ToolTipText = "Open the Find dialog to search the log (Ctrl+F)";
             this.FindButton.Click += new System.EventHandler(this.FindButton_Click);
             // 
             // FindNextButton
@@ -1222,6 +1227,7 @@
             this.FindNextButton.Name = "FindNextButton";
             this.FindNextButton.Size = new System.Drawing.Size(23, 22);
             this.FindNextButton.Text = "Find Next (F3)";
+            this.FindNextButton.ToolTipText = "Jump to the next match without opening the Find dialog (F3)";
             this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
             // 
             // FilterButton
@@ -1232,6 +1238,7 @@
             this.FilterButton.Name = "FilterButton";
             this.FilterButton.Size = new System.Drawing.Size(23, 22);
             this.FilterButton.Text = "Filter";
+            this.FilterButton.ToolTipText = "Open the Filter dialog to narrow the log view (Ctrl+I)";
             this.FilterButton.Click += new System.EventHandler(this.FilterButton_Click);
             // 
             // separatorAfterFilter
