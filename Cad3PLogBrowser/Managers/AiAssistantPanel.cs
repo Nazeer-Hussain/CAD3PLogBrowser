@@ -37,6 +37,7 @@ namespace Cad3PLogBrowser.Managers
         private Panel      _inputPanel;
         private Button     _summarizeBtn, _rootCauseBtn, _findErrorsBtn,
                            _findWarningsBtn, _perfBtn, _timelineBtn;
+        private FlowLayoutPanel _promptChipsPanel;
         private TextBox    _chatInputBox;
         private Button     _sendBtn, _clearBtn, _copyBtn, _settingsBtn;
         private RichTextBox _responseBox;
@@ -231,6 +232,26 @@ namespace Cad3PLogBrowser.Managers
 
             _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _copyBtn, _clearBtn });
 
+            // ?? Example Prompt Chips (L6) ?????????????????????????????????
+            // Clickable suggestions that send a ready-made question through the
+            // same conversational chat path as typing + Send, so first-time users
+            // discover what natural-language questions the assistant supports.
+            _promptChipsPanel = new FlowLayoutPanel
+            {
+                Height        = 34,
+                Dock          = DockStyle.Bottom,
+                BackColor     = Color.FromArgb(35, 38, 48),
+                Padding       = new Padding(6, 4, 6, 4),
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents  = false
+            };
+            _promptChipsPanel.Controls.AddRange(new Control[]
+            {
+                MakeChip("Summarize this log"),
+                MakeChip("Slowest methods?"),
+                MakeChip("Any errors?")
+            });
+
             // ?? Add all to panel ??????????????????????????????????????????
             Controls.AddRange(new Control[]
             {
@@ -238,6 +259,7 @@ namespace Cad3PLogBrowser.Managers
                 _progressBar,
                 _tokenLabel,
                 _inputPanel,
+                _promptChipsPanel,
                 _buttonPanel,
                 titlePanel,
                 _apiModeLabel
@@ -286,6 +308,32 @@ namespace Cad3PLogBrowser.Managers
             };
             btn.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
             return btn;
+        }
+
+        // L6: example prompt chip — clicking it sends the given text as a chat message.
+        private Button MakeChip(string promptText)
+        {
+            var chip = new Button
+            {
+                Text      = promptText,
+                AutoSize  = true,
+                Height    = 24,
+                Padding   = new Padding(8, 0, 8, 0),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(48, 52, 64),
+                ForeColor = Color.FromArgb(180, 195, 220),
+                Font      = new Font("Segoe UI", 8f),
+                Margin    = new Padding(0, 0, 6, 0),
+                Cursor    = Cursors.Hand,
+                TabStop   = false
+            };
+            chip.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            chip.Click += async (s, e) =>
+            {
+                _chatInputBox.Text = promptText;
+                await SendChatMessageAsync();
+            };
+            return chip;
         }
 
         // ?? Analysis Execution ????????????????????????????????????????????????
