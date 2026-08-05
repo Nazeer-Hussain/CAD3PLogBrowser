@@ -206,7 +206,11 @@ namespace Cad3PLogBrowser.UI
         // ?????????????????????????????????????????????????????????????????????
         public const string AboutFormTitle = "About {0}";
         public const string AboutButtonOK = "&OK";
-        public const string AboutLabelVersion = "Version {0}";
+        public const string AboutLabelVersion = "Version {0}  (built {1})";
+        public const string AboutLabelOpenFile = "Open file: {0}";
+        public const string AboutNoFileOpen = "(none)";
+        public const string AboutButtonCopyVersion = "&Copy Version Info";
+        public const string AboutCopiedTooltip = "Copied!";
         public const string AboutProductName = "CAD 3P Log Browser";
         public const string AboutCopyright = "Copyright � 2024 PTC Inc.";
         public const string AboutCompany = "PTC Inc.";

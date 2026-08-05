@@ -5708,7 +5708,7 @@ namespace Cad3PLogBrowser
             // "Parameter is not valid" if invoked while the menu holds the DC.
             BeginInvoke((Action)(() =>
             {
-                using (var aboutDialog = new AboutForm())
+                using (var aboutDialog = new AboutForm(_currentFilePath))
                     aboutDialog.ShowDialog(this);
             }));
         }
