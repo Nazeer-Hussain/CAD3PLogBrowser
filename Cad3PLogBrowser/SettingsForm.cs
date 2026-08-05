@@ -52,7 +52,7 @@ namespace Cad3PLogBrowser
         private NumericUpDown  nudAutoReloadDelay;
 
         // -- Performance -------------------------------------------------------
-        private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb;
+        private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb, nudLazyLoadThreshold;
         private CheckBox       chkFilterPerfOnTreeSelect;
 
         // -- Integration -------------------------------------------------------
@@ -215,7 +215,7 @@ namespace Cad3PLogBrowser
             {
                 Text = "Appearance",
                 Location = new Point(12, 10),
-                Size = new Size(560, 145),
+                Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -327,7 +327,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.GroupVisibleTabs,
                 Location = new Point(12, 165),
-                Size = new Size(560, 115),
+                Size = new Size(530, 115),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -400,7 +400,7 @@ namespace Cad3PLogBrowser
             {
                 Text = "Log Font",
                 Location = new Point(12, 360),
-                Size = new Size(560, 145),
+                Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -617,9 +617,12 @@ namespace Cad3PLogBrowser
 
             var grpFiles = new GroupBox
             {
-                Text = SettingsDialogStrings.TabFilesAndBehavior,
+                // GroupBox.Text treats a lone "&" as a mnemonic prefix and hides it
+                // (unlike the TabPage header, which renders it literally) — escape
+                // it here so the box title doesn't silently drop the ampersand.
+                Text = SettingsDialogStrings.TabFilesAndBehavior.Replace("&", "&&"),
                 Location = new Point(12, 10),
-                Size = new Size(560, 225),
+                Size = new Size(530, 225),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -660,23 +663,27 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabPerformance,
                 Location = new Point(12, 245),
-                Size = new Size(560, 220),
+                Size = new Size(530, 216),
                 Font = new Font("Segoe UI", 9f)
             };
 
-            nudFastCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelFastCallThreshold, 24, 1, 60000, 100);
-            Lbl(grpPerformance, SettingsDialogStrings.HintFastCallMs, 290, 28);
+            nudFastCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelFastCallThreshold, 20, 1, 60000, 100);
+            Lbl(grpPerformance, SettingsDialogStrings.HintFastCallMs, 290, 24);
 
-            nudSlowCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelSlowCallThreshold, 60, 10, 60000, 1000);
-            Lbl(grpPerformance, SettingsDialogStrings.HintSlowCallMs, 290, 64);
+            nudSlowCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelSlowCallThreshold, 50, 10, 60000, 1000);
+            Lbl(grpPerformance, SettingsDialogStrings.HintSlowCallMs, 290, 54);
 
-            nudMaxFileMb = AddNud(grpPerformance, SettingsDialogStrings.LabelSkipListViewIfFileGreater, 96, 1, 2000, 50);
-            Lbl(grpPerformance, SettingsDialogStrings.HintMaxFileMb, 290, 100);
+            nudMaxFileMb = AddNud(grpPerformance, SettingsDialogStrings.LabelSkipListViewIfFileGreater, 80, 1, 2000, 50);
+            Lbl(grpPerformance, SettingsDialogStrings.HintMaxFileMb, 290, 84);
+
+            // C2: configurable lazy-load threshold for the Call Tree.
+            nudLazyLoadThreshold = AddNud(grpPerformance, SettingsDialogStrings.LabelLazyLoadThreshold, 110, 1000, 1000000, 50000);
+            Lbl(grpPerformance, SettingsDialogStrings.HintLazyLoadThreshold, 290, 114);
 
             chkFilterPerfOnTreeSelect = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(12, 136),
+                Location = new Point(12, 144),
                 Text = SettingsDialogStrings.CheckboxAutoFilterPerformance,
             };
             grpPerformance.Controls.Add(chkFilterPerfOnTreeSelect);
@@ -684,7 +691,7 @@ namespace Cad3PLogBrowser
             var hint = new Label
             {
                 AutoSize = false,
-                Location = new Point(30, 160),
+                Location = new Point(30, 166),
                 Size = new Size(500, 34),
                 Text = SettingsDialogStrings.HintAutoFilterOff,
                 ForeColor = SystemColors.GrayText,
@@ -912,9 +919,9 @@ namespace Cad3PLogBrowser
             tp.Controls.Add(grpModel);
 
             // --- Privacy & Conversation Section ---
-            var grpPrivacy = new GroupBox 
-            { 
-                Text = SettingsDialogStrings.GroupPrivacyAndConversation, 
+            var grpPrivacy = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupPrivacyAndConversation.Replace("&", "&&"),
                 Location = new Point(12, 289),
                 Size = new Size(540, 72),
                 Font = new Font("Segoe UI", 9f)
@@ -1096,6 +1103,8 @@ namespace Cad3PLogBrowser
                 Math.Min(nudSlowCallMs.Maximum, _settings.SlowCallThresholdMs));
             nudMaxFileMb.Value  = Math.Max(nudMaxFileMb.Minimum,
                 Math.Min(nudMaxFileMb.Maximum, _settings.MaxFileSizeMbForListView));
+            nudLazyLoadThreshold.Value = Math.Max(nudLazyLoadThreshold.Minimum,
+                Math.Min(nudLazyLoadThreshold.Maximum, _settings.LazyLoadThreshold));
             chkFilterPerfOnTreeSelect.Checked = _settings.FilterPerfOnTreeSelect;
 
             // Integration
@@ -1214,6 +1223,7 @@ namespace Cad3PLogBrowser
             _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
             _settings.SlowCallThresholdMs      = (long)nudSlowCallMs.Value;
             _settings.MaxFileSizeMbForListView  = (long)nudMaxFileMb.Value;
+            _settings.LazyLoadThreshold         = (int)nudLazyLoadThreshold.Value;
             _settings.FilterPerfOnTreeSelect    = chkFilterPerfOnTreeSelect.Checked;
 
             // Integration
@@ -1293,6 +1303,7 @@ namespace Cad3PLogBrowser
             _settings.FastCallThresholdMs       = def.FastCallThresholdMs;
             _settings.SlowCallThresholdMs       = def.SlowCallThresholdMs;
             _settings.MaxFileSizeMbForListView  = def.MaxFileSizeMbForListView;
+            _settings.LazyLoadThreshold         = def.LazyLoadThreshold;
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
             // Note: API key and UseClaudeApi are NOT reset (security/convenience)
@@ -1334,7 +1345,7 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789\n{}[]()<>+-*/=",
-                        "Font Preview � " + f.Name,
+                        "Font Preview - " + f.Name,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }

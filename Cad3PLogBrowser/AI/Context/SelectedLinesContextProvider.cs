@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Cad3PLogBrowser.AI.Abstractions;
+using Cad3PLogBrowser.AI.Security;
 
 namespace Cad3PLogBrowser.AI.Context
 {
@@ -10,13 +11,18 @@ namespace Cad3PLogBrowser.AI.Context
     public class SelectedLinesContextProvider : ContextProviderBase
     {
         private readonly Func<string> _getSelectedText;
+        private readonly bool _redactSensitiveData;
+        private readonly DataRedactor _redactor;
 
         public SelectedLinesContextProvider(
             Func<string> getSelectedText,
-            ITokenEstimator tokenEstimator = null)
+            ITokenEstimator tokenEstimator = null,
+            bool redactSensitiveData = true)
             : base(tokenEstimator)
         {
             _getSelectedText = getSelectedText ?? throw new ArgumentNullException(nameof(getSelectedText));
+            _redactSensitiveData = redactSensitiveData;
+            _redactor = redactSensitiveData ? new DataRedactor() : null;
         }
 
         public override string ContextType => "SelectedLines";
@@ -38,6 +44,12 @@ namespace Cad3PLogBrowser.AI.Context
                 return Task.FromResult(string.Empty);
 
             string selected = _getSelectedText();
+
+            // DEF-AI01: redact here, at the source, rather than trusting every eventual
+            // caller to redact the assembled prompt downstream.
+            if (_redactSensitiveData && _redactor != null)
+                selected = _redactor.Redact(selected);
+
             return Task.FromResult($"```\n{selected}\n```\n");
         }
 

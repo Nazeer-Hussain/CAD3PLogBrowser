@@ -65,8 +65,8 @@ namespace Cad3PLogBrowser
         /// </summary>
         private List<string>      _mergedSourcePaths = new List<string>();
 
-        // Feature C2: Lazy loading for large trees
-        private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
+        // Feature C2: Lazy loading for large trees. Threshold is user-configurable
+        // via Settings > Performance (AppSettings.LazyLoadThreshold).
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
         // Cached font for lazy-load placeholder nodes — avoids a GDI Font
         // allocation on every tree node during expand (Issue 1).
@@ -715,6 +715,7 @@ namespace Cad3PLogBrowser
             InitExceptionsTab();
             InitThreadViewTab();
             MergeTimelineAndFlameGraphTabs();
+            InitPerformanceSubViews();
             BuildMruMenu();
             AddThemeToggleButton();
             AddGoToLineControl();
@@ -1040,6 +1041,7 @@ namespace Cad3PLogBrowser
                 timelinePanel?.UpdateTheme();
                 heatmapPanel?.UpdateTheme();
                 UpdateVisualizationModeButtons();
+                UpdatePerformanceModeButtons();
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
@@ -1851,7 +1853,7 @@ namespace Cad3PLogBrowser
 
             // Feature C2: Check total node count for lazy loading
             int totalNodes = CountTotalNodes(roots);
-            bool useLazyLoading = totalNodes > LAZY_LOAD_THRESHOLD;
+            bool useLazyLoading = totalNodes > _appSettings.LazyLoadThreshold;
 
             if (useLazyLoading)
             {
@@ -1956,15 +1958,13 @@ namespace Cad3PLogBrowser
                 SelectedImageIndex = imgIdx
             };
 
-            // Feature C3: Color coding by duration (green < 100ms, amber 100-500ms, red > 500ms)
+            // Feature C3: Color coding by duration, thresholds configurable via
+            // Settings > Performance (FastCallThresholdMs / SlowCallThresholdMs).
             if (csNode.DurationMs > 0)
             {
-                const int FAST_MS = 100;
-                const int SLOW_MS = 500;
-
-                if (csNode.DurationMs < FAST_MS)
+                if (csNode.DurationMs < _appSettings.FastCallThresholdMs)
                     tn.ForeColor = Color.FromArgb(0, 128, 0);      // Green
-                else if (csNode.DurationMs < SLOW_MS)
+                else if (csNode.DurationMs < _appSettings.SlowCallThresholdMs)
                     tn.ForeColor = Color.FromArgb(204, 102, 0);    // Amber
                 else
                     tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
@@ -2157,7 +2157,10 @@ namespace Cad3PLogBrowser
                     ? string.Format("Lines {0}\u2013{1}", enterLine, exitLine)
                     : string.Format("Lines {0}\u2013end", enterLine);
                 _perfFilterLabel.Text  = string.Format("\u25bc  Filtered to: {0}  ({1})", csNode.Label, range);
-                _perfFilterBar.Visible = true;
+                // The banner only describes the All Methods table below it \u2014 keep it
+                // hidden while a Top Slowest/Most Called/Call Depth sub-view is active
+                // (E2/E3/E4), even though selecting a node re-triggers this filter.
+                _perfFilterBar.Visible = _perfViewMode == PerfViewMode.AllMethods;
             }
 
             RenderPerformanceRows(subStats, subEntries.Count, updateFullCache: false);
@@ -2200,6 +2203,7 @@ namespace Cad3PLogBrowser
             }
 
             RenderPerformanceRows(stats, totalLines);
+            RefreshActivePerformanceSubView();
         }
 
         private bool _perfHeaderWired = false;
@@ -2322,6 +2326,389 @@ namespace Cad3PLogBrowser
                 item.ForeColor = ThemeManager.ForegroundColor;
             }
             return item;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE E2/E3/E4: Performance Analytics sub-views — Top Slowest Calls,
+        // Most Frequently Called, and Call Depth Analysis. Same mode-switch-button
+        // pattern as the Timeline/Flame Graph tab: one set of buttons at the top of
+        // the Performance tab swaps which panel is visible underneath.
+        // ═══════════════════════════════════════════════════════════════════════
+        private readonly Services.Analysis.PerformanceAnalyzer _perfAnalyzer = new Services.Analysis.PerformanceAnalyzer();
+
+        private enum PerfViewMode { AllMethods, TopSlowest, MostFrequent, CallDepth }
+        private PerfViewMode _perfViewMode = PerfViewMode.AllMethods;
+
+        private Button _perfAllButton, _perfSlowestButton, _perfFrequentButton, _perfDepthButton;
+        private Panel _perfSlowestPanel, _perfFrequentPanel, _perfDepthPanel;
+        private ListView _perfSlowestView, _perfFrequentView, _perfDepthChainsView;
+        private NumericUpDown _perfSlowestTopN, _perfFrequentTopN;
+        private Label _perfDepthSummaryLabel;
+
+        private void InitPerformanceSubViews()
+        {
+            var modeBar = new Panel
+            {
+                Dock      = DockStyle.Top,
+                Height    = 34,
+                BackColor = ThemeManager.ControlBackgroundColor
+            };
+
+            _perfAllButton      = MakePerfModeButton("All Methods", 8);
+            _perfSlowestButton  = MakePerfModeButton("Top Slowest", 112);
+            _perfFrequentButton = MakePerfModeButton("Most Called", 216);
+            _perfDepthButton    = MakePerfModeButton("Call Depth", 320);
+
+            _perfAllButton.Click      += (s, e) => SetPerformanceMode(PerfViewMode.AllMethods);
+            _perfSlowestButton.Click  += (s, e) => SetPerformanceMode(PerfViewMode.TopSlowest);
+            _perfFrequentButton.Click += (s, e) => SetPerformanceMode(PerfViewMode.MostFrequent);
+            _perfDepthButton.Click    += (s, e) => SetPerformanceMode(PerfViewMode.CallDepth);
+
+            modeBar.Controls.Add(_perfAllButton);
+            modeBar.Controls.Add(_perfSlowestButton);
+            modeBar.Controls.Add(_perfFrequentButton);
+            modeBar.Controls.Add(_perfDepthButton);
+
+            _perfSlowestPanel  = BuildTopSlowestPanel();
+            _perfFrequentPanel = BuildMostFrequentPanel();
+            _perfDepthPanel    = BuildCallDepthPanel();
+
+            performanceTab.Controls.Add(_perfDepthPanel);
+            performanceTab.Controls.Add(_perfFrequentPanel);
+            performanceTab.Controls.Add(_perfSlowestPanel);
+            performanceTab.Controls.Add(modeBar);
+
+            UpdatePerformanceModeButtons();
+        }
+
+        private static Button MakePerfModeButton(string text, int x)
+        {
+            return new Button
+            {
+                Text      = text,
+                Location  = new Point(x, 4),
+                Size      = new Size(100, 26),
+                FlatStyle = FlatStyle.Flat
+            };
+        }
+
+        private Panel BuildTopSlowestPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            var toolbar = new Panel { Dock = DockStyle.Top, Height = 30 };
+            var lbl1 = new Label { Text = "Show top", Location = new Point(8, 8), AutoSize = true };
+            _perfSlowestTopN = new NumericUpDown
+            {
+                Location = new Point(68, 5),
+                Size     = new Size(60, 22),
+                Minimum  = 1,
+                Maximum  = 500,
+                Value    = 10
+            };
+            var lbl2 = new Label { Text = "slowest individual calls", Location = new Point(134, 8), AutoSize = true };
+            _perfSlowestTopN.ValueChanged += (s, e) => RenderTopSlowest();
+            toolbar.Controls.Add(lbl1);
+            toolbar.Controls.Add(_perfSlowestTopN);
+            toolbar.Controls.Add(lbl2);
+
+            _perfSlowestView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfSlowestView.Columns.Add("Rank", 50);
+            _perfSlowestView.Columns.Add("Method", 340);
+            _perfSlowestView.Columns.Add("Duration (ms)", 110);
+            _perfSlowestView.Columns.Add("Timestamp", 170);
+            _perfSlowestView.Columns.Add("Log Line #", 90);
+            _perfSlowestView.DoubleClick += (s, e) =>
+            {
+                if (_perfSlowestView.SelectedItems.Count == 0) return;
+                if (_perfSlowestView.SelectedItems[0].Tag is int line)
+                {
+                    SelectCallTreeNodeByLine(line);
+                    ScrollLogToLine(line);
+                }
+            };
+
+            panel.Controls.Add(_perfSlowestView);
+            panel.Controls.Add(toolbar);
+            return panel;
+        }
+
+        private Panel BuildMostFrequentPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            var toolbar = new Panel { Dock = DockStyle.Top, Height = 30 };
+            var lbl1 = new Label { Text = "Show top", Location = new Point(8, 8), AutoSize = true };
+            _perfFrequentTopN = new NumericUpDown
+            {
+                Location = new Point(68, 5),
+                Size     = new Size(60, 22),
+                Minimum  = 1,
+                Maximum  = 500,
+                Value    = 10
+            };
+            var lbl2 = new Label { Text = "most-called methods", Location = new Point(134, 8), AutoSize = true };
+            _perfFrequentTopN.ValueChanged += (s, e) => RenderMostFrequent();
+            toolbar.Controls.Add(lbl1);
+            toolbar.Controls.Add(_perfFrequentTopN);
+            toolbar.Controls.Add(lbl2);
+
+            _perfFrequentView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfFrequentView.Columns.Add("Rank", 50);
+            _perfFrequentView.Columns.Add("Method", 340);
+            _perfFrequentView.Columns.Add("Calls", 80);
+            _perfFrequentView.Columns.Add("% of Total Calls", 260);
+            _perfFrequentView.DoubleClick += (s, e) =>
+            {
+                if (_perfFrequentView.SelectedItems.Count == 0) return;
+                if (_perfFrequentView.SelectedItems[0].Tag is string apiName)
+                    FindAndSelectApiTreeNode(apiName);
+            };
+
+            panel.Controls.Add(_perfFrequentView);
+            panel.Controls.Add(toolbar);
+            return panel;
+        }
+
+        private Panel BuildCallDepthPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            _perfDepthSummaryLabel = new Label
+            {
+                Dock    = DockStyle.Top,
+                Height  = 30,
+                Padding = new Padding(8, 8, 0, 0),
+                Text    = "No data"
+            };
+
+            var chainsHeader = new Label
+            {
+                Dock    = DockStyle.Top,
+                Height  = 22,
+                Padding = new Padding(8, 2, 0, 0),
+                Font    = new Font(Font, FontStyle.Bold),
+                Text    = "Deepest call chains (double-click to highlight in the Call Tree):"
+            };
+
+            _perfDepthChainsView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfDepthChainsView.Columns.Add("Call Chain (root → deepest call)", 1200);
+            _perfDepthChainsView.DoubleClick += (s, e) =>
+            {
+                if (_perfDepthChainsView.SelectedItems.Count == 0) return;
+                if (_perfDepthChainsView.SelectedItems[0].Tag is int line)
+                {
+                    SelectCallTreeNodeByLine(line);
+                    ScrollLogToLine(line);
+                }
+            };
+
+            panel.Controls.Add(_perfDepthChainsView);
+            panel.Controls.Add(chainsHeader);
+            panel.Controls.Add(_perfDepthSummaryLabel);
+            return panel;
+        }
+
+        private void SetPerformanceMode(PerfViewMode mode)
+        {
+            _perfViewMode = mode;
+
+            performanceView.Visible   = mode == PerfViewMode.AllMethods;
+            _perfSlowestPanel.Visible  = mode == PerfViewMode.TopSlowest;
+            _perfFrequentPanel.Visible = mode == PerfViewMode.MostFrequent;
+            _perfDepthPanel.Visible    = mode == PerfViewMode.CallDepth;
+
+            // The subtree-filter banner ("Filtered to: X") only scopes the All Methods
+            // table (RenderPerformanceRows) — hide it on the other sub-views so it doesn't
+            // look like Top Slowest/Most Called/Call Depth are filtered when they aren't.
+            if (_perfFilterBar != null)
+                _perfFilterBar.Visible = _perfFilterActive && mode == PerfViewMode.AllMethods;
+
+            RefreshActivePerformanceSubView();
+            UpdatePerformanceModeButtons();
+        }
+
+        /// <summary>Recomputes whichever Performance sub-view is currently on screen — called
+        /// both when the user switches modes and whenever fresh data is loaded (PopulatePerformanceTab).</summary>
+        private void RefreshActivePerformanceSubView()
+        {
+            switch (_perfViewMode)
+            {
+                case PerfViewMode.TopSlowest:   RenderTopSlowest();   break;
+                case PerfViewMode.MostFrequent: RenderMostFrequent(); break;
+                case PerfViewMode.CallDepth:    RenderCallDepth();    break;
+            }
+        }
+
+        private void UpdatePerformanceModeButtons()
+        {
+            if (_perfAllButton == null) return;
+
+            void Style(Button b, bool active)
+            {
+                b.BackColor = active ? ThemeManager.HighlightColor : ThemeManager.ControlBackgroundColor;
+                b.ForeColor = active ? ThemeManager.HighlightTextColor : ThemeManager.ForegroundColor;
+            }
+
+            Style(_perfAllButton,      _perfViewMode == PerfViewMode.AllMethods);
+            Style(_perfSlowestButton,  _perfViewMode == PerfViewMode.TopSlowest);
+            Style(_perfFrequentButton, _perfViewMode == PerfViewMode.MostFrequent);
+            Style(_perfDepthButton,    _perfViewMode == PerfViewMode.CallDepth);
+        }
+
+        private void RenderTopSlowest()
+        {
+            if (_perfSlowestView == null) return;
+            _perfSlowestView.BeginUpdate();
+            _perfSlowestView.Items.Clear();
+
+            if (_lastEntries != null && _lastEntries.Count > 0)
+            {
+                var slowest = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, (int)_perfSlowestTopN.Value);
+                for (int i = 0; i < slowest.Count; i++)
+                {
+                    var c = slowest[i];
+                    var item = new ListViewItem((i + 1).ToString()) { Tag = c.EnterLineNumber };
+                    item.SubItems.Add(c.ApiName);
+                    item.SubItems.Add(c.DurationMs.ToString());
+                    item.SubItems.Add(c.EpochMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(c.EpochMs).LocalDateTime
+                            .ToString("yyyy-MM-dd HH:mm:ss.fff")
+                        : "-");
+                    item.SubItems.Add(c.EnterLineNumber.ToString());
+
+                    // Spec: top 3 rows red, 4th-10th amber, rest default.
+                    if (i < 3)
+                    {
+                        item.BackColor = ThemeManager.ErrorBackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+                    else if (i < 10)
+                    {
+                        item.BackColor = ThemeManager.WarningBackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+                    else
+                    {
+                        item.BackColor = ThemeManager.BackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+
+                    _perfSlowestView.Items.Add(item);
+                }
+            }
+
+            _perfSlowestView.EndUpdate();
+        }
+
+        private void RenderMostFrequent()
+        {
+            if (_perfFrequentView == null) return;
+            _perfFrequentView.BeginUpdate();
+            _perfFrequentView.Items.Clear();
+
+            if (_lastEntries != null && _lastEntries.Count > 0)
+            {
+                var frequent = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, (int)_perfFrequentTopN.Value);
+                double maxCount = frequent.Count > 0 ? frequent[0].CallCount : 1;
+
+                for (int i = 0; i < frequent.Count; i++)
+                {
+                    var f = frequent[i];
+                    var item = new ListViewItem((i + 1).ToString()) { Tag = f.ApiName };
+                    item.SubItems.Add(f.ApiName);
+                    item.SubItems.Add(f.CallCount.ToString());
+
+                    // Lightweight proportional bar (block characters) scaled to the top row's count.
+                    int barLen = maxCount > 0 ? (int)Math.Round(f.CallCount / maxCount * 24) : 0;
+                    string bar = new string('█', Math.Max(1, barLen));
+                    item.SubItems.Add(string.Format("{0,5:0.0}%  {1}", f.PercentOfTotal, bar));
+
+                    _perfFrequentView.Items.Add(item);
+                }
+            }
+
+            _perfFrequentView.EndUpdate();
+        }
+
+        private void RenderCallDepth()
+        {
+            if (_perfDepthChainsView == null) return;
+            _perfDepthChainsView.BeginUpdate();
+            _perfDepthChainsView.Items.Clear();
+
+            if (_lastCallTree != null && _lastCallTree.Count > 0)
+            {
+                var analysis = _perfAnalyzer.AnalyzeCallDepth(_lastCallTree);
+                _perfDepthSummaryLabel.Text = string.Format(
+                    "Maximum depth: {0}     Average depth: {1:0.0}     Chains tied for deepest: {2}",
+                    analysis.MaxDepth, analysis.AvgDepth, analysis.DeepestChains.Count);
+
+                foreach (var chain in analysis.DeepestChains)
+                {
+                    var item = new ListViewItem(chain.Chain) { Tag = chain.LineNumber };
+                    _perfDepthChainsView.Items.Add(item);
+                }
+            }
+            else
+            {
+                _perfDepthSummaryLabel.Text = "No data";
+            }
+
+            _perfDepthChainsView.EndUpdate();
+        }
+
+        /// <summary>
+        /// Selects and reveals the Call Tree node whose ENTER is at <paramref name="lineNumber"/>,
+        /// expanding each ancestor along the way so lazily-loaded children (C2) are
+        /// materialized before we try to descend into them.
+        /// </summary>
+        private void SelectCallTreeNodeByLine(int lineNumber)
+        {
+            if (CallTree.Nodes.Count == 0 || _lastCallTree == null) return;
+
+            CallStackNode target = FindCallStackNodeByLine(lineNumber, _lastCallTree);
+            if (target == null) return;
+
+            var chain = new List<int>();
+            for (var cur = target; cur != null; cur = cur.Parent)
+                chain.Insert(0, cur.LineNumber);
+
+            TreeNode current = CallTree.Nodes[0]; // synthetic "Call Tree" label root
+            current.Expand();
+
+            foreach (var ln in chain)
+            {
+                TreeNode next = null;
+                foreach (TreeNode candidate in current.Nodes)
+                {
+                    if (candidate.Tag is int t && t == ln) { next = candidate; break; }
+                }
+                if (next == null) return; // structure mismatch — bail out safely
+                next.Expand(); // C2: materializes lazy children before we descend further
+                current = next;
+            }
+
+            CallTree.SelectedNode = current;
+            current.EnsureVisible();
         }
 
         // ── Tree visibility ───────────────────────────────────────────────────
@@ -3356,7 +3743,7 @@ namespace Cad3PLogBrowser
             // ── Toolbar buttons ───────────────────────────────────────────────
             OpenButton.Image             = IconGenerator.CreateOpenIcon(sz);
             SaveButton.Image             = IconGenerator.CreateSaveIcon(sz);
-            SaveToXLSButton.Image        = IconGenerator.CreateExportXlsIcon(sz);
+            ExportFilteredLogButton.Image        = IconGenerator.CreateExportFileIcon(sz);
             RefreshButton.Image          = IconGenerator.CreateReloadIcon(sz);
             CopyButton.Image             = IconGenerator.CreateCopyIcon(sz);
             FindButton.Image             = IconGenerator.CreateFindIcon(sz);
@@ -3386,7 +3773,7 @@ namespace Cad3PLogBrowser
             // ── File menu ─────────────────────────────────────────────────────
             openMenuItem.Image                 = IconGenerator.CreateOpenIcon(msz);
             saveAsMenuItem.Image               = IconGenerator.CreateSaveIcon(msz);
-            exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportXlsIcon(msz);
+            exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportFileIcon(msz);
             exportPerformanceMenuItem.Image    = IconGenerator.CreateExportCsvIcon(msz);
             exportTreeJsonMenuItem.Image       = IconGenerator.CreateExportJsonIcon(msz);
             exportTreeXmlMenuItem.Image        = IconGenerator.CreateExportXmlIcon(msz);
@@ -3665,32 +4052,12 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            StatusFileName.Text = Resources.STATUS_FILE_CHANGED_ON_DISK;
-
-            // Ask the user whether to reload; keep it non-intrusive with a status-bar
-            // message first and an explicit Yes/No dialog so background work is not lost.
-            var result = MessageBox.Show(
-                string.Format(Resources.PROMPT_FILE_CHANGED_RELOAD,
-                    System.IO.Path.GetFileName(_currentFilePath)),
-                Resources.TITLE,
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button1);
-
-            if (result == DialogResult.Yes)
-            {
-                _fileChangedPending = false;
-                FileStatus.ToolTipText = string.Empty;
-                LoadFileAsync(_currentFilePath);
-            }
-            else
-            {
-                // User declined: keep the warning icon so they can see the file is stale.
-                // Clicking the FileStatus icon will re-offer the reload.
-                StatusFileName.Text = string.Format(
-                    Resources.STATUS_FILE_CHANGED_DECLINED,
-                    System.IO.Path.GetFileName(_currentFilePath));
-            }
+            // A4: no blocking MessageBox — a non-blocking status-bar notice with
+            // click-to-reload, same as the auto-reload-delay path above just without
+            // a countdown. The warning icon stays until the user clicks it or reloads.
+            StatusFileName.Text = string.Format(
+                "File changed on disk — click to reload ({0})",
+                System.IO.Path.GetFileName(_currentFilePath));
         }
 
         // ── UI state ──────────────────────────────────────────────────────────
@@ -4143,9 +4510,9 @@ namespace Cad3PLogBrowser
         }
 
         // BUG-09: Find Previous — mirrors FindNext but searches backward via SearchService.FindPrev
-        public void FindPrev(string searchTerm, bool matchCase, bool useRegex = false)
+        public int FindPrev(string searchTerm, bool matchCase, bool useRegex = false)
         {
-            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return -1;
 
             if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
             int idx = _searchService.FindPrev(_virtualLineTexts, searchTerm, matchCase, useRegex);
@@ -4168,15 +4535,16 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+            return idx;
         }
 
         // Feature B8: Highlight search results
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
 
-        public void FindNext(string searchTerm, bool matchCase, bool useRegex = false)
+        public int FindNext(string searchTerm, bool matchCase, bool useRegex = false)
         {
-            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return -1;
 
             // P-06: use the zero-alloc wrapper instead of copying all text into a new List<string>.
             if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
@@ -4201,6 +4569,25 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+            return idx;
+        }
+
+        /// <summary>B2: validates a regex pattern without searching, so the Find dialog
+        /// can flag an invalid pattern immediately instead of just reporting "not found".</summary>
+        public bool TryValidateRegex(string pattern, bool matchCase, out string errorMessage)
+        {
+            return _searchService.TryValidateRegex(pattern, matchCase, out errorMessage);
+        }
+
+        /// <summary>B1: total matches for <paramref name="searchTerm"/> and the 1-based
+        /// ordinal position of <paramref name="currentIndex"/> among them, for the Find
+        /// dialog's "match N of M" label.</summary>
+        public int CountMatches(string searchTerm, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return 0;
+            if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
+            return _searchService.CountMatches(_virtualLineTexts, searchTerm, matchCase, useRegex, currentIndex, out rank);
         }
 
         // Feature B8: Highlight all search results in the log view
@@ -4465,24 +4852,18 @@ namespace Cad3PLogBrowser
 
         private void FileStatus_Click(object sender, EventArgs e)
         {
-            // If the file changed on disk and the user has not yet reloaded,
-            // clicking the warning icon re-offers the reload prompt.
+            // If the file changed on disk and the user has not yet reloaded, clicking
+            // the warning icon reloads immediately — whether that's jumping an
+            // in-progress auto-reload countdown, or reloading straight away when no
+            // countdown is running (AutoReloadDelaySeconds == 0).
             if (_fileChangedPending && !_isLoading
                 && !string.IsNullOrEmpty(_currentFilePath)
                 && System.IO.File.Exists(_currentFilePath))
             {
-                if (_autoReloadCountdownTimer != null && _autoReloadCountdownTimer.Enabled)
-                {
-                    // A4: a silent auto-reload is already counting down — clicking jumps the queue.
-                    _autoReloadCountdownTimer.Stop();
-                    _fileChangedPending    = false;
-                    FileStatus.ToolTipText = string.Empty;
-                    LoadFileAsync(_currentFilePath);
-                }
-                else
-                {
-                    ShowFileChangedNotification();
-                }
+                _autoReloadCountdownTimer?.Stop();
+                _fileChangedPending    = false;
+                FileStatus.ToolTipText = string.Empty;
+                LoadFileAsync(_currentFilePath);
             }
         }
 
@@ -4506,7 +4887,7 @@ namespace Cad3PLogBrowser
             FindButton.Enabled = !inProgress;
             FindNextButton.Enabled = !inProgress;
             SaveButton.Enabled = !inProgress;
-            SaveToXLSButton.Enabled = !inProgress;
+            ExportFilteredLogButton.Enabled = !inProgress;
             OpenButton.Enabled = !inProgress;
             RefreshButton.Enabled = !inProgress;
         }
@@ -4981,6 +5362,11 @@ namespace Cad3PLogBrowser
                 PopulateVirtualListViewFiltered(filtered);
                 ClearHighlighting();
 
+                // B4/B5: a Time Range or Duration Threshold filter used to only ever
+                // affect this flat log list — the Call Tree / API Tree looked untouched.
+                // Highlight (and auto-expand ancestors of) the matching nodes there too.
+                ApplyTreeFilterHighlight(criteria);
+
                 StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED,
                     filtered.Count, _allLines.Count);
             }
@@ -5002,6 +5388,84 @@ namespace Cad3PLogBrowser
             PopulateVirtualListView(_allLines);
             // DEF-D01: ClearHighlighting() removed — PopulateVirtualListView already
             // sets BackColour = GetLineColour() for every line; a second pass is O(N) waste.
+            ApplyTreeFilterHighlight(null);
+        }
+
+        /// <summary>
+        /// B4/B5: highlights Call Tree / API Tree nodes whose duration and/or call time
+        /// satisfy the active Duration/Time-Range filter criteria, expanding ancestors of
+        /// any match — the same non-destructive highlight approach the C5 tree-search box
+        /// uses (WinForms TreeView has no concept of a truly "hidden" node short of
+        /// rebuilding the tree, so matches are highlighted rather than removed).
+        /// Note: this shares node.BackColor with the C5 tree-search highlight, so the two
+        /// will visually override each other if both are active at once — an accepted
+        /// limitation rather than introducing a second, separate highlight channel.
+        /// </summary>
+        private void ApplyTreeFilterHighlight(Models.FilterCriteria criteria)
+        {
+            bool hasDuration  = criteria != null && criteria.MinimumDurationMs.HasValue;
+            bool hasTimeRange = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
+
+            var trees = new[] { CallTree, ApiTree };
+
+            if (!hasDuration && !hasTimeRange)
+            {
+                foreach (var tree in trees)
+                    ShowAllTreeNodes(tree);
+                return;
+            }
+
+            bool NodeMatches(TreeNode node)
+            {
+                if (!(node.Tag is int line) || line <= 0) return false;
+                if (_callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(line, out var csNode))
+                    return false;
+
+                if (hasDuration && csNode.DurationMs < criteria.MinimumDurationMs.Value)
+                    return false;
+
+                if (hasTimeRange)
+                {
+                    if (csNode.EpochMs <= 0) return false; // no timestamp to compare
+                    var callTime = DateTimeOffset.FromUnixTimeMilliseconds(csNode.EpochMs).LocalDateTime.TimeOfDay;
+                    if (criteria.FromTime.HasValue && callTime < criteria.FromTime.Value.TimeOfDay) return false;
+                    if (criteria.ToTime.HasValue && callTime > criteria.ToTime.Value.TimeOfDay) return false;
+                }
+
+                return true;
+            }
+
+            foreach (var tree in trees)
+            {
+                tree.BeginUpdate();
+                foreach (TreeNode rootNode in tree.Nodes)
+                    ApplyTreeFilterHighlightRecursive(rootNode, NodeMatches);
+                tree.EndUpdate();
+            }
+        }
+
+        private bool ApplyTreeFilterHighlightRecursive(TreeNode node, Func<TreeNode, bool> matches, int depth = 0)
+        {
+            if (depth > 500) return false; // guard against pathologically deep trees
+
+            bool nodeMatches = matches(node);
+            bool hasMatch    = false;
+
+            foreach (TreeNode child in node.Nodes)
+            {
+                if (ApplyTreeFilterHighlightRecursive(child, matches, depth + 1))
+                    hasMatch = true;
+            }
+
+            if (nodeMatches || hasMatch)
+            {
+                node.BackColor = nodeMatches ? (_appSettings?.HighlightColor ?? Color.Yellow) : Color.Transparent;
+                if (hasMatch && !node.IsExpanded) node.Expand();
+                return true;
+            }
+
+            node.BackColor = Color.Transparent;
+            return false;
         }
 
         // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──
@@ -5075,10 +5539,10 @@ namespace Cad3PLogBrowser
                     return false;
             }
 
-            // ── Log level filter ──────────────────────────────────────────────
-            if (criteria.Level.HasValue)
+            // ── Log level filter (B6: any combination of levels via checkboxes) ─
+            if (criteria.Levels != null && criteria.Levels.Count > 0)
             {
-                if (ParseLogLevel(line) != criteria.Level.Value)
+                if (!criteria.Levels.Contains(ParseLogLevel(line)))
                     return false;
             }
 
@@ -5223,6 +5687,10 @@ namespace Cad3PLogBrowser
                     // Propagate updated AI settings (including configurable model) to the service.
                     _aiService?.UpdateConfig(_appSettings.ClaudeApiKey, _appSettings.UseClaudeApi,
                                              _appSettings.ClaudeModel);
+                    // C2/C3: re-render the call tree so updated lazy-load/color-threshold
+                    // settings apply immediately, without requiring a file reload.
+                    if (_lastCallTree != null && _lastCallTree.Count > 0)
+                        PopulateCallTree(_lastCallTree);
                 }
                 // Refresh AI service after settings may have changed
                 RefreshAiService();
@@ -5720,13 +6188,17 @@ namespace Cad3PLogBrowser
                 Services.Update.UpdateLogger.Log("Startup: auto-check disabled by user setting");
             }
 
-            // A8: restore the last-opened file, unless one was already given on the command line.
+            // A8: restore the last-opened file(s), unless one was already given on the
+            // command line. More than one file means a merge was active last session —
+            // re-merge them directly rather than re-prompting Merge/Compare/Open First.
             if (!_openedViaCommandLine && _appSettings.RestoreSessionOnStartup &&
                 string.IsNullOrEmpty(_currentFilePath))
             {
                 var lastFiles = _sessionService.GetLastSessionFiles();
-                if (lastFiles.Count > 0)
+                if (lastFiles.Count == 1)
                     this.BeginInvoke((Action)(() => LoadFileAsync(lastFiles[0])));
+                else if (lastFiles.Count > 1)
+                    this.BeginInvoke((Action)(() => _ = MergeFilesAsync(lastFiles)));
             }
         }
 
@@ -5740,10 +6212,17 @@ namespace Cad3PLogBrowser
 
             try
             {
-                // A8: remember the open file so it can be restored next launch.
-                _sessionService.SaveSession(string.IsNullOrEmpty(_currentFilePath)
-                    ? Array.Empty<string>()
-                    : new[] { _currentFilePath });
+                // A8: remember the open file(s) so they can be restored next launch.
+                // _currentFilePath is a synthetic "[Merged: ...]" label while a merge is
+                // active, not a real path, so save the underlying source files instead.
+                IEnumerable<string> sessionFiles;
+                if (_mergedSourcePaths != null && _mergedSourcePaths.Count > 0)
+                    sessionFiles = _mergedSourcePaths;
+                else if (!string.IsNullOrEmpty(_currentFilePath))
+                    sessionFiles = new[] { _currentFilePath };
+                else
+                    sessionFiles = Array.Empty<string>();
+                _sessionService.SaveSession(sessionFiles);
             }
             catch { /* Non-fatal */ }
 
@@ -8039,6 +8518,20 @@ namespace Cad3PLogBrowser
             };
             if (tabsMenuItem != null)
                 tabsMenuItem.DropDownItems.Add(showThreadViewMenuItem);
+        }
+
+        /// <summary>B7: distinct thread IDs found in the currently loaded log, for
+        /// populating the Filter dialog's Thread ID dropdown.</summary>
+        public List<string> GetDetectedThreadIds()
+        {
+            if (_lastEntries == null) return new List<string>();
+
+            return _lastEntries
+                .Where(e => !string.IsNullOrEmpty(e.ThreadId))
+                .Select(e => e.ThreadId)
+                .Distinct()
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         /// <summary>Refreshes the K1 thread combos from the freshly-loaded log entries.</summary>

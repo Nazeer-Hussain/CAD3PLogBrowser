@@ -20,6 +20,7 @@ namespace Cad3PLogBrowser.Managers
     {
         // ?? AI Service ????????????????????????????????????????????????????????
         private AIService _aiService;
+        private AISettings _aiSettings;
         private Func<Models.AggregateStats> _getStats;
         private Func<List<Services.ApiPerfStats>> _getPerfStats;
         private Func<string> _getCurrentFilePath;
@@ -62,6 +63,7 @@ namespace Cad3PLogBrowser.Managers
             try
             {
                 var settings = AISettingsService.Load();
+                _aiSettings = settings;
                 _aiService = new AIService(settings);
                 UpdateStatusLabel();
             }
@@ -168,9 +170,9 @@ namespace Cad3PLogBrowser.Managers
                 ReadOnly    = true,
                 Padding     = new Padding(10),
                 Text        = "Welcome to AI Assistant!\n\n" +
-                             "• Click any analysis button above to analyze the log\n" +
-                             "• Or type a question below for interactive chat\n" +
-                             "• Configure AI provider in Settings if not done yet",
+                             "ï¿½ Click any analysis button above to analyze the log\n" +
+                             "ï¿½ Or type a question below for interactive chat\n" +
+                             "ï¿½ Configure AI provider in Settings if not done yet",
                 DetectUrls  = true,
                 EnableAutoDragDrop = false,
                 ShortcutsEnabled = true  // Enable Ctrl+C for copying
@@ -380,19 +382,27 @@ namespace Cad3PLogBrowser.Managers
 
             try
             {
+                // DEF-AI01: raw log text (selected lines) must never reach the AI API
+                // un-redacted, regardless of which provider constructs it or how it's
+                // later combined into a prompt â€” redact at the source, not just once
+                // centrally in AIService, so this stays safe even if a future caller
+                // consumes these providers directly.
+                bool redact = _aiSettings?.RedactSensitiveData ?? true;
+
                 var stats = _getStats?.Invoke();
                 if (stats != null)
                 {
                     providers.Add(new CurrentLogContextProvider(
                         stats,
                         _getCurrentFilePath?.Invoke(),
-                        _getSelectedText));
+                        _getSelectedText,
+                        redactSensitiveData: redact));
                 }
 
                 var selectedText = _getSelectedText?.Invoke();
                 if (!string.IsNullOrEmpty(selectedText))
                 {
-                    providers.Add(new SelectedLinesContextProvider(_getSelectedText));
+                    providers.Add(new SelectedLinesContextProvider(_getSelectedText, redactSensitiveData: redact));
                 }
             }
             catch (Exception ex)
@@ -593,10 +603,10 @@ namespace Cad3PLogBrowser.Managers
             if (result.Success)
             {
                 var tokenInfo = result.TotalTokens.HasValue
-                    ? $" • {result.TotalTokens.Value} tokens"
+                    ? $" ï¿½ {result.TotalTokens.Value} tokens"
                     : "";
                 var timeInfo = result.ElapsedTime.TotalSeconds > 0
-                    ? $" • {result.ElapsedTime.TotalSeconds:F1}s"
+                    ? $" ï¿½ {result.ElapsedTime.TotalSeconds:F1}s"
                     : "";
                 _tokenLabel.Text = $"Complete{tokenInfo}{timeInfo}";
             }
@@ -622,10 +632,10 @@ namespace Cad3PLogBrowser.Managers
             if (result.Success)
             {
                 var tokenInfo = result.TokensUsed.HasValue
-                    ? $" • {result.TokensUsed.Value} tokens"
+                    ? $" ï¿½ {result.TokensUsed.Value} tokens"
                     : "";
                 var timeInfo = result.ElapsedTime.TotalSeconds > 0
-                    ? $" • {result.ElapsedTime.TotalSeconds:F1}s"
+                    ? $" ï¿½ {result.ElapsedTime.TotalSeconds:F1}s"
                     : "";
                 _tokenLabel.Text = $"Complete{tokenInfo}{timeInfo}";
             }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -262,6 +262,24 @@
         .qref-cell table { margin:0; font-size:.84em; }
         .qref-cell table td { padding:4px 8px; }
 
+        /* Screenshots */
+        .screenshot {
+            margin: 14px 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.10);
+            background: var(--card);
+        }
+        .screenshot img { display:block; width:100%; height:auto; }
+        .screenshot .caption {
+            padding: 8px 14px;
+            font-size: .82em;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            background: #f7fafc;
+        }
+
         /* Back to top */
         #back-to-top {
             position: fixed;
@@ -323,7 +341,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2>&#128218; CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v3.1</p>
+        <p>User Guide &#8212; v3.1.9</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -350,18 +368,25 @@
         <li><a href="#call-tree">Call Tree</a></li>
         <li><a href="#api-tree">API Tree</a></li>
         <li><a href="#tree-search">Tree Search</a></li>
+        <li><a href="#expand-to-level">Expand to Level</a></li>
         <li><a href="#tree-context">Tree Context Menu</a></li>
+    </ul>
+
+    <div class="nav-section">Comparing &amp; Merging</div>
+    <ul>
+        <li><a href="#multi-file">Opening Multiple Files</a></li>
+        <li><a href="#compare-logs">Compare Logs</a></li>
     </ul>
 
     <div class="nav-section">Analysis Tabs</div>
     <ul>
-        <li><a href="#raw-view">Raw View Tab</a></li>
         <li><a href="#performance">Performance Tab</a></li>
         <li><a href="#log-details">Log Details Tab</a></li>
         <li><a href="#call-graph">Call Graph Tab</a></li>
-        <li><a href="#flame-graph">Flame Graph Tab</a></li>
-        <li><a href="#timeline">Timeline Tab</a></li>
-        <li><a href="#dependency-graph">Dependency Graph Tab</a></li>
+        <li><a href="#timeline">Timeline / Flame Graph Tab</a></li>
+        <li><a href="#heatmap">Heatmap Tab</a></li>
+        <li><a href="#thread-view">Thread View Tab</a></li>
+        <li><a href="#exceptions">Exceptions Tab</a></li>
         <li><a href="#ai-assistant">AI Assistant Tab</a></li>
     </ul>
 
@@ -393,7 +418,7 @@
 <div class="page-header">
     <h1>&#128218; CAD 3P Log Browser</h1>
     <p>Complete User Guide &amp; Reference Manual</p>
-    <span class="badge">v3.1</span>
+    <span class="badge">v3.1.9</span>
     <span class="badge">.NET Framework 4.8</span>
     <span class="badge">Windows</span>
 </div>
@@ -410,12 +435,13 @@
             <ul>
                 <li>Call Tree (hierarchical call stack)</li>
                 <li>API Tree (grouped by method)</li>
-                <li>Raw View (unformatted file text)</li>
                 <li>Performance statistics table</li>
                 <li>Call Graph (dependency graph)</li>
-                <li>Flame Graph (profiling view)</li>
-                <li>Timeline (Gantt-style view)</li>
-                <li>AI Assistant</li>
+                <li>Timeline / Flame Graph (one tab, two modes)</li>
+                <li>Heatmap (API activity over time)</li>
+                <li>Thread View (side-by-side per-thread trees)</li>
+                <li>Exceptions (grouped by type + correlation ID)</li>
+                <li>AI Assistant (multi-provider)</li>
             </ul>
         </div>
         <div class="qref-cell">
@@ -426,8 +452,9 @@
                 <li>Bookmarks with persistence</li>
                 <li>Error / Warning navigation</li>
                 <li>Dark &amp; Light themes</li>
-                <li>Export to CSV, JSON, XML, PNG, XLS</li>
-                <li>Merge multiple log files</li>
+                <li>Export to CSV, JSON, XML, PNG</li>
+                <li>Merge or side-by-side <strong>compare</strong> multiple log files</li>
+                <li>Drag-drop or command-line multi-file open</li>
                 <li>Lazy loading for huge trees</li>
             </ul>
         </div>
@@ -437,43 +464,41 @@
 
 <!-- ═══ WHAT'S NEW ═══ -->
 <div class="section" id="whats-new">
-    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v3.1</h2>
+    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v3.1.9</h2>
 
-    <h3>&#128257; Automatic Updates</h3>
-    <p>The application now checks for new versions <strong>automatically on startup</strong> (once per day by default). When an update is available a dialog shows the release notes and lets you download and install the new version in one click. The old EXE is replaced while the app is closed; the app restarts automatically when the update completes.</p>
-    <ul>
-        <li><span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> triggers an immediate check at any time.</li>
-        <li>Configure the check interval, toggle auto-check on/off, or change the manifest URL in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Updates</span>.</li>
-        <li>No installation required &#8212; the update replaces only <code>Cad3PLogBrowser.exe</code>; your <code>Help\</code> folder and <code>settings.json</code> are preserved.</li>
-    </ul>
+    <h3>&#128260; Compare Logs</h3>
+    <p>A full side-by-side log comparison tool, reachable from <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>) or by dropping exactly two files onto the window. Trees are colour-coded per difference type, scroll together, and a <strong>Performance Delta</strong> tab shows which methods got slower or faster between the two files. See <a href="#compare-logs">Compare Logs</a>.</p>
 
+    <h3>&#128293; Timeline and Flame Graph merged into one tab</h3>
+    <p>The Timeline and Flame Graph views showed the same call data with almost identical chrome, so they are now one tab (<strong>&#8220;Timeline / Flame Graph&#8221;</strong>) with a mode-switch button pair at the top. Flame Graph aggregation was also fixed: repeated sibling calls to the same method now merge into a single wider bar labelled <code>&#215;N</code>, instead of drawing one sliver per call. See <a href="#timeline">Timeline / Flame Graph Tab</a>.</p>
 
-    <h3>&#128221; Raw View Tab</h3>
-    <p>A new <strong>Raw</strong> tab shows the unformatted file content in a read-only, scrollable text box (Consolas font, horizontal + vertical scrollbars). Files above 50,000 lines are capped with a visible notice. Toggle it via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Raw</span>.</p>
+    <h3>&#128293; Heatmap rebuilt as a time-bucketed activity matrix</h3>
+    <p>The Heatmap tab is now a genuine two-dimensional view &#8212; APIs on the vertical axis, fixed time buckets across the file&#8217;s span on the horizontal axis, colour depth showing how much time each API consumed within that window. This is the only view with both an API axis <em>and</em> a time axis. See <a href="#heatmap">Heatmap Tab</a>.</p>
 
-    <h3>&#128196; API Tree &#8212; ENTER/EXIT counting fixed</h3>
-    <p>Each invocation of an API now appears as <strong>exactly one node</strong>, regardless of whether ENTER+EXIT, ENTER-only, or EXIT-only exists. Orphan EXIT lines (no matching ENTER) are shown with an <em>[EXIT only]</em> label and a red &#10060; icon. Call counts are no longer doubled.</p>
+    <h3>&#129504; Thread View tab</h3>
+    <p>A new <strong>Thread View</strong> tab shows two independent call trees side by side, one per thread, selected from &#8220;Thread A&#8221; / &#8220;Thread B&#8221; drop-downs populated from the thread IDs seen in the log &#8212; useful for comparing what two threads were doing concurrently. See <a href="#thread-view">Thread View Tab</a>.</p>
 
-    <h3>&#9881; Settings Dialog &#8212; fully redesigned</h3>
-    <p>The settings dialog is now a compact <strong>TabControl</strong> with six organised pages instead of a single long scroll. A <strong>Reset to Defaults</strong> button (bottom-left) instantly resets all non-security settings. New settings added: <em>Default open folder</em>, <em>Default tree view</em>, and <em>Start-up tab</em>.</p>
+    <h3>&#128680; Exceptions tab</h3>
+    <p>Groups every exception seen in the log by type (with first/last-seen line numbers) and separately groups lines by correlation / request ID, so you can pull every log line tied to one request together. See <a href="#exceptions">Exceptions Tab</a>.</p>
 
-    <h3>&#127794; Start-up tab &amp; tree view restored</h3>
-    <p>The <em>Start-up tab</em> and <em>Default tree view</em> settings are now correctly applied when the application launches, not just saved. Choose any of the 8 tabs and Call Tree or API Tree as your preferred opening state.</p>
+    <h3>&#128193; Multiple files: drag-drop dialog, and command-line support</h3>
+    <p>Dropping 2+ files onto the window (or passing them on the command line) now offers a choice &#8212; <strong>Merge All</strong>, <strong>Compare</strong> (only offered for exactly 2 files), or <strong>Open First File Only</strong>. Command-line arguments are validated up front with every problem reported together (missing file, folder instead of a file, access denied, etc.), not just the first one encountered. See <a href="#multi-file">Opening Multiple Files</a>.</p>
 
-    <h3>&#128197; Show Tabs menu &#8212; all 8 tabs, correct labels &amp; icons</h3>
-    <p>The <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs</span> submenu now contains all eight tabs with meaningful names (<em>Log View, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant</em>) and matching icons. Previously, Call Graph had no entry and several items had wrong labels.</p>
+    <h3>&#128194; Recent Files moved to their own file</h3>
+    <p>The recent-files list now lives in <code>%AppData%\CAD3PLogBrowser\recentfiles.json</code> instead of inside <code>settings.json</code>, so it survives a settings reset. Existing recent files are migrated automatically the first time you run this version.</p>
 
-    <h3>&#127912; Theme switching performance improved</h3>
-    <p>Switching themes no longer re-subscribes drawing handlers on every control on every call &#8212; only the first switch from light&#8596;dark direction incurs the full walk. Repeated theme toggles are now near-instant.</p>
+    <h3>&#128260; Configurable auto-reload, off by default at 0</h3>
+    <p><span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> toggles disk-change monitoring, and a new <strong>Auto-reload after (seconds)</strong> setting (Settings &#8594; Files &amp; Behavior) lets a changed file reload itself silently after a delay. Reloading is always non-blocking: at <code>0</code> (the default) the status bar shows a &#8220;File changed on disk &#8212; click to reload&#8221; message you click when ready; above <code>0</code> it reloads by itself after a silent countdown, also shown in the status bar.</p>
 
-    <h3>&#128683; Expand/Collapse icons corrected</h3>
-    <p>The Expand All and Collapse All toolbar buttons now use the correct Segoe MDL2 glyphs (ChevronDown / ChevronRight) instead of the generic Add/Remove symbols that rendered as <code>??</code> on some systems.</p>
+    <h3>&#127775; Expand to Level (tree)</h3>
+    <p>The Call Tree and API Tree context menus (and the Edit menu) gained an <strong>Expand to Level...</strong> command that expands every node down to a depth you choose in one step, collapsing anything deeper &#8212; a middle ground between one node at a time and Expand All. See <a href="#expand-to-level">Expand to Level</a>.</p>
 
-    <h3>&#128295; All toolbar icons render on Windows 10 RTM+</h3>
-    <p>Eleven icon codepoints that were in the extended PUA range (E9xx&#8211;EDxx) and unavailable on older Windows 10 builds have been replaced with equivalents in the guaranteed-available E7xx&#8211;E8xx range.</p>
+    <h3>&#129504; AI Assistant: multiple providers, including self-hosted Ollama</h3>
+    <p>The AI Assistant now supports several providers from one Settings page: <strong>Anthropic Claude</strong>, <strong>GitHub Copilot</strong>, and self-hosted <strong>Ollama</strong> (plus a Mock provider for testing without any network calls). OpenAI, Azure OpenAI, and Google Gemini are listed as <em>Coming Soon</em> &#8212; the settings fields exist but those three providers aren&#8217;t wired up to make requests yet. A long-standing bug where the Ollama server URL (and several other AI settings) silently reset to the default on every save has also been fixed. See <a href="#ai-assistant">AI Assistant Tab</a>.</p>
 
-    <h3>&#128193; Resource string encoding fixed</h3>
-    <p>Six resource strings (sort labels, dialog titles, summary row) were double-encoded as mojibake. They now display correctly: &#8595;, &#8212;, &#9472;, &#10003;, &#10007;.</p>
+    <div class="note">
+        <strong>&#128221; Earlier in the v3.1 line:</strong> automatic update checks, ENTER/EXIT counting fixes in the API Tree, a redesigned Settings dialog, corrected toolbar icons, and theme-switching performance improvements. These are all still current &#8212; see <a href="#updates">Auto-Update</a> and <a href="#settings">Settings Dialog</a> for details.
+    </div>
 </div>
 
 
@@ -488,17 +513,21 @@
             <span class="desc">Press <kbd>Ctrl+O</kbd>, click the <strong>Open</strong> toolbar button, or drag &amp; drop a <code>.log</code> file onto the window.</span>
         </div>
         <div class="feature-row">
+            <span class="label">&#128193; Drop multiple files</span>
+            <span class="desc">Drop 2 or more files (or pass them on the command line) to choose <strong>Merge</strong>, <strong>Compare</strong> (exactly 2 files), or open just the first one. See <a href="#multi-file">Opening Multiple Files</a>.</span>
+        </div>
+        <div class="feature-row">
             <span class="label">&#128336; Recent Files</span>
             <span class="desc">The last 10 files appear under <span class="menu">File <span class="menu-arrow">&#8594;</span> Recent Files</span>. Click any entry to reopen immediately.</span>
         </div>
         <div class="feature-row">
-            <span class="label">&#128260; Merge Logs</span>
-            <span class="desc">Press <kbd>Ctrl+M</kbd> to open multiple files and merge them into a single time-sorted view.</span>
+            <span class="label">&#128260; Merge or Compare</span>
+            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Merge Logs...</span> (<kbd>Ctrl+M</kbd>) merges 2+ files into one time-sorted view; <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>) opens the side-by-side diff tool.</span>
         </div>
     </div>
 
     <div class="tip">
-        <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically.
+        <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically (or set a folder explicitly in Settings &#8594; Files &amp; Behavior).
     </div>
 
     <h3>Recommended First Steps</h3>
@@ -516,14 +545,20 @@
 <div class="section" id="interface">
     <h2 class="section-title"><span class="ico">&#128444;</span> Interface Overview</h2>
 
+    <div class="screenshot">
+        <img src="images/interface-overview.png" alt="Main window showing the tree panel, tab strip, and Log Summary bar">
+        <div class="caption">Main window: tree panel (left), tab strip with all nine tabs, and the collapsible Log Summary bar under the toolbar.</div>
+    </div>
+
     <table>
         <thead><tr><th>Area</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td><strong>Menu Bar</strong></td><td>Five top-level menus: <em>File, Edit, Options, View, Help</em></td></tr>
             <tr><td><strong>Toolbar</strong></td><td>One-click access to the most common actions (see <a href="#toolbar">Toolbar Reference</a>)</td></tr>
+            <tr><td><strong>Log Summary bar</strong></td><td>Collapsible strip under the toolbar (click the &#9662;/&#9656; arrow) showing Lines, Methods, Duration, Unique methods, Errors, and Warnings at a glance. Auto-collapses on short screens.</td></tr>
             <tr><td><strong>Tree Panel (left)</strong></td><td>Call Tree or API Tree + real-time search box at the top</td></tr>
-            <tr><td><strong>Tab Panel (right)</strong></td><td>Log View, <strong>Raw</strong>, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant &#8212; toggle each via <span class="menu">View &#8594; Show Tabs</span></td></tr>
-            <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line preview</td></tr>
+            <tr><td><strong>Tab Panel (right)</strong></td><td>Log, Performance, Log Details, Call Graph, Timeline / Flame Graph, Heatmap, AI Assistant, Exceptions, Thread View &#8212; toggle each via <span class="menu">View &#8594; Tabs</span></td></tr>
+            <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line preview, inline &#8220;Go to:&#8221; line-number box</td></tr>
             <tr><td><strong>Splitter</strong></td><td>Drag the vertical divider to resize the tree vs. tab panels. Position is saved per session.</td></tr>
         </tbody>
     </table>
@@ -546,21 +581,27 @@
         <thead><tr><th>Action</th><th>Shortcut / Button</th><th>Menu</th><th>Notes</th></tr></thead>
         <tbody>
             <tr><td>Open file</td><td><kbd>Ctrl+O</kbd> / &#128193; Open</td><td>File &#8594; Open&#8230;</td><td>Supports .log, .log.*, and any text file</td></tr>
-            <tr><td>Merge log files</td><td><kbd>Ctrl+M</kbd></td><td>File &#8594; Merge Log Files&#8230;</td><td>Select 2+ files; merged view is time-sorted</td></tr>
-            <tr><td>Save selected branch</td><td><kbd>Ctrl+S</kbd> / &#128190; Save</td><td>File &#8594; Save Selected&#8230;</td><td>Saves the ENTER&#8594;EXIT log block for the <em>currently selected tree node</em> to a .log file named <code>{original-file}{suffix}.log</code></td></tr>
-            <tr><td>Export Performance to XLS</td><td><kbd>Ctrl+Shift+E</kbd> / &#128202; XLS</td><td>File &#8594; Save to XLS&#8230;</td><td>Exports the <strong>Performance tab statistics</strong> (all API rows) to a SpreadsheetML .xls file readable by Excel</td></tr>
-            <tr><td>Export Performance CSV</td><td>&#8212;</td><td>File &#8594; Export Performance to CSV&#8230;</td><td>Exports the Performance tab table</td></tr>
+            <tr><td>Merge log files</td><td><kbd>Ctrl+M</kbd></td><td>File &#8594; Merge Logs&#8230;</td><td>Select 2+ files; merged view is time-sorted</td></tr>
+            <tr><td>Compare log files</td><td><kbd>Ctrl+D</kbd></td><td>File &#8594; Compare Logs&#8230;</td><td>Opens the side-by-side diff tool &#8212; see <a href="#compare-logs">Compare Logs</a></td></tr>
+            <tr><td>Save branch</td><td><kbd>Ctrl+S</kbd></td><td>File &#8594; Save As&#8230;</td><td>Saves the ENTER&#8594;EXIT log block for the <em>currently selected tree node</em> to a .log file named <code>{original-file}{suffix}.log</code></td></tr>
+            <tr><td>Export filtered log</td><td><kbd>Ctrl+Shift+E</kbd></td><td>File &#8594; Export Filtered Logs&#8230;</td><td>Exports exactly what&#8217;s currently visible in the Log tab &#8212; the whole file if no filter is active, or just the matching lines if one is</td></tr>
+            <tr><td>Export Performance Data</td><td>&#8212;</td><td>File &#8594; Export Performance Data&#8230;</td><td>CSV export of the Performance tab</td></tr>
+            <tr><td>Export API Summary to CSV</td><td>&#8212;</td><td>File &#8594; Export API Summary to CSV&#8230;</td><td>CSV export of the API Tree</td></tr>
             <tr><td>Export Tree as JSON</td><td>&#8212;</td><td>File &#8594; Export Tree as JSON&#8230;</td><td>Full call tree in JSON format</td></tr>
             <tr><td>Export Tree as XML</td><td>&#8212;</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Full call tree in XML format</td></tr>
-            <tr><td>Export Timeline image</td><td>&#8212;</td><td>File &#8594; Export Timeline as Image&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
-            <tr><td>Export Flame Graph image</td><td>&#8212;</td><td>File &#8594; Export Flame Graph as Image&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
-            <tr><td>Reload from disk</td><td><kbd>F5</kbd> / &#128260; Refresh</td><td>File &#8594; Reload from Disk</td><td>Reloads and preserves scroll position</td></tr>
+            <tr><td>Export Timeline image</td><td>&#8212;</td><td>File &#8594; Export Timeline&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
+            <tr><td>Export Flame Graph image</td><td>&#8212;</td><td>File &#8594; Export Flame Graph&#8230;</td><td>PNG at 1920&#215;1080</td></tr>
+            <tr><td>Reload from disk</td><td><kbd>F5</kbd> / &#128260; Refresh</td><td>File &#8594; Reload</td><td>Reloads and preserves scroll position</td></tr>
             <tr><td>Exit</td><td><kbd>Alt+F4</kbd></td><td>File &#8594; Exit</td><td>Saves settings on close</td></tr>
         </tbody>
     </table>
 
     <div class="note">
-        <strong>&#128221; Auto-watch:</strong> The application monitors the opened file for disk changes. When the file changes, the status ball turns red. Press <kbd>F5</kbd> to reload.
+        <strong>&#128221; Auto-watch:</strong> When <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> is on (the default), the app monitors the opened file for disk changes. What happens next depends on the <strong>Auto-reload after (seconds)</strong> setting: at <code>0</code> (default) the status bar shows a clickable &#8220;File changed on disk &#8212; click to reload&#8221; message &#8212; nothing reloads until you click it; above <code>0</code> it reloads by itself after a silent countdown, shown right in the status bar. Either way, pressing <kbd>F5</kbd> reloads immediately.
+    </div>
+
+    <div class="info">
+        <strong>&#128193; Compressed logs:</strong> <code>.gz</code> and <code>.zip</code> files are decompressed transparently when opened &#8212; pick <em>Compressed logs (*.gz;*.zip)</em> in the Open dialog&#8217;s file-type filter.
     </div>
 </div>
 
@@ -573,7 +614,6 @@
     <div class="toolbar-diagram">
         <span class="tb-btn">&#128193; Open</span>
         <span class="tb-btn">&#128190; Save</span>
-        <span class="tb-btn">&#128202; XLS</span>
         <span class="tb-btn">&#128260; Reload</span>
         <span class="tb-sep"></span>
         <span class="tb-btn">&#128203; Copy</span>
@@ -605,7 +645,6 @@
         <tbody>
             <tr><td>Open</td><td>Open log file</td><td><kbd>Ctrl+O</kbd></td><td>Open File dialog</td></tr>
             <tr><td>Save</td><td>Save selected lines</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected to .log</td></tr>
-            <tr><td>XLS</td><td>Save to XLS</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export filtered view to Excel</td></tr>
             <tr><td>Reload</td><td>Reload from disk</td><td><kbd>F5</kbd></td><td>Re-reads file from disk</td></tr>
             <tr><td>Copy</td><td>Copy selected lines</td><td><kbd>Ctrl+C</kbd></td><td>Copies selected log text to clipboard</td></tr>
             <tr><td>Find</td><td>Find text (Ctrl+F)</td><td><kbd>Ctrl+F</kbd></td><td>Opens Find dialog</td></tr>
@@ -620,14 +659,14 @@
             <tr><td>W&#8594;</td><td>Next Warning (Ctrl+F8)</td><td><kbd>Ctrl+F8</kbd></td><td>Moves to next WARNING line</td></tr>
             <tr><td>Call Tree</td><td>Show Call Tree</td><td>&#8212;</td><td>Switches tree panel to Call Tree</td></tr>
             <tr><td>API Tree</td><td>Show API Tree</td><td>&#8212;</td><td>Switches tree panel to API Tree</td></tr>
-            <tr><td>&#9728; / &#9790; Theme</td><td>Switch to Light / Dark Theme</td><td><kbd>Ctrl+T</kbd></td><td>Toggles Dark &#8596; Light; icon updates to match</td></tr>
+            <tr><td>&#9728; / &#9790; Theme</td><td>Switch to Light / Dark Theme</td><td><kbd>Ctrl+T</kbd></td><td>Toggles Dark &#8596; Light; icon updates to match. (Toolbar-only &#8212; there is no Theme item in any menu.)</td></tr>
             <tr><td>Settings</td><td>Settings (Ctrl+Shift+S)</td><td><kbd>Ctrl+Shift+S</kbd></td><td>Opens Settings dialog</td></tr>
-            <tr><td>Help</td><td>Help (F1)</td><td><kbd>F1</kbd></td><td>Opens this User Guide in browser</td></tr>
+            <tr><td>Help</td><td>Help (F1)</td><td><kbd>F1</kbd></td><td>Opens this User Guide in browser, jumping to the active tab&#8217;s section</td></tr>
         </tbody>
     </table>
 
     <div class="tip">
-        <strong>&#128161; Tip:</strong> Right-click the toolbar area and go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> to change icon size (Small / Medium / Large) or hide the toolbar via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Toolbar</span>.
+        <strong>&#128161; Tip:</strong> Change icon size (Small / Medium / Large) in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span>, or hide the toolbar via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Toolbar</span>.
     </div>
 </div>
 
@@ -635,7 +674,7 @@
 <!-- ═══ LOG VIEW TAB ═══ -->
 <div class="section" id="log-view">
     <h2 class="section-title"><span class="ico">&#128221;</span> Log View Tab</h2>
-    <p>The <strong>Log View</strong> tab (first tab) is the main log viewer. It uses Windows virtual-list mode, meaning only the rows visible on screen are rendered &#8212; making even 500,000-line files load in under a second.</p>
+    <p>The <strong>Log</strong> tab (first tab) is the main log viewer. It uses Windows virtual-list mode, meaning only the rows visible on screen are rendered &#8212; making even 500,000-line files load in under a second.</p>
 
     <h3>Columns</h3>
     <table>
@@ -654,7 +693,7 @@
             <tr><td><span class="swatch" style="background:#fff3cc;"></span> Amber / yellow</td><td>Line contains <code>W:</code> (Warning level indicator)</td></tr>
             <tr><td><span class="swatch" style="background:#c8e6ff;"></span> Light blue</td><td>Line is bookmarked</td></tr>
             <tr><td><span class="swatch" style="background:#ffe57a;"></span> Bright yellow</td><td>Line matches the active search / highlight term</td></tr>
-            <tr><td>Default background</td><td>Normal informational line (theme-aware)</td></tr>
+            <tr><td>Default background</td><td>Normal informational line (theme-aware). When viewing a <strong>merged</strong> log, each source file gets its own soft background tint so you can tell which file a line came from at a glance.</td></tr>
         </tbody>
     </table>
 
@@ -672,22 +711,6 @@
 </div>
 
 
-<!-- ═══ RAW VIEW TAB ═══ -->
-<div class="section" id="raw-view">
-    <h2 class="section-title"><span class="ico">&#128196;</span> Raw View Tab</h2>
-    <p>The <strong>Raw</strong> tab shows the complete unformatted file content in a read-only text box &#8212; useful for checking the exact bytes as they appear on disk, for copying arbitrary spans, or for viewing lines that the parser might skip.</p>
-
-    <div class="card">
-        <div class="feature-row"><span class="label">Font</span><span class="desc">Consolas 9.75 pt &#8212; same monospace as the log view</span></div>
-        <div class="feature-row"><span class="label">Scrollbars</span><span class="desc">Both horizontal and vertical &#8212; long lines never wrap</span></div>
-        <div class="feature-row"><span class="label">Read-only</span><span class="desc">Content cannot be edited; select text to copy with <kbd>Ctrl+C</kbd></span></div>
-        <div class="feature-row"><span class="label">Line cap</span><span class="desc">Files above 50,000 lines show the first 50,000 with a notice at the bottom. Use the Log View for full navigation of very large files.</span></div>
-        <div class="feature-row"><span class="label">Theme-aware</span><span class="desc">Background and foreground follow the active Light / Dark theme</span></div>
-    </div>
-
-    <p>Toggle via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Raw</span> or uncheck <em>Raw</em> in the <strong>Settings &#8594; Tabs &amp; Layout</strong> page.</p>
-</div>
-
 <!-- ═══ SEARCH & FILTER ═══ -->
 <div class="section" id="search-filter">
     <h2 class="section-title"><span class="ico">&#128269;</span> Search &amp; Filter</h2>
@@ -699,13 +722,17 @@
         <div class="feature-row"><span class="label">Use regex</span><span class="desc">Full .NET regular expression support</span></div>
         <div class="feature-row"><span class="label">Search history</span><span class="desc">Drop-down remembers last 20 search terms (persisted across sessions)</span></div>
         <div class="feature-row"><span class="label">Highlight all</span><span class="desc">Matching lines are highlighted yellow in the log view</span></div>
+        <div class="feature-row"><span class="label">Previous button</span><span class="desc">Steps to the previous match without closing the dialog; <kbd>Shift+Enter</kbd> in the search box does the same</span></div>
+        <div class="feature-row"><span class="label">Match count</span><span class="desc">Shows &#8220;Match N of M&#8221; (or &#8220;No matches&#8221;) below the search box as you type</span></div>
+        <div class="feature-row"><span class="label">Invalid regex indicator</span><span class="desc">With <em>Use regex</em> checked, an invalid pattern tints the search box red with a tooltip explaining the error &#8212; distinct from a valid pattern that simply has no matches</span></div>
     </div>
 
     <table class="shortcut-table">
         <thead><tr><th>Action</th><th>Shortcut</th></tr></thead>
         <tbody>
             <tr><td>Open Find dialog</td><td><kbd>Ctrl+F</kbd></td></tr>
-            <tr><td>Find next (no dialog)</td><td><kbd>F3</kbd></td></tr>
+            <tr><td>Find next (in dialog or main window)</td><td><kbd>F3</kbd> / <kbd>Enter</kbd></td></tr>
+            <tr><td>Find previous (in dialog or main window)</td><td><kbd>Shift+F3</kbd> / <kbd>Shift+Enter</kbd></td></tr>
             <tr><td>Find All (results window)</td><td><kbd>Ctrl+Alt+F</kbd></td></tr>
         </tbody>
     </table>
@@ -724,13 +751,17 @@
             <tr><td><strong>Min duration (ms)</strong></td><td>Only calls with <code>[N ms]</code> duration &ge; this value</td><td><code>500</code></td></tr>
             <tr><td><strong>From time</strong></td><td>Log lines at or after this time-of-day</td><td><code>14:30:00</code></td></tr>
             <tr><td><strong>To time</strong></td><td>Log lines at or before this time-of-day</td><td><code>14:35:00</code></td></tr>
-            <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread</td><td><code>0x1A2B</code></td></tr>
-            <tr><td><strong>Log level</strong></td><td>ERROR, WARNING, INFO, or DEBUG</td><td>ERROR</td></tr>
+            <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread &#8212; a drop-down of the thread IDs actually detected in the loaded log (editable, so you can still type one by hand). Hidden entirely when the log has none.</td><td><code>T7978</code></td></tr>
+            <tr><td><strong>Log level</strong></td><td>Independent checkboxes for Debug, Info, Warning, Error &#8212; check any combination to show lines matching <em>any</em> of the checked levels</td><td>Warning + Error</td></tr>
         </tbody>
     </table>
 
     <div class="tip">
         <strong>&#128161; Tip:</strong> When a filter is active, the status bar shows <em>&#8220;Filter: [description] &#8212; N of M lines&#8221;</em>. Clear it with <kbd>Ctrl+Shift+F</kbd> or <span class="menu">Edit <span class="menu-arrow">&#8594;</span> Clear Filter</span>.
+    </div>
+
+    <div class="note">
+        <strong>&#128278; Filters reach the trees too:</strong> When the <strong>Min duration</strong> or time-range criteria are active, matching nodes in the Call Tree are highlighted and their ancestor chains auto-expanded &#8212; the same non-destructive highlight approach used by the tree search box, not a separate filter mechanism. Text/thread/level criteria still apply only to the Log view.
     </div>
 
     <h3>Regex Examples</h3>
@@ -755,7 +786,7 @@
             <tr><td>Toggle bookmark on current line</td><td><kbd>Ctrl+B</kbd></td><td>Edit &#8594; Toggle Bookmark</td></tr>
             <tr><td>Jump to next bookmark</td><td><kbd>F2</kbd></td><td>Edit &#8594; Next Bookmark</td></tr>
             <tr><td>Jump to previous bookmark</td><td><kbd>Shift+F2</kbd></td><td>Edit &#8594; Previous Bookmark</td></tr>
-            <tr><td>Show all bookmarks list</td><td><kbd>Ctrl+Shift+B</kbd></td><td>Edit &#8594; Show All Bookmarks</td></tr>
+            <tr><td>Show all bookmarks list</td><td><kbd>Ctrl+Shift+B</kbd></td><td>Edit &#8594; Show Bookmarks</td></tr>
             <tr><td>Clear all bookmarks</td><td><kbd>Ctrl+Shift+Del</kbd></td><td>Edit &#8594; Clear All Bookmarks</td></tr>
         </tbody>
     </table>
@@ -781,13 +812,16 @@
         </tbody>
     </table>
 
-    <p>The status bar shows the error / warning counts (e.g. <em>&#8220;3 errors, 12 warnings&#8221;</em>) alongside the line count.</p>
+    <p>The status bar shows the error / warning counts (e.g. <em>&#8220;3 errors, 12 warnings&#8221;</em>) alongside the line count, and the same counts appear in the Log Summary bar under the toolbar.</p>
 
     <h3>Jump to Line <kbd>Ctrl+L</kbd></h3>
-    <p>Opens a prompt where you type a line number and jump directly to it.</p>
+    <p>Opens a prompt where you type a line number and jump directly to it. For a quicker one-off jump, the status bar also has an inline &#8220;Go to:&#8221; box &#8212; type a number and press Enter without opening a dialog.</p>
 
     <h3>Jump to Matching ENTER/EXIT <kbd>Ctrl+G</kbd></h3>
     <p>When a log line is an <code>ENTER</code> or <code>EXIT</code> marker, this jumps to the matching counterpart, correctly handling nested calls of the same method.</p>
+
+    <h3>Inspect Line <kbd>F12</kbd></h3>
+    <p>Opens a detailed inspector for the currently selected log line.</p>
 </div>
 
 
@@ -809,13 +843,14 @@
         <thead><tr><th>Colour</th><th>Duration</th><th>Meaning</th></tr></thead>
         <tbody>
             <tr><td><span class="swatch" style="background:#00aa00;"></span> Green</td><td>&lt; 100 ms</td><td>Fast &#8212; no concern</td></tr>
-            <tr><td><span class="swatch" style="background:#cc6600;"></span> Amber</td><td>100 &#8211; 500 ms</td><td>Moderate &#8212; worth monitoring</td></tr>
-            <tr><td><span class="swatch" style="background:#cc0000;"></span> Red</td><td>&gt; 500 ms</td><td>Slow &#8212; likely bottleneck</td></tr>
+            <tr><td><span class="swatch" style="background:#cc6600;"></span> Amber</td><td>100 &#8211; 1000 ms</td><td>Moderate &#8212; worth monitoring</td></tr>
+            <tr><td><span class="swatch" style="background:#cc0000;"></span> Red</td><td>&gt; 1000 ms</td><td>Slow &#8212; likely bottleneck</td></tr>
         </tbody>
     </table>
+    <p>Both cutoffs (default 100 ms / 1000 ms) are configurable via <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Files &amp; Behavior</span> as <strong>Fast call threshold</strong> and <strong>Slow call threshold</strong> &#8212; the tree recolours immediately when you change them, no reload needed.</p>
 
     <h3>Lazy Loading</h3>
-    <p>For very large call trees (&gt; 50,000 nodes), the tree uses <strong>lazy loading</strong>: child nodes are populated on demand when you expand a parent. A <em>&#8220;Loading&#8230;&#8221;</em> placeholder is shown until children are rendered.</p>
+    <p>For very large call trees, the tree uses <strong>lazy loading</strong>: child nodes are populated on demand when you expand a parent. A <em>&#8220;Loading&#8230;&#8221;</em> placeholder is shown until children are rendered. The node-count threshold that triggers this (default 50,000) is configurable via <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Files &amp; Behavior</span> as <strong>Lazy-load tree above</strong> &#8212; lower it on slower machines for snappier expansion, or raise it to always build small/medium trees eagerly.</p>
 
     <h3>Sorting (API Tree only)</h3>
     <p>Right-click the API Tree to choose sort order: by <strong>Name</strong>, by <strong>Call Count</strong>, or by <strong>First Line</strong>.</p>
@@ -856,6 +891,29 @@
 </div>
 
 
+<!-- ═══ EXPAND TO LEVEL ═══ -->
+<div class="section" id="expand-to-level">
+    <h2 class="section-title"><span class="ico">&#127775;</span> Expand to Level</h2>
+    <p>Expands every node in a tree down to a depth you choose &#8212; collapsing anything deeper &#8212; in one step. Useful for getting a consistent, readable overview of a deep call tree without going all the way to Expand All.</p>
+
+    <div class="screenshot">
+        <img src="images/expand-to-level-dialog.png" alt="Expand to Level dialog prompting for a depth">
+        <div class="caption">The Expand to Level prompt &#8212; 0 expands root nodes only.</div>
+    </div>
+
+    <table class="shortcut-table">
+        <thead><tr><th>Where</th><th>How to open it</th><th>Applies to</th></tr></thead>
+        <tbody>
+            <tr><td>Edit menu</td><td><span class="menu">Edit <span class="menu-arrow">&#8594;</span> Expand to Level...</span> (no shortcut assigned)</td><td><strong>Both</strong> the Call Tree and API Tree at once</td></tr>
+            <tr><td>API Tree right-click</td><td>Context menu &#8594; Expand to Level...</td><td>Just the API Tree</td></tr>
+            <tr><td>Call Tree right-click</td><td>Context menu &#8594; Expand to Level...</td><td>Just the Call Tree</td></tr>
+        </tbody>
+    </table>
+
+    <p>Enter <code>0</code> to show root nodes only, <code>1</code> for roots + their direct children, and so on. The result always reflects exactly &#8220;levels 0..N visible&#8221; regardless of what was expanded before &#8212; it isn&#8217;t additive with the tree&#8217;s prior state.</p>
+</div>
+
+
 <!-- ═══ TREE CONTEXT MENU ═══ -->
 <div class="section" id="tree-context">
     <h2 class="section-title"><span class="ico">&#128196;</span> Tree Context Menu</h2>
@@ -872,6 +930,7 @@
             <tr><td>Export Branch as CSV&#8230;</td><td>Exports the branch to CSV (Name, Depth, Duration columns)</td></tr>
             <tr><td>Expand All</td><td>Expands all children of this node</td></tr>
             <tr><td>Collapse All</td><td>Collapses all children to root</td></tr>
+            <tr><td>Expand to Level&#8230;</td><td>Expands just this tree down to a chosen depth &#8212; see <a href="#expand-to-level">Expand to Level</a></td></tr>
             <tr><td>Show in API Tree</td><td>Switches to API Tree and selects the matching node</td></tr>
             <tr><td>Search in Grok</td><td>Opens Grok URL with the method name (only shown if Grok URL is configured in Settings)</td></tr>
         </tbody>
@@ -886,6 +945,7 @@
             <tr><td>Sort by First Line</td><td>Order of first appearance in the log</td></tr>
             <tr><td>Copy API Name</td><td>Copies the method name to clipboard</td></tr>
             <tr><td>Expand All / Collapse All</td><td>Tree expand/collapse</td></tr>
+            <tr><td>Expand to Level&#8230;</td><td>Expands just this tree down to a chosen depth</td></tr>
             <tr><td>Show in Call Tree</td><td>Switches to Call Tree and highlights the method</td></tr>
             <tr><td>Search in Grok</td><td>As above</td></tr>
         </tbody>
@@ -893,10 +953,111 @@
 </div>
 
 
+<!-- ═══ OPENING MULTIPLE FILES ═══ -->
+<div class="section" id="multi-file">
+    <h2 class="section-title"><span class="ico">&#128193;</span> Opening Multiple Files</h2>
+    <p>Dropping two or more files onto the window &#8212; or passing them on the command line &#8212; shows the same dialog with up to three choices, so you never have to decide up front how you want to combine them.</p>
+
+    <div class="screenshot">
+        <img src="images/multi-file-dialog.png" alt="Multiple Files Dropped dialog with Merge All, Compare, and Open First File options">
+        <div class="caption">Dropping exactly 2 files: all three actions are offered. Dropping 3+ files hides the Compare button (a diff needs exactly two files).</div>
+    </div>
+
+    <table>
+        <thead><tr><th>Option</th><th>When shown</th><th>Result</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Merge All (N files)</strong></td><td>Always, for 2+ files</td><td>Combines every file into one time-sorted view (same as File &#8594; Merge Logs&#8230;)</td></tr>
+            <tr><td><strong>Compare (2 files)</strong></td><td><strong>Only</strong> when exactly 2 files were dropped</td><td>Opens the Compare Logs dialog, already comparing the two files</td></tr>
+            <tr><td><strong>Open First File Only (name)</strong></td><td>Always</td><td>Loads just the first file, ignoring the rest. This is the default button &#8212; pressing <kbd>Enter</kbd> triggers it.</td></tr>
+            <tr><td><strong>Cancel</strong></td><td>Always</td><td>Does nothing (also triggered by <kbd>Esc</kbd>)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Command-Line Open</h3>
+    <p>Pass one or more file paths as command-line arguments (e.g. from a shortcut, script, or another tool launching the browser). Every path is validated before anything opens:</p>
+    <ul>
+        <li>Blank arguments are silently ignored.</li>
+        <li>A path that&#8217;s a folder, doesn&#8217;t exist, is access-denied, too long, or otherwise unreadable is reported by name &#8212; and <strong>every</strong> problem is collected and shown together in one message, not just the first one found.</li>
+        <li><strong>One</strong> valid file opens directly, no dialog.</li>
+        <li><strong>Two or more</strong> valid files show the same Merge / Compare / Open First dialog as drag-drop, above.</li>
+    </ul>
+
+    <div class="note">
+        <strong>&#128221; Note:</strong> if some paths fail validation but at least one succeeds, you still get a warning listing what failed, then the valid file(s) proceed normally.
+    </div>
+</div>
+
+
+<!-- ═══ COMPARE LOGS ═══ -->
+<div class="section" id="compare-logs">
+    <h2 class="section-title"><span class="ico">&#128260;</span> Compare Logs</h2>
+    <p>A dedicated side-by-side diff tool for two log files&#8217; call trees &#8212; open it via <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>, opens empty so you can browse both sides) or by dropping exactly two files and choosing <strong>Compare</strong> (opens already comparing them).</p>
+
+    <div class="screenshot">
+        <img src="images/compare-logs-dialog.png" alt="Compare Logs dialog showing two call trees side by side">
+        <div class="caption">Left and Right trees with accent-coloured headers (blue / amber), Structural Differences and Performance Delta tabs below.</div>
+    </div>
+
+    <h3>Toolbar &amp; Menus</h3>
+    <table class="shortcut-table">
+        <thead><tr><th>Action</th><th>Shortcut</th><th>Menu</th></tr></thead>
+        <tbody>
+            <tr><td>Browse Left File</td><td><kbd>Ctrl+Shift+L</kbd></td><td>File &#8594; Browse Left File...</td></tr>
+            <tr><td>Browse Right File</td><td><kbd>Ctrl+Shift+R</kbd></td><td>File &#8594; Browse Right File...</td></tr>
+            <tr><td>Compare</td><td><kbd>F5</kbd></td><td>File &#8594; Compare</td></tr>
+            <tr><td>Swap Left/Right</td><td><kbd>Ctrl+W</kbd></td><td>File &#8594; Swap Left/Right</td></tr>
+            <tr><td>Close</td><td><kbd>Alt+F4</kbd></td><td>File &#8594; Close</td></tr>
+            <tr><td>First Difference</td><td><kbd>Ctrl+Shift+Home</kbd></td><td>Navigation &#8594; First Difference</td></tr>
+            <tr><td>Previous Difference</td><td><kbd>F7</kbd></td><td>Navigation &#8594; Previous Difference</td></tr>
+            <tr><td>Next Difference</td><td><kbd>F8</kbd></td><td>Navigation &#8594; Next Difference</td></tr>
+            <tr><td>Last Difference</td><td><kbd>Ctrl+Shift+End</kbd></td><td>Navigation &#8594; Last Difference</td></tr>
+            <tr><td>Expand All</td><td><kbd>Ctrl+E</kbd></td><td>View &#8594; Expand All</td></tr>
+            <tr><td>Collapse All</td><td><kbd>Ctrl+C</kbd></td><td>View &#8594; Collapse All</td></tr>
+            <tr><td>Synchronize Scrolling</td><td>&#8212;</td><td>View &#8594; Synchronize Scrolling (checkable, on by default)</td></tr>
+            <tr><td>Comparison Options</td><td>&#8212;</td><td>View &#8594; Options...</td></tr>
+        </tbody>
+    </table>
+
+    <div class="warn">
+        <strong>&#9888; Different from the main window:</strong> inside the Compare Logs dialog, <kbd>Ctrl+C</kbd> is <strong>Collapse All</strong>, not Copy, and <kbd>F5</kbd>/<kbd>Ctrl+W</kbd> mean Compare/Swap rather than Reload/Collapse All. These shortcuts are scoped to this dialog only.
+    </div>
+
+    <h3>Synchronized Scrolling</h3>
+    <p>When on (the default), scrolling, expanding, or collapsing either tree keeps the other tree aligned to the same visible row &#8212; so you can scroll once and always be looking at corresponding sections on both sides. Turn it off from the View menu if you want to browse each side independently.</p>
+
+    <h3>Difference Colours</h3>
+    <div class="card">
+        <div class="feature-row"><span class="label"><span class="swatch" style="background:#fff9c4;border:1px solid #ccc;"></span> Text Mismatch</span><span class="desc">Same position in both trees, different content (e.g. different duration or line reference)</span></div>
+        <div class="feature-row"><span class="label"><span class="swatch" style="background:#ffcdd2;border:1px solid #ccc;"></span> Missing in Right</span><span class="desc">Node exists on the Left only</span></div>
+        <div class="feature-row"><span class="label"><span class="swatch" style="background:#c8e6c9;border:1px solid #ccc;"></span> Extra in Right</span><span class="desc">Node exists on the Right only</span></div>
+        <div class="feature-row"><span class="label"><span class="swatch" style="background:#ffe0b2;border:1px solid #ccc;"></span> Child Count Mismatch</span><span class="desc">Same node on both sides, but a different number of children</span></div>
+    </div>
+    <p>The same colours are reused for rows in the <strong>Structural Differences</strong> list below the trees (columns: Type, Path, Left Value, Right Value &#8212; double-click a row to jump to it). The status bar along the bottom keeps a running total: <em>Changed / Missing / Added / Count Diff / Total</em>.</p>
+
+    <h3>Performance Delta Tab</h3>
+    <p>Alongside Structural Differences, a <strong>Performance Delta</strong> tab compares per-method average duration between the two files &#8212; flagging methods that got <span style="color:#c0392b;">slower</span>, <span style="color:#27ae60;">faster</span>, newly appeared, or were removed between the two runs.</p>
+
+    <h3>Comparison Options</h3>
+    <p>Reachable from the dialog&#8217;s View &#8594; Options... (and the same settings from <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Comparison</span>):</p>
+    <div class="screenshot">
+        <img src="images/settings-comparison.png" alt="Comparison options page">
+        <div class="caption">Comparison options &#8212; shared between the Settings dialog and the Compare Logs dialog&#8217;s own Options button.</div>
+    </div>
+    <ul>
+        <li><strong>Ignore case</strong></li>
+        <li><strong>Ignore whitespace differences</strong></li>
+        <li><strong>Ignore timestamps and durations</strong> &#8212; checked by default, since two runs of the same code will always have different absolute timestamps</li>
+        <li><strong>Ignore GUIDs</strong></li>
+        <li><strong>Trim leading/trailing whitespace</strong></li>
+        <li><strong>Use custom regex pattern to ignore text</strong> + a regex field, for anything the built-in options don&#8217;t cover</li>
+    </ul>
+</div>
+
+
 <!-- ═══ PERFORMANCE TAB ═══ -->
 <div class="section" id="performance">
     <h2 class="section-title"><span class="ico">&#128202;</span> Performance Tab</h2>
-    <p>Provides a sortable statistics table for every method seen in the log. Enable via <span class="menu">View <span class="menu-arrow">&#8594;</span> Show Tabs <span class="menu-arrow">&#8594;</span> Performance</span>.</p>
+    <p>Provides a sortable statistics table for every method seen in the log. Enable via <span class="menu">View <span class="menu-arrow">&#8594;</span> Tabs <span class="menu-arrow">&#8594;</span> Performance</span>.</p>
 
     <table>
         <thead><tr><th>Column</th><th>Description</th></tr></thead>
@@ -948,23 +1109,44 @@
         <div class="feature-row"><span class="label">Zoom</span><span class="desc">Mouse wheel</span></div>
         <div class="feature-row"><span class="label">Pan</span><span class="desc">Click and drag</span></div>
         <div class="feature-row"><span class="label">Hover</span><span class="desc">Highlights all edges connected to that node</span></div>
-        <div class="feature-row"><span class="label">Reset View button</span><span class="desc">Returns zoom and pan to default</span></div>
-        <div class="feature-row"><span class="label">Export PNG&#8230; button</span><span class="desc">Saves the graph as a PNG image at current panel size (min 800&#215;600)</span></div>
+        <div class="feature-row"><span class="label">Reset button</span><span class="desc">Returns zoom and pan to default</span></div>
+        <div class="feature-row"><span class="label">Structural / Weighted toggle</span><span class="desc">Switches edge styling between a plain who-calls-whom layout and one weighted by call frequency</span></div>
+        <div class="feature-row"><span class="label">Export&#8230; button</span><span class="desc">Saves the graph as a PNG image at current panel size (min 800&#215;600)</span></div>
     </div>
 </div>
 
 
-<!-- ═══ FLAME GRAPH TAB ═══ -->
-<div class="section" id="flame-graph">
-    <h2 class="section-title"><span class="ico">&#128293;</span> Flame Graph Tab</h2>
-    <p>An interactive flame graph where each rectangle represents a method call. Width is proportional to inclusive time; the call stack grows upward.</p>
+<!-- ═══ TIMELINE / FLAME GRAPH TAB ═══ -->
+<div class="section" id="timeline">
+    <h2 class="section-title"><span class="ico">&#9201;</span> Timeline / Flame Graph Tab</h2>
+    <p>Timeline and Flame Graph used to be two separate tabs rendering the same call data with nearly identical chrome. They are now <strong>one tab</strong> with a mode-switch button pair at the top &#8212; same underlying data, no second tab for what is fundamentally one visualisation.</p>
 
+    <h3>Timeline mode</h3>
+    <div class="screenshot">
+        <img src="images/timeline-mode.png" alt="Timeline mode showing a Gantt-style view of method calls over time">
+        <div class="caption">Timeline mode &#8212; each bar is one invocation, plotted against real elapsed time.</div>
+    </div>
+    <p>A Gantt-chart style view showing method calls plotted against real time. Each bar represents one invocation; bars are colour-coded by duration (same green / amber / red scheme as the tree).</p>
     <div class="card">
-        <div class="feature-row"><span class="label">Hover</span><span class="desc">Tooltip shows method name, duration, percentage of total time</span></div>
+        <div class="feature-row"><span class="label">Click a bar</span><span class="desc">Scrolls the Log View to the corresponding ENTER line</span></div>
+        <div class="feature-row"><span class="label">Zoom / Pan</span><span class="desc">Mouse wheel to zoom, click-drag to pan</span></div>
+        <div class="feature-row"><span class="label">Fit to Window</span><span class="desc">Right-click &#8594; Fit to Window &#8212; auto-scales the timeline to fill the panel</span></div>
+        <div class="feature-row"><span class="label">Export as Image</span><span class="desc">Right-click &#8594; <strong>Export as Image&#8230;</strong> <em>or</em> File &#8594; Export Timeline&#8230; (1920&#215;1080 PNG)</span></div>
+    </div>
+
+    <h3 id="flame-graph">Flame Graph mode</h3>
+    <div class="screenshot">
+        <img src="images/flame-graph-mode.png" alt="Flame Graph mode with an aggregated bar showing x2 for a repeated call">
+        <div class="caption">Flame Graph mode &#8212; note the <code>&#215;2</code> label: repeated sibling calls to the same method are now merged into one bar instead of drawn separately.</div>
+    </div>
+    <p>Click the <strong>Flame Graph</strong> button in the mode bar to switch. Each rectangle represents a method call; width is proportional to inclusive time; the call stack grows upward.</p>
+    <div class="card">
+        <div class="feature-row"><span class="label">Aggregation</span><span class="desc">Sibling calls sharing the same function name under the same parent merge into one wider bar, labelled <code>Name &#215;N</code>, with summed duration/self-time/call-count &#8212; recursively at every depth</span></div>
+        <div class="feature-row"><span class="label">Hover</span><span class="desc">Tooltip shows method name, duration, percentage of total time, and &#8220;Calls merged: N&#8221; when applicable</span></div>
         <div class="feature-row"><span class="label">Click</span><span class="desc">Zooms into that call and its children</span></div>
         <div class="feature-row"><span class="label">Dark/Light theme</span><span class="desc">Colours update automatically with the active theme</span></div>
         <div class="feature-row"><span class="label">Export to Speedscope JSON</span><span class="desc">Right-click &#8594; Export to Speedscope JSON&#8230; or right-click &#8594; Open in Speedscope.app</span></div>
-        <div class="feature-row"><span class="label">Export as Image</span><span class="desc">Right-click &#8594; <strong>Export as Image&#8230;</strong> <em>or</em> File &#8594; Export Flame Graph as Image&#8230; (1920&#215;1080 PNG)</span></div>
+        <div class="feature-row"><span class="label">Export as Image</span><span class="desc">Right-click &#8594; <strong>Export as Image&#8230;</strong> <em>or</em> File &#8594; Export Flame Graph&#8230; (1920&#215;1080 PNG)</span></div>
     </div>
 
     <div class="tip">
@@ -973,64 +1155,109 @@
 </div>
 
 
-<!-- ═══ TIMELINE TAB ═══ -->
-<div class="section" id="timeline">
-    <h2 class="section-title"><span class="ico">&#9201;</span> Timeline Tab</h2>
-    <p>A Gantt-chart style view showing method calls plotted against real time. Each bar represents one invocation; bars are colour-coded by duration (same green / amber / red scheme as the tree).</p>
+<!-- ═══ HEATMAP TAB ═══ -->
+<div class="section" id="heatmap">
+    <h2 class="section-title"><span class="ico">&#128293;</span> Heatmap Tab</h2>
+    <p>A time-bucketed activity matrix &#8212; the only view with both an <strong>API axis</strong> and a <strong>time axis</strong> at once. APIs are listed down the left (sorted by total duration, most expensive first); the file&#8217;s entire time span is divided into 50 fixed buckets across the top. Each cell&#8217;s colour depth shows how much time that API spent running during that time window.</p>
+
+    <div class="screenshot">
+        <img src="images/heatmap-tab.png" alt="Heatmap tab showing API rows against time-bucket columns">
+        <div class="caption">API Activity Over Time &#8212; darker cells mean more time spent by that API in that window.</div>
+    </div>
 
     <div class="card">
-        <div class="feature-row"><span class="label">Click a bar</span><span class="desc">Scrolls the Log View to the corresponding ENTER line</span></div>
-        <div class="feature-row"><span class="label">Zoom / Pan</span><span class="desc">Mouse wheel to zoom, click-drag to pan</span></div>
-        <div class="feature-row"><span class="label">Fit to Window</span><span class="desc">Right-click &#8594; Fit to Window &#8212; auto-scales the timeline to fill the panel</span></div>
-        <div class="feature-row"><span class="label">Export as Image</span><span class="desc">Right-click &#8594; <strong>Export as Image&#8230;</strong> <em>or</em> File &#8594; Export Timeline as Image&#8230; (1920&#215;1080 PNG)</span></div>
+        <div class="feature-row"><span class="label">Hover a cell</span><span class="desc">Tooltip shows the API name, that bucket&#8217;s time range, total duration, and call count</span></div>
+        <div class="feature-row"><span class="label">Click a row</span><span class="desc">Selects that API elsewhere in the app</span></div>
+        <div class="feature-row"><span class="label">Time-axis ticks</span><span class="desc">Five evenly-spaced labels across the header show the elapsed time at each point</span></div>
+    </div>
+
+    <div class="note">
+        <strong>&#128221; How this differs from Performance and Timeline:</strong> the Performance tab aggregates each API into one row with no time dimension; the Timeline shows one bar per individual call with no aggregation. The Heatmap is the only view that answers &#8220;when, during the run, was this API busiest?&#8221;
     </div>
 </div>
 
 
-<!-- ═══ DEPENDENCY GRAPH TAB ═══ -->
-<div class="section" id="dependency-graph">
-    <h2 class="section-title"><span class="ico">&#128257;</span> Dependency Graph Tab</h2>
-    <p>A higher-level architectural view showing <em>which methods depend on which</em> &#8212; derived from the call relationships seen in the log. Useful for understanding module coupling.</p>
+<!-- ═══ THREAD VIEW TAB ═══ -->
+<div class="section" id="thread-view">
+    <h2 class="section-title"><span class="ico">&#129504;</span> Thread View Tab</h2>
+    <p>Shows two independent call trees side by side, each driven by its own thread selector &#8212; useful for comparing what two threads were doing at the same time, or isolating one thread&#8217;s activity from a busy multi-threaded log.</p>
+
+    <div class="screenshot">
+        <img src="images/thread-view-tab.png" alt="Thread View tab with Thread A and Thread B drop-downs and two call trees">
+        <div class="caption">Thread A and Thread B each have their own drop-down (populated from every thread ID seen in the log) and their own tree.</div>
+    </div>
 
     <div class="card">
-        <div class="feature-row"><span class="label">Reset View button</span><span class="desc">Resets zoom and pan</span></div>
-        <div class="feature-row"><span class="label">Visibility</span><span class="desc">Toggle via View &#8594; Show Tabs &#8594; <em>Dependency Graph</em> (added to menu dynamically)</span></div>
+        <div class="feature-row"><span class="label">Thread A / Thread B</span><span class="desc">Drop-downs listing every distinct thread ID found in the loaded log. Thread B also offers a &#8220;(none)&#8221; option to view just one thread.</span></div>
+        <div class="feature-row"><span class="label">Selecting a thread</span><span class="desc">Populates that side&#8217;s tree with only the calls made on that thread</span></div>
+        <div class="feature-row"><span class="label">Clicking a tree node</span><span class="desc">Scrolls the Log tab to that line</span></div>
     </div>
+</div>
+
+
+<!-- ═══ EXCEPTIONS TAB ═══ -->
+<div class="section" id="exceptions">
+    <h2 class="section-title"><span class="ico">&#128680;</span> Exceptions Tab</h2>
+    <p>Groups exceptions and correlated requests so you don&#8217;t have to hunt through the raw log line by line.</p>
+
+    <div class="screenshot">
+        <img src="images/exceptions-tab.png" alt="Exceptions tab with Exception Groups list and Correlation / Request ID list">
+        <div class="caption">Exception Groups (top) and Correlation / Request IDs (bottom) &#8212; double-click any row to jump to that line.</div>
+    </div>
+
+    <h3>Exception Groups</h3>
+    <p>Every exception in the log grouped by type, showing <strong>Count</strong>, <strong>First Seen</strong>, and <strong>Last Seen</strong> line numbers. Double-click a group to jump to its first occurrence.</p>
+
+    <h3>Correlation / Request IDs</h3>
+    <p>Groups log lines by correlation or request ID, with a per-ID occurrence list on the right &#8212; useful for pulling together every line that belongs to one request across a busy, interleaved log. Double-click any occurrence to jump straight to it.</p>
 </div>
 
 
 <!-- ═══ AI ASSISTANT TAB ═══ -->
 <div class="section" id="ai-assistant">
     <h2 class="section-title"><span class="ico">&#129504;</span> AI Assistant Tab</h2>
-    <p>An integrated AI analysis panel that can analyse the currently loaded log using either a built-in heuristic engine or the <strong>Claude API</strong> (Anthropic) for advanced natural-language answers.</p>
+    <p>An integrated AI analysis panel that can analyse the currently loaded log using a choice of providers, configured on the <strong>AI &amp; Integration</strong> page of Settings.</p>
 
-    <h3>Analysis Modes</h3>
+    <h3>Providers</h3>
     <table>
-        <thead><tr><th>Mode</th><th>How it works</th></tr></thead>
+        <thead><tr><th>Provider</th><th>Status</th><th>Notes</th></tr></thead>
         <tbody>
-            <tr><td><strong>Built-in (offline)</strong></td><td>Heuristic analysis using aggregated log statistics &#8212; no API key required</td></tr>
-            <tr><td><strong>Claude API</strong></td><td>Sends a structured prompt to Anthropic&#8217;s Claude model &#8212; requires API key in Settings</td></tr>
+            <tr><td><strong>Mock (Testing)</strong></td><td>&#9989; Functional</td><td>Canned responses, no network access &#8212; useful for trying the panel with no setup</td></tr>
+            <tr><td><strong>Anthropic Claude</strong></td><td>&#9989; Functional</td><td>Requires an API key</td></tr>
+            <tr><td><strong>GitHub Copilot</strong></td><td>&#9989; Functional</td><td>Requires an API token</td></tr>
+            <tr><td><strong>Ollama (Self-Hosted)</strong></td><td>&#9989; Functional</td><td>Requires only a Server URL (default <code>http://localhost:11434</code>) &#8212; no API key, runs entirely on your own machine or network</td></tr>
+            <tr><td>OpenAI</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
+            <tr><td>Azure OpenAI</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
+            <tr><td>Google Gemini</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
         </tbody>
     </table>
 
-    <h3>Action Buttons</h3>
+    <div class="screenshot">
+        <img src="images/settings-ai-integration.png" alt="AI and Integration settings page configured for the Ollama provider">
+        <div class="caption">AI &amp; Integration settings, configured for the self-hosted Ollama provider.</div>
+    </div>
+
+    <h3>Quick-Analysis Buttons</h3>
     <table>
         <thead><tr><th>Button</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>&#128220; Summarize</td><td>High-level summary of what happened in the log</td></tr>
-            <tr><td>&#128683; Detect Anomalies</td><td>Identifies unusual patterns, spikes, and outliers</td></tr>
-            <tr><td>&#128200; Analyze Performance</td><td>Performance bottleneck analysis with recommendations</td></tr>
-            <tr><td>&#128270; Find Patterns</td><td>Detects recurring sequences and call patterns</td></tr>
-            <tr><td>&#128736; Root Cause</td><td>Suggests probable root causes for errors</td></tr>
-            <tr><td>&#128196; Bug Report</td><td>Generates a structured bug-report draft from the log data</td></tr>
+            <tr><td>Summarize</td><td>High-level summary of what happened in the log</td></tr>
+            <tr><td>Root Cause</td><td>Suggests probable root causes for errors</td></tr>
+            <tr><td>Find Errors / Find Warnings</td><td>Jumps straight to error/warning analysis</td></tr>
+            <tr><td>Performance</td><td>Performance bottleneck analysis with recommendations</td></tr>
+            <tr><td>Timeline</td><td>Chronological narrative of the log&#8217;s events</td></tr>
         </tbody>
     </table>
 
     <h3>Chat Interface</h3>
-    <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant will answer in context of the loaded log data. Chat history is maintained for the session.</p>
+    <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request.</p>
 
     <div class="note">
-        <strong>&#128221; Claude API setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span>, enter your Anthropic API key in the <em>AI / API</em> section, and check <em>Use Claude API</em>. Without a key the built-in heuristic mode is used automatically.
+        <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, or Server URL for Ollama). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
+    </div>
+
+    <div class="warn">
+        <strong>&#9888; Legacy Claude integration:</strong> the AI &amp; Integration page also has a separate, deprecated &#8220;Legacy Integration&#8221; box left over from an older single-provider Claude setup. Use the <strong>Anthropic Claude</strong> provider above instead &#8212; the legacy fields are kept only for backward compatibility.
     </div>
 </div>
 
@@ -1043,9 +1270,9 @@
     <table>
         <thead><tr><th>Format</th><th>How to access</th><th>Content</th></tr></thead>
         <tbody>
-            <tr><td>Plain text (.log) &#8212; branch</td><td><kbd>Ctrl+S</kbd> or File &#8594; Save Selected&#8230;</td><td>The complete ENTER&#8594;EXIT log block for the currently selected tree node. Default filename: <code>{original-name}{suffix}.log</code> where suffix is set in Settings &#8594; Files &amp; Behavior</td></tr>
+            <tr><td>Plain text (.log) &#8212; branch</td><td><kbd>Ctrl+S</kbd> or File &#8594; Save As&#8230;</td><td>The complete ENTER&#8594;EXIT log block for the currently selected tree node. Default filename: <code>{original-name}{suffix}.log</code> where suffix is set in Settings &#8594; Files &amp; Behavior</td></tr>
             <tr><td>Plain text (.log) &#8212; branch context menu</td><td>Right-click tree node &#8594; Save Branch&#8230;</td><td>Same ENTER&#8594;EXIT extraction, but prompted directly from the context menu with a method-named default filename</td></tr>
-            <tr><td>Excel (.xls) &#8212; Performance</td><td><kbd>Ctrl+Shift+E</kbd> or File &#8594; Save to XLS&#8230;</td><td>All rows from the Performance tab: API Name, Calls, Total/Avg/Min/Max/Self (ms), Source File. Rows are colour-coded red/amber matching the Performance tab thresholds</td></tr>
+            <tr><td>Filtered log (.txt)</td><td><kbd>Ctrl+Shift+E</kbd> or File &#8594; Export Filtered Logs&#8230;</td><td>Exactly what&#8217;s currently visible in the Log tab &#8212; the whole file, or just the matching lines if a filter is active</td></tr>
         </tbody>
     </table>
 
@@ -1053,7 +1280,8 @@
     <table>
         <thead><tr><th>Format</th><th>How to access</th><th>Content</th></tr></thead>
         <tbody>
-            <tr><td>Performance CSV</td><td>File &#8594; Export Performance to CSV&#8230;</td><td>All Performance tab rows</td></tr>
+            <tr><td>Performance CSV</td><td>File &#8594; Export Performance Data&#8230;</td><td>All Performance tab rows</td></tr>
+            <tr><td>API Summary CSV</td><td>File &#8594; Export API Summary to CSV&#8230;</td><td>API Tree summary</td></tr>
             <tr><td>Call Tree JSON</td><td>File &#8594; Export Tree as JSON&#8230;</td><td>Complete call tree structure</td></tr>
             <tr><td>Call Tree XML</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Complete call tree structure</td></tr>
             <tr><td>Branch CSV</td><td>Right-click node &#8594; Export Branch as CSV&#8230;</td><td>Name, Depth, Duration columns for a subtree</td></tr>
@@ -1065,9 +1293,9 @@
     <table>
         <thead><tr><th>Visualisation</th><th>How to access</th><th>Resolution</th></tr></thead>
         <tbody>
-            <tr><td>Call Graph</td><td>Export PNG&#8230; button on the Call Graph tab</td><td>Current panel size (min 800&#215;600)</td></tr>
-            <tr><td>Flame Graph</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Flame Graph as Image&#8230;</td><td>1920&#215;1080</td></tr>
-            <tr><td>Timeline</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Timeline as Image&#8230;</td><td>1920&#215;1080</td></tr>
+            <tr><td>Call Graph</td><td>Export&#8230; button on the Call Graph tab</td><td>Current panel size (min 800&#215;600)</td></tr>
+            <tr><td>Flame Graph</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Flame Graph&#8230;</td><td>1920&#215;1080</td></tr>
+            <tr><td>Timeline</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Timeline&#8230;</td><td>1920&#215;1080</td></tr>
         </tbody>
     </table>
 </div>
@@ -1076,82 +1304,71 @@
 <!-- ═══ SETTINGS ═══ -->
 <div class="section" id="settings">
     <h2 class="section-title"><span class="ico">&#9881;</span> Settings Dialog <kbd>Ctrl+Shift+S</kbd></h2>
-    <p>Open via <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> or the toolbar Settings button. The dialog is organised into <strong>six tabs</strong>. Click <strong>Reset to Defaults</strong> (bottom-left) to restore all non-security settings in one step.</p>
+    <p>Open via <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings</span> or the toolbar Settings button. The dialog has <strong>five tabs</strong>. Click <strong>Reset to Defaults</strong> (bottom-left) to restore all non-security settings in one step.</p>
 
-    <h3>Appearance</h3>
+    <div class="screenshot">
+        <img src="images/settings-general.png" alt="Settings dialog, general Settings tab">
+        <div class="caption">The &#8220;Settings&#8221; tab combines Appearance, Visible Tabs, and Log Font into one page.</div>
+    </div>
+
+    <h3>Settings (tab 1)</h3>
     <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>Theme</td><td>Light</td><td>Light or Dark &#8212; applied immediately; also toggled by <kbd>Ctrl+T</kbd></td></tr>
             <tr><td>Toolbar icon size</td><td>Medium</td><td>Small (16 px), Medium (24 px), Large (32 px)</td></tr>
-            <tr><td>Toolbar visible</td><td>&#10003;</td><td>Show or hide the main toolbar</td></tr>
-            <tr><td>Highlight colour</td><td>Yellow</td><td>Background colour for search-match highlighting</td></tr>
-        </tbody>
-    </table>
-
-    <h3>Tabs &amp; Layout</h3>
-    <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Visible Tabs</td><td>All &#10003;</td><td>8 checkboxes (Log View, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant) &#8212; uncheck to hide a tab</td></tr>
-            <tr><td>Start-up tab</td><td>Log</td><td>Which tab is selected when the application opens. Choices: Log, Raw, Performance, Log Details, Call Graph, Flame Graph, Timeline, AI Assistant</td></tr>
+            <tr><td>Show toolbar</td><td>&#10003;</td><td>Show or hide the main toolbar</td></tr>
+            <tr><td>Highlight colour</td><td>Yellow</td><td>Background colour for search-match highlighting; live swatch preview</td></tr>
+            <tr><td>Visible Tabs</td><td>All &#10003;</td><td>Checkboxes for Log View, Performance, Log Details, Call Graph, Timeline, AI Assistant. (Heatmap, Exceptions, and Thread View are toggled from <span class="menu">View <span class="menu-arrow">&#8594;</span> Tabs</span> instead.)</td></tr>
+            <tr><td>Start-up tab</td><td>Log</td><td>Which tab is selected when the application opens</td></tr>
             <tr><td>Default tree view</td><td>Call Tree</td><td>Which tree panel is shown on startup: <em>Call Tree</em> or <em>API Tree</em></td></tr>
+            <tr><td>Log font family</td><td>Consolas</td><td>Monospace font used in Log View and Log Details</td></tr>
+            <tr><td>Log font size (pt)</td><td>9.0</td><td>Range 6&#8211;24 pt</td></tr>
+            <tr><td>Bold / Italic</td><td>Off</td><td>Style modifiers, with a Preview Font&#8230; button</td></tr>
         </tbody>
     </table>
 
-    <h3>Log Font</h3>
-    <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Font family</td><td>Consolas</td><td>Monospace font used in Log View and Log Details</td></tr>
-            <tr><td>Font size (pt)</td><td>9.0</td><td>Range 6&#8211;24 pt</td></tr>
-            <tr><td>Bold / Italic</td><td>Off</td><td>Style modifiers</td></tr>
-            <tr><td>Preview Font&#8230;</td><td>&#8212;</td><td>Button &#8212; shows a sample text box in the chosen font</td></tr>
-        </tbody>
-    </table>
-
-    <h3>Files &amp; Behavior</h3>
+    <h3>Files &amp; Behavior (tab 2)</h3>
+    <div class="screenshot">
+        <img src="images/settings-files-behavior.png" alt="Files and Behavior settings page">
+        <div class="caption">Files &amp; Behavior &#8212; note Restore last session is off by default, and the new Watch/Auto-reload controls.</div>
+    </div>
     <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>Default open folder</td><td><em>empty</em></td><td>Overrides <code>PTC_LOG_DIR</code> env var as the default directory for the Open dialog. Browse&#8230; button included.</td></tr>
-            <tr><td>Max recent files</td><td>10</td><td>How many files appear in File &#8594; Recent Files (5&#8211;20)</td></tr>
-            <tr><td>Snippet file suffix</td><td>_snippet</td><td>Appended to the original log filename when using <em>Save Selected</em> (<kbd>Ctrl+S</kbd>) or <em>Save Branch</em>. E.g. suffix <code>_snippet</code> with file <code>trace.log</code> produces <code>trace_snippet.log</code></td></tr>
+            <tr><td>Max recent files</td><td>10</td><td>How many files appear in File &#8594; Recent Files (5&#8211;20). The list itself now lives in <code>recentfiles.json</code>, not settings.json.</td></tr>
+            <tr><td>Snippet file suffix</td><td>_snippet</td><td>Appended to the original log filename when using <em>Save As</em> (<kbd>Ctrl+S</kbd>) or <em>Save Branch</em>. E.g. suffix <code>_snippet</code> with file <code>trace.log</code> produces <code>trace_snippet.log</code></td></tr>
+            <tr><td>Restore last session on startup</td><td>&#9744; Off</td><td>When on, reopens the most recent file automatically at launch &#8212; but only if no file was already given on the command line</td></tr>
+            <tr><td>Watch for file changes (auto-reload)</td><td>&#10003; On</td><td>Master toggle for the file-change watcher; mirrored by <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span></td></tr>
+            <tr><td>Auto-reload after (seconds)</td><td>0</td><td>0 = non-blocking &#8212; the status bar shows a clickable &#8220;File changed on disk&#8221; message and nothing reloads until you click it. Any value above 0 reloads automatically after a silent countdown shown in the status bar.</td></tr>
+            <tr><td>Fast call threshold</td><td>100 ms</td><td>Below this, calls are shown green in the Call Tree</td></tr>
+            <tr><td>Slow call threshold</td><td>1000 ms</td><td>At/above this, calls are shown red in the Call Tree; between the two thresholds is amber</td></tr>
+            <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list view is bypassed</td></tr>
+            <tr><td>Lazy-load tree above</td><td>50,000 nodes</td><td>Call Tree node-count threshold above which children load on demand as you expand each node, instead of building the whole tree up front. The tree re-renders immediately when you change this, without reopening the file.</td></tr>
+            <tr><td>Auto-filter Performance tab when a Call Tree node is selected</td><td>&#10003; On</td><td>When off, use the Call Tree right-click menu to filter Performance manually instead</td></tr>
         </tbody>
     </table>
 
-    <h3>Performance</h3>
-    <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Slow call threshold</td><td>1000 ms</td><td>Performance rows &#8805; this value are coloured red; rows &#8805; 1/10 of this are amber</td></tr>
-            <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list is bypassed and only the Raw tab populates</td></tr>
-        </tbody>
-    </table>
+    <h3>AI &amp; Integration (tab 3)</h3>
+    <p>See <a href="#ai-assistant">AI Assistant Tab</a> for the full provider table and screenshot. This page also has a legacy Grok URL field (unrelated to the AI providers) and the deprecated legacy-Claude fields.</p>
 
-    <h3>Integration</h3>
-    <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Grok URL</td><td><em>empty</em></td><td>Base URL for the &#8220;Search in Grok&#8221; tree context menu item</td></tr>
-            <tr><td>Claude API Key</td><td><em>empty</em></td><td>Anthropic API key for AI Claude mode (stored password-masked)</td></tr>
-            <tr><td>Enable Claude AI</td><td>Off</td><td>When on, the AI Assistant uses the Claude API; when off, the built-in heuristic engine is used</td></tr>
-        </tbody>
-    </table>
+    <h3>Comparison (tab 4)</h3>
+    <p>See <a href="#compare-logs">Compare Logs</a> for the full list of comparison options &#8212; the same page is shown here and from the Compare Logs dialog&#8217;s own Options button.</p>
 
-    <h3>Updates</h3>
+    <h3>Updates (tab 5)</h3>
     <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>Check for updates on startup</td><td>&#10003; On</td><td>Silently checks the manifest URL once per interval when the app launches</td></tr>
-            <tr><td>Check interval (days)</td><td>1</td><td>Minimum days between automatic background checks</td></tr>
-            <tr><td>Update manifest URL</td><td><em>GitHub raw</em></td><td>URL of the remote <code>version.json</code> file. Change this to point to an internal mirror if needed</td></tr>
+            <tr><td>Check for updates automatically on startup</td><td>&#10003; On</td><td>Silently checks the manifest URL once per interval when the app launches</td></tr>
+            <tr><td>Check interval (days)</td><td>1</td><td>Minimum days between automatic background checks. 0 = every launch.</td></tr>
+            <tr><td>Manifest URL</td><td><em>GitHub raw</em></td><td>URL of the remote <code>version.json</code> file. Change this to point to an internal mirror if needed</td></tr>
+            <tr><td>Skipped version</td><td><em>none</em></td><td>A version you dismissed once won&#8217;t prompt again until a newer one appears; <strong>Clear Skipped Version</strong> resets this</td></tr>
         </tbody>
     </table>
-    <div class="info"><strong>&#128257; Update storage:</strong> The date of the last successful check is stored in <code>%AppData%\CAD3PLogBrowser\settings.json</code> alongside all other settings. Deleting that file resets the check timer.</div>
 
     <div class="info">
-        <strong>&#128193; Storage location:</strong> All settings are saved to <code>%AppData%\CAD3PLogBrowser\settings.json</code>. Use <strong>Reset to Defaults</strong> in the dialog, or delete this file, to restore factory defaults.
+        <strong>&#128193; Storage location:</strong> Application settings are saved to <code>%AppData%\CAD3PLogBrowser\settings.json</code>. Recent files live separately in <code>recentfiles.json</code> in the same folder. Use <strong>Reset to Defaults</strong> in the dialog, or delete <code>settings.json</code>, to restore factory defaults.
     </div>
 </div>
 
@@ -1174,14 +1391,14 @@
     </table>
 
     <h3>Manual Check</h3>
-    <p>Go to <span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> at any time. The result is always shown (&#8220;up to date&#8221; message or the update dialog).</p>
+    <p>Go to <span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> at any time. The result is always shown (&#8220;up to date&#8221; message or the update dialog). <span class="menu">Help <span class="menu-arrow">&#8594;</span> View Update Log...</span> shows the history of past update checks.</p>
 
     <h3>What Gets Replaced</h3>
     <p>Only <code>Cad3PLogBrowser.exe</code> is replaced. The following are <strong>not touched</strong>:</p>
     <ul>
-        <li><code>Help\UserGuide.html</code> — ship the updated Help folder as part of the GitHub Release zip if you change the guide.</li>
+        <li><code>Help\UserGuide.html</code> (and its <code>Help\images\</code> folder) &#8212; ship the updated Help folder as part of the GitHub Release zip if you change the guide.</li>
         <li><code>Cad3PLogBrowser.exe.config</code> — .NET runtime binding config; rarely changes.</li>
-        <li><code>%AppData%\CAD3PLogBrowser\settings.json</code> — all user preferences are preserved.</li>
+        <li><code>%AppData%\CAD3PLogBrowser\settings.json</code> and <code>recentfiles.json</code> — all user preferences and recent files are preserved.</li>
     </ul>
 
     <div class="info">
@@ -1189,14 +1406,7 @@
     </div>
 
     <h3>Configuration (Settings &#8594; Updates)</h3>
-    <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Check for updates on startup</td><td>&#10003;</td><td>Enable/disable the automatic background check</td></tr>
-            <tr><td>Check interval (days)</td><td>1</td><td>Minimum days between checks. Set to 0 to check every launch.</td></tr>
-            <tr><td>Update manifest URL</td><td>GitHub raw</td><td>URL of <code>version.json</code>. Override to point to an internal distribution server.</td></tr>
-        </tbody>
-    </table>
+    <p>See the <a href="#settings">Settings Dialog</a> section&#8217;s Updates tab for all available options.</p>
 </div>
 
 
@@ -1209,7 +1419,7 @@
         <thead><tr><th>Method</th><th>How</th></tr></thead>
         <tbody>
             <tr><td>Keyboard shortcut</td><td><kbd>Ctrl+T</kbd></td></tr>
-            <tr><td>Toolbar button</td><td>&#9728; (in Dark mode, shows sun to switch to Light) / &#9790; (in Light mode, shows moon to switch to Dark)</td></tr>
+            <tr><td>Toolbar button</td><td>&#9728; (in Dark mode, shows sun to switch to Light) / &#9790; (in Light mode, shows moon to switch to Dark) &#8212; there is no menu item for this</td></tr>
             <tr><td>Settings dialog</td><td>Options &#8594; Settings &#8594; Theme dropdown</td></tr>
         </tbody>
     </table>
@@ -1230,16 +1440,18 @@
         <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>Open&#8230;</td><td><kbd>Ctrl+O</kbd></td><td>Open a log file</td></tr>
-            <tr><td>Merge Log Files&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
-            <tr><td>Save Selected&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save the ENTER&#8594;EXIT block of the selected tree node to a .log file</td></tr>
-            <tr><td>Save to XLS&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export Performance tab statistics to Excel SpreadsheetML (.xls)</td></tr>
-            <tr><td>Export Performance to CSV&#8230;</td><td></td><td>Export performance statistics</td></tr>
+            <tr><td>Save As&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save the ENTER&#8594;EXIT block of the selected tree node to a .log file</td></tr>
+            <tr><td>Export Filtered Logs&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export what&#8217;s currently visible in the Log tab</td></tr>
+            <tr><td>Export Performance Data&#8230;</td><td></td><td>CSV export of the Performance tab</td></tr>
+            <tr><td>Export API Summary to CSV&#8230;</td><td></td><td>CSV export of the API Tree</td></tr>
             <tr><td>Export Tree as JSON&#8230;</td><td></td><td>Export call tree as JSON</td></tr>
             <tr><td>Export Tree as XML&#8230;</td><td></td><td>Export call tree as XML</td></tr>
-            <tr><td>Export Timeline as Image&#8230;</td><td></td><td>Save timeline PNG (1920&#215;1080)</td></tr>
-            <tr><td>Export Flame Graph as Image&#8230;</td><td></td><td>Save flame graph PNG (1920&#215;1080)</td></tr>
-            <tr><td>Reload from Disk</td><td><kbd>F5</kbd></td><td>Re-read current file</td></tr>
-            <tr><td>Recent Files</td><td></td><td>Submenu of last 10 opened files</td></tr>
+            <tr><td>Export Timeline&#8230;</td><td></td><td>Save timeline PNG (1920&#215;1080)</td></tr>
+            <tr><td>Export Flame Graph&#8230;</td><td></td><td>Save flame graph PNG (1920&#215;1080)</td></tr>
+            <tr><td>Merge Logs&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
+            <tr><td>Compare Logs&#8230;</td><td><kbd>Ctrl+D</kbd></td><td>Open the side-by-side diff tool</td></tr>
+            <tr><td>Reload</td><td><kbd>F5</kbd></td><td>Re-read current file</td></tr>
+            <tr><td>Recent Files</td><td></td><td>Submenu of last N opened files (from <code>recentfiles.json</code>)</td></tr>
             <tr><td>Exit</td><td><kbd>Alt+F4</kbd></td><td>Close application</td></tr>
         </tbody>
     </table>
@@ -1257,12 +1469,13 @@
             <tr><td>Clear Filter</td><td><kbd>Ctrl+Shift+F</kbd></td><td>Remove active filter</td></tr>
             <tr><td>Expand All</td><td><kbd>Ctrl+E</kbd></td><td>Expand all tree nodes (cancellable with <kbd>Esc</kbd>)</td></tr>
             <tr><td>Collapse All</td><td><kbd>Ctrl+W</kbd></td><td>Collapse all tree nodes (keeps root)</td></tr>
+            <tr><td>Expand to Level&#8230;</td><td></td><td>Expand both trees to a chosen depth &#8212; see <a href="#expand-to-level">Expand to Level</a></td></tr>
             <tr><td>Jump to Matching Enter/Exit</td><td><kbd>Ctrl+G</kbd></td><td>Jump between ENTER/EXIT pairs</td></tr>
             <tr><td>Jump to Line&#8230;</td><td><kbd>Ctrl+L</kbd></td><td>Go to a specific line number</td></tr>
             <tr><td>Toggle Bookmark</td><td><kbd>Ctrl+B</kbd></td><td>Add/remove bookmark on selected line</td></tr>
             <tr><td>Next Bookmark</td><td><kbd>F2</kbd></td><td>Jump to next bookmark</td></tr>
             <tr><td>Previous Bookmark</td><td><kbd>Shift+F2</kbd></td><td>Jump to previous bookmark</td></tr>
-            <tr><td>Show All Bookmarks</td><td><kbd>Ctrl+Shift+B</kbd></td><td>List all bookmarks in a dialog</td></tr>
+            <tr><td>Show Bookmarks</td><td><kbd>Ctrl+Shift+B</kbd></td><td>List all bookmarks in a dialog</td></tr>
             <tr><td>Clear All Bookmarks</td><td><kbd>Ctrl+Shift+Del</kbd></td><td>Remove all bookmarks (with confirmation)</td></tr>
         </tbody>
     </table>
@@ -1281,16 +1494,19 @@
         <tbody>
             <tr><td>Show Call Tree (&#10003;)</td><td>Toggle Call Tree in the left panel</td></tr>
             <tr><td>Show API Tree (&#10003;)</td><td>Toggle API Tree in the left panel (mutually exclusive with Call Tree)</td></tr>
-            <tr><td>Show Tabs &#8594; Log View</td><td>Show/hide the Log View tab</td></tr>
-            <tr><td>Show Tabs &#8594; Raw</td><td>Show/hide the Raw View tab</td></tr>
-            <tr><td>Show Tabs &#8594; Performance</td><td>Show/hide the Performance tab</td></tr>
-            <tr><td>Show Tabs &#8594; Log Details</td><td>Show/hide the Log Details tab</td></tr>
-            <tr><td>Show Tabs &#8594; Call Graph</td><td>Show/hide the Call Graph tab</td></tr>
-            <tr><td>Show Tabs &#8594; Flame Graph</td><td>Show/hide the Flame Graph tab</td></tr>
-            <tr><td>Show Tabs &#8594; Timeline</td><td>Show/hide the Timeline tab</td></tr>
-            <tr><td>Show Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab</td></tr>
+            <tr><td>Tabs &#8594; Log View</td><td>Show/hide the Log tab</td></tr>
+            <tr><td>Tabs &#8594; Performance</td><td>Show/hide the Performance tab</td></tr>
+            <tr><td>Tabs &#8594; Log Details</td><td>Show/hide the Log Details tab</td></tr>
+            <tr><td>Tabs &#8594; Call Graph</td><td>Show/hide the Call Graph tab</td></tr>
+            <tr><td>Tabs &#8594; Timeline / Flame Graph</td><td>Show/hide the merged Timeline/Flame Graph tab</td></tr>
+            <tr><td>Tabs &#8594; Heatmap</td><td>Show/hide the Heatmap tab</td></tr>
+            <tr><td>Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab</td></tr>
+            <tr><td>Tabs &#8594; Exceptions</td><td>Show/hide the Exceptions tab</td></tr>
+            <tr><td>Tabs &#8594; Thread View</td><td>Show/hide the Thread View tab</td></tr>
             <tr><td>Select Font&#8230;</td><td>Open font picker for the log view</td></tr>
+            <tr><td>Watch for File Changes (&#10003;)</td><td>Master toggle for disk-change monitoring and auto-reload</td></tr>
             <tr><td>Show Toolbar (&#10003;)</td><td>Hide/show the main toolbar</td></tr>
+            <tr><td>Show Status Bar (&#10003;)</td><td>Hide/show the status bar</td></tr>
         </tbody>
     </table>
 
@@ -1298,11 +1514,12 @@
     <table>
         <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>User Guide</td><td><kbd>F1</kbd></td><td>Opens this guide in the default browser</td></tr>
+            <tr><td>View Help</td><td><kbd>F1</kbd></td><td>Opens this guide in the default browser, jumping to a section relevant to the active tab</td></tr>
             <tr><td>Keyboard Shortcuts</td><td><kbd>Ctrl+K</kbd></td><td>Quick-reference shortcuts dialog</td></tr>
-            <tr><td>About</td><td></td><td>Version and credits</td></tr>
-            <tr><td>Check for Updates</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Downloads and installs the new EXE automatically with a progress bar. If already up to date, shows a confirmation message.</td></tr>
-            <tr><td>Report Errors</td><td></td><td>Opens GitHub Issues page</td></tr>
+            <tr><td>About&#8230;</td><td></td><td>Version and credits</td></tr>
+            <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available</td></tr>
+            <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
+            <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
         </tbody>
     </table>
 </div>
@@ -1318,9 +1535,10 @@
             <h4>&#128193; File</h4>
             <table>
                 <tr><td><kbd>Ctrl+O</kbd></td><td>Open file</td></tr>
-                <tr><td><kbd>Ctrl+M</kbd></td><td>Merge log files</td></tr>
-                <tr><td><kbd>Ctrl+S</kbd></td><td>Save selected lines</td></tr>
-                <tr><td><kbd>Ctrl+Shift+E</kbd></td><td>Save to XLS</td></tr>
+                <tr><td><kbd>Ctrl+M</kbd></td><td>Merge logs</td></tr>
+                <tr><td><kbd>Ctrl+D</kbd></td><td>Compare logs</td></tr>
+                <tr><td><kbd>Ctrl+S</kbd></td><td>Save selected branch</td></tr>
+                <tr><td><kbd>Ctrl+Shift+E</kbd></td><td>Export filtered logs</td></tr>
                 <tr><td><kbd>F5</kbd></td><td>Reload from disk</td></tr>
                 <tr><td><kbd>Alt+F4</kbd></td><td>Exit</td></tr>
             </table>
@@ -1333,6 +1551,7 @@
                 <tr><td><kbd>Ctrl+Shift+C</kbd></td><td>Copy with headers</td></tr>
                 <tr><td><kbd>Ctrl+F</kbd></td><td>Find</td></tr>
                 <tr><td><kbd>F3</kbd></td><td>Find next</td></tr>
+                <tr><td><kbd>Shift+F3</kbd></td><td>Find previous</td></tr>
                 <tr><td><kbd>Ctrl+Alt+F</kbd></td><td>Find all</td></tr>
                 <tr><td><kbd>Ctrl+I</kbd></td><td>Filter dialog</td></tr>
                 <tr><td><kbd>Ctrl+Shift+F</kbd></td><td>Clear filter</td></tr>
@@ -1346,6 +1565,7 @@
                 <tr><td><kbd>Ctrl+W</kbd></td><td>Collapse all</td></tr>
                 <tr><td><kbd>Ctrl+G</kbd></td><td>Jump to matching ENTER/EXIT</td></tr>
                 <tr><td><kbd>Ctrl+L</kbd></td><td>Jump to line number</td></tr>
+                <tr><td><kbd>F12</kbd></td><td>Inspect selected line</td></tr>
             </table>
         </div>
 
@@ -1381,6 +1601,20 @@
             </table>
         </div>
 
+        <div class="qref-cell">
+            <h4>&#128260; Compare Logs dialog (own shortcuts)</h4>
+            <table>
+                <tr><td><kbd>Ctrl+Shift+L</kbd></td><td>Browse Left File</td></tr>
+                <tr><td><kbd>Ctrl+Shift+R</kbd></td><td>Browse Right File</td></tr>
+                <tr><td><kbd>F5</kbd></td><td>Compare</td></tr>
+                <tr><td><kbd>Ctrl+W</kbd></td><td>Swap Left/Right</td></tr>
+                <tr><td><kbd>F7</kbd> / <kbd>F8</kbd></td><td>Previous / Next Difference</td></tr>
+                <tr><td><kbd>Ctrl+Shift+Home</kbd> / <kbd>End</kbd></td><td>First / Last Difference</td></tr>
+                <tr><td><kbd>Ctrl+E</kbd></td><td>Expand All</td></tr>
+                <tr><td><kbd>Ctrl+C</kbd></td><td>Collapse All (not Copy!)</td></tr>
+            </table>
+        </div>
+
     </div>
 
     <div class="tip">
@@ -1399,15 +1633,24 @@
         <li>Click <strong>Total (ms)</strong> to sort descending.</li>
         <li>The top rows are your most expensive methods &#8212; focus there first.</li>
         <li>Check <strong>Self (ms)</strong>: a high Self value means <em>the method itself</em> is slow, not its children.</li>
-        <li>Switch to the <strong>Flame Graph</strong> to see the call-stack context of the bottleneck visually.</li>
+        <li>Switch to <strong>Flame Graph</strong> mode (inside the Timeline / Flame Graph tab) to see the call-stack context of the bottleneck visually.</li>
+        <li>For a time dimension, check the <strong>Heatmap</strong> tab to see when the API was busiest.</li>
     </ol>
 
     <h3>Investigating an Error</h3>
     <ol>
-        <li>Press <kbd>F8</kbd> to jump to the first error.</li>
+        <li>Press <kbd>F8</kbd> to jump to the first error, or check the <strong>Exceptions</strong> tab for a grouped overview.</li>
         <li>Press <kbd>Ctrl+B</kbd> to bookmark it.</li>
         <li>Press <kbd>Ctrl+G</kbd> if the error is inside a method call to jump to the surrounding ENTER/EXIT context.</li>
         <li>Right-click the enclosing tree node and choose <strong>Save Branch</strong> to extract just that call&#8217;s log lines for a bug report.</li>
+    </ol>
+
+    <h3>Comparing Two Runs</h3>
+    <ol>
+        <li>Drop the two files onto the window together, or use <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>).</li>
+        <li>Turn on <strong>Ignore timestamps and durations</strong> in Comparison options if you only care about structural changes.</li>
+        <li>Use <kbd>F7</kbd> / <kbd>F8</kbd> to step through differences one at a time.</li>
+        <li>Check the <strong>Performance Delta</strong> tab to see which methods got slower or faster between the two runs.</li>
     </ol>
 
     <h3>Narrowing Down a Large Log</h3>
@@ -1423,6 +1666,7 @@
     <ul>
         <li>Select a node in the Call Tree &#8594; right-click &#8594; <strong>Show in API Tree</strong> to see all occurrences of that method.</li>
         <li>Select a node in the API Tree &#8594; right-click &#8594; <strong>Show in Call Tree</strong> to see one occurrence in full call-stack context.</li>
+        <li>Use <strong>Expand to Level...</strong> to get a consistent overview depth on both trees at once.</li>
     </ul>
 
     <h3>Using Bookmarks Effectively</h3>
@@ -1441,7 +1685,7 @@
     <h3>File won&#8217;t open</h3>
     <div class="warn">
         <strong>Symptoms:</strong> Error dialog on open, or file shows 0 lines.<br>
-        <strong>Fixes:</strong> Check file is not locked by another process. Verify it is a plain-text file (not binary). Check read permissions. Try copy-pasting the file first.
+        <strong>Fixes:</strong> Check file is not locked by another process. Verify it is a plain-text (or supported <code>.gz</code>/<code>.zip</code>) file, not some other binary format. Check read permissions. Try copy-pasting the file first.
     </div>
 
     <h3>Application is slow with a very large file</h3>
@@ -1455,32 +1699,39 @@
         <li>Check that the log is the raw trace output and not a filtered/truncated copy.</li>
     </ul>
 
-    <h3>Bookmarks not restored on reopen</h3>
+    <h3>Bookmarks or recent files not restored on reopen</h3>
     <ul>
         <li>Bookmarks are keyed to the full file path. If you moved or renamed the file, bookmarks are not found.</li>
-        <li>Check that <code>%AppData%\CAD3PLogBrowser\</code> exists and is writable.</li>
+        <li>Check that <code>%AppData%\CAD3PLogBrowser\</code> exists and is writable &#8212; both <code>settings.json</code> and <code>recentfiles.json</code> live there.</li>
     </ul>
 
     <h3>Theme toggle not working</h3>
     <ul>
-        <li>Press <kbd>Ctrl+T</kbd> &#8212; if it works via keyboard but not the button, the toolbar icon may not have been created yet (check Settings for icon size).</li>
+        <li>Press <kbd>Ctrl+T</kbd> &#8212; if it works via keyboard but not the button, the toolbar icon may not have been created yet (check Settings for icon size). There is no menu item for theme &#8212; it&#8217;s toolbar/shortcut only.</li>
         <li>Try opening Settings and re-selecting the theme there.</li>
     </ul>
 
-    <h3>AI Assistant returns no results</h3>
+    <h3>AI Assistant returns no results, or a provider seems unavailable</h3>
     <ul>
-        <li>In <strong>built-in mode</strong>: a file must be loaded first.</li>
-        <li>In <strong>Claude mode</strong>: verify your API key in Settings, check internet connectivity, and confirm the key has sufficient quota.</li>
+        <li>In <strong>Mock mode</strong>: a file must be loaded first.</li>
+        <li>In <strong>Anthropic / GitHub Copilot / Ollama mode</strong>: verify the API key or Server URL in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm.</li>
+        <li><strong>OpenAI / Azure OpenAI / Google Gemini</strong> are listed in the provider drop-down but are not yet functional (&#8220;Coming Soon&#8221;) &#8212; selecting one won&#8217;t send any requests.</li>
     </ul>
 
-    <h3>Expand All hangs</h3>
+    <h3>Compare Logs shows no differences but the files look different</h3>
     <ul>
-        <li>For very large trees, Expand All may take time. A progress message appears in the status bar.</li>
+        <li>Check the <strong>Comparison</strong> options (Settings, or the dialog&#8217;s own Options button) &#8212; <em>Ignore timestamps and durations</em> is on by default and may be hiding the only differences present.</li>
+        <li>Make sure <strong>Synchronize Scrolling</strong> hasn&#8217;t scrolled you past the difference &#8212; use <kbd>F7</kbd>/<kbd>F8</kbd> or First/Last Difference to navigate directly.</li>
+    </ul>
+
+    <h3>Expand All / Expand to Level hangs</h3>
+    <ul>
+        <li>For very large trees, this may take a moment. A progress message appears in the status bar.</li>
         <li>Press <kbd>Esc</kbd> or click the status bar to cancel the operation.</li>
     </ul>
 
     <h3>Resetting to defaults</h3>
-    <p>Delete <code>%AppData%\CAD3PLogBrowser\appsettings.json</code> and restart. All settings (window state, recent files, bookmarks, theme, font) will be recreated with defaults.</p>
+    <p>Delete <code>%AppData%\CAD3PLogBrowser\settings.json</code> and restart. Most settings (window state, theme, font, bookmarks) will be recreated with defaults. Recent files are stored separately in <code>recentfiles.json</code> in the same folder &#8212; delete that too if you also want to clear the recent-files list.</p>
 </div>
 
 
@@ -1489,22 +1740,25 @@
     <h2 class="section-title"><span class="ico">&#10067;</span> FAQ</h2>
 
     <h3>What log file formats are supported?</h3>
-    <p>Any plain-text file. The parser auto-detects timestamp format and looks for <code>[ENTER]</code> / <code>[EXIT]</code> markers. Supported extensions: <code>.log</code>, <code>.log.*</code>, <code>.*</code> (any text file).</p>
+    <p>Any plain-text file, plus <code>.gz</code> and <code>.zip</code> archives (decompressed automatically). The parser auto-detects timestamp format and looks for <code>[ENTER]</code> / <code>[EXIT]</code> markers.</p>
 
     <h3>How large a file can I open?</h3>
     <p>The virtual-mode list view handles files with <strong>500,000+ lines</strong> smoothly. Call-tree building becomes slower above ~200,000 API calls; use filtering first to reduce scope.</p>
 
-    <h3>Can I open multiple files simultaneously?</h3>
-    <p>One file at a time per window. Use <span class="menu">File <span class="menu-arrow">&#8594;</span> Merge Log Files&#8230;</span> to combine multiple files into a single time-sorted view within one window.</p>
+    <h3>Can I open multiple files at once?</h3>
+    <p>Yes &#8212; drop 2 or more files onto the window, or pass them on the command line, to choose <strong>Merge</strong> (combine into one time-sorted view), <strong>Compare</strong> (side-by-side diff, exactly 2 files), or open just the first one. See <a href="#multi-file">Opening Multiple Files</a>.</p>
+
+    <h3>What&#8217;s the difference between Merge and Compare?</h3>
+    <p><strong>Merge</strong> combines 2+ files into a single interleaved, time-sorted log you browse normally. <strong>Compare</strong> keeps the two files&#8217; call trees separate, side by side, and highlights exactly what&#8217;s different between them &#8212; it only works with exactly two files.</p>
 
     <h3>Where are my settings saved?</h3>
-    <p><code>%AppData%\CAD3PLogBrowser\appsettings.json</code></p>
+    <p>Settings: <code>%AppData%\CAD3PLogBrowser\settings.json</code>. Recent files: <code>%AppData%\CAD3PLogBrowser\recentfiles.json</code>.</p>
 
     <h3>How do I configure the default open directory?</h3>
-    <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Initial Directory</span>. The env variable takes precedence unless a custom path is also set.</p>
+    <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Default open folder</span>. The env variable takes precedence unless a custom path is also set.</p>
 
-    <h3>Can I use the Flame Graph without an internet connection?</h3>
-    <p>Yes. The Flame Graph, Timeline, Call Graph, and all other visualisations are rendered locally with no network access required. Only the AI Claude mode and the &#8220;Check for Updates&#8221; / &#8220;Report Errors&#8221; links require internet.</p>
+    <h3>Can I use the Flame Graph or Heatmap without an internet connection?</h3>
+    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only Anthropic, GitHub Copilot, &#8220;Check for Updates&#8221;, and &#8220;Report Errors&#8221; require internet.</p>
 
     <h3>Where do I report bugs or request features?</h3>
     <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors</span> to open the GitHub Issues page, or visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
@@ -1512,7 +1766,7 @@
 
 
 <footer>
-    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v3.1 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v3.1.9 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
     <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
 </footer>
 
@@ -1568,4 +1822,3 @@ function searchGuide(term) {
 </script>
 </body>
 </html>
-

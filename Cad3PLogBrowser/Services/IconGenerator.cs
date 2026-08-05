@@ -26,7 +26,7 @@ namespace Cad3PLogBrowser.Services
         // File menu
         private const char IconOpen            = '\uE8E5'; // OpenFile
         private const char IconSave            = '\uE74E'; // Save
-        private const char IconExportXls       = '\uE8A7'; // SaveAs (export spreadsheet)
+        private const char IconExportFile      = '\uE8A7'; // SaveAs (generic file export)
         private const char IconExportCsv       = '\uE8F1'; // Page
         private const char IconExportImage     = '\uE722'; // Pictures (export image)
         private const char IconExportJson      = '\uE943'; // Code
@@ -209,7 +209,7 @@ namespace Cad3PLogBrowser.Services
         // ??????????????????????????????????????????????????????????????????????
         public static Bitmap CreateOpenIcon(IconSize sz)         => Render(IconOpen,        sz, AccentBlue);
         public static Bitmap CreateSaveIcon(IconSize sz)         => Render(IconSave,        sz, AccentBlue);
-        public static Bitmap CreateExportXlsIcon(IconSize sz)    => Render(IconExportXls,   sz, AccentGreen);
+        public static Bitmap CreateExportFileIcon(IconSize sz)   => Render(IconExportFile,  sz, AccentGreen);
         public static Bitmap CreateExportCsvIcon(IconSize sz)    => Render(IconExportCsv,   sz, AccentGreen);
         public static Bitmap CreateExportImageIcon(IconSize sz)  => Render(IconExportImage, sz, AccentGreen);
         public static Bitmap CreateExportJsonIcon(IconSize sz)   => Render(IconExportJson,  sz, AccentGreen);
@@ -284,7 +284,7 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateRefreshIcon(IconSize sz)     => Render(IconReload,     sz, GlyphColor);
 
         // ?? Legacy aliases so GenerateAllIcons signature is unchanged ?????????
-        public static Bitmap CreateExportIcon(IconSize sz)  => CreateExportXlsIcon(sz);
+        public static Bitmap CreateExportIcon(IconSize sz)  => CreateExportFileIcon(sz);
         public static Bitmap CreateJumpIcon(IconSize sz)    => CreateJumpMatchIcon(sz);
         public static Bitmap CreateTreeIcon(IconSize sz)    => CreateCallTreeIcon(sz);
         public static Bitmap CreateErrorIcon(IconSize sz)   => Render(IconError,   sz, AccentRed);

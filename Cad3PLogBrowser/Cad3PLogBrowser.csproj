@@ -288,6 +288,58 @@
       <Link>Help\UserGuide.html</Link>
       <LogicalName>Cad3PLogBrowser.Help.UserGuide.html</LogicalName>
     </EmbeddedResource>
+    <Content Include="..\Help\images\compare-logs-dialog.png">
+      <Link>Help\images\compare-logs-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\exceptions-tab.png">
+      <Link>Help\images\exceptions-tab.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\expand-to-level-dialog.png">
+      <Link>Help\images\expand-to-level-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\flame-graph-mode.png">
+      <Link>Help\images\flame-graph-mode.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\heatmap-tab.png">
+      <Link>Help\images\heatmap-tab.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\interface-overview.png">
+      <Link>Help\images\interface-overview.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\multi-file-dialog.png">
+      <Link>Help\images\multi-file-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-ai-integration.png">
+      <Link>Help\images\settings-ai-integration.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-comparison.png">
+      <Link>Help\images\settings-comparison.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-files-behavior.png">
+      <Link>Help\images\settings-files-behavior.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-general.png">
+      <Link>Help\images\settings-general.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\thread-view-tab.png">
+      <Link>Help\images\thread-view-tab.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\timeline-mode.png">
+      <Link>Help\images\timeline-mode.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\documentation\**\*.*">

@@ -19,6 +19,8 @@ namespace Cad3PLogBrowser
             this.SearchTextBox = new System.Windows.Forms.ComboBox();
             this.MatchCaseCheckBox = new System.Windows.Forms.CheckBox();
             this.UseRegexCheckBox = new System.Windows.Forms.CheckBox();
+            this.MatchCountLabel = new System.Windows.Forms.Label();
+            this.PreviousButton = new System.Windows.Forms.Button();
             this.FindNextButton = new System.Windows.Forms.Button();
             this.CloseButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
@@ -58,24 +60,43 @@ namespace Cad3PLogBrowser
             this.UseRegexCheckBox.Size = new System.Drawing.Size(170, 21);
             this.UseRegexCheckBox.TabIndex = 3;
             this.UseRegexCheckBox.Text = UI.AppStrings.FindCheckUseRegex;
-            // 
+            //
+            // MatchCountLabel
+            //
+            this.MatchCountLabel.AutoSize = true;
+            this.MatchCountLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.MatchCountLabel.Location = new System.Drawing.Point(15, 118);
+            this.MatchCountLabel.Name = "MatchCountLabel";
+            this.MatchCountLabel.Size = new System.Drawing.Size(0, 17);
+            this.MatchCountLabel.TabIndex = 4;
+            //
+            // PreviousButton
+            //
+            this.PreviousButton.Location = new System.Drawing.Point(205, 110);
+            this.PreviousButton.Name = "PreviousButton";
+            this.PreviousButton.Size = new System.Drawing.Size(95, 35);
+            this.PreviousButton.TabIndex = 5;
+            this.PreviousButton.Text = "&Previous";
+            this.PreviousButton.UseVisualStyleBackColor = true;
+            this.PreviousButton.Click += new System.EventHandler(this.PreviousButton_Click);
+            //
             // FindNextButton
-            // 
+            //
             this.FindNextButton.Location = new System.Drawing.Point(310, 110);
             this.FindNextButton.Name = "FindNextButton";
             this.FindNextButton.Size = new System.Drawing.Size(95, 35);
-            this.FindNextButton.TabIndex = 4;
+            this.FindNextButton.TabIndex = 6;
             this.FindNextButton.Text = UI.AppStrings.FindButtonFindNext;
             this.FindNextButton.UseVisualStyleBackColor = true;
             this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
-            // 
+            //
             // CloseButton
-            // 
+            //
             this.CloseButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.CloseButton.Location = new System.Drawing.Point(415, 110);
             this.CloseButton.Name = "CloseButton";
             this.CloseButton.Size = new System.Drawing.Size(95, 35);
-            this.CloseButton.TabIndex = 5;
+            this.CloseButton.TabIndex = 7;
             this.CloseButton.Text = UI.AppStrings.FindButtonClose;
             this.CloseButton.UseVisualStyleBackColor = true;
             this.CloseButton.Click += new System.EventHandler(this.CloseButton_Click);
@@ -89,6 +110,8 @@ namespace Cad3PLogBrowser
             this.ClientSize = new System.Drawing.Size(525, 160);
             this.Controls.Add(this.CloseButton);
             this.Controls.Add(this.FindNextButton);
+            this.Controls.Add(this.PreviousButton);
+            this.Controls.Add(this.MatchCountLabel);
             this.Controls.Add(this.UseRegexCheckBox);
             this.Controls.Add(this.MatchCaseCheckBox);
             this.Controls.Add(this.SearchTextBox);
@@ -113,6 +136,8 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.ComboBox SearchTextBox;
         private System.Windows.Forms.CheckBox MatchCaseCheckBox;
         private System.Windows.Forms.CheckBox UseRegexCheckBox;
+        private System.Windows.Forms.Label MatchCountLabel;
+        private System.Windows.Forms.Button PreviousButton;
         private System.Windows.Forms.Button FindNextButton;
         private System.Windows.Forms.Button CloseButton;
     }

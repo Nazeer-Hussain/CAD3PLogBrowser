@@ -129,6 +129,80 @@ namespace Cad3PLogBrowser.Services
             return -1;
         }
 
+        // ── Regex validation (B2) ────────────────────────────────────────────
+        /// <summary>
+        /// Validates a regex pattern without performing a search, so the UI can show an
+        /// inline error immediately instead of a misleading "not found" result once the
+        /// user actually triggers Find.
+        /// </summary>
+        public bool TryValidateRegex(string pattern, bool matchCase, out string errorMessage)
+        {
+            errorMessage = null;
+            if (string.IsNullOrEmpty(pattern)) return true;
+
+            try
+            {
+                var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+                GetOrBuildRegex(pattern, options);
+                return true;
+            }
+            catch (ArgumentException ex)
+            {
+                errorMessage = ex.Message;
+                return false;
+            }
+        }
+
+        // ── Match count (B1) ─────────────────────────────────────────────────
+        /// <summary>
+        /// Counts every line matching <paramref name="searchTerm"/> and reports the
+        /// 1-based ordinal position of <paramref name="currentIndex"/> among them
+        /// (0 if <paramref name="currentIndex"/> is -1 or isn't itself a match), so the
+        /// Find dialog can show "match N of M".
+        /// </summary>
+        public int CountMatches(IList<string> lines, string searchTerm, bool matchCase, bool useRegex,
+            int currentIndex, out int currentRank)
+        {
+            currentRank = 0;
+            if (lines == null || lines.Count == 0 || string.IsNullOrEmpty(searchTerm))
+                return 0;
+
+            var comp = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            int total = 0;
+
+            if (useRegex)
+            {
+                Regex regex;
+                try
+                {
+                    var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+                    regex = GetOrBuildRegex(searchTerm, options);
+                }
+                catch (ArgumentException)
+                {
+                    return 0;
+                }
+
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    if (!regex.IsMatch(lines[i])) continue;
+                    total++;
+                    if (i == currentIndex) currentRank = total;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    if (lines[i].IndexOf(searchTerm, comp) < 0) continue;
+                    total++;
+                    if (i == currentIndex) currentRank = total;
+                }
+            }
+
+            return total;
+        }
+
         // ── Filter ────────────────────────────────────────────────────────────
         /// <summary>
         /// Returns all lines (with their original 1-based line numbers) that contain
