@@ -558,7 +558,7 @@
             <tr><td><strong>Log Summary bar</strong></td><td>Collapsible strip under the toolbar (click the &#9662;/&#9656; arrow) showing Lines, Methods, Duration, Unique methods, Errors, and Warnings at a glance. Auto-collapses on short screens.</td></tr>
             <tr><td><strong>Tree Panel (left)</strong></td><td>Call Tree or API Tree + real-time search box at the top</td></tr>
             <tr><td><strong>Tab Panel (right)</strong></td><td>Log, Performance, Log Details, Call Graph, Timeline / Flame Graph, Heatmap, AI Assistant, Exceptions, Thread View &#8212; toggle each via <span class="menu">View &#8594; Tabs</span></td></tr>
-            <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line preview, inline &#8220;Go to:&#8221; line-number box</td></tr>
+            <tr><td><strong>Status Bar</strong></td><td>Traffic-light file status, file name + line count, filter state, selected-line info (method name + duration + line number for Call Tree entries, or a text preview otherwise), inline &#8220;Go to:&#8221; line-number box</td></tr>
             <tr><td><strong>Splitter</strong></td><td>Drag the vertical divider to resize the tree vs. tab panels. Position is saved per session.</td></tr>
         </tbody>
     </table>
@@ -569,6 +569,7 @@
         <div class="feature-row"><span class="label">&#128993; Yellow ball</span><span class="desc">File loading in progress</span></div>
         <div class="feature-row"><span class="label">&#128308; Red ball</span><span class="desc">Load error, or file has changed on disk since last load</span></div>
         <div class="feature-row"><span class="label">Progress bar</span><span class="desc">Shown during load, filter, expand-all, and save operations. Click status bar or press <kbd>Esc</kbd> to cancel.</span></div>
+        <div class="feature-row"><span class="label">&#9888; Large log warning</span><span class="desc">Persistent amber text appended to the file name once the loaded log exceeds the <strong>Skip list view if file &gt;</strong> size threshold (Settings &#8594; Files &amp; Behavior, default 50 MB) &#8212; a heads-up that performance updates may be slow, not a hard limit.</span></div>
     </div>
 </div>
 
@@ -643,13 +644,13 @@
     <table>
         <thead><tr><th>Button</th><th>Tooltip</th><th>Shortcut</th><th>Action</th></tr></thead>
         <tbody>
-            <tr><td>Open</td><td>Open log file</td><td><kbd>Ctrl+O</kbd></td><td>Open File dialog</td></tr>
-            <tr><td>Save</td><td>Save selected lines</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected to .log</td></tr>
-            <tr><td>Reload</td><td>Reload from disk</td><td><kbd>F5</kbd></td><td>Re-reads file from disk</td></tr>
-            <tr><td>Copy</td><td>Copy selected lines</td><td><kbd>Ctrl+C</kbd></td><td>Copies selected log text to clipboard</td></tr>
-            <tr><td>Find</td><td>Find text (Ctrl+F)</td><td><kbd>Ctrl+F</kbd></td><td>Opens Find dialog</td></tr>
-            <tr><td>Find Next</td><td>Find Next (F3)</td><td><kbd>F3</kbd></td><td>Finds next match without opening dialog</td></tr>
-            <tr><td>Filter</td><td>Filter log entries</td><td><kbd>Ctrl+I</kbd></td><td>Opens advanced Filter dialog</td></tr>
+            <tr><td>Open</td><td>Open a log file (Ctrl+O)</td><td><kbd>Ctrl+O</kbd></td><td>Open File dialog</td></tr>
+            <tr><td>Save</td><td>Save the selected Call Tree node's log lines to a file (Ctrl+S)</td><td><kbd>Ctrl+S</kbd></td><td>Save visible/selected to .log</td></tr>
+            <tr><td>Reload</td><td>Reload the current file, keeping scroll position (F5)</td><td><kbd>F5</kbd></td><td>Re-reads file from disk</td></tr>
+            <tr><td>Copy</td><td>Copy the selected log lines to the clipboard (Ctrl+C)</td><td><kbd>Ctrl+C</kbd></td><td>Copies selected log text to clipboard</td></tr>
+            <tr><td>Find</td><td>Open the Find dialog to search the log (Ctrl+F)</td><td><kbd>Ctrl+F</kbd></td><td>Opens Find dialog</td></tr>
+            <tr><td>Find Next</td><td>Jump to the next match without opening the Find dialog (F3)</td><td><kbd>F3</kbd></td><td>Finds next match without opening dialog</td></tr>
+            <tr><td>Filter</td><td>Open the Filter dialog to narrow the log view (Ctrl+I)</td><td><kbd>Ctrl+I</kbd></td><td>Opens advanced Filter dialog</td></tr>
             <tr><td>Expand All</td><td>Expand All Nodes (Ctrl+E)</td><td><kbd>Ctrl+E</kbd></td><td>Expands all tree nodes (cancellable)</td></tr>
             <tr><td>Collapse All</td><td>Collapse All Nodes (Ctrl+W)</td><td><kbd>Ctrl+W</kbd></td><td>Collapses all, keeps root expanded</td></tr>
             <tr><td>Jump &#8597;</td><td>Jump to Matching Enter/Exit (Ctrl+G)</td><td><kbd>Ctrl+G</kbd></td><td>Jumps between ENTER / EXIT pair</td></tr>
@@ -659,7 +660,7 @@
             <tr><td>W&#8594;</td><td>Next Warning (Ctrl+F8)</td><td><kbd>Ctrl+F8</kbd></td><td>Moves to next WARNING line</td></tr>
             <tr><td>Call Tree</td><td>Show Call Tree</td><td>&#8212;</td><td>Switches tree panel to Call Tree</td></tr>
             <tr><td>API Tree</td><td>Show API Tree</td><td>&#8212;</td><td>Switches tree panel to API Tree</td></tr>
-            <tr><td>&#9728; / &#9790; Theme</td><td>Switch to Light / Dark Theme</td><td><kbd>Ctrl+T</kbd></td><td>Toggles Dark &#8596; Light; icon updates to match. (Toolbar-only &#8212; there is no Theme item in any menu.)</td></tr>
+            <tr><td>&#9728; / &#9790; Theme</td><td>Switch to Light / Dark Theme</td><td><kbd>Ctrl+T</kbd></td><td>Toggles Dark &#8596; Light; icon updates to match. Also available as <span class="menu">View <span class="menu-arrow">&#8594;</span> Dark Mode</span>, which stays in sync with this button.</td></tr>
             <tr><td>Settings</td><td>Settings (Ctrl+Shift+S)</td><td><kbd>Ctrl+Shift+S</kbd></td><td>Opens Settings dialog</td></tr>
             <tr><td>Help</td><td>Help (F1)</td><td><kbd>F1</kbd></td><td>Opens this User Guide in browser, jumping to the active tab&#8217;s section</td></tr>
         </tbody>
@@ -835,7 +836,7 @@
         <div class="feature-row"><span class="label">Node text</span><span class="desc"><code>MethodName  [142 ms]</code> &nbsp;or&nbsp; <code>MethodName  [&lt;1 ms]</code> &nbsp;or&nbsp; <code>MethodName  [? ms]</code> (unmatched)</span></div>
         <div class="feature-row"><span class="label">&#9989; icon (green check)</span><span class="desc">Matched ENTER + EXIT pair found</span></div>
         <div class="feature-row"><span class="label">&#10060; icon (red cross)</span><span class="desc">No matching EXIT found for this ENTER</span></div>
-        <div class="feature-row"><span class="label">Tooltip</span><span class="desc">Shows method name, source file, enter line, exit line, duration</span></div>
+        <div class="feature-row"><span class="label">Tooltip</span><span class="desc">Shows method name, source file, enter line, exit line, duration, and nesting depth</span></div>
     </div>
 
     <h3>Duration Colour Coding</h3>
@@ -869,6 +870,7 @@
         <div class="feature-row"><span class="label">&#9989; icon (green check)</span><span class="desc">All invocations have a matching ENTER + EXIT pair</span></div>
         <div class="feature-row"><span class="label">&#10060; icon (red cross)</span><span class="desc">One or more ENTER lines lack a matching EXIT (or vice versa)</span></div>
         <div class="feature-row"><span class="label">One node per call</span><span class="desc">Each invocation appears as exactly one child node whether ENTER+EXIT, ENTER-only, or EXIT-only exists</span></div>
+        <div class="feature-row"><span class="label">Root node tooltip</span><span class="desc">Hover a method's root node for its Calls / Avg / Min / Max duration &#8212; the same numbers shown for that method in the <a href="#performance">Performance tab</a></span></div>
     </div>
 
     <p>Selecting an API Tree node also displays its invocation details in the <strong>Log Details</strong> tab (API name, total count, first occurrence, all line numbers, match status).</p>
@@ -1391,7 +1393,7 @@
     </table>
 
     <h3>Manual Check</h3>
-    <p>Go to <span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> at any time. The result is always shown (&#8220;up to date&#8221; message or the update dialog). <span class="menu">Help <span class="menu-arrow">&#8594;</span> View Update Log...</span> shows the history of past update checks.</p>
+    <p>Go to <span class="menu">Help <span class="menu-arrow">&#8594;</span> Check for Updates</span> at any time. A &#8220;Checking for Updates&#8230;&#8221; progress indicator appears in the status bar while it runs (the fetch can take several seconds, especially with retries on a slow connection). The result is always shown: the update dialog if a newer version is available, an &#8220;up to date&#8221; message if not, or a distinct error message if the check itself fails (e.g. no network access) &#8212; failure is never reported as if it were up to date. <span class="menu">Help <span class="menu-arrow">&#8594;</span> View Update Log...</span> shows the history of past update checks.</p>
 
     <h3>What Gets Replaced</h3>
     <p>Only <code>Cad3PLogBrowser.exe</code> is replaced. The following are <strong>not touched</strong>:</p>
@@ -1419,7 +1421,8 @@
         <thead><tr><th>Method</th><th>How</th></tr></thead>
         <tbody>
             <tr><td>Keyboard shortcut</td><td><kbd>Ctrl+T</kbd></td></tr>
-            <tr><td>Toolbar button</td><td>&#9728; (in Dark mode, shows sun to switch to Light) / &#9790; (in Light mode, shows moon to switch to Dark) &#8212; there is no menu item for this</td></tr>
+            <tr><td>Toolbar button</td><td>&#9728; (in Dark mode, shows sun to switch to Light) / &#9790; (in Light mode, shows moon to switch to Dark)</td></tr>
+            <tr><td>View menu</td><td><span class="menu">View <span class="menu-arrow">&#8594;</span> Dark Mode</span> checkbox &#8212; stays in sync with the toolbar button, shortcut, and Settings dropdown</td></tr>
             <tr><td>Settings dialog</td><td>Options &#8594; Settings &#8594; Theme dropdown</td></tr>
         </tbody>
     </table>
@@ -1505,6 +1508,7 @@
             <tr><td>Tabs &#8594; Thread View</td><td>Show/hide the Thread View tab</td></tr>
             <tr><td>Select Font&#8230;</td><td>Open font picker for the log view</td></tr>
             <tr><td>Watch for File Changes (&#10003;)</td><td>Master toggle for disk-change monitoring and auto-reload</td></tr>
+            <tr><td>Dark Mode (&#10003;)</td><td>Toggle Dark/Light theme &#8212; stays in sync with the toolbar button, <kbd>Ctrl+T</kbd>, and the Settings dialog&#8217;s Theme dropdown</td></tr>
             <tr><td>Show Toolbar (&#10003;)</td><td>Hide/show the main toolbar</td></tr>
             <tr><td>Show Status Bar (&#10003;)</td><td>Hide/show the status bar</td></tr>
         </tbody>
@@ -1516,8 +1520,8 @@
         <tbody>
             <tr><td>View Help</td><td><kbd>F1</kbd></td><td>Opens this guide in the default browser, jumping to a section relevant to the active tab</td></tr>
             <tr><td>Keyboard Shortcuts</td><td><kbd>Ctrl+K</kbd></td><td>Quick-reference shortcuts dialog</td></tr>
-            <tr><td>About&#8230;</td><td></td><td>Version and credits</td></tr>
-            <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available</td></tr>
+            <tr><td>About&#8230;</td><td></td><td>App name, version, build date, the currently open file, and a <strong>Copy Version Info</strong> button for bug reports</td></tr>
+            <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Shows a &#8220;Checking for Updates&#8230;&#8221; progress indicator in the status bar while it runs, and a distinct error message if the fetch fails.</td></tr>
             <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
             <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
         </tbody>
@@ -1594,6 +1598,8 @@
             <h4>&#9881; App</h4>
             <table>
                 <tr><td><kbd>Ctrl+T</kbd></td><td>Toggle theme (Dark/Light)</td></tr>
+                <tr><td><kbd>Ctrl+Alt+D</kbd></td><td>Jump to Performance tab</td></tr>
+                <tr><td><kbd>Ctrl+Alt+C</kbd></td><td>Jump to Call Graph tab</td></tr>
                 <tr><td><kbd>Ctrl+Shift+S</kbd></td><td>Open settings</td></tr>
                 <tr><td><kbd>F1</kbd></td><td>User guide (this page)</td></tr>
                 <tr><td><kbd>Ctrl+K</kbd></td><td>Keyboard shortcuts dialog</td></tr>
@@ -1707,7 +1713,7 @@
 
     <h3>Theme toggle not working</h3>
     <ul>
-        <li>Press <kbd>Ctrl+T</kbd> &#8212; if it works via keyboard but not the button, the toolbar icon may not have been created yet (check Settings for icon size). There is no menu item for theme &#8212; it&#8217;s toolbar/shortcut only.</li>
+        <li>Press <kbd>Ctrl+T</kbd>, or use <span class="menu">View <span class="menu-arrow">&#8594;</span> Dark Mode</span> &#8212; if either works but the toolbar button doesn&#8217;t, the toolbar icon may not have been created yet (check Settings for icon size).</li>
         <li>Try opening Settings and re-selecting the theme there.</li>
     </ul>
 
