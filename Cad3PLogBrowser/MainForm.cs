@@ -65,8 +65,8 @@ namespace Cad3PLogBrowser
         /// </summary>
         private List<string>      _mergedSourcePaths = new List<string>();
 
-        // Feature C2: Lazy loading for large trees
-        private const int LAZY_LOAD_THRESHOLD = 50000; // Enable lazy loading for 50k+ nodes
+        // Feature C2: Lazy loading for large trees. Threshold is user-configurable
+        // via Settings > Performance (AppSettings.LazyLoadThreshold).
         private Dictionary<TreeNode, List<CallStackNode>> _lazyChildrenMap = new Dictionary<TreeNode, List<CallStackNode>>();
         // Cached font for lazy-load placeholder nodes — avoids a GDI Font
         // allocation on every tree node during expand (Issue 1).
@@ -1853,7 +1853,7 @@ namespace Cad3PLogBrowser
 
             // Feature C2: Check total node count for lazy loading
             int totalNodes = CountTotalNodes(roots);
-            bool useLazyLoading = totalNodes > LAZY_LOAD_THRESHOLD;
+            bool useLazyLoading = totalNodes > _appSettings.LazyLoadThreshold;
 
             if (useLazyLoading)
             {
@@ -5689,6 +5689,10 @@ namespace Cad3PLogBrowser
                     // Propagate updated AI settings (including configurable model) to the service.
                     _aiService?.UpdateConfig(_appSettings.ClaudeApiKey, _appSettings.UseClaudeApi,
                                              _appSettings.ClaudeModel);
+                    // C2/C3: re-render the call tree so updated lazy-load/color-threshold
+                    // settings apply immediately, without requiring a file reload.
+                    if (_lastCallTree != null && _lastCallTree.Count > 0)
+                        PopulateCallTree(_lastCallTree);
                 }
                 // Refresh AI service after settings may have changed
                 RefreshAiService();

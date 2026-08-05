@@ -97,6 +97,7 @@ namespace Cad3PLogBrowser.UI
         public const string LabelFastCallThreshold = "Fast call threshold:";
         public const string LabelSlowCallThreshold = "Slow call threshold:";
         public const string LabelSkipListViewIfFileGreater = "Skip list view if file >";
+        public const string LabelLazyLoadThreshold = "Lazy-load tree above:";
         public const string CheckboxAutoFilterPerformance = "Auto-filter Performance tab when a Call Tree node is selected";
         public const string CheckboxRestoreSession = "Restore last session on startup";
         public const string CheckboxWatchFileChanges = "Watch for file changes (auto-reload)";
@@ -106,6 +107,7 @@ namespace Cad3PLogBrowser.UI
         public const string HintFastCallMs = "ms   (green � below this is fast)";
         public const string HintSlowCallMs = "ms   (red � above this is slow, amber is in between)";
         public const string HintMaxFileMb = "MB   (use Raw tab for very large files)";
+        public const string HintLazyLoadThreshold = "nodes   (larger trees load children on-demand for speed)";
         public const string HintAutoFilterOff = "When OFF, use the Call Tree right-click menu to filter manually.";
 
         // ?? AI & Integration Tab ??????????????????????????????????????????????

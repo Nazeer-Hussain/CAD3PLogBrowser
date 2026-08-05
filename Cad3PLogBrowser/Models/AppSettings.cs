@@ -82,6 +82,13 @@ namespace Cad3PLogBrowser.Services
         // Calls between Fast..Slow are amber; calls above Slow are red.
         public int     FastCallThresholdMs      { get; set; } = 100;
         /// <summary>
+        /// C2: call tree nodes only load lazily (placeholder + expand-on-demand)
+        /// once the tree's total node count exceeds this threshold. Lower it for
+        /// snappier expansion on slower machines, or raise it to always build the
+        /// full tree eagerly for smaller/medium logs.
+        /// </summary>
+        public int     LazyLoadThreshold        { get; set; } = 50000;
+        /// <summary>
         /// Maximum number of characters to load into RichTextBox controls (detail views).
         /// RichTextBox has a hard limit around 2GB but realistically becomes unstable above 32MB.
         /// Default: 10 million characters (~10MB of text).
