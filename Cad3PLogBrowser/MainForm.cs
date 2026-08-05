@@ -715,6 +715,7 @@ namespace Cad3PLogBrowser
             InitExceptionsTab();
             InitThreadViewTab();
             MergeTimelineAndFlameGraphTabs();
+            InitPerformanceSubViews();
             BuildMruMenu();
             AddThemeToggleButton();
             AddGoToLineControl();
@@ -1040,6 +1041,7 @@ namespace Cad3PLogBrowser
                 timelinePanel?.UpdateTheme();
                 heatmapPanel?.UpdateTheme();
                 UpdateVisualizationModeButtons();
+                UpdatePerformanceModeButtons();
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
@@ -2157,7 +2159,10 @@ namespace Cad3PLogBrowser
                     ? string.Format("Lines {0}\u2013{1}", enterLine, exitLine)
                     : string.Format("Lines {0}\u2013end", enterLine);
                 _perfFilterLabel.Text  = string.Format("\u25bc  Filtered to: {0}  ({1})", csNode.Label, range);
-                _perfFilterBar.Visible = true;
+                // The banner only describes the All Methods table below it \u2014 keep it
+                // hidden while a Top Slowest/Most Called/Call Depth sub-view is active
+                // (E2/E3/E4), even though selecting a node re-triggers this filter.
+                _perfFilterBar.Visible = _perfViewMode == PerfViewMode.AllMethods;
             }
 
             RenderPerformanceRows(subStats, subEntries.Count, updateFullCache: false);
@@ -2200,6 +2205,7 @@ namespace Cad3PLogBrowser
             }
 
             RenderPerformanceRows(stats, totalLines);
+            RefreshActivePerformanceSubView();
         }
 
         private bool _perfHeaderWired = false;
@@ -2322,6 +2328,389 @@ namespace Cad3PLogBrowser
                 item.ForeColor = ThemeManager.ForegroundColor;
             }
             return item;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FEATURE E2/E3/E4: Performance Analytics sub-views — Top Slowest Calls,
+        // Most Frequently Called, and Call Depth Analysis. Same mode-switch-button
+        // pattern as the Timeline/Flame Graph tab: one set of buttons at the top of
+        // the Performance tab swaps which panel is visible underneath.
+        // ═══════════════════════════════════════════════════════════════════════
+        private readonly Services.Analysis.PerformanceAnalyzer _perfAnalyzer = new Services.Analysis.PerformanceAnalyzer();
+
+        private enum PerfViewMode { AllMethods, TopSlowest, MostFrequent, CallDepth }
+        private PerfViewMode _perfViewMode = PerfViewMode.AllMethods;
+
+        private Button _perfAllButton, _perfSlowestButton, _perfFrequentButton, _perfDepthButton;
+        private Panel _perfSlowestPanel, _perfFrequentPanel, _perfDepthPanel;
+        private ListView _perfSlowestView, _perfFrequentView, _perfDepthChainsView;
+        private NumericUpDown _perfSlowestTopN, _perfFrequentTopN;
+        private Label _perfDepthSummaryLabel;
+
+        private void InitPerformanceSubViews()
+        {
+            var modeBar = new Panel
+            {
+                Dock      = DockStyle.Top,
+                Height    = 34,
+                BackColor = ThemeManager.ControlBackgroundColor
+            };
+
+            _perfAllButton      = MakePerfModeButton("All Methods", 8);
+            _perfSlowestButton  = MakePerfModeButton("Top Slowest", 112);
+            _perfFrequentButton = MakePerfModeButton("Most Called", 216);
+            _perfDepthButton    = MakePerfModeButton("Call Depth", 320);
+
+            _perfAllButton.Click      += (s, e) => SetPerformanceMode(PerfViewMode.AllMethods);
+            _perfSlowestButton.Click  += (s, e) => SetPerformanceMode(PerfViewMode.TopSlowest);
+            _perfFrequentButton.Click += (s, e) => SetPerformanceMode(PerfViewMode.MostFrequent);
+            _perfDepthButton.Click    += (s, e) => SetPerformanceMode(PerfViewMode.CallDepth);
+
+            modeBar.Controls.Add(_perfAllButton);
+            modeBar.Controls.Add(_perfSlowestButton);
+            modeBar.Controls.Add(_perfFrequentButton);
+            modeBar.Controls.Add(_perfDepthButton);
+
+            _perfSlowestPanel  = BuildTopSlowestPanel();
+            _perfFrequentPanel = BuildMostFrequentPanel();
+            _perfDepthPanel    = BuildCallDepthPanel();
+
+            performanceTab.Controls.Add(_perfDepthPanel);
+            performanceTab.Controls.Add(_perfFrequentPanel);
+            performanceTab.Controls.Add(_perfSlowestPanel);
+            performanceTab.Controls.Add(modeBar);
+
+            UpdatePerformanceModeButtons();
+        }
+
+        private static Button MakePerfModeButton(string text, int x)
+        {
+            return new Button
+            {
+                Text      = text,
+                Location  = new Point(x, 4),
+                Size      = new Size(100, 26),
+                FlatStyle = FlatStyle.Flat
+            };
+        }
+
+        private Panel BuildTopSlowestPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            var toolbar = new Panel { Dock = DockStyle.Top, Height = 30 };
+            var lbl1 = new Label { Text = "Show top", Location = new Point(8, 8), AutoSize = true };
+            _perfSlowestTopN = new NumericUpDown
+            {
+                Location = new Point(68, 5),
+                Size     = new Size(60, 22),
+                Minimum  = 1,
+                Maximum  = 500,
+                Value    = 10
+            };
+            var lbl2 = new Label { Text = "slowest individual calls", Location = new Point(134, 8), AutoSize = true };
+            _perfSlowestTopN.ValueChanged += (s, e) => RenderTopSlowest();
+            toolbar.Controls.Add(lbl1);
+            toolbar.Controls.Add(_perfSlowestTopN);
+            toolbar.Controls.Add(lbl2);
+
+            _perfSlowestView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfSlowestView.Columns.Add("Rank", 50);
+            _perfSlowestView.Columns.Add("Method", 340);
+            _perfSlowestView.Columns.Add("Duration (ms)", 110);
+            _perfSlowestView.Columns.Add("Timestamp", 170);
+            _perfSlowestView.Columns.Add("Log Line #", 90);
+            _perfSlowestView.DoubleClick += (s, e) =>
+            {
+                if (_perfSlowestView.SelectedItems.Count == 0) return;
+                if (_perfSlowestView.SelectedItems[0].Tag is int line)
+                {
+                    SelectCallTreeNodeByLine(line);
+                    ScrollLogToLine(line);
+                }
+            };
+
+            panel.Controls.Add(_perfSlowestView);
+            panel.Controls.Add(toolbar);
+            return panel;
+        }
+
+        private Panel BuildMostFrequentPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            var toolbar = new Panel { Dock = DockStyle.Top, Height = 30 };
+            var lbl1 = new Label { Text = "Show top", Location = new Point(8, 8), AutoSize = true };
+            _perfFrequentTopN = new NumericUpDown
+            {
+                Location = new Point(68, 5),
+                Size     = new Size(60, 22),
+                Minimum  = 1,
+                Maximum  = 500,
+                Value    = 10
+            };
+            var lbl2 = new Label { Text = "most-called methods", Location = new Point(134, 8), AutoSize = true };
+            _perfFrequentTopN.ValueChanged += (s, e) => RenderMostFrequent();
+            toolbar.Controls.Add(lbl1);
+            toolbar.Controls.Add(_perfFrequentTopN);
+            toolbar.Controls.Add(lbl2);
+
+            _perfFrequentView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfFrequentView.Columns.Add("Rank", 50);
+            _perfFrequentView.Columns.Add("Method", 340);
+            _perfFrequentView.Columns.Add("Calls", 80);
+            _perfFrequentView.Columns.Add("% of Total Calls", 260);
+            _perfFrequentView.DoubleClick += (s, e) =>
+            {
+                if (_perfFrequentView.SelectedItems.Count == 0) return;
+                if (_perfFrequentView.SelectedItems[0].Tag is string apiName)
+                    FindAndSelectApiTreeNode(apiName);
+            };
+
+            panel.Controls.Add(_perfFrequentView);
+            panel.Controls.Add(toolbar);
+            return panel;
+        }
+
+        private Panel BuildCallDepthPanel()
+        {
+            var panel = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            _perfDepthSummaryLabel = new Label
+            {
+                Dock    = DockStyle.Top,
+                Height  = 30,
+                Padding = new Padding(8, 8, 0, 0),
+                Text    = "No data"
+            };
+
+            var chainsHeader = new Label
+            {
+                Dock    = DockStyle.Top,
+                Height  = 22,
+                Padding = new Padding(8, 2, 0, 0),
+                Font    = new Font(Font, FontStyle.Bold),
+                Text    = "Deepest call chains (double-click to highlight in the Call Tree):"
+            };
+
+            _perfDepthChainsView = new ListView
+            {
+                Dock          = DockStyle.Fill,
+                View          = View.Details,
+                FullRowSelect = true,
+                GridLines     = true
+            };
+            _perfDepthChainsView.Columns.Add("Call Chain (root → deepest call)", 1200);
+            _perfDepthChainsView.DoubleClick += (s, e) =>
+            {
+                if (_perfDepthChainsView.SelectedItems.Count == 0) return;
+                if (_perfDepthChainsView.SelectedItems[0].Tag is int line)
+                {
+                    SelectCallTreeNodeByLine(line);
+                    ScrollLogToLine(line);
+                }
+            };
+
+            panel.Controls.Add(_perfDepthChainsView);
+            panel.Controls.Add(chainsHeader);
+            panel.Controls.Add(_perfDepthSummaryLabel);
+            return panel;
+        }
+
+        private void SetPerformanceMode(PerfViewMode mode)
+        {
+            _perfViewMode = mode;
+
+            performanceView.Visible   = mode == PerfViewMode.AllMethods;
+            _perfSlowestPanel.Visible  = mode == PerfViewMode.TopSlowest;
+            _perfFrequentPanel.Visible = mode == PerfViewMode.MostFrequent;
+            _perfDepthPanel.Visible    = mode == PerfViewMode.CallDepth;
+
+            // The subtree-filter banner ("Filtered to: X") only scopes the All Methods
+            // table (RenderPerformanceRows) — hide it on the other sub-views so it doesn't
+            // look like Top Slowest/Most Called/Call Depth are filtered when they aren't.
+            if (_perfFilterBar != null)
+                _perfFilterBar.Visible = _perfFilterActive && mode == PerfViewMode.AllMethods;
+
+            RefreshActivePerformanceSubView();
+            UpdatePerformanceModeButtons();
+        }
+
+        /// <summary>Recomputes whichever Performance sub-view is currently on screen — called
+        /// both when the user switches modes and whenever fresh data is loaded (PopulatePerformanceTab).</summary>
+        private void RefreshActivePerformanceSubView()
+        {
+            switch (_perfViewMode)
+            {
+                case PerfViewMode.TopSlowest:   RenderTopSlowest();   break;
+                case PerfViewMode.MostFrequent: RenderMostFrequent(); break;
+                case PerfViewMode.CallDepth:    RenderCallDepth();    break;
+            }
+        }
+
+        private void UpdatePerformanceModeButtons()
+        {
+            if (_perfAllButton == null) return;
+
+            void Style(Button b, bool active)
+            {
+                b.BackColor = active ? ThemeManager.HighlightColor : ThemeManager.ControlBackgroundColor;
+                b.ForeColor = active ? ThemeManager.HighlightTextColor : ThemeManager.ForegroundColor;
+            }
+
+            Style(_perfAllButton,      _perfViewMode == PerfViewMode.AllMethods);
+            Style(_perfSlowestButton,  _perfViewMode == PerfViewMode.TopSlowest);
+            Style(_perfFrequentButton, _perfViewMode == PerfViewMode.MostFrequent);
+            Style(_perfDepthButton,    _perfViewMode == PerfViewMode.CallDepth);
+        }
+
+        private void RenderTopSlowest()
+        {
+            if (_perfSlowestView == null) return;
+            _perfSlowestView.BeginUpdate();
+            _perfSlowestView.Items.Clear();
+
+            if (_lastEntries != null && _lastEntries.Count > 0)
+            {
+                var slowest = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, (int)_perfSlowestTopN.Value);
+                for (int i = 0; i < slowest.Count; i++)
+                {
+                    var c = slowest[i];
+                    var item = new ListViewItem((i + 1).ToString()) { Tag = c.EnterLineNumber };
+                    item.SubItems.Add(c.ApiName);
+                    item.SubItems.Add(c.DurationMs.ToString());
+                    item.SubItems.Add(c.EpochMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(c.EpochMs).LocalDateTime
+                            .ToString("yyyy-MM-dd HH:mm:ss.fff")
+                        : "-");
+                    item.SubItems.Add(c.EnterLineNumber.ToString());
+
+                    // Spec: top 3 rows red, 4th-10th amber, rest default.
+                    if (i < 3)
+                    {
+                        item.BackColor = ThemeManager.ErrorBackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+                    else if (i < 10)
+                    {
+                        item.BackColor = ThemeManager.WarningBackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+                    else
+                    {
+                        item.BackColor = ThemeManager.BackgroundColor;
+                        item.ForeColor = ThemeManager.ForegroundColor;
+                    }
+
+                    _perfSlowestView.Items.Add(item);
+                }
+            }
+
+            _perfSlowestView.EndUpdate();
+        }
+
+        private void RenderMostFrequent()
+        {
+            if (_perfFrequentView == null) return;
+            _perfFrequentView.BeginUpdate();
+            _perfFrequentView.Items.Clear();
+
+            if (_lastEntries != null && _lastEntries.Count > 0)
+            {
+                var frequent = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, (int)_perfFrequentTopN.Value);
+                double maxCount = frequent.Count > 0 ? frequent[0].CallCount : 1;
+
+                for (int i = 0; i < frequent.Count; i++)
+                {
+                    var f = frequent[i];
+                    var item = new ListViewItem((i + 1).ToString()) { Tag = f.ApiName };
+                    item.SubItems.Add(f.ApiName);
+                    item.SubItems.Add(f.CallCount.ToString());
+
+                    // Lightweight proportional bar (block characters) scaled to the top row's count.
+                    int barLen = maxCount > 0 ? (int)Math.Round(f.CallCount / maxCount * 24) : 0;
+                    string bar = new string('█', Math.Max(1, barLen));
+                    item.SubItems.Add(string.Format("{0,5:0.0}%  {1}", f.PercentOfTotal, bar));
+
+                    _perfFrequentView.Items.Add(item);
+                }
+            }
+
+            _perfFrequentView.EndUpdate();
+        }
+
+        private void RenderCallDepth()
+        {
+            if (_perfDepthChainsView == null) return;
+            _perfDepthChainsView.BeginUpdate();
+            _perfDepthChainsView.Items.Clear();
+
+            if (_lastCallTree != null && _lastCallTree.Count > 0)
+            {
+                var analysis = _perfAnalyzer.AnalyzeCallDepth(_lastCallTree);
+                _perfDepthSummaryLabel.Text = string.Format(
+                    "Maximum depth: {0}     Average depth: {1:0.0}     Chains tied for deepest: {2}",
+                    analysis.MaxDepth, analysis.AvgDepth, analysis.DeepestChains.Count);
+
+                foreach (var chain in analysis.DeepestChains)
+                {
+                    var item = new ListViewItem(chain.Chain) { Tag = chain.LineNumber };
+                    _perfDepthChainsView.Items.Add(item);
+                }
+            }
+            else
+            {
+                _perfDepthSummaryLabel.Text = "No data";
+            }
+
+            _perfDepthChainsView.EndUpdate();
+        }
+
+        /// <summary>
+        /// Selects and reveals the Call Tree node whose ENTER is at <paramref name="lineNumber"/>,
+        /// expanding each ancestor along the way so lazily-loaded children (C2) are
+        /// materialized before we try to descend into them.
+        /// </summary>
+        private void SelectCallTreeNodeByLine(int lineNumber)
+        {
+            if (CallTree.Nodes.Count == 0 || _lastCallTree == null) return;
+
+            CallStackNode target = FindCallStackNodeByLine(lineNumber, _lastCallTree);
+            if (target == null) return;
+
+            var chain = new List<int>();
+            for (var cur = target; cur != null; cur = cur.Parent)
+                chain.Insert(0, cur.LineNumber);
+
+            TreeNode current = CallTree.Nodes[0]; // synthetic "Call Tree" label root
+            current.Expand();
+
+            foreach (var ln in chain)
+            {
+                TreeNode next = null;
+                foreach (TreeNode candidate in current.Nodes)
+                {
+                    if (candidate.Tag is int t && t == ln) { next = candidate; break; }
+                }
+                if (next == null) return; // structure mismatch — bail out safely
+                next.Expand(); // C2: materializes lazy children before we descend further
+                current = next;
+            }
+
+            CallTree.SelectedNode = current;
+            current.EnsureVisible();
         }
 
         // ── Tree visibility ───────────────────────────────────────────────────
