@@ -34,6 +34,7 @@
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveSelectedXlsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -216,6 +217,7 @@
             this.compareLogsMenuItem,
             this.fileSeparatorAfterOpen,
             this.saveAsMenuItem,
+            this.saveSelectedXlsMenuItem,
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
@@ -252,7 +254,15 @@
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
             this.saveAsMenuItem.Text = UI.AppStrings.MenuFileSaveAs;
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
-            // 
+            //
+            // saveSelectedXlsMenuItem
+            //
+            this.saveSelectedXlsMenuItem.Image = null;
+            this.saveSelectedXlsMenuItem.Name = "saveSelectedXlsMenuItem";
+            this.saveSelectedXlsMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.saveSelectedXlsMenuItem.Text = UI.AppStrings.MenuFileSaveSelectedXls;
+            this.saveSelectedXlsMenuItem.Click += new System.EventHandler(this.saveSelectedXlsMenuItem_Click);
+            //
             // exportFilteredLogsMenuItem
             // 
             this.exportFilteredLogsMenuItem.Name = "exportFilteredLogsMenuItem";
@@ -1677,6 +1687,7 @@
         private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveSelectedXlsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;

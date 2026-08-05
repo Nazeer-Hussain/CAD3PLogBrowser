@@ -256,6 +256,12 @@
   <data name="MSG_BRANCH_SAVED_TO" xml:space="preserve">
     <value>{0} line(s) saved to:&#10;{1}</value>
   </data>
+  <data name="DIALOG_TITLE_SAVE_BRANCH_XLS" xml:space="preserve">
+    <value>Save Selected Branch as XLS</value>
+  </data>
+  <data name="FILE_FILTER_XLS_SAVE" xml:space="preserve">
+    <value>Excel Workbook (*.xlsx)|*.xlsx</value>
+  </data>
   <data name="MSG_CALL_GRAPH_EXPORTED_TO" xml:space="preserve">
     <value>Call Graph exported to:&#10;{0}</value>
   </data>

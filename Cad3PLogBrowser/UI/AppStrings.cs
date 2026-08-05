@@ -20,6 +20,7 @@ namespace Cad3PLogBrowser.UI
         public const string MenuFile = "&File";
         public const string MenuFileOpen = "&Open...";
         public const string MenuFileSaveAs = "Save &As...";
+        public const string MenuFileSaveSelectedXls = "Save Selected as &XLS...";
         public const string MenuFileExportFiltered = "Export &Filtered Logs...";
         public const string MenuFileExportPerformance = "Export &Performance Data...";
         public const string MenuFileExportApiCsv = "Export &API Summary to CSV...";

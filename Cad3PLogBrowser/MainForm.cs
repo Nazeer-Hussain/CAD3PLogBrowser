@@ -4262,33 +4262,49 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        private void saveAsMenuItem_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Resolves the ENTER→EXIT block for the currently selected tree node, shared by
+        /// the "Save As..." (.log) and "Save Selected as XLS..." (.xlsx) menu commands.
+        /// </summary>
+        private bool TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName)
         {
-            // Save the ENTER→EXIT block for the currently selected tree node.
-            // Default filename: {original-basename}{snippet-suffix}.log
+            lines = null;
+            baseName = null;
+
             TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
             if (activeTree?.SelectedNode == null)
             {
                 MessageBox.Show("Please select a node in the tree first.",
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                methodName = null;
+                return false;
             }
 
-            TreeNode node       = activeTree.SelectedNode;
-            string methodName   = GetMethodNameFromNode(node);
-            int    enterLine    = (node.Tag is int t && t > 0) ? t : -1;
-            List<string> lines  = ExtractBranchLines(enterLine, methodName);
+            TreeNode node    = activeTree.SelectedNode;
+            methodName       = GetMethodNameFromNode(node);
+            int enterLine    = (node.Tag is int t && t > 0) ? t : -1;
+            lines            = ExtractBranchLines(enterLine, methodName);
 
             if (lines.Count == 0)
             {
                 MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                return false;
             }
 
-            string baseName    = string.IsNullOrEmpty(_currentFilePath)
+            baseName = string.IsNullOrEmpty(_currentFilePath)
                 ? methodName.Replace("::", "_")
                 : GetSafeBaseName(_currentFilePath);
+            return true;
+        }
+
+        private void saveAsMenuItem_Click(object sender, EventArgs e)
+        {
+            // Save the ENTER→EXIT block for the currently selected tree node.
+            // Default filename: {original-basename}{snippet-suffix}.log
+            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName))
+                return;
+
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
 
             using (var dlg = new SaveFileDialog())
@@ -4311,6 +4327,54 @@ namespace Cad3PLogBrowser
                     StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
 
                     File.WriteAllLines(dlg.FileName, lines);
+
+                    FileLoadProgress.Value = 100;
+                    MessageBox.Show(
+                        string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    FileLoadProgress.Visible = false;
+                    FileLoadProgress.Value   = 0;
+                    UpdateStatusBar();
+                }
+            }
+        }
+
+        // G7: "Save to XLS..." — same ENTER/EXIT branch extraction as Save As (.log),
+        // written as a single-column .xlsx workbook so it can be filtered/sorted in Excel.
+        private void saveSelectedXlsMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName))
+                return;
+
+            string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".xlsx";
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH_XLS ?? "Save Selected Branch as XLS";
+                dlg.Filter           = Resources.FILE_FILTER_XLS_SAVE;
+                dlg.FileName         = defaultName;
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+                    FileLoadProgress.Visible = true;
+                    FileLoadProgress.Value   = 0;
+                    StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
+
+                    new Services.Export.ExportService().ExportBranchToXlsx(lines, dlg.FileName);
 
                     FileLoadProgress.Value = 100;
                     MessageBox.Show(
