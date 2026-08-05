@@ -8518,6 +8518,20 @@ namespace Cad3PLogBrowser
                 tabsMenuItem.DropDownItems.Add(showThreadViewMenuItem);
         }
 
+        /// <summary>B7: distinct thread IDs found in the currently loaded log, for
+        /// populating the Filter dialog's Thread ID dropdown.</summary>
+        public List<string> GetDetectedThreadIds()
+        {
+            if (_lastEntries == null) return new List<string>();
+
+            return _lastEntries
+                .Where(e => !string.IsNullOrEmpty(e.ThreadId))
+                .Select(e => e.ThreadId)
+                .Distinct()
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         /// <summary>Refreshes the K1 thread combos from the freshly-loaded log entries.</summary>
         private void UpdateThreadViewTab(List<Services.LogEntry> entries)
         {

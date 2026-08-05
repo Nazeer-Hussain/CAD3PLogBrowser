@@ -30,7 +30,7 @@ namespace Cad3PLogBrowser
             this.dtpToTime = new System.Windows.Forms.DateTimePicker();
             this.grpThreadLevel = new System.Windows.Forms.GroupBox();
             this.lblThreadId = new System.Windows.Forms.Label();
-            this.txtThreadId = new System.Windows.Forms.TextBox();
+            this.cmbThreadId = new System.Windows.Forms.ComboBox();
             this.lblLogLevel = new System.Windows.Forms.Label();
             this.chkLevelDebug = new System.Windows.Forms.CheckBox();
             this.chkLevelInfo = new System.Windows.Forms.CheckBox();
@@ -175,7 +175,7 @@ namespace Cad3PLogBrowser
             // grpThreadLevel
             // 
             this.grpThreadLevel.Controls.Add(this.lblThreadId);
-            this.grpThreadLevel.Controls.Add(this.txtThreadId);
+            this.grpThreadLevel.Controls.Add(this.cmbThreadId);
             this.grpThreadLevel.Controls.Add(this.lblLogLevel);
             this.grpThreadLevel.Controls.Add(this.chkLevelDebug);
             this.grpThreadLevel.Controls.Add(this.chkLevelInfo);
@@ -197,12 +197,13 @@ namespace Cad3PLogBrowser
             this.lblThreadId.TabIndex = 0;
             this.lblThreadId.Text = UI.AppStrings.FilterLabelThreadId;
             // 
-            // txtThreadId
-            // 
-            this.txtThreadId.Location = new System.Drawing.Point(105, 27);
-            this.txtThreadId.Name = "txtThreadId";
-            this.txtThreadId.Size = new System.Drawing.Size(180, 22);
-            this.txtThreadId.TabIndex = 1;
+            // cmbThreadId
+            //
+            this.cmbThreadId.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDown;
+            this.cmbThreadId.Location = new System.Drawing.Point(105, 27);
+            this.cmbThreadId.Name = "cmbThreadId";
+            this.cmbThreadId.Size = new System.Drawing.Size(180, 23);
+            this.cmbThreadId.TabIndex = 1;
             // 
             // lblLogLevel
             // 
@@ -334,7 +335,7 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.DateTimePicker dtpToTime;
         private System.Windows.Forms.GroupBox grpThreadLevel;
         private System.Windows.Forms.Label lblThreadId;
-        private System.Windows.Forms.TextBox txtThreadId;
+        private System.Windows.Forms.ComboBox cmbThreadId;
         private System.Windows.Forms.Label lblLogLevel;
         private System.Windows.Forms.CheckBox chkLevelDebug;
         private System.Windows.Forms.CheckBox chkLevelInfo;

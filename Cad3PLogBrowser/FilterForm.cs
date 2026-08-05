@@ -29,7 +29,7 @@ namespace Cad3PLogBrowser
                 MinimumDurationMs = chkEnableDuration.Checked ? (int?)nudMinDuration.Value : null,
                 FromTime = chkEnableTimeRange.Checked ? (DateTime?)dtpFromTime.Value : null,
                 ToTime = chkEnableTimeRange.Checked ? (DateTime?)dtpToTime.Value : null,
-                ThreadId = string.IsNullOrWhiteSpace(txtThreadId.Text) ? null : txtThreadId.Text.Trim(),
+                ThreadId = string.IsNullOrWhiteSpace(cmbThreadId.Text) ? null : cmbThreadId.Text.Trim(),
                 Levels = GetCheckedLevels()
             };
 
@@ -56,7 +56,7 @@ namespace Cad3PLogBrowser
             MatchCaseCheckBox.Checked = false;
             chkEnableDuration.Checked = false;
             chkEnableTimeRange.Checked = false;
-            txtThreadId.Text = string.Empty;
+            cmbThreadId.Text = string.Empty;
             chkLevelDebug.Checked = false;
             chkLevelInfo.Checked = false;
             chkLevelWarning.Checked = false;
@@ -72,6 +72,18 @@ namespace Cad3PLogBrowser
         {
             // Apply theme now that form and controls are fully created
             ThemeManager.ApplyTheme(this);
+
+            // B7: populate the Thread ID combo with IDs actually detected in the
+            // loaded log, and hide it entirely when the log has none (e.g. single-
+            // threaded logs) rather than showing an always-empty dropdown.
+            var threadIds = _mainForm.GetDetectedThreadIds();
+            bool hasThreads = threadIds != null && threadIds.Count > 0;
+            cmbThreadId.Items.Clear();
+            if (hasThreads)
+                cmbThreadId.Items.AddRange(threadIds.ToArray());
+
+            lblThreadId.Visible = hasThreads;
+            cmbThreadId.Visible = hasThreads;
         }
     }
 }
