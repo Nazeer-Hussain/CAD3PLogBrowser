@@ -1958,15 +1958,13 @@ namespace Cad3PLogBrowser
                 SelectedImageIndex = imgIdx
             };
 
-            // Feature C3: Color coding by duration (green < 100ms, amber 100-500ms, red > 500ms)
+            // Feature C3: Color coding by duration, thresholds configurable via
+            // Settings > Performance (FastCallThresholdMs / SlowCallThresholdMs).
             if (csNode.DurationMs > 0)
             {
-                const int FAST_MS = 100;
-                const int SLOW_MS = 500;
-
-                if (csNode.DurationMs < FAST_MS)
+                if (csNode.DurationMs < _appSettings.FastCallThresholdMs)
                     tn.ForeColor = Color.FromArgb(0, 128, 0);      // Green
-                else if (csNode.DurationMs < SLOW_MS)
+                else if (csNode.DurationMs < _appSettings.SlowCallThresholdMs)
                     tn.ForeColor = Color.FromArgb(204, 102, 0);    // Amber
                 else
                     tn.ForeColor = Color.FromArgb(200, 0, 0);      // Red
