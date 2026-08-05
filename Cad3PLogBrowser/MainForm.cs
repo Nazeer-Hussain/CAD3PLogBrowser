@@ -5760,6 +5760,13 @@ namespace Cad3PLogBrowser
 
             var svc = new Services.Update.UpdateService(manifestUrl);
 
+            // G12: the fetch can take several seconds (retries on a slow/unreachable
+            // URL), so a manual check gets the same status-bar/overlay progress
+            // indicator as other long-running operations. Startup (silent) checks
+            // stay silent — no overlay popping up unprompted at launch.
+            if (!silent)
+                StartOperation("Checking for Updates");
+
             Services.Update.UpdateManifest manifest = null;
             try
             {
@@ -5772,6 +5779,11 @@ namespace Cad3PLogBrowser
                     MessageBox.Show(string.Format(Resources.UPDATE_CHECK_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+            finally
+            {
+                if (!silent)
+                    EndOperation();
             }
 
             // Record the check timestamp regardless of result
