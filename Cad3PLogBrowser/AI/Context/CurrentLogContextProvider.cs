@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 using Cad3PLogBrowser.AI.Abstractions;
+using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.Models;
 
 namespace Cad3PLogBrowser.AI.Context
@@ -15,17 +16,22 @@ namespace Cad3PLogBrowser.AI.Context
         private readonly AggregateStats _stats;
         private readonly string _logFilePath;
         private readonly Func<string> _getSelectedText;
+        private readonly bool _redactSensitiveData;
+        private readonly DataRedactor _redactor;
 
         public CurrentLogContextProvider(
-            AggregateStats stats, 
+            AggregateStats stats,
             string logFilePath = null,
             Func<string> getSelectedText = null,
-            ITokenEstimator tokenEstimator = null) 
+            ITokenEstimator tokenEstimator = null,
+            bool redactSensitiveData = true)
             : base(tokenEstimator)
         {
             _stats = stats;
             _logFilePath = logFilePath;
             _getSelectedText = getSelectedText;
+            _redactSensitiveData = redactSensitiveData;
+            _redactor = redactSensitiveData ? new DataRedactor() : null;
         }
 
         public override string ContextType => "CurrentLog";
@@ -62,6 +68,11 @@ namespace Cad3PLogBrowser.AI.Context
                 string selected = _getSelectedText();
                 if (!string.IsNullOrWhiteSpace(selected))
                 {
+                    // DEF-AI01: redact here, at the source, rather than trusting every
+                    // eventual caller to redact the assembled prompt downstream.
+                    if (_redactSensitiveData && _redactor != null)
+                        selected = _redactor.Redact(selected);
+
                     sb.AppendLine("### Selected Content");
                     sb.AppendLine("```");
                     sb.AppendLine(selected);
