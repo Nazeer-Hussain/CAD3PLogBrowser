@@ -1243,11 +1243,11 @@ namespace Cad3PLogBrowser
 
             if (dist > 0)
             {
-                mainSplitContainer.SplitterDistance = dist;
+                SetSplitterDistanceSafe(dist);
             }
             else if (_appSettings.SplitterDistance > 0)
             {
-                mainSplitContainer.SplitterDistance = _appSettings.SplitterDistance;
+                SetSplitterDistanceSafe(_appSettings.SplitterDistance);
             }
             // else: will be set to 30% in MainForm_Load after layout is ready
 
@@ -1301,6 +1301,21 @@ namespace Cad3PLogBrowser
             }
             if (target != null && mainTabControl.TabPages.Contains(target))
                 mainTabControl.SelectedTab = target;
+        }
+
+        /// <summary>G1: clamps to the split container's own Panel1MinSize/Panel2MinSize
+        /// before assigning, so a stale saved distance from before those minimums
+        /// existed (or a narrow window) can never throw on startup.</summary>
+        private void SetSplitterDistanceSafe(int desired)
+        {
+            try
+            {
+                int min = mainSplitContainer.Panel1MinSize;
+                int max = Math.Max(min, mainSplitContainer.Width
+                    - mainSplitContainer.Panel2MinSize - mainSplitContainer.SplitterWidth);
+                mainSplitContainer.SplitterDistance = Math.Max(min, Math.Min(desired, max));
+            }
+            catch { /* never let a bad saved splitter position block startup */ }
         }
 
         private void SaveSettings()
@@ -4152,7 +4167,10 @@ namespace Cad3PLogBrowser
                     {
                         _fileChangedPending    = false;
                         FileStatus.ToolTipText = string.Empty;
-                        LoadFileAsync(_currentFilePath);
+                        // A4: preserve scroll position on watcher-triggered reload too,
+                        // matching the manual Refresh (F5) behavior.
+                        int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
+                        LoadFileAsync(_currentFilePath, restoreTopIndex: topIndex);
                     }
                 };
                 _autoReloadCountdownTimer.Start();
@@ -4970,7 +4988,9 @@ namespace Cad3PLogBrowser
                 _autoReloadCountdownTimer?.Stop();
                 _fileChangedPending    = false;
                 FileStatus.ToolTipText = string.Empty;
-                LoadFileAsync(_currentFilePath);
+                // A4: preserve scroll position, matching the manual Refresh (F5) behavior.
+                int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
+                LoadFileAsync(_currentFilePath, restoreTopIndex: topIndex);
             }
         }
 
@@ -6286,17 +6306,21 @@ namespace Cad3PLogBrowser
             SetDocumentLoaded(false);
             LayoutTrees();
 
+            // G1: minimum 200px per side so neither the tree nor the tab panel can be
+            // dragged down to unusable width. Set here rather than in the Designer —
+            // during InitializeComponent() the SplitContainer's transient Width is
+            // still its placeholder size, too small for a 200+200 minimum, and
+            // EndInit() would throw revalidating the hardcoded SplitterDistance.
+            mainSplitContainer.Panel1MinSize = 200;
+            mainSplitContainer.Panel2MinSize = 200;
+
             // Feature 2a: Set default splitter to 30% only on first run (no saved value)
             // Check if this is the first run (no saved splitter distance)
             if (_appSettings.SplitterDistance <= 0)
             {
                 // First run - calculate 30% default
                 int defaultSplitter = (int)(this.ClientSize.Width * 0.3);
-                if (defaultSplitter > mainSplitContainer.Panel1MinSize && 
-                    defaultSplitter < this.ClientSize.Width - mainSplitContainer.Panel2MinSize)
-                {
-                    mainSplitContainer.SplitterDistance = defaultSplitter;
-                }
+                SetSplitterDistanceSafe(defaultSplitter);
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
@@ -6314,7 +6338,7 @@ namespace Cad3PLogBrowser
                 int savedDistance = _appSettings.SplitterDistance;
                 this.BeginInvoke((Action)(() =>
                 {
-                    mainSplitContainer.SplitterDistance = savedDistance;
+                    SetSplitterDistanceSafe(savedDistance);
 
                     // NOW form is fully loaded - enable saving
                     _isFormLoaded = true;
