@@ -663,27 +663,27 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.TabPerformance,
                 Location = new Point(12, 245),
-                Size = new Size(530, 256),
+                Size = new Size(530, 216),
                 Font = new Font("Segoe UI", 9f)
             };
 
-            nudFastCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelFastCallThreshold, 24, 1, 60000, 100);
-            Lbl(grpPerformance, SettingsDialogStrings.HintFastCallMs, 290, 28);
+            nudFastCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelFastCallThreshold, 20, 1, 60000, 100);
+            Lbl(grpPerformance, SettingsDialogStrings.HintFastCallMs, 290, 24);
 
-            nudSlowCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelSlowCallThreshold, 60, 10, 60000, 1000);
-            Lbl(grpPerformance, SettingsDialogStrings.HintSlowCallMs, 290, 64);
+            nudSlowCallMs = AddNud(grpPerformance, SettingsDialogStrings.LabelSlowCallThreshold, 50, 10, 60000, 1000);
+            Lbl(grpPerformance, SettingsDialogStrings.HintSlowCallMs, 290, 54);
 
-            nudMaxFileMb = AddNud(grpPerformance, SettingsDialogStrings.LabelSkipListViewIfFileGreater, 96, 1, 2000, 50);
-            Lbl(grpPerformance, SettingsDialogStrings.HintMaxFileMb, 290, 100);
+            nudMaxFileMb = AddNud(grpPerformance, SettingsDialogStrings.LabelSkipListViewIfFileGreater, 80, 1, 2000, 50);
+            Lbl(grpPerformance, SettingsDialogStrings.HintMaxFileMb, 290, 84);
 
             // C2: configurable lazy-load threshold for the Call Tree.
-            nudLazyLoadThreshold = AddNud(grpPerformance, SettingsDialogStrings.LabelLazyLoadThreshold, 132, 1000, 1000000, 50000);
-            Lbl(grpPerformance, SettingsDialogStrings.HintLazyLoadThreshold, 290, 136);
+            nudLazyLoadThreshold = AddNud(grpPerformance, SettingsDialogStrings.LabelLazyLoadThreshold, 110, 1000, 1000000, 50000);
+            Lbl(grpPerformance, SettingsDialogStrings.HintLazyLoadThreshold, 290, 114);
 
             chkFilterPerfOnTreeSelect = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(12, 172),
+                Location = new Point(12, 144),
                 Text = SettingsDialogStrings.CheckboxAutoFilterPerformance,
             };
             grpPerformance.Controls.Add(chkFilterPerfOnTreeSelect);
@@ -691,7 +691,7 @@ namespace Cad3PLogBrowser
             var hint = new Label
             {
                 AutoSize = false,
-                Location = new Point(30, 196),
+                Location = new Point(30, 166),
                 Size = new Size(500, 34),
                 Text = SettingsDialogStrings.HintAutoFilterOff,
                 ForeColor = SystemColors.GrayText,
