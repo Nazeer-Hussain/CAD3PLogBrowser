@@ -5364,6 +5364,11 @@ namespace Cad3PLogBrowser
                 PopulateVirtualListViewFiltered(filtered);
                 ClearHighlighting();
 
+                // B4/B5: a Time Range or Duration Threshold filter used to only ever
+                // affect this flat log list — the Call Tree / API Tree looked untouched.
+                // Highlight (and auto-expand ancestors of) the matching nodes there too.
+                ApplyTreeFilterHighlight(criteria);
+
                 StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED,
                     filtered.Count, _allLines.Count);
             }
@@ -5385,6 +5390,84 @@ namespace Cad3PLogBrowser
             PopulateVirtualListView(_allLines);
             // DEF-D01: ClearHighlighting() removed — PopulateVirtualListView already
             // sets BackColour = GetLineColour() for every line; a second pass is O(N) waste.
+            ApplyTreeFilterHighlight(null);
+        }
+
+        /// <summary>
+        /// B4/B5: highlights Call Tree / API Tree nodes whose duration and/or call time
+        /// satisfy the active Duration/Time-Range filter criteria, expanding ancestors of
+        /// any match — the same non-destructive highlight approach the C5 tree-search box
+        /// uses (WinForms TreeView has no concept of a truly "hidden" node short of
+        /// rebuilding the tree, so matches are highlighted rather than removed).
+        /// Note: this shares node.BackColor with the C5 tree-search highlight, so the two
+        /// will visually override each other if both are active at once — an accepted
+        /// limitation rather than introducing a second, separate highlight channel.
+        /// </summary>
+        private void ApplyTreeFilterHighlight(Models.FilterCriteria criteria)
+        {
+            bool hasDuration  = criteria != null && criteria.MinimumDurationMs.HasValue;
+            bool hasTimeRange = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
+
+            var trees = new[] { CallTree, ApiTree };
+
+            if (!hasDuration && !hasTimeRange)
+            {
+                foreach (var tree in trees)
+                    ShowAllTreeNodes(tree);
+                return;
+            }
+
+            bool NodeMatches(TreeNode node)
+            {
+                if (!(node.Tag is int line) || line <= 0) return false;
+                if (_callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(line, out var csNode))
+                    return false;
+
+                if (hasDuration && csNode.DurationMs < criteria.MinimumDurationMs.Value)
+                    return false;
+
+                if (hasTimeRange)
+                {
+                    if (csNode.EpochMs <= 0) return false; // no timestamp to compare
+                    var callTime = DateTimeOffset.FromUnixTimeMilliseconds(csNode.EpochMs).LocalDateTime.TimeOfDay;
+                    if (criteria.FromTime.HasValue && callTime < criteria.FromTime.Value.TimeOfDay) return false;
+                    if (criteria.ToTime.HasValue && callTime > criteria.ToTime.Value.TimeOfDay) return false;
+                }
+
+                return true;
+            }
+
+            foreach (var tree in trees)
+            {
+                tree.BeginUpdate();
+                foreach (TreeNode rootNode in tree.Nodes)
+                    ApplyTreeFilterHighlightRecursive(rootNode, NodeMatches);
+                tree.EndUpdate();
+            }
+        }
+
+        private bool ApplyTreeFilterHighlightRecursive(TreeNode node, Func<TreeNode, bool> matches, int depth = 0)
+        {
+            if (depth > 500) return false; // guard against pathologically deep trees
+
+            bool nodeMatches = matches(node);
+            bool hasMatch    = false;
+
+            foreach (TreeNode child in node.Nodes)
+            {
+                if (ApplyTreeFilterHighlightRecursive(child, matches, depth + 1))
+                    hasMatch = true;
+            }
+
+            if (nodeMatches || hasMatch)
+            {
+                node.BackColor = nodeMatches ? (_appSettings?.HighlightColor ?? Color.Yellow) : Color.Transparent;
+                if (hasMatch && !node.IsExpanded) node.Expand();
+                return true;
+            }
+
+            node.BackColor = Color.Transparent;
+            return false;
         }
 
         // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──
