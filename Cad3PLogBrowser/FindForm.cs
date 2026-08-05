@@ -30,9 +30,11 @@ namespace Cad3PLogBrowser
 
         private void FindNextButton_Click(object sender, System.EventArgs e) => PerformFind(forward: true);
 
+        private void PreviousButton_Click(object sender, System.EventArgs e) => PerformFind(forward: false);
+
         private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter) PerformFind(forward: true);
+            if (e.KeyCode == Keys.Enter) PerformFind(forward: !e.Shift); // B1: Shift+Enter = Previous
         }
 
         private void PerformFind(bool forward = true)
@@ -49,10 +51,28 @@ namespace Cad3PLogBrowser
                     SearchTextBox.Items.RemoveAt(SearchTextBox.Items.Count - 1);
             }
 
-            if (forward)
-                _mainForm.FindNext(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
-            else
-                _mainForm.FindPrev(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
+            int foundIndex = forward
+                ? _mainForm.FindNext(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked)
+                : _mainForm.FindPrev(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked);
+
+            UpdateMatchCount(term, foundIndex);
+        }
+
+        /// <summary>B1: shows "match N of M" (or "No matches") next to the buttons.</summary>
+        private void UpdateMatchCount(string term, int foundIndex)
+        {
+            if (string.IsNullOrEmpty(term))
+            {
+                MatchCountLabel.Text = string.Empty;
+                return;
+            }
+
+            int total = _mainForm.CountMatches(term, MatchCaseCheckBox.Checked, UseRegexCheckBox.Checked,
+                foundIndex, out int rank);
+
+            MatchCountLabel.Text = total == 0
+                ? "No matches"
+                : (rank > 0 ? string.Format("Match {0} of {1}", rank, total) : string.Format("{0} matches", total));
         }
 
         private void CloseButton_Click(object sender, System.EventArgs e) => Hide();

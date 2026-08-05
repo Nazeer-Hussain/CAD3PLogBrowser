@@ -4512,9 +4512,9 @@ namespace Cad3PLogBrowser
         }
 
         // BUG-09: Find Previous — mirrors FindNext but searches backward via SearchService.FindPrev
-        public void FindPrev(string searchTerm, bool matchCase, bool useRegex = false)
+        public int FindPrev(string searchTerm, bool matchCase, bool useRegex = false)
         {
-            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return -1;
 
             if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
             int idx = _searchService.FindPrev(_virtualLineTexts, searchTerm, matchCase, useRegex);
@@ -4537,15 +4537,16 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+            return idx;
         }
 
         // Feature B8: Highlight search results
         private string _lastHighlightTerm = "";
         private bool _lastHighlightMatchCase = false;
 
-        public void FindNext(string searchTerm, bool matchCase, bool useRegex = false)
+        public int FindNext(string searchTerm, bool matchCase, bool useRegex = false)
         {
-            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return -1;
 
             // P-06: use the zero-alloc wrapper instead of copying all text into a new List<string>.
             if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
@@ -4570,6 +4571,18 @@ namespace Cad3PLogBrowser
                 MessageBox.Show(string.Format(Resources.ERR_NOT_FOUND, searchTerm),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+            return idx;
+        }
+
+        /// <summary>B1: total matches for <paramref name="searchTerm"/> and the 1-based
+        /// ordinal position of <paramref name="currentIndex"/> among them, for the Find
+        /// dialog's "match N of M" label.</summary>
+        public int CountMatches(string searchTerm, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (_virtualLines.Count == 0 || string.IsNullOrEmpty(searchTerm)) return 0;
+            if (_virtualLineTexts == null) _virtualLineTexts = new VirtualLineTextList(_virtualLines);
+            return _searchService.CountMatches(_virtualLineTexts, searchTerm, matchCase, useRegex, currentIndex, out rank);
         }
 
         // Feature B8: Highlight all search results in the log view
