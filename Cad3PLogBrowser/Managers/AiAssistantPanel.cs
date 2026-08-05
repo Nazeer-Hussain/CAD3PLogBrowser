@@ -447,6 +447,16 @@ namespace Cad3PLogBrowser.Managers
                         redactSensitiveData: redact));
                 }
 
+                // L1: feed the per-method call-count/duration breakdown that the AI Log
+                // Summarizer spec calls for. _getPerfStats was already being collected and
+                // passed into this panel but never actually used — without it, a "Slowest
+                // methods" analysis had no real timing data to draw on.
+                var perfStats = _getPerfStats?.Invoke();
+                if (perfStats != null && perfStats.Count > 0)
+                {
+                    providers.Add(new ApiPerformanceContextProvider(perfStats));
+                }
+
                 var selectedText = _getSelectedText?.Invoke();
                 if (!string.IsNullOrEmpty(selectedText))
                 {
