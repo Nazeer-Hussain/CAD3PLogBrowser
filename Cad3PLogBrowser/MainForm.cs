@@ -6083,13 +6083,17 @@ namespace Cad3PLogBrowser
                 Services.Update.UpdateLogger.Log("Startup: auto-check disabled by user setting");
             }
 
-            // A8: restore the last-opened file, unless one was already given on the command line.
+            // A8: restore the last-opened file(s), unless one was already given on the
+            // command line. More than one file means a merge was active last session —
+            // re-merge them directly rather than re-prompting Merge/Compare/Open First.
             if (!_openedViaCommandLine && _appSettings.RestoreSessionOnStartup &&
                 string.IsNullOrEmpty(_currentFilePath))
             {
                 var lastFiles = _sessionService.GetLastSessionFiles();
-                if (lastFiles.Count > 0)
+                if (lastFiles.Count == 1)
                     this.BeginInvoke((Action)(() => LoadFileAsync(lastFiles[0])));
+                else if (lastFiles.Count > 1)
+                    this.BeginInvoke((Action)(() => _ = MergeFilesAsync(lastFiles)));
             }
         }
 
@@ -6103,10 +6107,17 @@ namespace Cad3PLogBrowser
 
             try
             {
-                // A8: remember the open file so it can be restored next launch.
-                _sessionService.SaveSession(string.IsNullOrEmpty(_currentFilePath)
-                    ? Array.Empty<string>()
-                    : new[] { _currentFilePath });
+                // A8: remember the open file(s) so they can be restored next launch.
+                // _currentFilePath is a synthetic "[Merged: ...]" label while a merge is
+                // active, not a real path, so save the underlying source files instead.
+                IEnumerable<string> sessionFiles;
+                if (_mergedSourcePaths != null && _mergedSourcePaths.Count > 0)
+                    sessionFiles = _mergedSourcePaths;
+                else if (!string.IsNullOrEmpty(_currentFilePath))
+                    sessionFiles = new[] { _currentFilePath };
+                else
+                    sessionFiles = Array.Empty<string>();
+                _sessionService.SaveSession(sessionFiles);
             }
             catch { /* Non-fatal */ }
 
