@@ -488,7 +488,7 @@
     <p>The recent-files list now lives in <code>%AppData%\CAD3PLogBrowser\recentfiles.json</code> instead of inside <code>settings.json</code>, so it survives a settings reset. Existing recent files are migrated automatically the first time you run this version.</p>
 
     <h3>&#128260; Configurable auto-reload, off by default at 0</h3>
-    <p><span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> toggles disk-change monitoring, and a new <strong>Auto-reload after (seconds)</strong> setting (Settings &#8594; Files &amp; Behavior) lets a changed file reload itself silently after a delay instead of always prompting. Leave it at <code>0</code> (the default) to keep the Yes/No prompt.</p>
+    <p><span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> toggles disk-change monitoring, and a new <strong>Auto-reload after (seconds)</strong> setting (Settings &#8594; Files &amp; Behavior) lets a changed file reload itself silently after a delay. Reloading is always non-blocking: at <code>0</code> (the default) the status bar shows a &#8220;File changed on disk &#8212; click to reload&#8221; message you click when ready; above <code>0</code> it reloads by itself after a silent countdown, also shown in the status bar.</p>
 
     <h3>&#127775; Expand to Level (tree)</h3>
     <p>The Call Tree and API Tree context menus (and the Edit menu) gained an <strong>Expand to Level...</strong> command that expands every node down to a depth you choose in one step, collapsing anything deeper &#8212; a middle ground between one node at a time and Expand All. See <a href="#expand-to-level">Expand to Level</a>.</p>
@@ -597,7 +597,7 @@
     </table>
 
     <div class="note">
-        <strong>&#128221; Auto-watch:</strong> When <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> is on (the default), the app monitors the opened file for disk changes and the status ball turns red when it changes. What happens next depends on the <strong>Auto-reload after (seconds)</strong> setting: at <code>0</code> (default) you get a Yes/No prompt; above <code>0</code> it reloads by itself after a silent countdown, shown right in the status bar. Either way, pressing <kbd>F5</kbd> reloads immediately.
+        <strong>&#128221; Auto-watch:</strong> When <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span> is on (the default), the app monitors the opened file for disk changes. What happens next depends on the <strong>Auto-reload after (seconds)</strong> setting: at <code>0</code> (default) the status bar shows a clickable &#8220;File changed on disk &#8212; click to reload&#8221; message &#8212; nothing reloads until you click it; above <code>0</code> it reloads by itself after a silent countdown, shown right in the status bar. Either way, pressing <kbd>F5</kbd> reloads immediately.
     </div>
 
     <div class="info">
@@ -722,14 +722,17 @@
         <div class="feature-row"><span class="label">Use regex</span><span class="desc">Full .NET regular expression support</span></div>
         <div class="feature-row"><span class="label">Search history</span><span class="desc">Drop-down remembers last 20 search terms (persisted across sessions)</span></div>
         <div class="feature-row"><span class="label">Highlight all</span><span class="desc">Matching lines are highlighted yellow in the log view</span></div>
+        <div class="feature-row"><span class="label">Previous button</span><span class="desc">Steps to the previous match without closing the dialog; <kbd>Shift+Enter</kbd> in the search box does the same</span></div>
+        <div class="feature-row"><span class="label">Match count</span><span class="desc">Shows &#8220;Match N of M&#8221; (or &#8220;No matches&#8221;) below the search box as you type</span></div>
+        <div class="feature-row"><span class="label">Invalid regex indicator</span><span class="desc">With <em>Use regex</em> checked, an invalid pattern tints the search box red with a tooltip explaining the error &#8212; distinct from a valid pattern that simply has no matches</span></div>
     </div>
 
     <table class="shortcut-table">
         <thead><tr><th>Action</th><th>Shortcut</th></tr></thead>
         <tbody>
             <tr><td>Open Find dialog</td><td><kbd>Ctrl+F</kbd></td></tr>
-            <tr><td>Find next (no dialog)</td><td><kbd>F3</kbd></td></tr>
-            <tr><td>Find previous</td><td><kbd>Shift+F3</kbd></td></tr>
+            <tr><td>Find next (in dialog or main window)</td><td><kbd>F3</kbd> / <kbd>Enter</kbd></td></tr>
+            <tr><td>Find previous (in dialog or main window)</td><td><kbd>Shift+F3</kbd> / <kbd>Shift+Enter</kbd></td></tr>
             <tr><td>Find All (results window)</td><td><kbd>Ctrl+Alt+F</kbd></td></tr>
         </tbody>
     </table>
@@ -748,13 +751,17 @@
             <tr><td><strong>Min duration (ms)</strong></td><td>Only calls with <code>[N ms]</code> duration &ge; this value</td><td><code>500</code></td></tr>
             <tr><td><strong>From time</strong></td><td>Log lines at or after this time-of-day</td><td><code>14:30:00</code></td></tr>
             <tr><td><strong>To time</strong></td><td>Log lines at or before this time-of-day</td><td><code>14:35:00</code></td></tr>
-            <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread</td><td><code>0x1A2B</code></td></tr>
-            <tr><td><strong>Log level</strong></td><td>ERROR, WARNING, INFO, or DEBUG</td><td>ERROR</td></tr>
+            <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread &#8212; a drop-down of the thread IDs actually detected in the loaded log (editable, so you can still type one by hand). Hidden entirely when the log has none.</td><td><code>T7978</code></td></tr>
+            <tr><td><strong>Log level</strong></td><td>Independent checkboxes for Debug, Info, Warning, Error &#8212; check any combination to show lines matching <em>any</em> of the checked levels</td><td>Warning + Error</td></tr>
         </tbody>
     </table>
 
     <div class="tip">
         <strong>&#128161; Tip:</strong> When a filter is active, the status bar shows <em>&#8220;Filter: [description] &#8212; N of M lines&#8221;</em>. Clear it with <kbd>Ctrl+Shift+F</kbd> or <span class="menu">Edit <span class="menu-arrow">&#8594;</span> Clear Filter</span>.
+    </div>
+
+    <div class="note">
+        <strong>&#128278; Filters reach the trees too:</strong> When the <strong>Min duration</strong> or time-range criteria are active, matching nodes in the Call Tree are highlighted and their ancestor chains auto-expanded &#8212; the same non-destructive highlight approach used by the tree search box, not a separate filter mechanism. Text/thread/level criteria still apply only to the Log view.
     </div>
 
     <h3>Regex Examples</h3>
@@ -836,13 +843,14 @@
         <thead><tr><th>Colour</th><th>Duration</th><th>Meaning</th></tr></thead>
         <tbody>
             <tr><td><span class="swatch" style="background:#00aa00;"></span> Green</td><td>&lt; 100 ms</td><td>Fast &#8212; no concern</td></tr>
-            <tr><td><span class="swatch" style="background:#cc6600;"></span> Amber</td><td>100 &#8211; 500 ms</td><td>Moderate &#8212; worth monitoring</td></tr>
-            <tr><td><span class="swatch" style="background:#cc0000;"></span> Red</td><td>&gt; 500 ms</td><td>Slow &#8212; likely bottleneck</td></tr>
+            <tr><td><span class="swatch" style="background:#cc6600;"></span> Amber</td><td>100 &#8211; 1000 ms</td><td>Moderate &#8212; worth monitoring</td></tr>
+            <tr><td><span class="swatch" style="background:#cc0000;"></span> Red</td><td>&gt; 1000 ms</td><td>Slow &#8212; likely bottleneck</td></tr>
         </tbody>
     </table>
+    <p>Both cutoffs (default 100 ms / 1000 ms) are configurable via <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Files &amp; Behavior</span> as <strong>Fast call threshold</strong> and <strong>Slow call threshold</strong> &#8212; the tree recolours immediately when you change them, no reload needed.</p>
 
     <h3>Lazy Loading</h3>
-    <p>For very large call trees (&gt; 50,000 nodes), the tree uses <strong>lazy loading</strong>: child nodes are populated on demand when you expand a parent. A <em>&#8220;Loading&#8230;&#8221;</em> placeholder is shown until children are rendered.</p>
+    <p>For very large call trees, the tree uses <strong>lazy loading</strong>: child nodes are populated on demand when you expand a parent. A <em>&#8220;Loading&#8230;&#8221;</em> placeholder is shown until children are rendered. The node-count threshold that triggers this (default 50,000) is configurable via <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Files &amp; Behavior</span> as <strong>Lazy-load tree above</strong> &#8212; lower it on slower machines for snappier expansion, or raise it to always build small/medium trees eagerly.</p>
 
     <h3>Sorting (API Tree only)</h3>
     <p>Right-click the API Tree to choose sort order: by <strong>Name</strong>, by <strong>Call Count</strong>, or by <strong>First Line</strong>.</p>
@@ -1333,10 +1341,11 @@
             <tr><td>Snippet file suffix</td><td>_snippet</td><td>Appended to the original log filename when using <em>Save As</em> (<kbd>Ctrl+S</kbd>) or <em>Save Branch</em>. E.g. suffix <code>_snippet</code> with file <code>trace.log</code> produces <code>trace_snippet.log</code></td></tr>
             <tr><td>Restore last session on startup</td><td>&#9744; Off</td><td>When on, reopens the most recent file automatically at launch &#8212; but only if no file was already given on the command line</td></tr>
             <tr><td>Watch for file changes (auto-reload)</td><td>&#10003; On</td><td>Master toggle for the file-change watcher; mirrored by <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span></td></tr>
-            <tr><td>Auto-reload after (seconds)</td><td>0</td><td>0 = ask before reloading (Yes/No prompt). Any value above 0 reloads automatically after a silent countdown shown in the status bar.</td></tr>
-            <tr><td>Fast call threshold</td><td>100 ms</td><td>Below this, calls are shown green in the tree</td></tr>
-            <tr><td>Slow call threshold</td><td>1000 ms</td><td>At/above this, calls are shown red; 1/10th of this is the amber cutoff</td></tr>
+            <tr><td>Auto-reload after (seconds)</td><td>0</td><td>0 = non-blocking &#8212; the status bar shows a clickable &#8220;File changed on disk&#8221; message and nothing reloads until you click it. Any value above 0 reloads automatically after a silent countdown shown in the status bar.</td></tr>
+            <tr><td>Fast call threshold</td><td>100 ms</td><td>Below this, calls are shown green in the Call Tree</td></tr>
+            <tr><td>Slow call threshold</td><td>1000 ms</td><td>At/above this, calls are shown red in the Call Tree; between the two thresholds is amber</td></tr>
             <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list view is bypassed</td></tr>
+            <tr><td>Lazy-load tree above</td><td>50,000 nodes</td><td>Call Tree node-count threshold above which children load on demand as you expand each node, instead of building the whole tree up front. The tree re-renders immediately when you change this, without reopening the file.</td></tr>
             <tr><td>Auto-filter Performance tab when a Call Tree node is selected</td><td>&#10003; On</td><td>When off, use the Call Tree right-click menu to filter Performance manually instead</td></tr>
         </tbody>
     </table>
