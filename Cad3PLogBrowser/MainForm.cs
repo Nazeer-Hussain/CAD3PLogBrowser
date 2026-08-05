@@ -4574,6 +4574,13 @@ namespace Cad3PLogBrowser
             return idx;
         }
 
+        /// <summary>B2: validates a regex pattern without searching, so the Find dialog
+        /// can flag an invalid pattern immediately instead of just reporting "not found".</summary>
+        public bool TryValidateRegex(string pattern, bool matchCase, out string errorMessage)
+        {
+            return _searchService.TryValidateRegex(pattern, matchCase, out errorMessage);
+        }
+
         /// <summary>B1: total matches for <paramref name="searchTerm"/> and the 1-based
         /// ordinal position of <paramref name="currentIndex"/> among them, for the Find
         /// dialog's "match N of M" label.</summary>

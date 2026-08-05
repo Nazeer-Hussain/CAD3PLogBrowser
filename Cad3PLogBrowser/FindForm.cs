@@ -11,6 +11,7 @@ namespace Cad3PLogBrowser
     public partial class FindForm : Form
     {
         private readonly MainForm _mainForm;
+        private readonly ToolTip _regexErrorToolTip = new ToolTip();
 
         public FindForm(MainForm mainForm)
         {
@@ -20,6 +21,28 @@ namespace Cad3PLogBrowser
 
             // Load search history from settings
             LoadSearchHistory();
+
+            // B2: validate the regex live as the user types, instead of only discovering
+            // it's invalid after Find Next reports a misleading "not found".
+            SearchTextBox.TextChanged += (s, e) => ValidateRegexLive();
+            UseRegexCheckBox.CheckedChanged += (s, e) => ValidateRegexLive();
+        }
+
+        /// <summary>B2: tints the search box red and shows the regex error as a tooltip
+        /// when "Use regular expression" is on and the pattern doesn't compile.</summary>
+        private bool ValidateRegexLive()
+        {
+            if (UseRegexCheckBox.Checked &&
+                !_mainForm.TryValidateRegex(SearchTextBox.Text, MatchCaseCheckBox.Checked, out string error))
+            {
+                SearchTextBox.BackColor = ThemeManager.ErrorBackgroundColor;
+                _regexErrorToolTip.SetToolTip(SearchTextBox, "Invalid regular expression: " + error);
+                return false;
+            }
+
+            SearchTextBox.BackColor = ThemeManager.InputBackgroundColor;
+            _regexErrorToolTip.SetToolTip(SearchTextBox, string.Empty);
+            return true;
         }
 
         /// <summary>Triggers Find Next using the current search term — called by the menu shortcut.</summary>
@@ -40,6 +63,16 @@ namespace Cad3PLogBrowser
         private void PerformFind(bool forward = true)
         {
             string term = SearchTextBox.Text;
+
+            // B2: an invalid regex isn't "not found" — stop here so the red-tinted box
+            // and tooltip (already showing from live validation) aren't masked by that
+            // misleading message, and clear any stale match count from a prior search.
+            if (!ValidateRegexLive())
+            {
+                MatchCountLabel.Text = string.Empty;
+                return;
+            }
+
             if (!string.IsNullOrEmpty(term))
             {
                 _mainForm.AddSearchHistory(term);

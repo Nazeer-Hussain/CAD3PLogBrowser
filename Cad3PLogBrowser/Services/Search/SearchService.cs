@@ -129,6 +129,30 @@ namespace Cad3PLogBrowser.Services
             return -1;
         }
 
+        // ── Regex validation (B2) ────────────────────────────────────────────
+        /// <summary>
+        /// Validates a regex pattern without performing a search, so the UI can show an
+        /// inline error immediately instead of a misleading "not found" result once the
+        /// user actually triggers Find.
+        /// </summary>
+        public bool TryValidateRegex(string pattern, bool matchCase, out string errorMessage)
+        {
+            errorMessage = null;
+            if (string.IsNullOrEmpty(pattern)) return true;
+
+            try
+            {
+                var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+                GetOrBuildRegex(pattern, options);
+                return true;
+            }
+            catch (ArgumentException ex)
+            {
+                errorMessage = ex.Message;
+                return false;
+            }
+        }
+
         // ── Match count (B1) ─────────────────────────────────────────────────
         /// <summary>
         /// Counts every line matching <paramref name="searchTerm"/> and reports the
