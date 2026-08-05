@@ -122,7 +122,7 @@
             this.mainToolStrip = new System.Windows.Forms.ToolStrip();
             this.OpenButton = new System.Windows.Forms.ToolStripButton();
             this.SaveButton = new System.Windows.Forms.ToolStripButton();
-            this.SaveToXLSButton = new System.Windows.Forms.ToolStripButton();
+            this.ExportFilteredLogButton = new System.Windows.Forms.ToolStripButton();
             this.RefreshButton = new System.Windows.Forms.ToolStripButton();
             this.separatorAfterRefresh = new System.Windows.Forms.ToolStripSeparator();
             this.CopyButton = new System.Windows.Forms.ToolStripButton();
@@ -1106,7 +1106,7 @@
             this.mainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.OpenButton,
             this.SaveButton,
-            this.SaveToXLSButton,
+            this.ExportFilteredLogButton,
             this.RefreshButton,
             this.separatorAfterRefresh,
             this.CopyButton,
@@ -1154,15 +1154,16 @@
             this.SaveButton.Text = "Save Selected";
             this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
             // 
-            // SaveToXLSButton
+            // ExportFilteredLogButton
             // 
-            this.SaveToXLSButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.SaveToXLSButton.Image = null;
-            this.SaveToXLSButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.SaveToXLSButton.Name = "SaveToXLSButton";
-            this.SaveToXLSButton.Size = new System.Drawing.Size(23, 22);
-            this.SaveToXLSButton.Text = "Save to XLS";
-            this.SaveToXLSButton.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
+            this.ExportFilteredLogButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.ExportFilteredLogButton.Image = null;
+            this.ExportFilteredLogButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.ExportFilteredLogButton.Name = "ExportFilteredLogButton";
+            this.ExportFilteredLogButton.Size = new System.Drawing.Size(23, 22);
+            this.ExportFilteredLogButton.Text = "Export Filtered Log";
+            this.ExportFilteredLogButton.ToolTipText = "Export the currently visible log lines to a .txt file (Ctrl+Shift+E)";
+            this.ExportFilteredLogButton.Click += new System.EventHandler(this.exportFilteredLogsMenuItem_Click);
             // 
             // RefreshButton
             // 
@@ -1727,7 +1728,7 @@
         private System.Windows.Forms.ToolStripButton ApiTreeButton;
         private System.Windows.Forms.ToolStripSeparator separatorAfterTreeView;
         private System.Windows.Forms.ToolStripButton ShowHelpButton;
-        private System.Windows.Forms.ToolStripButton SaveToXLSButton;
+        private System.Windows.Forms.ToolStripButton ExportFilteredLogButton;
         private System.Windows.Forms.ToolStripButton FindNextButton;
         private System.Windows.Forms.ToolStripButton ExpandAllButton;
         private System.Windows.Forms.ToolStripButton CollapseAllButton;

@@ -3745,7 +3745,7 @@ namespace Cad3PLogBrowser
             // ── Toolbar buttons ───────────────────────────────────────────────
             OpenButton.Image             = IconGenerator.CreateOpenIcon(sz);
             SaveButton.Image             = IconGenerator.CreateSaveIcon(sz);
-            SaveToXLSButton.Image        = IconGenerator.CreateExportXlsIcon(sz);
+            ExportFilteredLogButton.Image        = IconGenerator.CreateExportFileIcon(sz);
             RefreshButton.Image          = IconGenerator.CreateReloadIcon(sz);
             CopyButton.Image             = IconGenerator.CreateCopyIcon(sz);
             FindButton.Image             = IconGenerator.CreateFindIcon(sz);
@@ -3775,7 +3775,7 @@ namespace Cad3PLogBrowser
             // ── File menu ─────────────────────────────────────────────────────
             openMenuItem.Image                 = IconGenerator.CreateOpenIcon(msz);
             saveAsMenuItem.Image               = IconGenerator.CreateSaveIcon(msz);
-            exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportXlsIcon(msz);
+            exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportFileIcon(msz);
             exportPerformanceMenuItem.Image    = IconGenerator.CreateExportCsvIcon(msz);
             exportTreeJsonMenuItem.Image       = IconGenerator.CreateExportJsonIcon(msz);
             exportTreeXmlMenuItem.Image        = IconGenerator.CreateExportXmlIcon(msz);
@@ -4895,7 +4895,7 @@ namespace Cad3PLogBrowser
             FindButton.Enabled = !inProgress;
             FindNextButton.Enabled = !inProgress;
             SaveButton.Enabled = !inProgress;
-            SaveToXLSButton.Enabled = !inProgress;
+            ExportFilteredLogButton.Enabled = !inProgress;
             OpenButton.Enabled = !inProgress;
             RefreshButton.Enabled = !inProgress;
         }
