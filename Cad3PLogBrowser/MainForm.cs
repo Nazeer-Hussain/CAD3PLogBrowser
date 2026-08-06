@@ -2947,8 +2947,15 @@ namespace Cad3PLogBrowser
             treeSearchTextBox.Location = new Point(3, 3);
             treeSearchTextBox.Width = panelWidth - 6;
 
-            // Position trees below search box (at Y=31 to give 6px spacing after 22px textbox)
-            int treeY = 31;
+            // C5: match-count row (only visible while a search is active) sits directly
+            // below the search box; Prev/Next stay right-aligned as the panel resizes.
+            treeSearchMatchLabel.Location = new Point(3, 29);
+            treeSearchNextButton.Location = new Point(panelWidth - 3 - treeSearchNextButton.Width, 27);
+            treeSearchPrevButton.Location = new Point(
+                treeSearchNextButton.Left - 3 - treeSearchPrevButton.Width, 27);
+
+            // Position trees below the search row (at Y=54 to give room for the match row)
+            int treeY = 54;
             int treeHeight = panelHeight - treeY - 3; // Leave 3px at bottom
             int treeWidth = panelWidth - 6;
 
@@ -7816,6 +7823,11 @@ namespace Cad3PLogBrowser
         private string _treeSearchText = string.Empty;
         private const string TREE_SEARCH_PLACEHOLDER = "Search tree nodes...";
 
+        // C5: matches within whichever tree is currently active, in tree order, for
+        // Next/Previous navigation and the "N of M" counter.
+        private readonly List<TreeNode> _treeSearchMatches = new List<TreeNode>();
+        private int _treeSearchMatchIndex = -1;
+
         // PERF-06: debounce the tree-search TextChanged event so that FilterTreeNodes
         // is only called once after the user stops typing, not on every individual
         // keystroke.  For a 10K-node tree this prevents 10K IndexOf calls per character.
@@ -7845,6 +7857,25 @@ namespace Cad3PLogBrowser
                 _treeSearchDebounce.Start();
             }
         }
+
+        // C5: Escape clears the search (and its highlighting) without closing anything
+        // else, matching the same shortcut users already expect from B1's Find dialog.
+        private void treeSearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                treeSearchTextBox.Text = string.Empty;
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Enter)
+            {
+                NavigateTreeSearchMatch(e.Shift ? -1 : 1);
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private void treeSearchPrevButton_Click(object sender, EventArgs e) => NavigateTreeSearchMatch(-1);
+        private void treeSearchNextButton_Click(object sender, EventArgs e) => NavigateTreeSearchMatch(1);
 
         /// <summary>
         /// Handles Enter event - removes placeholder text.
@@ -7889,26 +7920,70 @@ namespace Cad3PLogBrowser
         private void FilterTreeNodes(string searchText)
         {
             _treeSearchText = searchText.ToLowerInvariant();
+            _treeSearchMatches.Clear();
+            _treeSearchMatchIndex = -1;
 
             // BUG-A03: apply the filter to BOTH trees so that switching between
             // Call Tree and API Tree shows consistent highlighted results.
             // Previously only the currently-visible tree was filtered.
             var trees = new[] { CallTree, ApiTree };
+            var activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
 
             if (string.IsNullOrWhiteSpace(_treeSearchText))
             {
                 foreach (var tree in trees)
                     ShowAllTreeNodes(tree);
+                UpdateTreeSearchMatchLabel();
                 return;
             }
 
             foreach (var tree in trees)
             {
                 tree.BeginUpdate();
+                // C5: only collect matches for the currently active tree — Next/Previous
+                // and the counter operate on whichever tree the user is actually looking at.
+                var collectInto = tree == activeTree ? _treeSearchMatches : null;
                 foreach (TreeNode rootNode in tree.Nodes)
-                    FilterTreeNodeRecursive(rootNode);
+                    FilterTreeNodeRecursive(rootNode, collectInto);
                 tree.EndUpdate();
             }
+
+            if (_treeSearchMatches.Count > 0)
+            {
+                _treeSearchMatchIndex = 0;
+                activeTree.SelectedNode = _treeSearchMatches[0];
+                _treeSearchMatches[0].EnsureVisible();
+            }
+            UpdateTreeSearchMatchLabel();
+        }
+
+        /// <summary>C5: selects the next (or previous, wrapping around) match in
+        /// whichever tree is currently active.</summary>
+        private void NavigateTreeSearchMatch(int direction)
+        {
+            if (_treeSearchMatches.Count == 0) return;
+
+            _treeSearchMatchIndex = (_treeSearchMatchIndex + direction + _treeSearchMatches.Count) % _treeSearchMatches.Count;
+            var node = _treeSearchMatches[_treeSearchMatchIndex];
+            node.TreeView.SelectedNode = node;
+            node.EnsureVisible();
+            UpdateTreeSearchMatchLabel();
+        }
+
+        private void UpdateTreeSearchMatchLabel()
+        {
+            if (treeSearchMatchLabel == null) return;
+
+            bool hasQuery = !string.IsNullOrWhiteSpace(_treeSearchText);
+            treeSearchMatchLabel.Visible     = hasQuery;
+            treeSearchPrevButton.Visible     = hasQuery;
+            treeSearchNextButton.Visible     = hasQuery;
+            treeSearchPrevButton.Enabled     = _treeSearchMatches.Count > 0;
+            treeSearchNextButton.Enabled     = _treeSearchMatches.Count > 0;
+
+            treeSearchMatchLabel.Text = _treeSearchMatches.Count == 0
+                ? "0 matches"
+                : string.Format("{0} of {1}", _treeSearchMatchIndex + 1, _treeSearchMatches.Count);
         }
 
         /// <summary>
@@ -7917,7 +7992,7 @@ namespace Cad3PLogBrowser
         /// so the user's expansion state is preserved (BUG-04).
         /// </summary>
         /// <returns>True if this node or any child matches.</returns>
-        private bool FilterTreeNodeRecursive(TreeNode node, int depth = 0)
+        private bool FilterTreeNodeRecursive(TreeNode node, List<TreeNode> collectMatchesInto = null, int depth = 0)
         {
             if (depth > 500) return false; // BUG-03: guard against deep trees
             bool hasMatch    = false;
@@ -7925,7 +8000,7 @@ namespace Cad3PLogBrowser
 
             foreach (TreeNode child in node.Nodes)
             {
-                if (FilterTreeNodeRecursive(child, depth + 1))
+                if (FilterTreeNodeRecursive(child, collectMatchesInto, depth + 1))
                     hasMatch = true;
             }
 
@@ -7936,6 +8011,7 @@ namespace Cad3PLogBrowser
                 node.BackColor = nodeMatches
                     ? (_appSettings?.HighlightColor ?? Color.Yellow)
                     : Color.Transparent;
+                if (nodeMatches) collectMatchesInto?.Add(node);
                 if (hasMatch && !node.IsExpanded)
                     node.Expand();
                 return true;

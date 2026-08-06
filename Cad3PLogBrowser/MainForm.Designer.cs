@@ -110,6 +110,9 @@
             this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
             this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.treeSearchTextBox = new System.Windows.Forms.TextBox();
+            this.treeSearchMatchLabel = new System.Windows.Forms.Label();
+            this.treeSearchPrevButton = new System.Windows.Forms.Button();
+            this.treeSearchNextButton = new System.Windows.Forms.Button();
             this.ApiTree = new System.Windows.Forms.TreeView();
             this.CallTree = new System.Windows.Forms.TreeView();
             this.mainTabControl = new System.Windows.Forms.TabControl();
@@ -882,6 +885,9 @@
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchMatchLabel);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchPrevButton);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchNextButton);
             this.mainSplitContainer.Panel1.Resize += new System.EventHandler(this.Panel1_Resize);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
@@ -907,7 +913,41 @@
             this.treeSearchTextBox.Enter += new System.EventHandler(this.treeSearchTextBox_Enter);
             this.treeSearchTextBox.Leave += new System.EventHandler(this.treeSearchTextBox_Leave);
             this.treeSearchTextBox.TextChanged += new System.EventHandler(this.treeSearchTextBox_TextChanged);
-            // 
+            this.treeSearchTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeSearchTextBox_KeyDown);
+            //
+            // treeSearchMatchLabel
+            //
+            // C5: "N of M" match counter; positioned at runtime by LayoutTrees.
+            this.treeSearchMatchLabel.AutoSize = true;
+            this.treeSearchMatchLabel.Location = new System.Drawing.Point(3, 29);
+            this.treeSearchMatchLabel.Name = "treeSearchMatchLabel";
+            this.treeSearchMatchLabel.Size = new System.Drawing.Size(70, 17);
+            this.treeSearchMatchLabel.TabIndex = 4;
+            this.treeSearchMatchLabel.Text = "0 matches";
+            this.treeSearchMatchLabel.Visible = false;
+            //
+            // treeSearchPrevButton
+            //
+            this.treeSearchPrevButton.Location = new System.Drawing.Point(226, 27);
+            this.treeSearchPrevButton.Name = "treeSearchPrevButton";
+            this.treeSearchPrevButton.Size = new System.Drawing.Size(24, 22);
+            this.treeSearchPrevButton.TabIndex = 5;
+            this.treeSearchPrevButton.Text = "▲";
+            this.treeSearchPrevButton.UseVisualStyleBackColor = true;
+            this.treeSearchPrevButton.Visible = false;
+            this.treeSearchPrevButton.Click += new System.EventHandler(this.treeSearchPrevButton_Click);
+            //
+            // treeSearchNextButton
+            //
+            this.treeSearchNextButton.Location = new System.Drawing.Point(253, 27);
+            this.treeSearchNextButton.Name = "treeSearchNextButton";
+            this.treeSearchNextButton.Size = new System.Drawing.Size(24, 22);
+            this.treeSearchNextButton.TabIndex = 6;
+            this.treeSearchNextButton.Text = "▼";
+            this.treeSearchNextButton.UseVisualStyleBackColor = true;
+            this.treeSearchNextButton.Visible = false;
+            this.treeSearchNextButton.Click += new System.EventHandler(this.treeSearchNextButton_Click);
+            //
             // ApiTree
             // 
             // ApiTree context menu handled in code (ApiTree_MouseUpForSorting)
@@ -1737,6 +1777,9 @@
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
         private System.Windows.Forms.TextBox treeSearchTextBox;
+        private System.Windows.Forms.Label treeSearchMatchLabel;
+        private System.Windows.Forms.Button treeSearchPrevButton;
+        private System.Windows.Forms.Button treeSearchNextButton;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage flameGraphTab;
         private System.Windows.Forms.TabPage timelineTab;
