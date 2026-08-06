@@ -2362,6 +2362,17 @@ namespace Cad3PLogBrowser
             {
                 performanceView.ColumnClick += PerformanceView_ColumnClick;
                 performanceView.HeaderStyle  = ColumnHeaderStyle.Clickable;
+                // E1: clicking a row selects the same API in the API Tree, matching
+                // the cross-navigation the Top-N-Slowest and Heatmap views already have.
+                performanceView.Click += (s, ev) =>
+                {
+                    if (performanceView.SelectedItems.Count == 0) return;
+                    if (performanceView.SelectedItems[0].Tag is string apiName)
+                    {
+                        ShowApiTree();
+                        FindAndSelectApiTreeNode(apiName);
+                    }
+                };
                 _perfHeaderWired = true;
             }
 
@@ -2467,6 +2478,7 @@ namespace Cad3PLogBrowser
         {
             // Column order: Name(0), LogFile(1), Calls(2), Total(3), Avg(4), Min(5), Max(6), Self(7), Source(8)
             var item = new ListViewItem(s.ApiName);
+            item.Tag = s.ApiName; // E1: click-to-select in the API Tree
             item.SubItems.Add(s.SourceLogFile ?? string.Empty);
             item.SubItems.Add(s.CallCount.ToString());
             item.SubItems.Add(s.TotalDurationMs > 0 ? s.TotalDurationMs.ToString() : "-");
