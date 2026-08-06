@@ -7511,6 +7511,16 @@ namespace Cad3PLogBrowser
         }
 
         // ── Feature I3: Export Performance to CSV ────────────────────────────
+        /// <summary>I5: appends a timestamp before the extension so repeated exports
+        /// (Call Graph, Timeline, Flame Graph, Heatmap) get their own file instead of
+        /// silently overwriting the previous one with the same fixed name.</summary>
+        private static string TimestampedFileName(string baseNameWithSuffix)
+        {
+            string ext  = Path.GetExtension(baseNameWithSuffix);
+            string stem = Path.GetFileNameWithoutExtension(baseNameWithSuffix);
+            return string.Format("{0}_{1}{2}", stem, DateTime.Now.ToString("yyyyMMdd_HHmmss"), ext);
+        }
+
         // I4: no PDF/Excel report-export library exists in this project. Rather than
         // add one for a single feature, this builds a self-contained styled HTML
         // report and opens it in the default browser — Print > Save as PDF gets a
@@ -7871,7 +7881,7 @@ namespace Cad3PLogBrowser
             using (var dialog = new SaveFileDialog())
             {
                 dialog.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dialog.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG;
+                dialog.FileName = TimestampedFileName(GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_CALLGRAPH_PNG);
                 dialog.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
@@ -8805,7 +8815,7 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG;
+                dlg.FileName = TimestampedFileName(GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_TIMELINE_PNG);
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
@@ -8854,7 +8864,7 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG;
+                dlg.FileName = TimestampedFileName(GetSafeBaseName(_currentFilePath) + Resources.FILENAME_SUFFIX_FLAMEGRAPH_PNG);
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
@@ -8897,7 +8907,7 @@ namespace Cad3PLogBrowser
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
-                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_heatmap.png";
+                dlg.FileName = TimestampedFileName(GetSafeBaseName(_currentFilePath) + "_heatmap.png");
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
