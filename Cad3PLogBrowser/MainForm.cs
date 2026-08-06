@@ -3053,6 +3053,23 @@ namespace Cad3PLogBrowser
             {
                 sb.AppendLine(string.Format(Resources.API_DETAILS_TOTAL_INVOCATIONS, apiNode.LineNumbers.Count));
                 sb.AppendLine(string.Format(Resources.API_DETAILS_FIRST_OCCURRENCE, apiNode.FirstLine));
+
+                // D3: Total/Avg/Min/Max, reusing the same stats the Performance tab and
+                // G6's API Tree tooltips already show, instead of leaving this panel
+                // without any timing summary at all.
+                if (_apiPerfStatsByName != null
+                    && _apiPerfStatsByName.TryGetValue(apiName, out var perfStats)
+                    && perfStats.TimedCallCount > 0)
+                {
+                    sb.AppendLine(string.Format(Resources.API_DETAILS_TIMING_SUMMARY,
+                        perfStats.TotalDurationMs, perfStats.AvgDurationMs,
+                        perfStats.MinDurationMs, perfStats.MaxDurationMs));
+                }
+                else
+                {
+                    sb.AppendLine(Resources.API_DETAILS_NO_TIMING);
+                }
+
                 sb.AppendLine();
                 sb.AppendLine(Resources.API_DETAILS_INVOCATION_LINES);
                 foreach (int ln in apiNode.LineNumbers)

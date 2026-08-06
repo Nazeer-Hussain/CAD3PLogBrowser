@@ -77,7 +77,25 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("API_DETAILS_FIRST_OCCURRENCE", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Total time        : {0:N0} ms.
+        /// </summary>
+        internal static string API_DETAILS_TIMING_SUMMARY {
+            get {
+                return ResourceManager.GetString("API_DETAILS_TIMING_SUMMARY", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Timing            : (no matched ENTER/EXIT pairs to time).
+        /// </summary>
+        internal static string API_DETAILS_NO_TIMING {
+            get {
+                return ResourceManager.GetString("API_DETAILS_NO_TIMING", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to === API Details: {0} ===.
         /// </summary>
