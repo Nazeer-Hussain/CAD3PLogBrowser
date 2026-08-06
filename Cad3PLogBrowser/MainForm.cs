@@ -6210,6 +6210,47 @@ namespace Cad3PLogBrowser
             await _aiPanel.AskQuestion(question);
         }
 
+        // L4: node-specific Root Cause — walks the selected node's actual parent
+        // chain (what called it, at what depth, with what timing) and sends that,
+        // rather than the generic Root Cause button's whole-log aggregate stats.
+        private async void treeContextRootCauseMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_aiPanel == null) return;
+
+            TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            TreeNode node = activeTree?.SelectedNode;
+            if (node == null || !(node.Tag is int line) || line <= 0
+                || _callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(line, out var csNode))
+            {
+                MessageBox.Show("Select a call in the tree first.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var chain = new List<string>();
+            var current = csNode;
+            int depth = 0;
+            while (current != null && depth < 200) // guard against pathologically deep/cyclic chains
+            {
+                string durationText = current.DurationMs > 0
+                    ? string.Format("{0} ms", current.DurationMs)
+                    : "duration unknown";
+                chain.Add(string.Format("{0}{1} (line {2}, {3})",
+                    new string(' ', depth * 2), current.Label, current.LineNumber, durationText));
+                current = current.Parent;
+                depth++;
+            }
+
+            string chainText = "Call chain (innermost/selected call first, each line called by the one below it):\n"
+                + string.Join("\n", chain);
+
+            if (_aiTab != null && mainTabControl != null && !mainTabControl.TabPages.Contains(_aiTab))
+                mainTabControl.TabPages.Add(_aiTab);
+            if (_aiTab != null) mainTabControl.SelectedTab = _aiTab;
+
+            await _aiPanel.AnalyzeNodeRootCause(csNode.Label, chainText);
+        }
+
         private void filterMenuItem_Click(object sender, EventArgs e)
         {
             using (var filterDialog = new FilterForm(this))

@@ -188,6 +188,7 @@
             this.treeContextReloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextAskAiMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextRootCauseMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
@@ -1639,6 +1640,7 @@
             this.treeContextReloadMenuItem,
             this.treeContextFilterMenuItem,
             this.treeContextAskAiMenuItem,
+            this.treeContextRootCauseMenuItem,
             this.treeContextSearchInGrokMenuItem,
             this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
@@ -1734,6 +1736,15 @@
             this.treeContextAskAiMenuItem.Size = new System.Drawing.Size(280, 22);
             this.treeContextAskAiMenuItem.Text = "Ask A&I...";
             this.treeContextAskAiMenuItem.Click += new System.EventHandler(this.treeContextAskAiMenuItem_Click);
+            //
+            // treeContextRootCauseMenuItem
+            //
+            // L4: node-specific Root Cause — analyzes this one call's actual parent
+            // chain, not the generic Root Cause button's whole-log aggregate stats.
+            this.treeContextRootCauseMenuItem.Name = "treeContextRootCauseMenuItem";
+            this.treeContextRootCauseMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextRootCauseMenuItem.Text = "Root Cause (this call)...";
+            this.treeContextRootCauseMenuItem.Click += new System.EventHandler(this.treeContextRootCauseMenuItem_Click);
             //
             // treeContextSearchInGrokMenuItem
             //
@@ -1979,6 +1990,7 @@
         private System.Windows.Forms.ToolStripMenuItem treeContextReloadMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextFilterMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextAskAiMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextRootCauseMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;

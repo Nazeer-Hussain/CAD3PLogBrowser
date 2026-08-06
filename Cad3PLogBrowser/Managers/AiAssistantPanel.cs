@@ -347,6 +347,79 @@ namespace Cad3PLogBrowser.Managers
             await SendChatMessageAsync();
         }
 
+        // L4: keyed by method + its specific call chain, so asking about the same
+        // node twice (e.g. re-opening the context menu) doesn't re-call the AI.
+        private readonly Dictionary<string, string> _rootCauseCache = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>L4: node-specific Root Cause — unlike the generic Root Cause button
+        /// (whole-log aggregate stats only), this analyzes one specific call using its
+        /// actual parent-chain context (what called it, at what depth, with what
+        /// timing), and caches the result per method+chain.</summary>
+        public async Task AnalyzeNodeRootCause(string methodName, string parentChainContext)
+        {
+            if (!CheckAIAvailable()) return;
+
+            string cacheKey = methodName + "␟" + parentChainContext;
+            if (_rootCauseCache.TryGetValue(cacheKey, out string cached))
+            {
+                _responseBox.Clear();
+                AppendText(cached);
+                ReformatAllMarkdown();
+                _tokenLabel.Text = "Root cause (cached)";
+                return;
+            }
+
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            var providers = new List<IContextProvider>
+            {
+                new PlainTextContextProvider("Specific Call Chain", parentChainContext)
+            };
+
+            _responseBox.Clear();
+            ShowProgress(string.Format("Analyzing root cause for {0}...", methodName));
+
+            var captured = new System.Text.StringBuilder();
+            try
+            {
+                await _aiService.AnalyzeStreamingAsync(
+                    AnalysisType.RootCause,
+                    providers,
+                    onChunkReceived: chunk => { captured.Append(chunk); AppendText(chunk); },
+                    onComplete: result =>
+                    {
+                        if (result.Success) _rootCauseCache[cacheKey] = captured.ToString();
+                        OnAnalysisCompleteAnalysis(result);
+                    },
+                    onError: ex => OnAnalysisError(ex),
+                    userQuery: string.Format(
+                        "Analyze the likely root cause for '{0}' using ONLY the specific call chain below " +
+                        "(not general log statistics) — what called it, at what depth, and with what timing.",
+                        methodName),
+                    cancellationToken: _cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                OnAnalysisError(ex);
+            }
+        }
+
+        /// <summary>Minimal IContextProvider wrapping a single pre-built block of text —
+        /// used by AnalyzeNodeRootCause to inject the specific call chain instead of the
+        /// generic whole-log context CreateContextProviders() builds.</summary>
+        private class PlainTextContextProvider : Cad3PLogBrowser.AI.Context.ContextProviderBase
+        {
+            private readonly string _title;
+            private readonly string _text;
+            public PlainTextContextProvider(string title, string text) { _title = title; _text = text; }
+            public override string ContextType => "PlainText";
+            public override string Description => _title;
+            public override bool HasContext => !string.IsNullOrEmpty(_text);
+            public override Task<string> GetContextAsync() =>
+                Task.FromResult(string.Format("### {0}\n\n{1}\n", _title, _text));
+        }
+
         // ?? Analysis Execution ????????????????????????????????????????????????
         private async Task RunAnalysisAsync(AnalysisType analysisType)
         {
