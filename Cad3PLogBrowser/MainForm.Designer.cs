@@ -37,6 +37,7 @@
             this.saveSelectedXlsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportAnalyticsReportMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -230,6 +231,7 @@
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
+            this.exportAnalyticsReportMenuItem,
             this.exportApiCsvMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
@@ -286,6 +288,16 @@
             this.exportPerformanceMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportPerformanceMenuItem.Text = UI.AppStrings.MenuFileExportPerformance;
             this.exportPerformanceMenuItem.Click += new System.EventHandler(this.exportPerformanceMenuItem_Click);
+            //
+            // exportAnalyticsReportMenuItem
+            //
+            // I4: no PDF/Excel library existed in the project, so this generates a
+            // styled standalone HTML report and opens it in the default browser —
+            // Print > Save as PDF gets a PDF without adding a PDF-writing dependency.
+            this.exportAnalyticsReportMenuItem.Name = "exportAnalyticsReportMenuItem";
+            this.exportAnalyticsReportMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportAnalyticsReportMenuItem.Text = "Export &Analytics Report...";
+            this.exportAnalyticsReportMenuItem.Click += new System.EventHandler(this.exportAnalyticsReportMenuItem_Click);
             //
             // exportApiCsvMenuItem
             //
@@ -1788,6 +1800,7 @@
         private System.Windows.Forms.ToolStripMenuItem saveSelectedXlsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportAnalyticsReportMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;

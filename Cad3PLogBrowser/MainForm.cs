@@ -7511,6 +7511,115 @@ namespace Cad3PLogBrowser
         }
 
         // ── Feature I3: Export Performance to CSV ────────────────────────────
+        // I4: no PDF/Excel report-export library exists in this project. Rather than
+        // add one for a single feature, this builds a self-contained styled HTML
+        // report and opens it in the default browser — Print > Save as PDF gets a
+        // real PDF without a new dependency.
+        private void exportAnalyticsReportMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter   = "HTML report (*.html)|*.html";
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_analytics_report.html";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    string html = BuildAnalyticsReportHtml();
+                    File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    System.Diagnostics.Process.Start(dlg.FileName);
+                    StatusFileName.Text = string.Format("Analytics report exported to {0}", Path.GetFileName(dlg.FileName));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export analytics report:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private string BuildAnalyticsReportHtml()
+        {
+            var stats = _lastAggregateStats ?? new Models.AggregateStats();
+            var slowest  = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, 10);
+            var frequent = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, 10);
+            var depth    = _lastCallTree != null ? _perfAnalyzer.AnalyzeCallDepth(_lastCallTree) : null;
+
+            string Esc(string s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\">");
+            sb.Append("<title>Analytics Report — ").Append(Esc(Path.GetFileName(_currentFilePath))).Append("</title>");
+            sb.Append(@"<style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 32px; color: #1a1a1a; }
+                h1 { font-size: 20px; border-bottom: 2px solid #256b66; padding-bottom: 8px; }
+                h2 { font-size: 15px; color: #256b66; margin-top: 28px; }
+                table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+                th, td { border: 1px solid #ccc; padding: 6px 10px; font-size: 12px; text-align: left; }
+                th { background: #256b66; color: #fff; }
+                tr:nth-child(even) { background: #f5f5f5; }
+                .meta { color: #666; font-size: 12px; margin-bottom: 16px; }
+                .statgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+                .stat { border: 1px solid #ddd; border-radius: 4px; padding: 10px; }
+                .stat .n { font-size: 20px; font-weight: bold; }
+                .stat .l { font-size: 11px; color: #666; }
+                @media print { body { margin: 12mm; } }
+            </style></head><body>");
+
+            sb.Append("<h1>CAD 3P Log Browser — Analytics Report</h1>");
+            sb.Append("<div class=\"meta\">Source: ").Append(Esc(_currentFilePath))
+              .Append("<br>Generated: ").Append(Esc(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))).Append("</div>");
+
+            sb.Append("<h2>Aggregate Statistics</h2><div class=\"statgrid\">");
+            void Stat(string label, string value) =>
+                sb.Append("<div class=\"stat\"><div class=\"n\">").Append(Esc(value))
+                  .Append("</div><div class=\"l\">").Append(Esc(label)).Append("</div></div>");
+            Stat("Total Lines", stats.TotalLines.ToString("N0"));
+            Stat("Errors", stats.ErrorCount.ToString("N0"));
+            Stat("Warnings", stats.WarningCount.ToString("N0"));
+            Stat("API Calls", stats.TotalApiCalls.ToString("N0"));
+            Stat("Unique APIs", stats.UniqueApiCount.ToString("N0"));
+            Stat("Max Call Depth", stats.MaxCallDepth.ToString("N0"));
+            sb.Append("</div>");
+
+            sb.Append("<h2>Top Slowest Calls</h2><table><tr><th>Method</th><th>Duration (ms)</th><th>Enter Line</th><th>Exit Line</th></tr>");
+            foreach (var s in slowest)
+                sb.Append("<tr><td>").Append(Esc(s.ApiName)).Append("</td><td>").Append(s.DurationMs.ToString("N0"))
+                  .Append("</td><td>").Append(s.EnterLineNumber).Append("</td><td>").Append(s.ExitLineNumber).Append("</td></tr>");
+            sb.Append("</table>");
+
+            sb.Append("<h2>Most Frequently Called</h2><table><tr><th>Method</th><th>Calls</th><th>% of Total</th></tr>");
+            foreach (var f in frequent)
+                sb.Append("<tr><td>").Append(Esc(f.ApiName)).Append("</td><td>").Append(f.CallCount.ToString("N0"))
+                  .Append("</td><td>").Append(f.PercentOfTotal.ToString("F1")).Append("%</td></tr>");
+            sb.Append("</table>");
+
+            if (depth != null)
+            {
+                sb.Append("<h2>Call Depth Analysis</h2>");
+                sb.Append("<p>Max depth: <b>").Append(depth.MaxDepth)
+                  .Append("</b> &nbsp; Average depth: <b>").Append(depth.AvgDepth.ToString("F1")).Append("</b></p>");
+                sb.Append("<table><tr><th>Deepest Chains</th></tr>");
+                foreach (var c in depth.DeepestChains ?? new List<Services.Analysis.DeepestChainInfo>())
+                    sb.Append("<tr><td>").Append(Esc(c.Chain)).Append("</td></tr>");
+                sb.Append("</table>");
+            }
+
+            sb.Append("</body></html>");
+            return sb.ToString();
+        }
+
         private void exportPerformanceMenuItem_Click(object sender, EventArgs e)
         {
             if (performanceView.Items.Count == 0)
