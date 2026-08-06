@@ -18,6 +18,12 @@ namespace Cad3PLogBrowser
             this.label1 = new System.Windows.Forms.Label();
             this.FilterTextBox = new System.Windows.Forms.ComboBox();
             this.MatchCaseCheckBox = new System.Windows.Forms.CheckBox();
+            this.lblMethodTerms = new System.Windows.Forms.Label();
+            this.cmbMethodTerm = new System.Windows.Forms.ComboBox();
+            this.btnAddTerm = new System.Windows.Forms.Button();
+            this.lstMethodTerms = new System.Windows.Forms.ListBox();
+            this.btnRemoveTerm = new System.Windows.Forms.Button();
+            this.btnRemoveAllTerms = new System.Windows.Forms.Button();
             this.grpDuration = new System.Windows.Forms.GroupBox();
             this.chkEnableDuration = new System.Windows.Forms.CheckBox();
             this.lblMinDuration = new System.Windows.Forms.Label();
@@ -70,13 +76,70 @@ namespace Cad3PLogBrowser
             this.MatchCaseCheckBox.Size = new System.Drawing.Size(100, 21);
             this.MatchCaseCheckBox.TabIndex = 2;
             this.MatchCaseCheckBox.Text = UI.AppStrings.FilterCheckMatchCase;
-            // 
+            //
+            // lblMethodTerms
+            //
+            this.lblMethodTerms.AutoSize = true;
+            this.lblMethodTerms.Location = new System.Drawing.Point(15, 100);
+            this.lblMethodTerms.Name = "lblMethodTerms";
+            this.lblMethodTerms.Size = new System.Drawing.Size(400, 17);
+            this.lblMethodTerms.TabIndex = 20;
+            this.lblMethodTerms.Text = UI.AppStrings.FilterLabelMethodTerms;
+            //
+            // cmbMethodTerm
+            //
+            // B3: dropdown + Add button + ListBox + Remove/Remove All, per the spec's
+            // UI design for the "Filter Log" dialog's method-name term list.
+            this.cmbMethodTerm.FormattingEnabled = true;
+            this.cmbMethodTerm.Location = new System.Drawing.Point(15, 122);
+            this.cmbMethodTerm.Name = "cmbMethodTerm";
+            this.cmbMethodTerm.Size = new System.Drawing.Size(395, 24);
+            this.cmbMethodTerm.TabIndex = 21;
+            //
+            // btnAddTerm
+            //
+            this.btnAddTerm.Location = new System.Drawing.Point(420, 121);
+            this.btnAddTerm.Name = "btnAddTerm";
+            this.btnAddTerm.Size = new System.Drawing.Size(105, 26);
+            this.btnAddTerm.TabIndex = 22;
+            this.btnAddTerm.Text = UI.AppStrings.FilterButtonAddTerm;
+            this.btnAddTerm.UseVisualStyleBackColor = true;
+            this.btnAddTerm.Click += new System.EventHandler(this.btnAddTerm_Click);
+            //
+            // lstMethodTerms
+            //
+            this.lstMethodTerms.FormattingEnabled = true;
+            this.lstMethodTerms.Location = new System.Drawing.Point(15, 152);
+            this.lstMethodTerms.Name = "lstMethodTerms";
+            this.lstMethodTerms.Size = new System.Drawing.Size(510, 69);
+            this.lstMethodTerms.TabIndex = 23;
+            //
+            // btnRemoveTerm
+            //
+            this.btnRemoveTerm.Location = new System.Drawing.Point(15, 227);
+            this.btnRemoveTerm.Name = "btnRemoveTerm";
+            this.btnRemoveTerm.Size = new System.Drawing.Size(120, 28);
+            this.btnRemoveTerm.TabIndex = 24;
+            this.btnRemoveTerm.Text = UI.AppStrings.FilterButtonRemoveTerm;
+            this.btnRemoveTerm.UseVisualStyleBackColor = true;
+            this.btnRemoveTerm.Click += new System.EventHandler(this.btnRemoveTerm_Click);
+            //
+            // btnRemoveAllTerms
+            //
+            this.btnRemoveAllTerms.Location = new System.Drawing.Point(145, 227);
+            this.btnRemoveAllTerms.Name = "btnRemoveAllTerms";
+            this.btnRemoveAllTerms.Size = new System.Drawing.Size(120, 28);
+            this.btnRemoveAllTerms.TabIndex = 25;
+            this.btnRemoveAllTerms.Text = UI.AppStrings.FilterButtonRemoveAllTerms;
+            this.btnRemoveAllTerms.UseVisualStyleBackColor = true;
+            this.btnRemoveAllTerms.Click += new System.EventHandler(this.btnRemoveAllTerms_Click);
+            //
             // grpDuration
-            // 
+            //
             this.grpDuration.Controls.Add(this.chkEnableDuration);
             this.grpDuration.Controls.Add(this.lblMinDuration);
             this.grpDuration.Controls.Add(this.nudMinDuration);
-            this.grpDuration.Location = new System.Drawing.Point(15, 108);
+            this.grpDuration.Location = new System.Drawing.Point(15, 265);
             this.grpDuration.Name = "grpDuration";
             this.grpDuration.Size = new System.Drawing.Size(250, 90);
             this.grpDuration.TabIndex = 3;
@@ -118,7 +181,7 @@ namespace Cad3PLogBrowser
             this.grpTimeRange.Controls.Add(this.dtpFromTime);
             this.grpTimeRange.Controls.Add(this.lblToTime);
             this.grpTimeRange.Controls.Add(this.dtpToTime);
-            this.grpTimeRange.Location = new System.Drawing.Point(275, 108);
+            this.grpTimeRange.Location = new System.Drawing.Point(275, 265);
             this.grpTimeRange.Name = "grpTimeRange";
             this.grpTimeRange.Size = new System.Drawing.Size(250, 135);
             this.grpTimeRange.TabIndex = 4;
@@ -181,7 +244,7 @@ namespace Cad3PLogBrowser
             this.grpThreadLevel.Controls.Add(this.chkLevelInfo);
             this.grpThreadLevel.Controls.Add(this.chkLevelWarning);
             this.grpThreadLevel.Controls.Add(this.chkLevelError);
-            this.grpThreadLevel.Location = new System.Drawing.Point(15, 253);
+            this.grpThreadLevel.Location = new System.Drawing.Point(15, 410);
             this.grpThreadLevel.Name = "grpThreadLevel";
             this.grpThreadLevel.Size = new System.Drawing.Size(510, 95);
             this.grpThreadLevel.TabIndex = 5;
@@ -254,7 +317,7 @@ namespace Cad3PLogBrowser
             //
             // ApplyButton
             // 
-            this.ApplyButton.Location = new System.Drawing.Point(217, 363);
+            this.ApplyButton.Location = new System.Drawing.Point(217, 520);
             this.ApplyButton.Name = "ApplyButton";
             this.ApplyButton.Size = new System.Drawing.Size(95, 35);
             this.ApplyButton.TabIndex = 6;
@@ -264,7 +327,7 @@ namespace Cad3PLogBrowser
             // 
             // ClearButton
             // 
-            this.ClearButton.Location = new System.Drawing.Point(323, 363);
+            this.ClearButton.Location = new System.Drawing.Point(323, 520);
             this.ClearButton.Name = "ClearButton";
             this.ClearButton.Size = new System.Drawing.Size(95, 35);
             this.ClearButton.TabIndex = 7;
@@ -275,7 +338,7 @@ namespace Cad3PLogBrowser
             // buttonClose
             // 
             this.buttonClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.buttonClose.Location = new System.Drawing.Point(429, 363);
+            this.buttonClose.Location = new System.Drawing.Point(429, 520);
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(95, 35);
             this.buttonClose.TabIndex = 8;
@@ -289,13 +352,19 @@ namespace Cad3PLogBrowser
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonClose;
-            this.ClientSize = new System.Drawing.Size(540, 410);
+            this.ClientSize = new System.Drawing.Size(540, 565);
             this.Controls.Add(this.grpThreadLevel);
             this.Controls.Add(this.grpTimeRange);
             this.Controls.Add(this.grpDuration);
             this.Controls.Add(this.buttonClose);
             this.Controls.Add(this.ClearButton);
             this.Controls.Add(this.ApplyButton);
+            this.Controls.Add(this.btnRemoveAllTerms);
+            this.Controls.Add(this.btnRemoveTerm);
+            this.Controls.Add(this.lstMethodTerms);
+            this.Controls.Add(this.btnAddTerm);
+            this.Controls.Add(this.cmbMethodTerm);
+            this.Controls.Add(this.lblMethodTerms);
             this.Controls.Add(this.MatchCaseCheckBox);
             this.Controls.Add(this.FilterTextBox);
             this.Controls.Add(this.label1);
@@ -323,6 +392,12 @@ namespace Cad3PLogBrowser
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox FilterTextBox;
         private System.Windows.Forms.CheckBox MatchCaseCheckBox;
+        private System.Windows.Forms.Label lblMethodTerms;
+        private System.Windows.Forms.ComboBox cmbMethodTerm;
+        private System.Windows.Forms.Button btnAddTerm;
+        private System.Windows.Forms.ListBox lstMethodTerms;
+        private System.Windows.Forms.Button btnRemoveTerm;
+        private System.Windows.Forms.Button btnRemoveAllTerms;
         private System.Windows.Forms.GroupBox grpDuration;
         private System.Windows.Forms.CheckBox chkEnableDuration;
         private System.Windows.Forms.Label lblMinDuration;

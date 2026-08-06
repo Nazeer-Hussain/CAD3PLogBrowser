@@ -5704,7 +5704,7 @@ namespace Cad3PLogBrowser
                 // B4/B5: a Time Range or Duration Threshold filter used to only ever
                 // affect this flat log list — the Call Tree / API Tree looked untouched.
                 // Highlight (and auto-expand ancestors of) the matching nodes there too.
-                ApplyTreeFilterHighlight(criteria);
+                ApplyTreeNodeFilter(criteria);
 
                 StatusFileName.Text = string.Format(Resources.STATUS_FILTER_APPLIED,
                     filtered.Count, _allLines.Count);
@@ -5727,39 +5727,35 @@ namespace Cad3PLogBrowser
             PopulateVirtualListView(_allLines);
             // DEF-D01: ClearHighlighting() removed — PopulateVirtualListView already
             // sets BackColour = GetLineColour() for every line; a second pass is O(N) waste.
-            ApplyTreeFilterHighlight(null);
+            ApplyTreeNodeFilter(null);
         }
 
         /// <summary>
-        /// B4/B5: highlights Call Tree / API Tree nodes whose duration and/or call time
-        /// satisfy the active Duration/Time-Range filter criteria, expanding ancestors of
-        /// any match — the same non-destructive highlight approach the C5 tree-search box
-        /// uses (WinForms TreeView has no concept of a truly "hidden" node short of
-        /// rebuilding the tree, so matches are highlighted rather than removed).
-        /// Note: this shares node.BackColor with the C5 tree-search highlight, so the two
-        /// will visually override each other if both are active at once — an accepted
-        /// limitation rather than introducing a second, separate highlight channel.
+        /// B3/B4/B5: actually hides Call Tree / API Tree nodes that don't satisfy the
+        /// active Method-Name / Duration / Time-Range filter criteria, rather than just
+        /// highlighting matches (the previous behavior — WinForms TreeView has no
+        /// "hidden" node concept, so this rebuilds the tree from a pruned copy of the
+        /// underlying model instead). A node is kept if it matches directly OR has any
+        /// matching descendant, so the path down to a match stays visible. Duration and
+        /// Time-Range apply per-invocation (via each node's own timing); Method-Name
+        /// applies to the method name itself, with wildcard (*, ?) support.
         /// </summary>
-        private void ApplyTreeFilterHighlight(Models.FilterCriteria criteria)
+        private void ApplyTreeNodeFilter(Models.FilterCriteria criteria)
         {
-            bool hasDuration  = criteria != null && criteria.MinimumDurationMs.HasValue;
-            bool hasTimeRange = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
+            bool hasDuration    = criteria != null && criteria.MinimumDurationMs.HasValue;
+            bool hasTimeRange   = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
+            bool hasMethodTerms = criteria != null && criteria.MethodNameTerms != null && criteria.MethodNameTerms.Count > 0;
 
-            var trees = new[] { CallTree, ApiTree };
-
-            if (!hasDuration && !hasTimeRange)
+            if (!hasDuration && !hasTimeRange && !hasMethodTerms)
             {
-                foreach (var tree in trees)
-                    ShowAllTreeNodes(tree);
+                // Restore the original, unfiltered trees.
+                if (_lastCallTree != null) PopulateCallTree(_lastCallTree);
+                if (_apiNodes != null)     PopulateApiTree(_apiNodes);
                 return;
             }
 
-            bool NodeMatches(TreeNode node)
+            bool NodeMatches(CallStackNode csNode)
             {
-                if (!(node.Tag is int line) || line <= 0) return false;
-                if (_callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(line, out var csNode))
-                    return false;
-
                 if (hasDuration && csNode.DurationMs < criteria.MinimumDurationMs.Value)
                     return false;
 
@@ -5771,40 +5767,123 @@ namespace Cad3PLogBrowser
                     if (criteria.ToTime.HasValue && callTime > criteria.ToTime.Value.TimeOfDay) return false;
                 }
 
+                if (hasMethodTerms && !MatchesAnyWildcardTerm(csNode.Label, criteria.MethodNameTerms, criteria.IsCaseSensitive))
+                    return false;
+
                 return true;
             }
 
-            foreach (var tree in trees)
+            if (_lastCallTree != null)
+                PopulateCallTree(PruneCallStackNodes(_lastCallTree, NodeMatches));
+
+            if (_apiNodes != null)
             {
-                tree.BeginUpdate();
-                foreach (TreeNode rootNode in tree.Nodes)
-                    ApplyTreeFilterHighlightRecursive(rootNode, NodeMatches);
-                tree.EndUpdate();
+                bool LineMatches(int lineNumber)
+                {
+                    if (_callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(lineNumber, out var cs))
+                        return !hasDuration && !hasTimeRange; // no timing info: only OK if neither filter needs it
+                    if (hasDuration && cs.DurationMs < criteria.MinimumDurationMs.Value) return false;
+                    if (hasTimeRange)
+                    {
+                        if (cs.EpochMs <= 0) return false;
+                        var callTime = DateTimeOffset.FromUnixTimeMilliseconds(cs.EpochMs).LocalDateTime.TimeOfDay;
+                        if (criteria.FromTime.HasValue && callTime < criteria.FromTime.Value.TimeOfDay) return false;
+                        if (criteria.ToTime.HasValue && callTime > criteria.ToTime.Value.TimeOfDay) return false;
+                    }
+                    return true;
+                }
+
+                var prunedApiNodes = new List<ApiCallNode>();
+                foreach (var node in _apiNodes)
+                {
+                    if (hasMethodTerms && !MatchesAnyWildcardTerm(node.ApiName, criteria.MethodNameTerms, criteria.IsCaseSensitive))
+                        continue;
+
+                    if (!hasDuration && !hasTimeRange)
+                    {
+                        prunedApiNodes.Add(node);
+                        continue;
+                    }
+
+                    var keptLines = node.LineNumbers.Where(LineMatches).ToList();
+                    var keptExitOnly = node.ExitOnlyLines.Where(LineMatches).ToList();
+                    if (keptLines.Count == 0 && keptExitOnly.Count == 0) continue;
+
+                    var copy = new ApiCallNode { ApiName = node.ApiName };
+                    copy.LineNumbers.AddRange(keptLines);
+                    copy.ExitOnlyLines.AddRange(keptExitOnly);
+                    prunedApiNodes.Add(copy);
+                }
+                PopulateApiTree(prunedApiNodes);
             }
         }
 
-        private bool ApplyTreeFilterHighlightRecursive(TreeNode node, Func<TreeNode, bool> matches, int depth = 0)
+        /// <summary>
+        /// B3/B4/B5: recursively builds a pruned copy of a CallStackNode tree, keeping a
+        /// node if it matches <paramref name="matches"/> directly or has any descendant
+        /// that does. Operates on copies so <see cref="_lastCallTree"/> — the source of
+        /// truth used to restore the unfiltered tree — is never mutated.
+        /// </summary>
+        private List<CallStackNode> PruneCallStackNodes(List<CallStackNode> nodes, Func<CallStackNode, bool> matches, int depth = 0)
         {
-            if (depth > 500) return false; // guard against pathologically deep trees
+            var result = new List<CallStackNode>();
+            if (nodes == null || depth > 500) return result; // guard against pathologically deep trees
 
-            bool nodeMatches = matches(node);
-            bool hasMatch    = false;
-
-            foreach (TreeNode child in node.Nodes)
+            foreach (var node in nodes)
             {
-                if (ApplyTreeFilterHighlightRecursive(child, matches, depth + 1))
-                    hasMatch = true;
+                var prunedChildren = PruneCallStackNodes(node.Children, matches, depth + 1);
+                if (matches(node) || prunedChildren.Count > 0)
+                {
+                    var copy = new CallStackNode
+                    {
+                        Label           = node.Label,
+                        LineNumber      = node.LineNumber,
+                        ExitLineNumber  = node.ExitLineNumber,
+                        Depth           = node.Depth,
+                        IsFileGroupRoot = node.IsFileGroupRoot,
+                        SourceFile      = node.SourceFile,
+                        Module          = node.Module,
+                        EpochMs         = node.EpochMs,
+                        ExitEpochMs     = node.ExitEpochMs,
+                        DurationMs      = node.DurationMs,
+                        Parent          = node.Parent
+                    };
+                    copy.Children.AddRange(prunedChildren);
+                    result.Add(copy);
+                }
             }
+            return result;
+        }
 
-            if (nodeMatches || hasMatch)
-            {
-                node.BackColor = nodeMatches ? (_appSettings?.HighlightColor ?? Color.Yellow) : Color.Transparent;
-                if (hasMatch && !node.IsExpanded) node.Expand();
-                return true;
-            }
-
-            node.BackColor = Color.Transparent;
+        /// <summary>B3: true if <paramref name="text"/> matches any term in <paramref name="terms"/>
+        /// (OR across terms). Each term supports '*' (any run of characters) and '?' (any
+        /// single character); a term with neither falls back to a plain substring match.</summary>
+        private static bool MatchesAnyWildcardTerm(string text, List<string> terms, bool caseSensitive)
+        {
+            if (string.IsNullOrEmpty(text) || terms == null) return false;
+            foreach (var term in terms)
+                if (WildcardMatch(text, term, caseSensitive)) return true;
             return false;
+        }
+
+        private static bool WildcardMatch(string text, string pattern, bool caseSensitive)
+        {
+            if (string.IsNullOrEmpty(pattern)) return false;
+
+            if (pattern.IndexOf('*') < 0 && pattern.IndexOf('?') < 0)
+            {
+                return caseSensitive
+                    ? text.Contains(pattern)
+                    : text.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
+            string regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+                .Replace("\\*", ".*").Replace("\\?", ".") + "$";
+            var options = caseSensitive
+                ? System.Text.RegularExpressions.RegexOptions.None
+                : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+            try { return System.Text.RegularExpressions.Regex.IsMatch(text, regexPattern, options); }
+            catch { return false; }
         }
 
         // ── Pre-compiled regex for ISO 8601 timestamp (supports both T and space separator) ──

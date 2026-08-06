@@ -184,6 +184,10 @@ namespace Cad3PLogBrowser.UI
         // ?????????????????????????????????????????????????????????????????????
         public const string FilterFormTitle = "Filter Log Entries";
         public const string FilterLabelSearchText = "Search text:";
+        public const string FilterLabelMethodTerms = "Filter tree by method name (wildcards * and ? supported):";
+        public const string FilterButtonAddTerm = "&Add";
+        public const string FilterButtonRemoveTerm = "&Remove";
+        public const string FilterButtonRemoveAllTerms = "Remove &All";
         public const string FilterCheckMatchCase = "Match &case";
         public const string FilterCheckEnableDuration = "Enable minimum &duration (ms):";
         public const string FilterCheckEnableTimeRange = "Enable &time range:";

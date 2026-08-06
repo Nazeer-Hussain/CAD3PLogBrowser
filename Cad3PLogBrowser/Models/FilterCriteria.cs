@@ -108,6 +108,15 @@ namespace Cad3PLogBrowser.Models
         public HashSet<LogLevel> Levels { get; set; }
 
         /// <summary>
+        /// B3: method-name terms (wildcards * and ? supported) that Call Tree / API Tree
+        /// nodes are matched against. A node is kept if its method name matches ANY term
+        /// in the list (OR across terms), and is otherwise hidden — a node whose own name
+        /// doesn't match but that has a matching descendant is kept too, so the path down
+        /// to a match stays visible. Null or empty means no method-name filter is applied.
+        /// </summary>
+        public List<string> MethodNameTerms { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether any filter is currently active.
         /// This is a computed property based on whether any filter criteria is set.
         /// </summary>
@@ -123,7 +132,8 @@ namespace Cad3PLogBrowser.Models
                        FromTime.HasValue ||
                        ToTime.HasValue ||
                        !string.IsNullOrWhiteSpace(ThreadId) ||
-                       (Levels != null && Levels.Count > 0);
+                       (Levels != null && Levels.Count > 0) ||
+                       (MethodNameTerms != null && MethodNameTerms.Count > 0);
             }
         }
 
@@ -183,6 +193,9 @@ namespace Cad3PLogBrowser.Models
             if (Levels != null && Levels.Count > 0)
                 parts.Add($"Level: {string.Join("+", Levels)}");
 
+            if (MethodNameTerms != null && MethodNameTerms.Count > 0)
+                parts.Add($"Methods: {string.Join(", ", MethodNameTerms)}");
+
             return string.Join(", ", parts);
         }
 
@@ -208,6 +221,7 @@ namespace Cad3PLogBrowser.Models
             ToTime = null;
             ThreadId = null;
             Levels = null;
+            MethodNameTerms = null;
         }
 
         /// <summary>
