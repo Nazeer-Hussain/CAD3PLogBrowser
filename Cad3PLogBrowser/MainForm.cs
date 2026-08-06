@@ -792,10 +792,14 @@ namespace Cad3PLogBrowser
             if (timelinePanel != null)
                 timelinePanel.ExportImageRequested += (s, ev) => exportTimelineMenuItem_Click(s, ev);
             if (flameGraphPanel != null)
+            {
                 flameGraphPanel.ExportImageRequested += (s, ev) => exportFlameGraphMenuItem_Click(s, ev);
                 // F1: clicking a flame bar previously only zoomed the flame graph;
                 // now also selects the matching Call Tree node.
                 flameGraphPanel.NodeSelectedByLine += (s, line) => SelectCallTreeNodeByLine(line);
+            }
+            if (heatmapPanel != null)
+                heatmapPanel.ExportImageRequested += (s, ev) => exportHeatmapMenuItem_Click(s, ev);
 
             // PERFORMANCE: lazily re-render the performance tab when it becomes visible,
             // so ApplyTheme() can skip it when it is not in the foreground.
@@ -7669,6 +7673,14 @@ namespace Cad3PLogBrowser
 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
 
+                // F6: DrawToBitmap only ever captured the live control's current
+                // view — if the user had zoomed in or panned, the export silently
+                // missed everything outside that viewport. Fit the whole graph into
+                // view first, capture, then restore exactly what the user had.
+                float savedZoom = callGraphPanel.CurrentZoom;
+                PointF savedPan = callGraphPanel.CurrentPan;
+                callGraphPanel.ResetView();
+
                 try
                 {
                     // Create high-resolution bitmap
@@ -7698,6 +7710,10 @@ namespace Cad3PLogBrowser
                 {
                     MessageBox.Show(string.Format(Resources.ERR_EXPORT_CALL_GRAPH_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    callGraphPanel.SetView(savedZoom, savedPan);
                 }
             }
         }
@@ -8662,6 +8678,48 @@ namespace Cad3PLogBrowser
                 catch (Exception ex)
                 {
                     MessageBox.Show(string.Format(Resources.ERR_EXPORT_FLAME_GRAPH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // F6: Heatmap previously had no export at all.
+        private void exportHeatmapMenuItem_Click(object sender, EventArgs e)
+        {
+            if (heatmapPanel == null)
+                return;
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = Resources.FILE_FILTER_IMAGE_FILES;
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_heatmap.png";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    using (var image = heatmapPanel.ExportAsImage())
+                    {
+                        string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                        var format = System.Drawing.Imaging.ImageFormat.Png;
+
+                        if (ext == ".jpg" || ext == ".jpeg")
+                            format = System.Drawing.Imaging.ImageFormat.Jpeg;
+                        else if (ext == ".bmp")
+                            format = System.Drawing.Imaging.ImageFormat.Bmp;
+
+                        image.Save(dlg.FileName, format);
+                    }
+
+                    MessageBox.Show(string.Format(Resources.MSG_HEATMAP_EXPORTED, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_EXPORT_HEATMAP_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }

@@ -19,6 +19,9 @@ namespace Cad3PLogBrowser.Managers
     public class HeatmapPanel : Panel
     {
         public event EventHandler<string> ApiSelected;
+        /// <summary>F6: raised when the user clicks "Export PNG...". MainForm owns the
+        /// SaveFileDialog and file I/O, matching how Timeline/FlameGraph export works.</summary>
+        public event EventHandler ExportImageRequested;
 
         private const int RowHeight    = 24;
         private const int HeaderHeight = 46;
@@ -47,6 +50,7 @@ namespace Cad3PLogBrowser.Managers
         private readonly ToolTip _tip = new ToolTip();
         private readonly VScrollBar _scrollBar;
         private readonly Button _modeToggle;
+        private readonly Button _exportButton;
 
         public HeatmapPanel()
         {
@@ -73,6 +77,18 @@ namespace Cad3PLogBrowser.Managers
                 Invalidate();
             };
             Controls.Add(_modeToggle);
+
+            _exportButton = new Button
+            {
+                Text      = "Export PNG...",
+                Size      = new Size(100, 22),
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+                TabStop   = false
+            };
+            _exportButton.Click += (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty);
+            Controls.Add(_exportButton);
+
             PositionModeToggle();
             UpdateTheme();
         }
@@ -80,6 +96,27 @@ namespace Cad3PLogBrowser.Managers
         private void PositionModeToggle()
         {
             _modeToggle.Location = new Point(Math.Max(0, GridAreaWidth - _modeToggle.Width - RightPad), 2);
+            _exportButton.Location = new Point(_modeToggle.Left - _exportButton.Width - 6, 2);
+        }
+
+        /// <summary>F6: Heatmap previously had no export at all. Renders every row
+        /// (ignoring the current scroll position, unlike a plain screenshot would) at
+        /// the panel's current width — there's no zoom/pan to reset here, just the
+        /// vertical scroll that would otherwise crop everything below the fold.</summary>
+        public Bitmap ExportAsImage()
+        {
+            int width  = Math.Max(1, GridAreaWidth);
+            int height = Math.Max(1, HeaderHeight + _rows.Count * RowHeight);
+            var bmp = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(ThemeManager.BackgroundColor);
+                for (int i = 0; i < _rows.Count; i++)
+                    DrawRow(g, i, HeaderHeight + i * RowHeight, width);
+                DrawHeader(g, width);
+            }
+            return bmp;
         }
 
         /// <summary>Re-reads theme colours after a Light/Dark toggle.</summary>
@@ -89,6 +126,9 @@ namespace Cad3PLogBrowser.Managers
             _modeToggle.BackColor = ThemeManager.ButtonBackgroundColor;
             _modeToggle.ForeColor = ThemeManager.ForegroundColor;
             _modeToggle.FlatAppearance.BorderColor = ThemeManager.BorderColor;
+            _exportButton.BackColor = ThemeManager.ButtonBackgroundColor;
+            _exportButton.ForeColor = ThemeManager.ForegroundColor;
+            _exportButton.FlatAppearance.BorderColor = ThemeManager.BorderColor;
             Invalidate();
         }
 

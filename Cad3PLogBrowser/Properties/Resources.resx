@@ -184,6 +184,9 @@
   <data name="MSG_FLAME_GRAPH_EXPORTED" xml:space="preserve">
     <value> Flame graph exported to:&#10;{0}</value>
   </data>
+  <data name="MSG_HEATMAP_EXPORTED" xml:space="preserve">
+    <value>Heatmap exported to:&#10;{0}</value>
+  </data>
   <data name="ERR_EXPORT_FILE_FAILED" xml:space="preserve">
     <value>Failed to export file:&#10;{0}</value>
   </data>
@@ -243,6 +246,9 @@
   </data>
   <data name="ERR_EXPORT_FLAME_GRAPH_FAILED" xml:space="preserve">
     <value>Failed to export flame graph:&#10;{0}</value>
+  </data>
+  <data name="ERR_EXPORT_HEATMAP_FAILED" xml:space="preserve">
+    <value>Failed to export heatmap:&#10;{0}</value>
   </data>
   <data name="ERR_FONT_CHANGE_FAILED" xml:space="preserve">
     <value>Failed to change font:&#10;{0}</value>
