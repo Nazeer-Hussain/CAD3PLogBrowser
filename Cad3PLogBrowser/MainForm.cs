@@ -8985,6 +8985,19 @@ namespace Cad3PLogBrowser
                 tabsMenuItem.DropDownItems.Add(showThreadViewMenuItem);
         }
 
+        /// <summary>B6: log levels actually present in the loaded log (using the same
+        /// ParseLogLevel classification the Level filter itself matches against), so the
+        /// Filter dialog can disable checkboxes for levels that don't exist rather than
+        /// leaving them clickable with no possible effect.</summary>
+        public HashSet<Models.LogLevel> GetDetectedLogLevels()
+        {
+            var result = new HashSet<Models.LogLevel>();
+            if (_allLines == null) return result;
+            foreach (var line in _allLines)
+                result.Add(ParseLogLevel(line));
+            return result;
+        }
+
         /// <summary>B7: distinct thread IDs found in the currently loaded log, for
         /// populating the Filter dialog's Thread ID dropdown.</summary>
         public List<string> GetDetectedThreadIds()

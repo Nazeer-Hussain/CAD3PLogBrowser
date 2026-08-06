@@ -118,6 +118,14 @@ namespace Cad3PLogBrowser
 
             lblThreadId.Visible = hasThreads;
             cmbThreadId.Visible = hasThreads;
+
+            // B6: disable (rather than hide, so the user can still see which levels
+            // exist at a glance) any level checkbox for a level the log doesn't have.
+            var detectedLevels = _mainForm.GetDetectedLogLevels();
+            chkLevelDebug.Enabled   = detectedLevels.Contains(LogLevel.Debug);
+            chkLevelInfo.Enabled    = detectedLevels.Contains(LogLevel.Info);
+            chkLevelWarning.Enabled = detectedLevels.Contains(LogLevel.Warning);
+            chkLevelError.Enabled   = detectedLevels.Contains(LogLevel.Error);
         }
     }
 }
