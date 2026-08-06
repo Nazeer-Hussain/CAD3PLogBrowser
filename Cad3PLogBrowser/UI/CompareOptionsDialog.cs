@@ -3,6 +3,7 @@ namespace Cad3PLogBrowser.UI
     using System;
     using System.Windows.Forms;
     using Cad3PLogBrowser.Models.Comparison;
+    using Cad3PLogBrowser.Services;
 
     /// <summary>
     /// Dialog for configuring comparison options.
@@ -21,6 +22,9 @@ namespace Cad3PLogBrowser.UI
 
             _options = currentOptions ?? CompareOptions.CreateDefaultLogOptions();
             LoadOptions();
+
+            // G2: never themed — same gap as the parent CompareLogsForm.
+            this.Load += (s, e) => ThemeManager.ApplyTheme(this);
         }
 
         /// <summary>

@@ -88,6 +88,7 @@
     <Compile Include="AI\Abstractions\IPromptBuilder.cs" />
     <Compile Include="AI\Abstractions\ITokenEstimator.cs" />
     <Compile Include="AI\Configuration\OllamaConfigurationHelper.cs" />
+    <Compile Include="AI\Context\ApiPerformanceContextProvider.cs" />
     <Compile Include="AI\Context\ContextProviderBase.cs" />
     <Compile Include="AI\Context\CurrentLogContextProvider.cs" />
     <Compile Include="AI\Context\SelectedLinesContextProvider.cs" />

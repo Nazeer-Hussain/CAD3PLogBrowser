@@ -158,6 +158,14 @@ namespace Cad3PLogBrowser
             else SetTabVisible(tab, visible);
         }
 
+        /// <summary>G4: makes the given tab visible (if it was hidden) and selects it,
+        /// for the "jump straight to this view" keyboard shortcuts.</summary>
+        public void SwitchToTab(TabId id)
+        {
+            if (!IsTabVisible(id)) SetTabVisible(id, true);
+            mainTabControl.SelectedTab = GetTab(id);
+        }
+
         private TabPage GetTab(TabId id)
         {
             switch (id)
@@ -308,6 +316,22 @@ namespace Cad3PLogBrowser
             _appSettings.Theme = _appSettings.Theme == "Dark" ? "Light" : "Dark";
             ApplyThemeWithOverlay();
             UpdateThemeButtonIcon();
+
+            // G2: the Settings-dialog theme picker saves immediately; this toggle
+            // (and its Ctrl+T shortcut) previously only persisted on a clean exit,
+            // so a crash/kill between toggling and closing silently lost the choice.
+            _appSettings.Save();
+        }
+
+        /// <summary>G2: View menu Dark Mode toggle — the spec's required entry point,
+        /// previously only reachable via the toolbar button, Ctrl+T, or Settings.
+        /// CheckOnClick already flipped darkModeMenuItem.Checked before this runs.</summary>
+        private void darkModeMenuItem_Click(object sender, EventArgs e)
+        {
+            _appSettings.Theme = darkModeMenuItem.Checked ? "Dark" : "Light";
+            ApplyThemeWithOverlay();
+            UpdateThemeButtonIcon();
+            _appSettings.Save();
         }
 
         private Bitmap _sunIcon;
@@ -1033,6 +1057,13 @@ namespace Cad3PLogBrowser
                 var theme = _appSettings.Theme == "Dark" ? ThemeManager.Theme.Dark : ThemeManager.Theme.Light;
                 ThemeManager.SetTheme(theme);
 
+                // G2: keep the View menu toggle in sync regardless of which of the
+                // three other entry points (toolbar button, Ctrl+T, Settings dialog)
+                // actually changed the theme. Assigning .Checked here does not itself
+                // raise darkModeMenuItem's Click event, so this can't re-enter.
+                if (darkModeMenuItem != null)
+                    darkModeMenuItem.Checked = theme == ThemeManager.Theme.Dark;
+
                 // Apply to main form (WM_SETREDRAW suppressed inside ApplyTheme)
                 ThemeManager.ApplyTheme(this);
 
@@ -1045,6 +1076,12 @@ namespace Cad3PLogBrowser
                 _aiPanel?.UpdateTheme();
                 _overlay?.UpdateTheme();
                 _lineInspector?.ApplyTheme();
+
+                // G2: _findForm is a cached singleton (Show/Hide, never re-created), so
+                // its own one-time Load-event theming goes stale the moment the user
+                // toggles the theme while it exists.
+                if (_findForm != null && !_findForm.IsDisposed)
+                    ThemeManager.ApplyTheme(_findForm);
 
                 // Apply theme to the API Details panel
                 if (_apiDetailsPanel != null)
@@ -1206,11 +1243,11 @@ namespace Cad3PLogBrowser
 
             if (dist > 0)
             {
-                mainSplitContainer.SplitterDistance = dist;
+                SetSplitterDistanceSafe(dist);
             }
             else if (_appSettings.SplitterDistance > 0)
             {
-                mainSplitContainer.SplitterDistance = _appSettings.SplitterDistance;
+                SetSplitterDistanceSafe(_appSettings.SplitterDistance);
             }
             // else: will be set to 30% in MainForm_Load after layout is ready
 
@@ -1264,6 +1301,21 @@ namespace Cad3PLogBrowser
             }
             if (target != null && mainTabControl.TabPages.Contains(target))
                 mainTabControl.SelectedTab = target;
+        }
+
+        /// <summary>G1: clamps to the split container's own Panel1MinSize/Panel2MinSize
+        /// before assigning, so a stale saved distance from before those minimums
+        /// existed (or a narrow window) can never throw on startup.</summary>
+        private void SetSplitterDistanceSafe(int desired)
+        {
+            try
+            {
+                int min = mainSplitContainer.Panel1MinSize;
+                int max = Math.Max(min, mainSplitContainer.Width
+                    - mainSplitContainer.Panel2MinSize - mainSplitContainer.SplitterWidth);
+                mainSplitContainer.SplitterDistance = Math.Max(min, Math.Min(desired, max));
+            }
+            catch { /* never let a bad saved splitter position block startup */ }
         }
 
         private void SaveSettings()
@@ -1371,6 +1423,36 @@ namespace Cad3PLogBrowser
                     _errorLines.Count, _warningLines.Count);
             }
 
+            // G5: persistent amber warning once the loaded log crosses the configurable
+            // size guard (Settings > Files & Behavior > "Skip list view if file >").
+            bool isLargeLog = false;
+            try
+            {
+                long totalBytes = 0;
+                if (_currentFilePath.StartsWith("[Merged:") && _mergedSourcePaths.Count > 0)
+                {
+                    foreach (var p in _mergedSourcePaths)
+                        if (File.Exists(p)) totalBytes += new FileInfo(p).Length;
+                }
+                else if (File.Exists(_currentFilePath))
+                {
+                    totalBytes = new FileInfo(_currentFilePath).Length;
+                }
+                isLargeLog = totalBytes > _appSettings.MaxFileSizeMbForListView * 1024L * 1024L;
+            }
+            catch { /* best-effort — never block the status bar on a file-size check */ }
+
+            if (isLargeLog)
+            {
+                fileInfo += string.Format("   ⚠ Large log ({0}+ MB) — performance updates may be slow",
+                    _appSettings.MaxFileSizeMbForListView);
+                StatusFileName.ForeColor = Color.DarkOrange;
+            }
+            else
+            {
+                StatusFileName.ForeColor = Services.ThemeManager.ControlForegroundColor;
+            }
+
             StatusFileName.Text = fileInfo;
 
             int total   = _allLines.Count;
@@ -1397,8 +1479,21 @@ namespace Cad3PLogBrowser
             if (logListView.SelectedIndices.Count == 0) { StatusSelection.Text = ""; return; }
             int idx = logListView.SelectedIndices[0];
 
-            // Feature G5: Show selected line info with more detail
-            string lineNum = _virtualLines[idx].LineNumber.ToString();
+            // G5: when the selected line is a call-tree ENTER we know the method name
+            // and duration for (via the same index the tree itself uses), show that —
+            // "MethodName  142ms  Line 304" — instead of a raw text preview.
+            int lineNumber = _virtualLines[idx].LineNumber;
+            CallStackNode csNode;
+            if (_callStackNodeByLine != null && _callStackNodeByLine.TryGetValue(lineNumber, out csNode))
+            {
+                string durationText = csNode.DurationMs > 0 ? string.Format("{0}ms", csNode.DurationMs)
+                                    : csNode.ExitLineNumber > 0 ? "<1ms"
+                                    : "?ms";
+                StatusSelection.Text = string.Format("{0}  {1}  Line {2}", csNode.Label, durationText, lineNumber);
+                return;
+            }
+
+            string lineNum = lineNumber.ToString();
             string preview = _virtualLines[idx].Text;
             if (preview.Length > 60) preview = preview.Substring(0, 57) + "...";
 
@@ -1640,6 +1735,14 @@ namespace Cad3PLogBrowser
             // Pre-compute matched status for all APIs in one O(N) pass
             _matchedApiCache = BuildMatchedApiCache(entries);
 
+            // G6: index perfStats by name here (before PopulatePerformanceTab assigns
+            // _apiPerfStats further down) so PopulateApiTree can show count/avg/min/max
+            // in each API node's tooltip using the same numbers the Performance tab shows.
+            _apiPerfStatsByName = new Dictionary<string, ApiPerfStats>(
+                perfStats.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (var stat in perfStats)
+                _apiPerfStatsByName[stat.ApiName] = stat;
+
             PopulateApiTree(_apiNodes);
             PopulateCallTree(callTree);
             PopulatePerformanceTab(perfStats, _allLines.Count);
@@ -1743,6 +1846,21 @@ namespace Cad3PLogBrowser
                     ImageIndex      = allMatched ? 0 : 1,
                     SelectedImageIndex = allMatched ? 0 : 1
                 };
+
+                // G6: count/avg/min/max, reusing the same stats the Performance tab shows.
+                ApiPerfStats stats;
+                if (_apiPerfStatsByName.TryGetValue(node.ApiName, out stats) && stats.TimedCallCount > 0)
+                {
+                    apiRoot.ToolTipText = string.Format(
+                        "{0}\nCalls: {1}\nAvg: {2} ms\nMin: {3} ms\nMax: {4} ms",
+                        node.ApiName, stats.CallCount, stats.AvgDurationMs, stats.MinDurationMs, stats.MaxDurationMs);
+                }
+                else
+                {
+                    apiRoot.ToolTipText = string.Format("{0}\nCalls: {1}\n(no matched ENTER/EXIT pairs to time)",
+                        node.ApiName, totalCalls);
+                }
+
                 _apiNameToTreeNode[node.ApiName] = apiRoot; // PERF-E01: O(1) cache
 
                 // Children: one per ENTER invocation
@@ -1946,7 +2064,8 @@ namespace Cad3PLogBrowser
                 csNode.SourceFile ?? "-",
                 csNode.LineNumber,
                 matched ? csNode.ExitLineNumber.ToString() : Resources.TREE_NODE_EXIT_NOT_FOUND,
-                csNode.DurationMs);
+                csNode.DurationMs,
+                csNode.Depth);
 
             // ImageIndex: 0 = checkmark (matched), 1 = cross (unmatched)
             int imgIdx = matched ? 0 : 1;
@@ -2208,6 +2327,9 @@ namespace Cad3PLogBrowser
 
         private bool _perfHeaderWired = false;
         private List<ApiPerfStats> _apiPerfStats = new List<ApiPerfStats>();
+        // G6: name -> stats lookup for API Tree tooltips (count/avg/min/max), built
+        // once per file load — see PopulateTreesFromData.
+        private Dictionary<string, ApiPerfStats> _apiPerfStatsByName = new Dictionary<string, ApiPerfStats>();
         private int _lastTotalLines = 0;
 
         private void PerformanceView_ColumnClick(object sender, ColumnClickEventArgs e)
@@ -4045,7 +4167,10 @@ namespace Cad3PLogBrowser
                     {
                         _fileChangedPending    = false;
                         FileStatus.ToolTipText = string.Empty;
-                        LoadFileAsync(_currentFilePath);
+                        // A4: preserve scroll position on watcher-triggered reload too,
+                        // matching the manual Refresh (F5) behavior.
+                        int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
+                        LoadFileAsync(_currentFilePath, restoreTopIndex: topIndex);
                     }
                 };
                 _autoReloadCountdownTimer.Start();
@@ -4137,33 +4262,49 @@ namespace Cad3PLogBrowser
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
 
-        private void saveAsMenuItem_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Resolves the ENTER→EXIT block for the currently selected tree node, shared by
+        /// the "Save As..." (.log) and "Save Selected as XLS..." (.xlsx) menu commands.
+        /// </summary>
+        private bool TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName)
         {
-            // Save the ENTER→EXIT block for the currently selected tree node.
-            // Default filename: {original-basename}{snippet-suffix}.log
+            lines = null;
+            baseName = null;
+
             TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
             if (activeTree?.SelectedNode == null)
             {
                 MessageBox.Show("Please select a node in the tree first.",
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                methodName = null;
+                return false;
             }
 
-            TreeNode node       = activeTree.SelectedNode;
-            string methodName   = GetMethodNameFromNode(node);
-            int    enterLine    = (node.Tag is int t && t > 0) ? t : -1;
-            List<string> lines  = ExtractBranchLines(enterLine, methodName);
+            TreeNode node    = activeTree.SelectedNode;
+            methodName       = GetMethodNameFromNode(node);
+            int enterLine    = (node.Tag is int t && t > 0) ? t : -1;
+            lines            = ExtractBranchLines(enterLine, methodName);
 
             if (lines.Count == 0)
             {
                 MessageBox.Show(string.Format(Resources.ERR_NO_ENTER_EXIT_PAIR, methodName),
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                return false;
             }
 
-            string baseName    = string.IsNullOrEmpty(_currentFilePath)
+            baseName = string.IsNullOrEmpty(_currentFilePath)
                 ? methodName.Replace("::", "_")
                 : GetSafeBaseName(_currentFilePath);
+            return true;
+        }
+
+        private void saveAsMenuItem_Click(object sender, EventArgs e)
+        {
+            // Save the ENTER→EXIT block for the currently selected tree node.
+            // Default filename: {original-basename}{snippet-suffix}.log
+            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName))
+                return;
+
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".log";
 
             using (var dlg = new SaveFileDialog())
@@ -4186,6 +4327,54 @@ namespace Cad3PLogBrowser
                     StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
 
                     File.WriteAllLines(dlg.FileName, lines);
+
+                    FileLoadProgress.Value = 100;
+                    MessageBox.Show(
+                        string.Format(Resources.MSG_BRANCH_SAVED_TO, lines.Count, dlg.FileName),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERR_SAVE_BRANCH_FAILED, ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    FileLoadProgress.Visible = false;
+                    FileLoadProgress.Value   = 0;
+                    UpdateStatusBar();
+                }
+            }
+        }
+
+        // G7: "Save to XLS..." — same ENTER/EXIT branch extraction as Save As (.log),
+        // written as a single-column .xlsx workbook so it can be filtered/sorted in Excel.
+        private void saveSelectedXlsMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName))
+                return;
+
+            string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".xlsx";
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH_XLS ?? "Save Selected Branch as XLS";
+                dlg.Filter           = Resources.FILE_FILTER_XLS_SAVE;
+                dlg.FileName         = defaultName;
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    FileLoadProgress.Style   = ProgressBarStyle.Blocks;
+                    FileLoadProgress.Visible = true;
+                    FileLoadProgress.Value   = 0;
+                    StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
+
+                    new Services.Export.ExportService().ExportBranchToXlsx(lines, dlg.FileName);
 
                     FileLoadProgress.Value = 100;
                     MessageBox.Show(
@@ -4863,7 +5052,9 @@ namespace Cad3PLogBrowser
                 _autoReloadCountdownTimer?.Stop();
                 _fileChangedPending    = false;
                 FileStatus.ToolTipText = string.Empty;
-                LoadFileAsync(_currentFilePath);
+                // A4: preserve scroll position, matching the manual Refresh (F5) behavior.
+                int topIndex = logListView.TopItem != null ? logListView.TopItem.Index : 0;
+                LoadFileAsync(_currentFilePath, restoreTopIndex: topIndex);
             }
         }
 
@@ -4913,6 +5104,17 @@ namespace Cad3PLogBrowser
             {
                 case Keys.Control | Keys.T:                      // Toggle Theme
                     ThemeToggleButton_Click(this, EventArgs.Empty);
+                    return true;
+
+                // G4: jump straight to a tab. Spec called for Ctrl+D / Ctrl+Shift+C,
+                // but those are already Compare Logs and Copy with Headers respectively
+                // — reassigning either would break existing muscle memory, so these use
+                // Ctrl+Alt+ instead and auto-show the tab first if it's currently hidden.
+                case Keys.Control | Keys.Alt | Keys.D:           // Jump to Performance tab
+                    SwitchToTab(TabId.Performance);
+                    return true;
+                case Keys.Control | Keys.Alt | Keys.C:           // Jump to Call Graph tab
+                    SwitchToTab(TabId.CallGraph);
                     return true;
 
                 case Keys.F3:                                    // Find Next (BUG-09)
@@ -5708,7 +5910,7 @@ namespace Cad3PLogBrowser
             // "Parameter is not valid" if invoked while the menu holds the DC.
             BeginInvoke((Action)(() =>
             {
-                using (var aboutDialog = new AboutForm())
+                using (var aboutDialog = new AboutForm(_currentFilePath))
                     aboutDialog.ShowDialog(this);
             }));
         }
@@ -5760,6 +5962,13 @@ namespace Cad3PLogBrowser
 
             var svc = new Services.Update.UpdateService(manifestUrl);
 
+            // G12: the fetch can take several seconds (retries on a slow/unreachable
+            // URL), so a manual check gets the same status-bar/overlay progress
+            // indicator as other long-running operations. Startup (silent) checks
+            // stay silent — no overlay popping up unprompted at launch.
+            if (!silent)
+                StartOperation("Checking for Updates");
+
             Services.Update.UpdateManifest manifest = null;
             try
             {
@@ -5772,6 +5981,11 @@ namespace Cad3PLogBrowser
                     MessageBox.Show(string.Format(Resources.UPDATE_CHECK_FAILED, ex.Message),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+            finally
+            {
+                if (!silent)
+                    EndOperation();
             }
 
             // Record the check timestamp regardless of result
@@ -6069,53 +6283,84 @@ namespace Cad3PLogBrowser
         }
 
         /// <summary>
-        /// Generates keyboard shortcuts content.
+        /// Generates keyboard shortcuts content by walking the real menu tree, so this
+        /// can never drift out of sync with the actual ShortcutKeys the way a hand-typed
+        /// list did (G4) — it had accumulated a "Ctrl+R" entry for an action that no
+        /// longer exists, and was missing shortcuts added after the list was last updated.
         /// Shared between Quick Help and Keyboard Shortcuts dialogs to avoid duplication.
         /// </summary>
         private string GetKeyboardShortcutsContent()
         {
-            return "FILE OPERATIONS\r\n" +
-                   "Ctrl+O              Open log file\r\n" +
-                   "Ctrl+S              Save As (selection or all visible lines)\r\n" +
-                   "Ctrl+Shift+E        Export Filtered Logs\r\n" +
-                   "F5                  Refresh (reload, keep scroll position)\r\n" +
-                   "Ctrl+R              Reload File from Disk\r\n" +
-                   "Alt+F4              Exit\r\n\r\n" +
-                   "EDITING & SEARCH\r\n" +
-                   "Ctrl+C              Copy selected lines\r\n" +
-                   "Ctrl+F              Find / Search\r\n" +
-                   "F3                  Find Next\r\n" +
-                   "Ctrl+I              Filter log entries\r\n\r\n" +
-                   "TREE NAVIGATION\r\n" +
-                   "Ctrl+E              Expand All (Call Tree & API Tree)\r\n" +
-                   "Ctrl+W              Collapse All (keeps root nodes expanded)\r\n" +
-                   "Ctrl+G              Jump to Matching ENTER/EXIT pair\r\n" +
-                   "Ctrl+J              Jump to line number\r\n\r\n" +
-                   "ERROR & WARNING NAVIGATION\r\n" +
-                   "F8                  Next Error\r\n" +
-                   "Shift+F8            Previous Error\r\n" +
-                   "Ctrl+F8             Next Warning\r\n" +
-                   "Ctrl+Shift+F8       Previous Warning\r\n\r\n" +
-                   "BOOKMARKS\r\n" +
-                   "Ctrl+B              Toggle bookmark on current line\r\n" +
-                   "F2                  Next bookmark\r\n" +
-                   "Shift+F2            Previous bookmark\r\n" +
-                   "Ctrl+Shift+B        Show all bookmarks\r\n" +
-                   "Ctrl+Shift+Del      Clear all bookmarks\r\n\r\n" +
-                   "VIEW OPTIONS\r\n" +
-                   "Ctrl+T              Toggle theme (Dark/Light)\r\n" +
-                   "Ctrl+1              Show Call Tree\r\n" +
-                   "Ctrl+2              Show API Tree\r\n\r\n" +
-                   "HELP\r\n" +
-                   "F1                  View Help / User Guide\r\n" +
-                   "Ctrl+K              Keyboard Shortcuts (this dialog)\r\n\r\n" +
-                   "CALL GRAPH TAB\r\n" +
-                   "Scroll Wheel        Zoom in/out\r\n" +
-                   "Click & Drag        Pan view\r\n" +
-                   "Hover Node          Highlight edges\r\n" +
-                   "Edge Thickness      = Call frequency\r\n" +
-                   "Reset View Button   Restore default zoom/pan\r\n\r\n";
+            var sb = new System.Text.StringBuilder();
+
+            foreach (ToolStripMenuItem topMenu in mainMenuStrip.Items.OfType<ToolStripMenuItem>())
+            {
+                var lines = new List<string>();
+                CollectShortcuts(topMenu.DropDownItems, lines);
+                if (lines.Count == 0) continue;
+
+                sb.Append(StripMnemonic(topMenu.Text).ToUpperInvariant()).Append("\r\n");
+                foreach (var line in lines) sb.Append(line).Append("\r\n");
+                sb.Append("\r\n");
+            }
+
+            // These act globally (ProcessCmdKey) rather than through a menu item, so the
+            // walk above can't see them — kept to a short, hand-verified list.
+            sb.Append("OTHER SHORTCUTS\r\n");
+            sb.Append(FormatShortcutLine("F8", "Next Error")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Shift+F8", "Previous Error")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+F8", "Next Warning")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Shift+F8", "Previous Warning")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+T", "Toggle theme (Dark/Light)")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Alt+D", "Jump to Performance tab")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Ctrl+Alt+C", "Jump to Call Graph tab")).Append("\r\n\r\n");
+
+            sb.Append("CALL GRAPH TAB\r\n");
+            sb.Append(FormatShortcutLine("Scroll Wheel", "Zoom in/out")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Click & Drag", "Pan view")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Hover Node", "Highlight edges")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Edge Thickness", "= Call frequency")).Append("\r\n");
+            sb.Append(FormatShortcutLine("Reset View Button", "Restore default zoom/pan")).Append("\r\n\r\n");
+
+            return sb.ToString();
         }
+
+        /// <summary>Recursively collects "Shortcut  Label" lines for every menu item
+        /// (at any submenu depth) that has a ShortcutKeys value assigned.</summary>
+        private void CollectShortcuts(ToolStripItemCollection items, List<string> lines)
+        {
+            foreach (ToolStripItem item in items)
+            {
+                var menuItem = item as ToolStripMenuItem;
+                if (menuItem == null) continue; // skips separators
+
+                if (menuItem.ShortcutKeys != Keys.None)
+                    lines.Add(FormatShortcutLine(FormatShortcutKeys(menuItem.ShortcutKeys), StripMnemonic(menuItem.Text)));
+
+                if (menuItem.HasDropDownItems)
+                    CollectShortcuts(menuItem.DropDownItems, lines);
+            }
+        }
+
+        private static string FormatShortcutLine(string shortcut, string label) =>
+            string.Format("{0,-20}{1}", shortcut, label);
+
+        /// <summary>Converts a ShortcutKeys value to display text ("Ctrl+Shift+F8").
+        /// ToolStripMenuItem.ShortcutKeyDisplayString is null unless explicitly
+        /// overridden — it does NOT return the auto-generated text WinForms itself
+        /// paints on the menu, so it can't be used here.</summary>
+        private static string FormatShortcutKeys(Keys keys)
+        {
+            var parts = new List<string>();
+            if ((keys & Keys.Control) == Keys.Control) parts.Add("Ctrl");
+            if ((keys & Keys.Alt)     == Keys.Alt)     parts.Add("Alt");
+            if ((keys & Keys.Shift)   == Keys.Shift)   parts.Add("Shift");
+            parts.Add(new KeysConverter().ConvertToString(keys & Keys.KeyCode));
+            return string.Join("+", parts);
+        }
+
+        private static string StripMnemonic(string text) =>
+            (text ?? string.Empty).Replace("&", string.Empty).TrimEnd('.', ' ');
 
         // ── Form lifecycle ────────────────────────────────────────────────────
         // Feature B10: Keyboard shortcuts for error/warning navigation
@@ -6125,17 +6370,21 @@ namespace Cad3PLogBrowser
             SetDocumentLoaded(false);
             LayoutTrees();
 
+            // G1: minimum 200px per side so neither the tree nor the tab panel can be
+            // dragged down to unusable width. Set here rather than in the Designer —
+            // during InitializeComponent() the SplitContainer's transient Width is
+            // still its placeholder size, too small for a 200+200 minimum, and
+            // EndInit() would throw revalidating the hardcoded SplitterDistance.
+            mainSplitContainer.Panel1MinSize = 200;
+            mainSplitContainer.Panel2MinSize = 200;
+
             // Feature 2a: Set default splitter to 30% only on first run (no saved value)
             // Check if this is the first run (no saved splitter distance)
             if (_appSettings.SplitterDistance <= 0)
             {
                 // First run - calculate 30% default
                 int defaultSplitter = (int)(this.ClientSize.Width * 0.3);
-                if (defaultSplitter > mainSplitContainer.Panel1MinSize && 
-                    defaultSplitter < this.ClientSize.Width - mainSplitContainer.Panel2MinSize)
-                {
-                    mainSplitContainer.SplitterDistance = defaultSplitter;
-                }
+                SetSplitterDistanceSafe(defaultSplitter);
             }
             // else: RestoreSettings already set the splitter distance from saved value
 
@@ -6153,7 +6402,7 @@ namespace Cad3PLogBrowser
                 int savedDistance = _appSettings.SplitterDistance;
                 this.BeginInvoke((Action)(() =>
                 {
-                    mainSplitContainer.SplitterDistance = savedDistance;
+                    SetSplitterDistanceSafe(savedDistance);
 
                     // NOW form is fully loaded - enable saving
                     _isFormLoaded = true;

@@ -275,7 +275,16 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("DIALOG_TITLE_SAVE_BRANCH", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Save Selected Branch as XLS.
+        /// </summary>
+        internal static string DIALOG_TITLE_SAVE_BRANCH_XLS {
+            get {
+                return ResourceManager.GetString("DIALOG_TITLE_SAVE_BRANCH_XLS", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Anomaly detection failed: {0}.
         /// </summary>
@@ -698,7 +707,16 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("FILE_FILTER_LOG_SAVE", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Excel Workbook (*.xlsx)|*.xlsx.
+        /// </summary>
+        internal static string FILE_FILTER_XLS_SAVE {
+            get {
+                return ResourceManager.GetString("FILE_FILTER_XLS_SAVE", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to XML files (*.xml)|*.xml|All files (*.*)|*.*.
         /// </summary>

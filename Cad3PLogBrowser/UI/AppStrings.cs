@@ -20,6 +20,7 @@ namespace Cad3PLogBrowser.UI
         public const string MenuFile = "&File";
         public const string MenuFileOpen = "&Open...";
         public const string MenuFileSaveAs = "Save &As...";
+        public const string MenuFileSaveSelectedXls = "Save Selected as &XLS...";
         public const string MenuFileExportFiltered = "Export &Filtered Logs...";
         public const string MenuFileExportPerformance = "Export &Performance Data...";
         public const string MenuFileExportApiCsv = "Export &API Summary to CSV...";
@@ -206,7 +207,11 @@ namespace Cad3PLogBrowser.UI
         // ?????????????????????????????????????????????????????????????????????
         public const string AboutFormTitle = "About {0}";
         public const string AboutButtonOK = "&OK";
-        public const string AboutLabelVersion = "Version {0}";
+        public const string AboutLabelVersion = "Version {0}  (built {1})";
+        public const string AboutLabelOpenFile = "Open file: {0}";
+        public const string AboutNoFileOpen = "(none)";
+        public const string AboutButtonCopyVersion = "&Copy Version Info";
+        public const string AboutCopiedTooltip = "Copied!";
         public const string AboutProductName = "CAD 3P Log Browser";
         public const string AboutCopyright = "Copyright � 2024 PTC Inc.";
         public const string AboutCompany = "PTC Inc.";

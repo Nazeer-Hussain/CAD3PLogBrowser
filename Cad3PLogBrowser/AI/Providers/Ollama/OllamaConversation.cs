@@ -50,6 +50,13 @@ namespace Cad3PLogBrowser.AI.Providers.Ollama
             _messages.Clear();
         }
 
+        /// <summary>
+        /// L2/L6: history budget passed to <see cref="TrimToTokenLimit"/> before every
+        /// send. Reserves half the model's context window for prior turns, leaving room
+        /// for the system prompt, the new message, and the response.
+        /// </summary>
+        private int MaxHistoryTokens => _provider.MaxContextTokens / 2;
+
         public async Task<IAIResponse> SendMessageAsync(string userMessage, CancellationToken cancellationToken = default)
         {
             var userMsg = new ChatMessage
@@ -58,6 +65,10 @@ namespace Cad3PLogBrowser.AI.Providers.Ollama
                 Content = userMessage
             };
             _messages.Add(userMsg);
+
+            // L2/L6: cap history growth instead of letting it grow unbounded for the
+            // life of the conversation.
+            TrimToTokenLimit(MaxHistoryTokens);
 
             var request = new AIRequest
             {
@@ -99,6 +110,10 @@ namespace Cad3PLogBrowser.AI.Providers.Ollama
                         Content = userMessage
                     };
                     _messages.Add(userMsg);
+
+                    // L2/L6: cap history growth instead of letting it grow unbounded for
+                    // the life of the conversation.
+                    TrimToTokenLimit(MaxHistoryTokens);
 
                     var request = new AIRequest
                     {

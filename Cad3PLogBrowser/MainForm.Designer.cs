@@ -34,6 +34,7 @@
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveSelectedXlsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -81,6 +82,7 @@
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.watchFileChangesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.darkModeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -215,6 +217,7 @@
             this.compareLogsMenuItem,
             this.fileSeparatorAfterOpen,
             this.saveAsMenuItem,
+            this.saveSelectedXlsMenuItem,
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
@@ -251,7 +254,15 @@
             this.saveAsMenuItem.Size = new System.Drawing.Size(260, 22);
             this.saveAsMenuItem.Text = UI.AppStrings.MenuFileSaveAs;
             this.saveAsMenuItem.Click += new System.EventHandler(this.saveAsMenuItem_Click);
-            // 
+            //
+            // saveSelectedXlsMenuItem
+            //
+            this.saveSelectedXlsMenuItem.Image = null;
+            this.saveSelectedXlsMenuItem.Name = "saveSelectedXlsMenuItem";
+            this.saveSelectedXlsMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.saveSelectedXlsMenuItem.Text = UI.AppStrings.MenuFileSaveSelectedXls;
+            this.saveSelectedXlsMenuItem.Click += new System.EventHandler(this.saveSelectedXlsMenuItem_Click);
+            //
             // exportFilteredLogsMenuItem
             // 
             this.exportFilteredLogsMenuItem.Name = "exportFilteredLogsMenuItem";
@@ -572,6 +583,7 @@
             this.viewSeparator1,
             this.selectFontMenuItem,
             this.watchFileChangesMenuItem,
+            this.darkModeMenuItem,
             this.showToolbarMenuItem,
             this.showStatusBarMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
@@ -683,6 +695,14 @@
             this.watchFileChangesMenuItem.Size = new System.Drawing.Size(178, 22);
             this.watchFileChangesMenuItem.Text = "&Watch for File Changes";
             this.watchFileChangesMenuItem.CheckedChanged += new System.EventHandler(this.watchFileChangesMenuItem_CheckedChanged);
+            //
+            // darkModeMenuItem
+            //
+            this.darkModeMenuItem.CheckOnClick = true;
+            this.darkModeMenuItem.Name = "darkModeMenuItem";
+            this.darkModeMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.darkModeMenuItem.Text = "&Dark Mode";
+            this.darkModeMenuItem.Click += new System.EventHandler(this.darkModeMenuItem_Click);
             //
             // showToolbarMenuItem
             // 
@@ -1156,6 +1176,7 @@
             this.OpenButton.Name = "OpenButton";
             this.OpenButton.Size = new System.Drawing.Size(23, 22);
             this.OpenButton.Text = "Open";
+            this.OpenButton.ToolTipText = "Open a log file (Ctrl+O)";
             this.OpenButton.Click += new System.EventHandler(this.OpenButton_Click);
             // 
             // SaveButton
@@ -1166,6 +1187,7 @@
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(23, 22);
             this.SaveButton.Text = "Save Selected";
+            this.SaveButton.ToolTipText = "Save the selected Call Tree node's log lines to a file (Ctrl+S)";
             this.SaveButton.Click += new System.EventHandler(this.SaveButton_Click);
             // 
             // ExportFilteredLogButton
@@ -1187,6 +1209,7 @@
             this.RefreshButton.Name = "RefreshButton";
             this.RefreshButton.Size = new System.Drawing.Size(23, 22);
             this.RefreshButton.Text = "Reload from Disk";
+            this.RefreshButton.ToolTipText = "Reload the current file, keeping scroll position (F5)";
             this.RefreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
             // 
             // separatorAfterRefresh
@@ -1202,6 +1225,7 @@
             this.CopyButton.Name = "CopyButton";
             this.CopyButton.Size = new System.Drawing.Size(23, 22);
             this.CopyButton.Text = "Copy";
+            this.CopyButton.ToolTipText = "Copy the selected log lines to the clipboard (Ctrl+C)";
             this.CopyButton.Click += new System.EventHandler(this.CopyButton_Click);
             // 
             // FindButton
@@ -1212,6 +1236,7 @@
             this.FindButton.Name = "FindButton";
             this.FindButton.Size = new System.Drawing.Size(23, 22);
             this.FindButton.Text = "Find";
+            this.FindButton.ToolTipText = "Open the Find dialog to search the log (Ctrl+F)";
             this.FindButton.Click += new System.EventHandler(this.FindButton_Click);
             // 
             // FindNextButton
@@ -1222,6 +1247,7 @@
             this.FindNextButton.Name = "FindNextButton";
             this.FindNextButton.Size = new System.Drawing.Size(23, 22);
             this.FindNextButton.Text = "Find Next (F3)";
+            this.FindNextButton.ToolTipText = "Jump to the next match without opening the Find dialog (F3)";
             this.FindNextButton.Click += new System.EventHandler(this.FindNextButton_Click);
             // 
             // FilterButton
@@ -1232,6 +1258,7 @@
             this.FilterButton.Name = "FilterButton";
             this.FilterButton.Size = new System.Drawing.Size(23, 22);
             this.FilterButton.Text = "Filter";
+            this.FilterButton.ToolTipText = "Open the Filter dialog to narrow the log view (Ctrl+I)";
             this.FilterButton.Click += new System.EventHandler(this.FilterButton_Click);
             // 
             // separatorAfterFilter
@@ -1660,6 +1687,7 @@
         private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveSelectedXlsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;
@@ -1755,6 +1783,7 @@
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
         private System.Windows.Forms.ToolStripMenuItem watchFileChangesMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem darkModeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;

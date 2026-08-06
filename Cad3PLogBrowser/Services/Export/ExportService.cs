@@ -5,6 +5,8 @@ namespace Cad3PLogBrowser.Services.Export
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
+    using System.IO.Compression;
+    using System.Text;
     using System.Windows.Forms;
     using Cad3PLogBrowser.Models;
     using Cad3PLogBrowser.Utilities;
@@ -26,6 +28,7 @@ namespace Cad3PLogBrowser.Services.Export
     {
         private readonly CsvExporter _csvExporter;
         private readonly ImageExporter _imageExporter;
+        private readonly XlsxExporter _xlsxExporter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExportService"/> class.
@@ -35,6 +38,7 @@ namespace Cad3PLogBrowser.Services.Export
         {
             _csvExporter = new CsvExporter();
             _imageExporter = new ImageExporter();
+            _xlsxExporter = new XlsxExporter();
         }
 
         /// <summary>
@@ -203,13 +207,24 @@ namespace Cad3PLogBrowser.Services.Export
                     {
                         depth--;
                         if (depth == 0)
-                            break; // found the matching EXIT — done
+                            break; // found the matching EXIT ï¿½ done
                     }
                 }
             }
 
             File.WriteAllLines(filePath, branchLines);
             return branchLines.Count;
+        }
+
+        /// <summary>
+        /// G7: exports a set of already-extracted branch log lines to an .xlsx workbook,
+        /// one raw line per row, so they can be filtered/sorted in Excel.
+        /// </summary>
+        /// <param name="branchLines">Log lines to export (one row per line).</param>
+        /// <param name="filePath">Destination .xlsx file path.</param>
+        public void ExportBranchToXlsx(IList<string> branchLines, string filePath)
+        {
+            _xlsxExporter.ExportLines(branchLines, filePath, "Log Line");
         }
 
         /// <summary>
@@ -337,6 +352,136 @@ namespace Cad3PLogBrowser.Services.Export
             foreach (var child in node.Children)
             {
                 CollectBranchRows(child, rows, depth + 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Specialized exporter for Excel (.xlsx) format.
+    /// </summary>
+    /// <remarks>
+    /// The project has no NuGet dependencies (old-style .csproj, zero PackageReference
+    /// entries) and pulling in a full library like ClosedXML just to write a single flat
+    /// sheet would be a heavy, unjustified addition. An .xlsx file is simply a ZIP archive
+    /// of a handful of small XML parts (the Open Packaging Convention), so this writes that
+    /// structure directly using System.IO.Compression, which the project already references.
+    /// Cell text is written as inline strings (t="inlineStr") to avoid needing a
+    /// sharedStrings.xml part.
+    /// </remarks>
+    public class XlsxExporter
+    {
+        private const string ContentTypesXml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+            "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
+            "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" +
+            "</Types>";
+
+        private const string RootRelsXml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
+            "</Relationships>";
+
+        private const string WorkbookRelsXml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>" +
+            "</Relationships>";
+
+        /// <summary>
+        /// Writes <paramref name="lines"/> to a single-column worksheet, one row per line.
+        /// </summary>
+        /// <param name="lines">Raw text lines; each becomes one row in column A.</param>
+        /// <param name="filePath">Destination .xlsx file path.</param>
+        /// <param name="columnHeader">Header text for column A.</param>
+        public void ExportLines(IList<string> lines, string filePath, string columnHeader)
+        {
+            if (lines == null)
+                throw new ArgumentNullException(nameof(lines));
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+
+            string workbookXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" " +
+                "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                "<sheets><sheet name=\"Log Snippet\" sheetId=\"1\" r:id=\"rId1\"/></sheets>" +
+                "</workbook>";
+
+            // Delete-then-create: ZipFile requires the destination not to already exist.
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+
+            using (var archive = ZipFile.Open(filePath, ZipArchiveMode.Create))
+            {
+                AddEntry(archive, "[Content_Types].xml", ContentTypesXml);
+                AddEntry(archive, "_rels/.rels", RootRelsXml);
+                AddEntry(archive, "xl/workbook.xml", workbookXml);
+                AddEntry(archive, "xl/_rels/workbook.xml.rels", WorkbookRelsXml);
+                AddEntry(archive, "xl/worksheets/sheet1.xml", BuildSheetXml(columnHeader, lines));
+            }
+        }
+
+        private static string BuildSheetXml(string columnHeader, IList<string> lines)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            sb.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>");
+
+            AppendRow(sb, 1, columnHeader);
+            for (int i = 0; i < lines.Count; i++)
+            {
+                AppendRow(sb, i + 2, lines[i]);
+            }
+
+            sb.Append("</sheetData></worksheet>");
+            return sb.ToString();
+        }
+
+        private static void AppendRow(StringBuilder sb, int rowNumber, string text)
+        {
+            sb.Append("<row r=\"").Append(rowNumber).Append("\">")
+              .Append("<c r=\"A").Append(rowNumber).Append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
+              .Append(EscapeXml(text))
+              .Append("</t></is></c></row>");
+        }
+
+        /// <summary>
+        /// Escapes XML-reserved characters and strips control characters that are
+        /// invalid in XML 1.0 (log lines occasionally contain stray control bytes).
+        /// </summary>
+        private static string EscapeXml(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+
+            var sb = new StringBuilder(text.Length);
+            foreach (char c in text)
+            {
+                switch (c)
+                {
+                    case '&': sb.Append("&amp;"); break;
+                    case '<': sb.Append("&lt;"); break;
+                    case '>': sb.Append("&gt;"); break;
+                    default:
+                        if (c < 0x20 && c != '\t' && c != '\n' && c != '\r')
+                            sb.Append(' '); // invalid XML 1.0 control character
+                        else
+                            sb.Append(c);
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
+
+        private static void AddEntry(ZipArchive archive, string entryName, string content)
+        {
+            ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+            using (var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false)))
+            {
+                writer.Write(content);
             }
         }
     }

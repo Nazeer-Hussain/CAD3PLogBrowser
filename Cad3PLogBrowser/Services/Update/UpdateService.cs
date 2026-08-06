@@ -69,7 +69,10 @@
 
         /// <summary>
         /// Fetches the remote manifest with timeout and retry (ENH-7, BUG-2).
-        /// Returns null on failure — callers treat null as "no update info".
+        /// Throws the last network/parse exception once retries are exhausted, so
+        /// callers can tell "fetch failed" apart from "fetched fine, no update" —
+        /// silently returning null for both made a real network error look
+        /// identical to "you're already up to date" (G12).
         /// </summary>
         public UpdateManifest FetchManifest()
         {
@@ -112,10 +115,11 @@
             }
 
             UpdateLogger.Log(UpdateServiceStrings.LogFetchManifestRetriesExhausted);
-            return null;
+            throw lastEx;
         }
 
-        /// <summary>Asynchronously fetches the manifest. Returns null on failure.</summary>
+        /// <summary>Asynchronously fetches the manifest. Faults with the underlying
+        /// exception on failure — see <see cref="FetchManifest"/>.</summary>
         public Task<UpdateManifest> FetchManifestAsync()
         {
             return Task.Run<UpdateManifest>(() => FetchManifest());
