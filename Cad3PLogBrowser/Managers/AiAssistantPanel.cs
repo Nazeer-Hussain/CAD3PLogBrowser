@@ -336,6 +336,17 @@ namespace Cad3PLogBrowser.Managers
             return chip;
         }
 
+        /// <summary>L2: entry point for asking a question from outside this panel
+        /// (e.g. an "Ask AI about this method" command near the Call Tree) — sends it
+        /// through the exact same conversational path as typing into the chat box
+        /// directly, so it gets the same context redaction, history capping, etc.</summary>
+        public async Task AskQuestion(string question)
+        {
+            if (string.IsNullOrWhiteSpace(question)) return;
+            _chatInputBox.Text = question;
+            await SendChatMessageAsync();
+        }
+
         // ?? Analysis Execution ????????????????????????????????????????????????
         private async Task RunAnalysisAsync(AnalysisType analysisType)
         {

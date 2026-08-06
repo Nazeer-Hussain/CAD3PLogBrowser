@@ -6186,6 +6186,30 @@ namespace Cad3PLogBrowser
             return result;
         }
 
+        // L2: "Ask AI..." on the tree's own context menu — a natural-language Q&A
+        // entry point positioned at the Call Tree, not only inside the separate AI
+        // Assistant tab. Delegates to the exact same conversational path (context
+        // redaction, capped history) rather than duplicating any AI plumbing.
+        private async void treeContextAskAiMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_aiPanel == null) return;
+
+            TreeView activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            string defaultQuestion = activeTree?.SelectedNode != null
+                ? string.Format("What does {0} do, and why might it be slow?", GetMethodNameFromNode(activeTree.SelectedNode))
+                : "";
+
+            string question = Microsoft.VisualBasic.Interaction.InputBox(
+                "Ask a question about this log:", "Ask AI", defaultQuestion, -1, -1);
+            if (string.IsNullOrWhiteSpace(question)) return;
+
+            if (_aiTab != null && mainTabControl != null && !mainTabControl.TabPages.Contains(_aiTab))
+                mainTabControl.TabPages.Add(_aiTab);
+            if (_aiTab != null) mainTabControl.SelectedTab = _aiTab;
+
+            await _aiPanel.AskQuestion(question);
+        }
+
         private void filterMenuItem_Click(object sender, EventArgs e)
         {
             using (var filterDialog = new FilterForm(this))

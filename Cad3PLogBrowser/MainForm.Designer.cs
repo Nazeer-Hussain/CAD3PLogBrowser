@@ -187,6 +187,7 @@
             this.treeContextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.treeContextReloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextAskAiMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
@@ -1637,6 +1638,7 @@
             this.treeContextSeparator3,
             this.treeContextReloadMenuItem,
             this.treeContextFilterMenuItem,
+            this.treeContextAskAiMenuItem,
             this.treeContextSearchInGrokMenuItem,
             this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
@@ -1723,6 +1725,15 @@
             this.treeContextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
             this.treeContextFilterMenuItem.Text = "&Filter...";
             this.treeContextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            //
+            // treeContextAskAiMenuItem
+            //
+            // L2: a natural-language Q&A entry point positioned at (right-clicking) the
+            // Call Tree itself, rather than only inside the separate AI Assistant tab.
+            this.treeContextAskAiMenuItem.Name = "treeContextAskAiMenuItem";
+            this.treeContextAskAiMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextAskAiMenuItem.Text = "Ask A&I...";
+            this.treeContextAskAiMenuItem.Click += new System.EventHandler(this.treeContextAskAiMenuItem_Click);
             //
             // treeContextSearchInGrokMenuItem
             //
@@ -1967,6 +1978,7 @@
         private System.Windows.Forms.ToolStripSeparator treeContextSeparator3;
         private System.Windows.Forms.ToolStripMenuItem treeContextReloadMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextFilterMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextAskAiMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;
