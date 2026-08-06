@@ -3372,6 +3372,82 @@ namespace Cad3PLogBrowser
             return result == DialogResult.Yes;
         }
 
+        // A7: sentinel distinguishing "user cancelled" from "load all, concatenated"
+        // (which is represented by a real null zipEntryName).
+        private const string ZipEntryChoiceCancelled = "\0__cancelled__";
+
+        /// <summary>
+        /// A7: asks which entry to load from a multi-entry zip instead of silently
+        /// concatenating all of them. Returns the chosen entry name, null for "load all
+        /// concatenated" (an explicit user choice, not a fallback), or
+        /// <see cref="ZipEntryChoiceCancelled"/> if the user cancelled.
+        /// </summary>
+        private string PromptZipEntryChoice(string zipFilePath, List<string> entryNames)
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text            = "Choose Log Entry";
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition   = FormStartPosition.CenterParent;
+                dlg.MinimizeBox     = false;
+                dlg.MaximizeBox     = false;
+                dlg.ClientSize      = new Size(420, 320);
+
+                var lbl = new Label
+                {
+                    Text     = string.Format("\"{0}\" contains {1} files. Which one should be loaded?",
+                        Path.GetFileName(zipFilePath), entryNames.Count),
+                    AutoSize = false,
+                    Size     = new Size(396, 32),
+                    Location = new Point(12, 10)
+                };
+
+                var list = new ListBox
+                {
+                    Location = new Point(12, 46),
+                    Size     = new Size(396, 210)
+                };
+                list.Items.AddRange(entryNames.ToArray());
+                list.SelectedIndex = 0;
+
+                var btnLoadAll = new Button
+                {
+                    Text         = "Load All (Concatenated)",
+                    Size         = new Size(180, 30),
+                    Location     = new Point(12, 268),
+                    DialogResult = DialogResult.No
+                };
+
+                var btnLoadSelected = new Button
+                {
+                    Text         = "Load Selected",
+                    Size         = new Size(110, 30),
+                    Location     = new Point(200, 268),
+                    DialogResult = DialogResult.Yes
+                };
+
+                var btnCancel = new Button
+                {
+                    Text         = "Cancel",
+                    Size         = new Size(90, 30),
+                    Location     = new Point(318, 268),
+                    DialogResult = DialogResult.Cancel
+                };
+
+                dlg.Controls.AddRange(new Control[] { lbl, list, btnLoadAll, btnLoadSelected, btnCancel });
+                dlg.AcceptButton = btnLoadSelected;
+                dlg.CancelButton = btnCancel;
+
+                var result = dlg.ShowDialog(this);
+
+                if (result == DialogResult.Yes)
+                    return list.SelectedItem as string ?? entryNames[0];
+                if (result == DialogResult.No)
+                    return null; // load all, concatenated
+                return ZipEntryChoiceCancelled;
+            }
+        }
+
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
@@ -3665,6 +3741,24 @@ namespace Cad3PLogBrowser
         private async void LoadFileAsync(string filePath, int restoreTopIndex = -1)
         {
             if (_isLoading) return;
+
+            // A7: a multi-entry zip is ambiguous — ask which entry to load instead of
+            // silently concatenating all of them together.
+            string zipEntryName = null;
+            if (Path.GetExtension(filePath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                List<string> entryNames;
+                try { entryNames = Services.Core.CompressedLogService.GetZipEntryNames(filePath); }
+                catch { entryNames = new List<string>(); }
+
+                if (entryNames.Count > 1)
+                {
+                    zipEntryName = PromptZipEntryChoice(filePath, entryNames);
+                    if (zipEntryName == ZipEntryChoiceCancelled) return;
+                    // zipEntryName == null here means "load all, concatenated" (user's explicit choice)
+                }
+            }
+
             _isLoading = true;
             SetDocumentLoaded(false);
             FileStatus.Image = IconGenerator.CreateStatusLoadingIcon(IconGenerator.IconSize.Small);
@@ -3697,7 +3791,7 @@ namespace Cad3PLogBrowser
                         StatusOperationLabel.Text = string.Format("{0}  ({1}%)", message, progress);
                         _overlay.SetProgress(progress, message);
                     }));
-                });
+                }, zipEntryName);
 
                 _allLines        = lines;
                 _currentFilePath = filePath;

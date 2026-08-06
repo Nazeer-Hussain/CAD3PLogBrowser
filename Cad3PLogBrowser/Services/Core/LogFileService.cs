@@ -35,7 +35,8 @@ namespace Cad3PLogBrowser.Services
         /// </summary>
         /// <param name="filePath">Path to the log file</param>
         /// <param name="progressCallback">Optional callback for progress updates (percentage 0-100, message)</param>
-        public Task<List<string>> ReadLinesAsync(string filePath, Action<int, string> progressCallback = null)
+        public Task<List<string>> ReadLinesAsync(string filePath, Action<int, string> progressCallback = null,
+            string zipEntryName = null)
         {
             // A7: .gz/.zip logs are transparently decompressed before parsing.
             if (CompressedLogService.IsCompressed(filePath))
@@ -43,7 +44,7 @@ namespace Cad3PLogBrowser.Services
                 return Task.Run(() =>
                 {
                     progressCallback?.Invoke(50, "Decompressing...");
-                    var lines = new CompressedLogService().ReadLines(filePath);
+                    var lines = new CompressedLogService().ReadLines(filePath, zipEntryName);
                     progressCallback?.Invoke(100, $"Reading: {lines.Count:N0} lines");
                     return lines;
                 });
