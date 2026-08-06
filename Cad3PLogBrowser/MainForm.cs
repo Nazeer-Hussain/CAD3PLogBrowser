@@ -4838,9 +4838,10 @@ namespace Cad3PLogBrowser
                 try
                 {
                     WriteFilteredLog(dlg.FileName);
-                    MessageBox.Show(
-                        $"Filtered log exported to:\n{dlg.FileName}\n\n{_virtualLines.Count} lines written.",
-                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // I1: spec wants a status-bar confirmation, not a MessageBox —
+                    // this is a routine save, not something that needs to block the UI.
+                    StatusFileName.Text = string.Format("Exported {0:N0} lines to {1}",
+                        _virtualLines.Count, Path.GetFileName(dlg.FileName));
                 }
                 catch (Exception ex)
                 {
