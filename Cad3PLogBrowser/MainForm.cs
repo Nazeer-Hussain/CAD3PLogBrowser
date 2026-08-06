@@ -793,6 +793,9 @@ namespace Cad3PLogBrowser
                 timelinePanel.ExportImageRequested += (s, ev) => exportTimelineMenuItem_Click(s, ev);
             if (flameGraphPanel != null)
                 flameGraphPanel.ExportImageRequested += (s, ev) => exportFlameGraphMenuItem_Click(s, ev);
+                // F1: clicking a flame bar previously only zoomed the flame graph;
+                // now also selects the matching Call Tree node.
+                flameGraphPanel.NodeSelectedByLine += (s, line) => SelectCallTreeNodeByLine(line);
 
             // PERFORMANCE: lazily re-render the performance tab when it becomes visible,
             // so ApplyTheme() can skip it when it is not in the foreground.
