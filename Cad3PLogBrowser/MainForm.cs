@@ -8424,7 +8424,7 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    new Services.Export.ApiExportService().ExportApiListToCsv(_apiNodes, dlg.FileName);
+                    new Services.Export.ApiExportService().ExportApiListToCsv(_apiNodes, dlg.FileName, _apiPerfStatsByName);
                     MessageBox.Show(
                         string.Format("API summary exported to:\n{0}\n\n{1} APIs written.", dlg.FileName, _apiNodes.Count),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
