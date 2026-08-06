@@ -1578,12 +1578,29 @@ namespace Cad3PLogBrowser
             var sortByName  = new ToolStripMenuItem(Resources.MENU_SORT_BY_NAME);
             var sortByCount = new ToolStripMenuItem(Resources.MENU_SORT_BY_COUNT);
             var sortByLine  = new ToolStripMenuItem(Resources.MENU_SORT_BY_LINE);
+            // D6: Avg/Total time sort modes were missing entirely.
+            var sortByAvg   = new ToolStripMenuItem("Sort by Avg Time");
+            var sortByTotal = new ToolStripMenuItem("Sort by Total Time");
             sortByName.Click  += (s, ev) => ChangeApiSorting(ApiSortMode.ByName);
             sortByCount.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByCount);
             sortByLine.Click  += (s, ev) => ChangeApiSorting(ApiSortMode.ByFirstLine);
+            sortByAvg.Click   += (s, ev) => ChangeApiSorting(ApiSortMode.ByAvgTime);
+            sortByTotal.Click += (s, ev) => ChangeApiSorting(ApiSortMode.ByTotalTime);
             menu.Items.Add(sortByName);
             menu.Items.Add(sortByCount);
             menu.Items.Add(sortByLine);
+            menu.Items.Add(sortByAvg);
+            menu.Items.Add(sortByTotal);
+
+            // D6: Asc/Desc toggle applies to whichever sort mode is currently active.
+            var sortAscending = new ToolStripMenuItem("Ascending") { CheckOnClick = true };
+            sortAscending.Click += (s, ev) =>
+            {
+                _apiSortAscending = sortAscending.Checked;
+                if (_apiNodes != null && _apiNodes.Count > 0)
+                    PopulateApiTree(_apiNodes);
+            };
+            menu.Items.Add(sortAscending);
 
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Resources.MENU_COPY_API_NAME, null, (s, ev) =>
@@ -1625,10 +1642,13 @@ namespace Cad3PLogBrowser
         /// <summary>Updates the sort-checked state on the cached API tree menu.</summary>
         private void UpdateApiTreeMenuChecks(ContextMenuStrip menu)
         {
-            if (menu.Items.Count < 3) return;
+            if (menu.Items.Count < 6) return;
             ((ToolStripMenuItem)menu.Items[0]).Checked = (_apiSortMode == ApiSortMode.ByName);
             ((ToolStripMenuItem)menu.Items[1]).Checked = (_apiSortMode == ApiSortMode.ByCount);
             ((ToolStripMenuItem)menu.Items[2]).Checked = (_apiSortMode == ApiSortMode.ByFirstLine);
+            ((ToolStripMenuItem)menu.Items[3]).Checked = (_apiSortMode == ApiSortMode.ByAvgTime);
+            ((ToolStripMenuItem)menu.Items[4]).Checked = (_apiSortMode == ApiSortMode.ByTotalTime);
+            ((ToolStripMenuItem)menu.Items[5]).Checked = _apiSortAscending;
         }
 
         private void ChangeApiSorting(ApiSortMode newMode)
@@ -1817,7 +1837,13 @@ namespace Cad3PLogBrowser
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
         {
-            // D6: Sort based on current mode
+            // D6: Sort based on current mode, in each mode's own natural default
+            // direction (most calls / slowest / longest-total first for the magnitude
+            // modes; A→Z / earliest-line-first for the identity/position modes), then
+            // flip the whole thing if the Ascending toggle is checked.
+            long AvgMs(ApiCallNode n)   => _apiPerfStatsByName.TryGetValue(n.ApiName, out var s) ? s.AvgDurationMs : 0;
+            long TotalMs(ApiCallNode n) => _apiPerfStatsByName.TryGetValue(n.ApiName, out var s) ? s.TotalDurationMs : 0;
+
             var sorted = new System.Collections.Generic.List<ApiCallNode>(apiNodes);
             switch (_apiSortMode)
             {
@@ -1825,9 +1851,14 @@ namespace Cad3PLogBrowser
                     sorted.Sort((a, b) => b.LineNumbers.Count.CompareTo(a.LineNumbers.Count)); break;
                 case ApiSortMode.ByFirstLine:
                     sorted.Sort((a, b) => a.FirstLine.CompareTo(b.FirstLine)); break;
+                case ApiSortMode.ByAvgTime:
+                    sorted.Sort((a, b) => AvgMs(b).CompareTo(AvgMs(a))); break;
+                case ApiSortMode.ByTotalTime:
+                    sorted.Sort((a, b) => TotalMs(b).CompareTo(TotalMs(a))); break;
                 default:
                     sorted.Sort((a, b) => string.Compare(a.ApiName, b.ApiName, StringComparison.OrdinalIgnoreCase)); break;
             }
+            if (_apiSortAscending) sorted.Reverse();
             apiNodes = sorted;
 
             ApiTree.BeginUpdate();
@@ -1839,7 +1870,10 @@ namespace Cad3PLogBrowser
             // Root node: "API Tree"
             string sortLabel = _apiSortMode == ApiSortMode.ByCount ? Resources.TREE_SORT_LABEL_COUNT
                              : _apiSortMode == ApiSortMode.ByFirstLine ? Resources.TREE_SORT_LABEL_LINE
+                             : _apiSortMode == ApiSortMode.ByAvgTime ? " [sorted: avg time]"
+                             : _apiSortMode == ApiSortMode.ByTotalTime ? " [sorted: total time]"
                              : Resources.TREE_SORT_LABEL_NAME;
+            sortLabel += _apiSortAscending ? " ↑" : " ↓";
             var root = new TreeNode(Resources.TREE_LABEL_API_TREE + sortLabel) { Tag = -1 };
 
             foreach (var node in apiNodes)
@@ -2310,8 +2344,10 @@ namespace Cad3PLogBrowser
 
         // ── Performance tab ───────────────────────────────────────────────────
         // ── API tree sort state (D6) ─────────────────────────────────────────
-        private enum ApiSortMode { ByName, ByCount, ByFirstLine }
-        private ApiSortMode _apiSortMode = ApiSortMode.ByName;
+        private enum ApiSortMode { ByName, ByCount, ByFirstLine, ByAvgTime, ByTotalTime }
+        // D6: default to Count-descending, matching the spec (was Name-ascending).
+        private ApiSortMode _apiSortMode = ApiSortMode.ByCount;
+        private bool _apiSortAscending = false;
 
         // ── Performance tab sort state ────────────────────────────────────────
         // Column indices (with Log File column at position 1):
