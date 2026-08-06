@@ -2655,6 +2655,36 @@ namespace Cad3PLogBrowser
                     FindAndSelectApiTreeNode(apiName);
             };
 
+            // E3: the "visual bar" is a real filled rectangle, not Unicode block
+            // characters rendered as plain text.
+            _perfFrequentView.OwnerDraw = true;
+            _perfFrequentView.DrawColumnHeader += (s, e) => e.DrawDefault = true;
+            _perfFrequentView.DrawItem += (s, e) => { }; // subitems handle all drawing in Details view
+            _perfFrequentView.DrawSubItem += (s, e) =>
+            {
+                if (e.ColumnIndex == 3 && e.SubItem?.Tag is double pct)
+                {
+                    e.DrawBackground();
+                    var bounds = e.Bounds;
+                    string pctText = string.Format("{0:0.0}%", pct);
+                    var textSize = TextRenderer.MeasureText(pctText, e.Item.ListView.Font);
+
+                    int barMaxWidth = Math.Max(0, bounds.Width - textSize.Width - 12);
+                    int barWidth    = Math.Max(0, Math.Min(barMaxWidth, (int)Math.Round(barMaxWidth * pct / 100.0)));
+
+                    using (var barBrush = new SolidBrush(Color.FromArgb(70, 130, 180))) // SteelBlue, same in both themes
+                        e.Graphics.FillRectangle(barBrush, bounds.Left + 2, bounds.Top + 3, barWidth, bounds.Height - 6);
+
+                    TextRenderer.DrawText(e.Graphics, pctText, e.Item.ListView.Font,
+                        new Point(bounds.Left + barMaxWidth + 8, bounds.Top + 3),
+                        ThemeManager.ForegroundColor);
+                }
+                else
+                {
+                    e.DrawDefault = true;
+                }
+            };
+
             panel.Controls.Add(_perfFrequentView);
             panel.Controls.Add(toolbar);
             return panel;
@@ -2806,7 +2836,6 @@ namespace Cad3PLogBrowser
             if (_lastEntries != null && _lastEntries.Count > 0)
             {
                 var frequent = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, (int)_perfFrequentTopN.Value);
-                double maxCount = frequent.Count > 0 ? frequent[0].CallCount : 1;
 
                 for (int i = 0; i < frequent.Count; i++)
                 {
@@ -2815,10 +2844,10 @@ namespace Cad3PLogBrowser
                     item.SubItems.Add(f.ApiName);
                     item.SubItems.Add(f.CallCount.ToString());
 
-                    // Lightweight proportional bar (block characters) scaled to the top row's count.
-                    int barLen = maxCount > 0 ? (int)Math.Round(f.CallCount / maxCount * 24) : 0;
-                    string bar = new string('█', Math.Max(1, barLen));
-                    item.SubItems.Add(string.Format("{0,5:0.0}%  {1}", f.PercentOfTotal, bar));
+                    // E3: the bar SubItem's Text is just a screen-reader-friendly fallback —
+                    // DrawSubItem paints the real bar using the Tag'd percentage.
+                    var barSubItem = item.SubItems.Add(string.Format("{0:0.0}%", f.PercentOfTotal));
+                    barSubItem.Tag = f.PercentOfTotal;
 
                     _perfFrequentView.Items.Add(item);
                 }
