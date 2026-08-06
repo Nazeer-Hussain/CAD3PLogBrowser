@@ -183,6 +183,9 @@
             this.treeContextSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.treeContextSaveBranchMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextExportBranchCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextReloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
@@ -1619,6 +1622,9 @@
             this.treeContextSeparator2,
             this.treeContextSaveBranchMenuItem,
             this.treeContextExportBranchCsvMenuItem,
+            this.treeContextSeparator3,
+            this.treeContextReloadMenuItem,
+            this.treeContextFilterMenuItem,
             this.treeContextSearchInGrokMenuItem,
             this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
@@ -1686,8 +1692,28 @@
             this.treeContextExportBranchCsvMenuItem.Text = "E&xport Branch to CSV...";
             this.treeContextExportBranchCsvMenuItem.Click += new System.EventHandler(this.treeContextExportBranchCsvMenuItem_Click);
             // 
+            // treeContextSeparator3
+            //
+            this.treeContextSeparator3.Name = "treeContextSeparator3";
+            //
+            // treeContextReloadMenuItem
+            //
+            // C6: previously only reachable from the separate log panel's own menu.
+            this.treeContextReloadMenuItem.Name = "treeContextReloadMenuItem";
+            this.treeContextReloadMenuItem.ShortcutKeyDisplayString = "F5";
+            this.treeContextReloadMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextReloadMenuItem.Text = "&Reload from Disk";
+            this.treeContextReloadMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
+            //
+            // treeContextFilterMenuItem
+            //
+            this.treeContextFilterMenuItem.Name = "treeContextFilterMenuItem";
+            this.treeContextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextFilterMenuItem.Text = "&Filter...";
+            this.treeContextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            //
             // treeContextSearchInGrokMenuItem
-            // 
+            //
             this.treeContextSearchInGrokMenuItem.Name = "treeContextSearchInGrokMenuItem";
             this.treeContextSearchInGrokMenuItem.Size = new System.Drawing.Size(280, 22);
             this.treeContextSearchInGrokMenuItem.Text = "Search in &Grok";
@@ -1925,6 +1951,9 @@
         private System.Windows.Forms.ToolStripSeparator treeContextSeparator2;
         private System.Windows.Forms.ToolStripMenuItem treeContextSaveBranchMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextExportBranchCsvMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem treeContextReloadMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextFilterMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;
