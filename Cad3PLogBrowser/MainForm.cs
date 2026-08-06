@@ -6806,6 +6806,27 @@ namespace Cad3PLogBrowser
                 logContextMenu.Show(logListView, e.Location);
         }
 
+        // B8: label the bookmark item Add/Remove based on the current selection,
+        // matching the same "operates on the current selection" convention every other
+        // item on this menu (Inspect Line, Open in Editor, etc.) already follows.
+        private void logContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            bool hasSelection = logListView.SelectedIndices.Count > 0
+                && logListView.SelectedIndices[0] < _virtualLines.Count;
+
+            contextToggleBookmarkMenuItem.Enabled = hasSelection;
+            if (hasSelection)
+            {
+                int lineNumber = _virtualLines[logListView.SelectedIndices[0]].LineNumber;
+                contextToggleBookmarkMenuItem.Text = _bookmarkService.IsBookmarked(lineNumber)
+                    ? "&Remove Bookmark"
+                    : "&Add Bookmark";
+            }
+        }
+
+        private void contextToggleBookmarkMenuItem_Click(object sender, EventArgs e) =>
+            ToggleBookmarkOnCurrentLine();
+
         private void CallTree_MouseClick(object sender, MouseEventArgs e) { }
 
         private void CallTree_MouseUp(object sender, MouseEventArgs e)
@@ -8117,6 +8138,8 @@ namespace Cad3PLogBrowser
         /// <summary>
         /// Shows a list of all bookmarks.
         /// </summary>
+        // B8: a real jump list (double-click or Go To navigates straight to the line)
+        // instead of a static read-only MessageBox dump.
         private void ShowBookmarkList()
         {
             if (_bookmarkService.Count == 0)
@@ -8127,31 +8150,88 @@ namespace Cad3PLogBrowser
             }
 
             var bookmarks = _bookmarkService.GetAllBookmarksSorted();
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine(string.Format(Resources.BOOKMARKS_LIST_HEADER, bookmarks.Count));
-            sb.AppendLine();
 
-            foreach (var lineNum in bookmarks)
+            using (var dlg = new Form())
             {
-                // BUG-17: TryGetValue returns false (and leaves idx=0) when the bookmark
-                // line is not in the current filtered view.  Always check the return value.
-                if (_lineIndexMap.TryGetValue(lineNum, out int idx)
-                    && idx >= 0 && idx < _virtualLines.Count
-                    && _virtualLines[idx].LineNumber == lineNum)
-                {
-                    string text = _virtualLines[idx].Text;
-                    if (text.Length > 80)
-                        text = text.Substring(0, 77) + "...";
-                    sb.AppendLine(string.Format(Resources.BOOKMARK_LINE_FORMAT, lineNum, text));
-                }
-                else
-                {
-                    sb.AppendLine(string.Format(Resources.BOOKMARK_LINE_SIMPLE, lineNum));
-                }
-            }
+                dlg.Text            = Resources.DIALOG_TITLE_BOOKMARKS;
+                dlg.FormBorderStyle = FormBorderStyle.Sizable;
+                dlg.StartPosition   = FormStartPosition.CenterParent;
+                dlg.MinimizeBox     = false;
+                dlg.MaximizeBox     = false;
+                dlg.ClientSize      = new Size(560, 360);
+                dlg.MinimumSize     = new Size(400, 250);
 
-            MessageBox.Show(sb.ToString(), Resources.DIALOG_TITLE_BOOKMARKS, 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var list = new ListBox
+                {
+                    Dock = DockStyle.Fill,
+                    Font = new Font("Consolas", 9f)
+                };
+
+                foreach (var lineNum in bookmarks)
+                {
+                    // BUG-17: TryGetValue returns false (and leaves idx=0) when the bookmark
+                    // line is not in the current filtered view. Always check the return value.
+                    string display;
+                    if (_lineIndexMap.TryGetValue(lineNum, out int idx)
+                        && idx >= 0 && idx < _virtualLines.Count
+                        && _virtualLines[idx].LineNumber == lineNum)
+                    {
+                        string text = _virtualLines[idx].Text;
+                        if (text.Length > 80) text = text.Substring(0, 77) + "...";
+                        display = string.Format(Resources.BOOKMARK_LINE_FORMAT, lineNum, text);
+                    }
+                    else
+                    {
+                        display = string.Format(Resources.BOOKMARK_LINE_SIMPLE, lineNum);
+                    }
+                    list.Items.Add(new BookmarkListItem(lineNum, display));
+                }
+
+                var buttonPanel = new Panel { Dock = DockStyle.Bottom, Height = 44 };
+
+                var btnGoTo = new Button
+                {
+                    Text     = "&Go To",
+                    Size     = new Size(100, 30),
+                    Location = new Point(dlg.ClientSize.Width - 220, 7),
+                    Anchor   = AnchorStyles.Top | AnchorStyles.Right
+                };
+                var btnClose = new Button
+                {
+                    Text         = "Close",
+                    Size         = new Size(100, 30),
+                    Location     = new Point(dlg.ClientSize.Width - 110, 7),
+                    Anchor       = AnchorStyles.Top | AnchorStyles.Right,
+                    DialogResult = DialogResult.Cancel
+                };
+
+                Action jumpToSelected = () =>
+                {
+                    if (list.SelectedItem is BookmarkListItem item)
+                    {
+                        JumpToLine(item.LineNumber);
+                        dlg.Close();
+                    }
+                };
+                btnGoTo.Click     += (s, e) => jumpToSelected();
+                list.DoubleClick  += (s, e) => jumpToSelected();
+
+                buttonPanel.Controls.AddRange(new Control[] { btnGoTo, btnClose });
+                dlg.Controls.Add(buttonPanel);
+                dlg.Controls.Add(list);
+                dlg.CancelButton = btnClose;
+
+                ThemeManager.ApplyTheme(dlg);
+                dlg.ShowDialog(this);
+            }
+        }
+
+        private class BookmarkListItem
+        {
+            public int LineNumber { get; }
+            private readonly string _display;
+            public BookmarkListItem(int lineNumber, string display) { LineNumber = lineNumber; _display = display; }
+            public override string ToString() => _display;
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -162,6 +162,7 @@
             this.contextExpandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextToggleBookmarkMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.contextInspectLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -1425,6 +1426,7 @@
             this.contextExpandAllMenuItem,
             this.contextCollapseAllMenuItem,
             this.contextJumpToMatchingMenuItem,
+            this.contextToggleBookmarkMenuItem,
             this.contextSeparator3,
             this.contextInspectLineMenuItem,
             this.contextOpenInEditorMenuItem,
@@ -1432,7 +1434,8 @@
             this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
             this.logContextMenu.Size = new System.Drawing.Size(280, 220);
-            // 
+            this.logContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.logContextMenu_Opening);
+            //
             // contextCopyMenuItem
             // 
             this.contextCopyMenuItem.Image = null;
@@ -1500,7 +1503,17 @@
             this.contextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
             this.contextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
             this.contextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
-            // 
+            //
+            // contextToggleBookmarkMenuItem
+            //
+            // B8: text set dynamically in logContextMenu_Opening (Add/Remove) based on
+            // whether the current line is already bookmarked.
+            this.contextToggleBookmarkMenuItem.Name = "contextToggleBookmarkMenuItem";
+            this.contextToggleBookmarkMenuItem.ShortcutKeyDisplayString = "Ctrl+B";
+            this.contextToggleBookmarkMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextToggleBookmarkMenuItem.Text = "&Toggle Bookmark";
+            this.contextToggleBookmarkMenuItem.Click += new System.EventHandler(this.contextToggleBookmarkMenuItem_Click);
+            //
             // contextSeparator3
             // 
             this.contextSeparator3.Name = "contextSeparator3";
@@ -1832,6 +1845,7 @@
         private System.Windows.Forms.ToolStripMenuItem contextExpandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextCollapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextJumpToMatchingMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextToggleBookmarkMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
         private System.Windows.Forms.ToolStripSeparator contextSeparator4;
         private System.Windows.Forms.ToolStripMenuItem  contextInspectLineMenuItem;
