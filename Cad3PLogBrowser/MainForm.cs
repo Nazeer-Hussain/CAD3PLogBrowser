@@ -280,6 +280,14 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // H2: master toggle collapsing the whole right-side tab panel via the
+        // SplitContainer's own Panel2Collapsed, giving the tree full width.
+        private void hideTabsMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            mainSplitContainer.Panel2Collapsed = hideTabsMenuItem.Checked;
+            hideTabsMenuItem.Text = hideTabsMenuItem.Checked ? "&Show Tabs" : "&Hide Tabs";
+        }
+
         private ToolStripMenuItem _recentFilesMenuItem;
         private ToolStripSeparator _recentFilesSeparator;
         private ToolStripButton _themeToggleButton;
@@ -2851,6 +2859,12 @@ namespace Cad3PLogBrowser
         {
             bool showCall = CallTreeButton.Checked;
             bool showApi  = ApiTreeButton.Checked;
+
+            // H2: remember whichever tree the user actually last had active, the same
+            // way SplitterDistance auto-saves on every drag — DefaultTreeView previously
+            // only reflected a one-time Settings-dialog choice, never the live selection.
+            if (_appSettings != null && _isFormLoaded)
+                _appSettings.DefaultTreeView = showApi ? "Api" : "Call";
 
             // Make trees mutually exclusive - only one can be visible at a time
             if (showCall && showApi)

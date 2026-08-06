@@ -78,6 +78,8 @@
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showApiTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewSeparatorHideTabs = new System.Windows.Forms.ToolStripSeparator();
+            this.hideTabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -580,6 +582,8 @@
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showCallTreeMenuItem,
             this.showApiTreeMenuItem,
+            this.viewSeparatorHideTabs,
+            this.hideTabsMenuItem,
             this.tabsMenuItem,
             this.viewSeparator1,
             this.selectFontMenuItem,
@@ -608,9 +612,24 @@
             this.showApiTreeMenuItem.Size = new System.Drawing.Size(178, 22);
             this.showApiTreeMenuItem.Text = UI.AppStrings.MenuViewShowApiTree;
             this.showApiTreeMenuItem.CheckedChanged += new System.EventHandler(this.showApiTreeMenuItem_CheckedChanged);
-            // 
+            //
+            // viewSeparatorHideTabs
+            //
+            this.viewSeparatorHideTabs.Name = "viewSeparatorHideTabs";
+            //
+            // hideTabsMenuItem
+            //
+            // H2: single master toggle that collapses the whole right-side tab panel
+            // (expanding the tree to full width), distinct from the per-tab checkboxes
+            // in the "Tabs" submenu below it.
+            this.hideTabsMenuItem.CheckOnClick = true;
+            this.hideTabsMenuItem.Name = "hideTabsMenuItem";
+            this.hideTabsMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.hideTabsMenuItem.Text = "&Hide Tabs";
+            this.hideTabsMenuItem.CheckedChanged += new System.EventHandler(this.hideTabsMenuItem_CheckedChanged);
+            //
             // tabsMenuItem
-            // 
+            //
             this.tabsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showLogTabMenuItem,
             this.showPerformanceTabMenuItem,
@@ -1792,6 +1811,8 @@
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showApiTreeMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewSeparatorHideTabs;
+        private System.Windows.Forms.ToolStripMenuItem hideTabsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
