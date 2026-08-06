@@ -6380,17 +6380,112 @@ namespace Cad3PLogBrowser
             }
         }
 
+        // G10: a real crash/error report dialog (recipient, steps-to-reproduce, .err
+        // file) — previously this just opened the GitHub issues page in a browser.
         private void reportErrorsMenuItem_Click(object sender, EventArgs e)
         {
+            string errFile = null;
             try
             {
-                // Open GitHub issues page
-                System.Diagnostics.Process.Start("https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues/new");
+                errFile = Directory.GetFiles(Path.GetTempPath(), "Cad3PLogBrowser_*.err")
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault();
             }
-            catch (Exception ex)
+            catch { /* best-effort — dialog still works without a crash log to attach */ }
+
+            using (var dlg = new Form())
             {
-                MessageBox.Show(string.Format(Resources.ERR_OPEN_ISSUES_FAILED, ex.Message), 
-                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                dlg.Text            = "Report Errors";
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition   = FormStartPosition.CenterParent;
+                dlg.MinimizeBox     = false;
+                dlg.MaximizeBox     = false;
+                dlg.ClientSize      = new Size(480, 340);
+
+                var lblRecipient = new Label
+                {
+                    Text = "Send error/crash report to:", Location = new Point(12, 12), AutoSize = true
+                };
+                var txtRecipient = new TextBox
+                {
+                    Text = _appSettings?.ErrorReportEmail ?? "",
+                    Location = new Point(12, 32), Size = new Size(456, 22)
+                };
+
+                var lblSteps = new Label
+                {
+                    Text = "Steps to Reproduce / What you were doing:",
+                    Location = new Point(12, 62), AutoSize = true
+                };
+                var txtSteps = new TextBox
+                {
+                    Location = new Point(12, 82), Size = new Size(456, 150),
+                    Multiline = true, ScrollBars = ScrollBars.Vertical, AcceptsReturn = true
+                };
+
+                var lblAttachment = new Label
+                {
+                    Text = errFile != null
+                        ? string.Format("File \"{0}\" will be opened in Explorer to attach\n(mailto: links can't attach files automatically).", errFile)
+                        : "No crash log (.err file) found for this session — the report will be text-only.",
+                    Location = new Point(12, 240), Size = new Size(456, 40)
+                };
+
+                var btnSend = new Button
+                {
+                    Text = "Send Email", Location = new Point(280, 290), Size = new Size(90, 30),
+                    DialogResult = DialogResult.OK
+                };
+                var btnCancel = new Button
+                {
+                    Text = "Cancel", Location = new Point(378, 290), Size = new Size(90, 30),
+                    DialogResult = DialogResult.Cancel
+                };
+
+                dlg.Controls.AddRange(new Control[]
+                {
+                    lblRecipient, txtRecipient, lblSteps, txtSteps, lblAttachment, btnSend, btnCancel
+                });
+                dlg.AcceptButton = btnSend;
+                dlg.CancelButton = btnCancel;
+                ThemeManager.ApplyTheme(dlg);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                string recipient = txtRecipient.Text.Trim();
+                if (string.IsNullOrEmpty(recipient))
+                {
+                    MessageBox.Show("Please enter at least one recipient email address.",
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (_appSettings != null)
+                    _appSettings.ErrorReportEmail = recipient;
+
+                try
+                {
+                    string subject = Uri.EscapeDataString("CAD 3P Log Browser — Error Report");
+                    string body = Uri.EscapeDataString(
+                        string.Format("Steps to Reproduce / What I was doing:\n{0}\n\n{1}",
+                            txtSteps.Text,
+                            errFile != null
+                                ? string.Format("(Please attach the crash log at: {0})", errFile)
+                                : "(No crash log was available to attach.)"));
+
+                    // mailto: recipients use ';' or ',' — normalize to ',' which is the
+                    // more broadly-supported separator across mail clients.
+                    string to = recipient.Replace(';', ',');
+                    System.Diagnostics.Process.Start(string.Format("mailto:{0}?subject={1}&body={2}", to, subject, body));
+
+                    if (errFile != null)
+                        System.Diagnostics.Process.Start("explorer.exe", string.Format("/select,\"{0}\"", errFile));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Could not open your email client:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
 

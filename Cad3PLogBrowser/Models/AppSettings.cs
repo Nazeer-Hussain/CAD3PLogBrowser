@@ -20,6 +20,9 @@ namespace Cad3PLogBrowser.Services
         // Services.Core.RecentFilesService), not here — only the preference below does.
         public int          MaxRecentFiles   { get; set; } = 10;
         public string       InitialDirectory { get; set; } = "";
+        // G10: pre-populates the Report Errors dialog's recipient field; remembered
+        // across sessions once the user fills it in once.
+        public string       ErrorReportEmail { get; set; } = "";
 
         // ── UI preferences ────────────────────────────────────────────────────
         public string  HighlightColorName   { get; set; } = "Yellow";
