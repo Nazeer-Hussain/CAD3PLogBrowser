@@ -3345,6 +3345,33 @@ namespace Cad3PLogBrowser
                 ? DragDropEffects.Copy : DragDropEffects.None;
         }
 
+        // A1: recognized log-file types (matches openLogFileDialog's own filter list).
+        // A dropped file outside this set almost always means the wrong file was
+        // dragged by mistake — catching it here avoids a confusing raw-exception
+        // message surfacing later out of the parser.
+        private static bool IsLikelyLogFile(string path)
+        {
+            string name = Path.GetFileName(path) ?? string.Empty;
+            string ext = Path.GetExtension(name).ToLowerInvariant();
+            return ext == ".log" || ext == ".gz" || ext == ".zip"
+                || name.ToLowerInvariant().Contains(".log.");
+        }
+
+        private bool ConfirmUnrecognizedFileType(string path)
+        {
+            if (IsLikelyLogFile(path)) return true;
+
+            var result = MessageBox.Show(
+                string.Format(
+                    "\"{0}\" doesn't look like a log file.\n\nRecognized types: .log, .log.*, .zip, .gz\n\nTry to open it anyway?",
+                    Path.GetFileName(path)),
+                "Unrecognized File Type",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            return result == DialogResult.Yes;
+        }
+
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
@@ -3357,6 +3384,7 @@ namespace Cad3PLogBrowser
             }
 
             string droppedFile = files[0];
+            if (!ConfirmUnrecognizedFileType(droppedFile)) return;
 
             // If no file is currently open, just open the dropped file directly
             if (string.IsNullOrEmpty(_currentFilePath) || _allLines.Count == 0)
@@ -3435,6 +3463,21 @@ namespace Cad3PLogBrowser
         /// </summary>
         private async Task HandleMultiFileDropAsync(string[] files)
         {
+            var unrecognized = files.Where(f => !IsLikelyLogFile(f)).ToList();
+            if (unrecognized.Count > 0)
+            {
+                var result = MessageBox.Show(
+                    string.Format(
+                        "{0} of the {1} dropped files don't look like log files:\n\n{2}\n\nRecognized types: .log, .log.*, .zip, .gz\n\nTry to open them anyway?",
+                        unrecognized.Count, files.Length,
+                        string.Join("\n", unrecognized.Select(Path.GetFileName))),
+                    "Unrecognized File Type",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (result != DialogResult.Yes) return;
+            }
+
             bool canCompare = files.Length == 2;
             string firstName = Path.GetFileName(files[0]);
 
