@@ -208,12 +208,12 @@ namespace Cad3PLogBrowser
             // 
             // dtpFromTime
             // 
-            this.dtpFromTime.CustomFormat = "HH:mm:ss";
+            this.dtpFromTime.CustomFormat = "HH:mm:ss.fff";
             this.dtpFromTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dtpFromTime.Location = new System.Drawing.Point(65, 54);
             this.dtpFromTime.Name = "dtpFromTime";
             this.dtpFromTime.ShowUpDown = true;
-            this.dtpFromTime.Size = new System.Drawing.Size(170, 22);
+            this.dtpFromTime.Size = new System.Drawing.Size(190, 22);
             this.dtpFromTime.TabIndex = 2;
             // 
             // lblToTime
@@ -227,12 +227,12 @@ namespace Cad3PLogBrowser
             // 
             // dtpToTime
             // 
-            this.dtpToTime.CustomFormat = "HH:mm:ss";
+            this.dtpToTime.CustomFormat = "HH:mm:ss.fff";
             this.dtpToTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dtpToTime.Location = new System.Drawing.Point(65, 88);
             this.dtpToTime.Name = "dtpToTime";
             this.dtpToTime.ShowUpDown = true;
-            this.dtpToTime.Size = new System.Drawing.Size(170, 22);
+            this.dtpToTime.Size = new System.Drawing.Size(190, 22);
             this.dtpToTime.TabIndex = 4;
             // 
             // grpThreadLevel
