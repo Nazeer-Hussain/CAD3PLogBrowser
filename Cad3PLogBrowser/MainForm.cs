@@ -7624,8 +7624,12 @@ namespace Cad3PLogBrowser
 
             using (var dlg = new SaveFileDialog())
             {
-                dlg.Filter   = "HTML report (*.html)|*.html";
-                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_analytics_report.html";
+                // I4: spec wants a real PDF/Excel report, not only HTML. A hand-rolled
+                // PDF writer is out of proportion for this project's zero-NuGet-deps
+                // constraint, but .xlsx is just a ZIP of small XML parts (see
+                // XlsxExporter), so Excel is offered as a genuine alternative format.
+                dlg.Filter   = "Excel Workbook (*.xlsx)|*.xlsx|HTML report (*.html)|*.html";
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_analytics_report.xlsx";
                 dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
                     ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                     : GetSafeDirectory(_currentFilePath);
@@ -7634,8 +7638,13 @@ namespace Cad3PLogBrowser
 
                 try
                 {
-                    string html = BuildAnalyticsReportHtml();
-                    File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    if (Path.GetExtension(dlg.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                        BuildAnalyticsReportXlsx(dlg.FileName);
+                    else
+                    {
+                        string html = BuildAnalyticsReportHtml();
+                        File.WriteAllText(dlg.FileName, html, System.Text.Encoding.UTF8);
+                    }
                     System.Diagnostics.Process.Start(dlg.FileName);
                     StatusFileName.Text = string.Format("Analytics report exported to {0}", Path.GetFileName(dlg.FileName));
                 }
@@ -7645,6 +7654,73 @@ namespace Cad3PLogBrowser
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        /// <summary>I4: writes the same data as <see cref="BuildAnalyticsReportHtml"/> to a
+        /// real 4-sheet .xlsx workbook (Aggregate Stats, Top Slowest, Most Frequent, Call Depth).</summary>
+        private void BuildAnalyticsReportXlsx(string filePath)
+        {
+            var stats    = _lastAggregateStats ?? new Models.AggregateStats();
+            var slowest  = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, 10);
+            var frequent = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, 10);
+            var depth    = _lastCallTree != null ? _perfAnalyzer.AnalyzeCallDepth(_lastCallTree) : null;
+
+            var sheets = new List<Services.Export.XlsxExporter.XlsxSheet>();
+
+            sheets.Add(new Services.Export.XlsxExporter.XlsxSheet
+            {
+                SheetName = "Aggregate Stats",
+                Headers = new[] { "Metric", "Value" },
+                Rows = new List<string[]>
+                {
+                    new[] { "Source File", _currentFilePath ?? "" },
+                    new[] { "Generated", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
+                    new[] { "Total Lines", stats.TotalLines.ToString() },
+                    new[] { "Errors", stats.ErrorCount.ToString() },
+                    new[] { "Warnings", stats.WarningCount.ToString() },
+                    new[] { "API Calls", stats.TotalApiCalls.ToString() },
+                    new[] { "Unique APIs", stats.UniqueApiCount.ToString() },
+                    new[] { "Max Call Depth", stats.MaxCallDepth.ToString() },
+                }
+            });
+
+            sheets.Add(new Services.Export.XlsxExporter.XlsxSheet
+            {
+                SheetName = "Top Slowest Calls",
+                Headers = new[] { "Method", "Duration (ms)", "Enter Line", "Exit Line" },
+                Rows = slowest.Select(s => new[]
+                {
+                    s.ApiName, s.DurationMs.ToString(), s.EnterLineNumber.ToString(), s.ExitLineNumber.ToString()
+                }).ToList()
+            });
+
+            sheets.Add(new Services.Export.XlsxExporter.XlsxSheet
+            {
+                SheetName = "Most Frequent",
+                Headers = new[] { "Method", "Calls", "% of Total" },
+                Rows = frequent.Select(f => new[]
+                {
+                    f.ApiName, f.CallCount.ToString(), f.PercentOfTotal.ToString("F1")
+                }).ToList()
+            });
+
+            if (depth != null)
+            {
+                sheets.Add(new Services.Export.XlsxExporter.XlsxSheet
+                {
+                    SheetName = "Call Depth",
+                    Headers = new[] { "Max Depth", "Avg Depth", "Deepest Chain" },
+                    Rows = (depth.DeepestChains ?? new List<Services.Analysis.DeepestChainInfo>())
+                        .Select((c, i) => new[]
+                        {
+                            i == 0 ? depth.MaxDepth.ToString() : "",
+                            i == 0 ? depth.AvgDepth.ToString("F1") : "",
+                            c.Chain
+                        }).ToList()
+                });
+            }
+
+            new Services.Export.XlsxExporter().ExportMultiSheet(filePath, sheets);
         }
 
         private string BuildAnalyticsReportHtml()
