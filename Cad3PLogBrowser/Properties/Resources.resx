@@ -515,7 +515,7 @@
   </data>
   <!-- Tooltip Format -->
   <data name="TREE_NODE_TOOLTIP_FORMAT" xml:space="preserve">
-    <value>API: {0}&#10;Source: {1}&#10;ENTER line: {2}&#10;EXIT line: {3}&#10;Duration: {4} ms&#10;Depth: {5}</value>
+    <value>API: {0}&#10;Lines {2}&#8594;{3}  ({4} ms, depth {5})&#10;Source: {1}</value>
   </data>
   <data name="TREE_NODE_EXIT_NOT_FOUND" xml:space="preserve">
     <value>? (no EXIT found)</value>
