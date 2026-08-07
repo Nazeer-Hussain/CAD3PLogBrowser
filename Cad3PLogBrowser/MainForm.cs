@@ -5186,7 +5186,10 @@ namespace Cad3PLogBrowser
             }
         }
 
-        private void ClearHighlighting()
+        // B1: internal (not private) so FindForm can clear search highlights when
+        // the user closes the Find dialog, rather than leaving matches marked
+        // indefinitely after the dialog that produced them is gone.
+        internal void ClearHighlighting()
         {
             if (_virtualLines == null || _virtualLines.Count == 0)
             {

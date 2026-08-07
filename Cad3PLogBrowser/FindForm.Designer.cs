@@ -126,6 +126,7 @@ namespace Cad3PLogBrowser
             this.Text = UI.AppStrings.FindFormTitle;
             this.TopMost = true;
             this.Load += new System.EventHandler(this.FindForm_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FindForm_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
         }
