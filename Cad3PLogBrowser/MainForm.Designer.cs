@@ -72,6 +72,7 @@
             this.showBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyWithHeadersMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyAllVisibleMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.jumpToLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -397,6 +398,7 @@
             this.editMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyMenuItem,
             this.copyWithHeadersMenuItem,
+            this.copyAllVisibleMenuItem,
             this.editSeparatorAfterCopy,
             this.findMenuItem,
             this.findNextMenuItem,
@@ -561,6 +563,13 @@
             this.copyWithHeadersMenuItem.Size = new System.Drawing.Size(258, 22);
             this.copyWithHeadersMenuItem.Text = UI.AppStrings.MenuEditCopyWithHeaders;
             this.copyWithHeadersMenuItem.Click += new System.EventHandler(this.copyWithHeadersMenuItem_Click);
+            //
+            // copyAllVisibleMenuItem
+            //
+            this.copyAllVisibleMenuItem.Name = "copyAllVisibleMenuItem";
+            this.copyAllVisibleMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.copyAllVisibleMenuItem.Text = "Copy All &Visible";
+            this.copyAllVisibleMenuItem.Click += new System.EventHandler(this.copyAllVisibleMenuItem_Click);
             // 
             // clearFilterMenuItem
             // 
@@ -1973,6 +1982,7 @@
         private System.Windows.Forms.ToolStripMenuItem showBookmarksMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearBookmarksMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyWithHeadersMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyAllVisibleMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearFilterMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
         private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;

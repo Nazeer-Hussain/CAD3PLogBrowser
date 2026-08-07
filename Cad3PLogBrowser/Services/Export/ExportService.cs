@@ -28,7 +28,6 @@ namespace Cad3PLogBrowser.Services.Export
     {
         private readonly CsvExporter _csvExporter;
         private readonly ImageExporter _imageExporter;
-        private readonly XlsxExporter _xlsxExporter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExportService"/> class.
@@ -38,7 +37,6 @@ namespace Cad3PLogBrowser.Services.Export
         {
             _csvExporter = new CsvExporter();
             _imageExporter = new ImageExporter();
-            _xlsxExporter = new XlsxExporter();
         }
 
         /// <summary>
@@ -214,17 +212,6 @@ namespace Cad3PLogBrowser.Services.Export
 
             File.WriteAllLines(filePath, branchLines);
             return branchLines.Count;
-        }
-
-        /// <summary>
-        /// G7: exports a set of already-extracted branch log lines to an .xlsx workbook,
-        /// one raw line per row, so they can be filtered/sorted in Excel.
-        /// </summary>
-        /// <param name="branchLines">Log lines to export (one row per line).</param>
-        /// <param name="filePath">Destination .xlsx file path.</param>
-        public void ExportBranchToXlsx(IList<string> branchLines, string filePath)
-        {
-            _xlsxExporter.ExportLines(branchLines, filePath, "Log Line");
         }
 
         /// <summary>

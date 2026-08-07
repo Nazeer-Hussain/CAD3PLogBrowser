@@ -82,7 +82,10 @@ namespace Cad3PLogBrowser.Services.Core
             return a.ts.CompareTo(b.ts);
         }
 
-        private static long ExtractTimestamp(string line)
+        /// <summary>Extracts a raw log line's epoch-ms timestamp (from the trailing
+        /// ENTER/EXIT tab-field, or a leading ISO timestamp), 0 if neither is found.
+        /// Shared with G7's branch-to-XLSX export for its Timestamp column.</summary>
+        public static long ExtractTimestamp(string line)
         {
             // Fast path: epoch ms is the last tab-field on ENTER/EXIT lines
             int lastTab = line.LastIndexOf('\t');

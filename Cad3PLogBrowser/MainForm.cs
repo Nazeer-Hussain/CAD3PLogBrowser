@@ -4540,7 +4540,10 @@ namespace Cad3PLogBrowser
         /// Resolves the ENTER→EXIT block for the currently selected tree node, shared by
         /// the "Save As..." (.log) and "Save Selected as XLS..." (.xlsx) menu commands.
         /// </summary>
-        private bool TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName)
+        private bool TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName) =>
+            TryGetSelectedBranchForSave(out lines, out methodName, out baseName, out _);
+
+        private bool TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName, out int enterLine)
         {
             lines = null;
             baseName = null;
@@ -4551,12 +4554,13 @@ namespace Cad3PLogBrowser
                 MessageBox.Show("Please select a node in the tree first.",
                     Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 methodName = null;
+                enterLine = -1;
                 return false;
             }
 
             TreeNode node    = activeTree.SelectedNode;
             methodName       = GetMethodNameFromNode(node);
-            int enterLine    = (node.Tag is int t && t > 0) ? t : -1;
+            enterLine        = (node.Tag is int t && t > 0) ? t : -1;
             lines            = ExtractBranchLines(enterLine, methodName);
 
             if (lines.Count == 0)
@@ -4570,6 +4574,21 @@ namespace Cad3PLogBrowser
                 ? methodName.Replace("::", "_")
                 : GetSafeBaseName(_currentFilePath);
             return true;
+        }
+
+        /// <summary>G7: PTC_LOG_DIR (same environment variable A3 checks for the Open
+        /// dialog) takes priority over the source file's own folder as the default
+        /// Save-dialog location, since users often want snippets saved to a shared
+        /// log directory rather than wherever the original file happens to live.</summary>
+        private string GetDefaultSaveDirectory()
+        {
+            string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+            if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
+                return ptcLogDir;
+
+            return string.IsNullOrEmpty(_currentFilePath)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                : GetSafeDirectory(_currentFilePath);
         }
 
         private void saveAsMenuItem_Click(object sender, EventArgs e)
@@ -4586,9 +4605,7 @@ namespace Cad3PLogBrowser
                 dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH ?? "Save Selected Branch";
                 dlg.Filter           = Resources.FILE_FILTER_LOG_SAVE;
                 dlg.FileName         = defaultName;
-                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
-                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : GetSafeDirectory(_currentFilePath);
+                dlg.InitialDirectory = GetDefaultSaveDirectory();
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -4622,10 +4639,10 @@ namespace Cad3PLogBrowser
         }
 
         // G7: "Save to XLS..." — same ENTER/EXIT branch extraction as Save As (.log),
-        // written as a single-column .xlsx workbook so it can be filtered/sorted in Excel.
+        // written as a Line#/Timestamp/Text workbook so it can be filtered/sorted in Excel.
         private void saveSelectedXlsMenuItem_Click(object sender, EventArgs e)
         {
-            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName))
+            if (!TryGetSelectedBranchForSave(out List<string> lines, out string methodName, out string baseName, out int enterLine))
                 return;
 
             string defaultName = baseName + (_appSettings.SaveSnippetSuffix ?? "_snippet") + ".xlsx";
@@ -4635,9 +4652,7 @@ namespace Cad3PLogBrowser
                 dlg.Title            = Resources.DIALOG_TITLE_SAVE_BRANCH_XLS ?? "Save Selected Branch as XLS";
                 dlg.Filter           = Resources.FILE_FILTER_XLS_SAVE;
                 dlg.FileName         = defaultName;
-                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
-                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                    : GetSafeDirectory(_currentFilePath);
+                dlg.InitialDirectory = GetDefaultSaveDirectory();
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -4648,7 +4663,25 @@ namespace Cad3PLogBrowser
                     FileLoadProgress.Value   = 0;
                     StatusFileName.Text      = string.Format("Saving {0} lines...", lines.Count);
 
-                    new Services.Export.ExportService().ExportBranchToXlsx(lines, dlg.FileName);
+                    var rows = new List<string[]>(lines.Count);
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        string lineNumberText = enterLine > 0 ? (enterLine + i).ToString() : "";
+                        long epochMs = Services.Core.MergeLogService.ExtractTimestamp(lines[i]);
+                        string timestampText = epochMs > 0
+                            ? DateTimeOffset.FromUnixTimeMilliseconds(epochMs).LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")
+                            : "";
+                        rows.Add(new[] { lineNumberText, timestampText, lines[i] });
+                    }
+
+                    var sheet = new Services.Export.XlsxExporter.XlsxSheet
+                    {
+                        SheetName = "Log Snippet",
+                        Headers = new[] { "Line #", "Timestamp", "Log Text" },
+                        Rows = rows
+                    };
+                    new Services.Export.XlsxExporter().ExportMultiSheet(dlg.FileName,
+                        new List<Services.Export.XlsxExporter.XlsxSheet> { sheet });
 
                     FileLoadProgress.Value = 100;
                     MessageBox.Show(
@@ -8172,6 +8205,25 @@ namespace Cad3PLogBrowser
         private void copyMenuItem_Click(object sender, EventArgs e)
         {
             CopySelectedLinesToClipboard(includeHeaders: false);
+        }
+
+        // G7: distinct from Copy/Copy with Headers (selection-only) — copies every
+        // line currently shown in the LogText view, i.e. the whole file or just the
+        // matching lines when a filter is active.
+        private void copyAllVisibleMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_virtualLines == null || _virtualLines.Count == 0)
+            {
+                StatusFileName.Text = Resources.STATUS_NO_LINES_SELECTED;
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var line in _virtualLines)
+                sb.AppendLine(line.Text);
+
+            Clipboard.SetText(sb.ToString());
+            StatusFileName.Text = string.Format("Copied {0:N0} visible lines to clipboard.", _virtualLines.Count);
         }
 
         /// <summary>
