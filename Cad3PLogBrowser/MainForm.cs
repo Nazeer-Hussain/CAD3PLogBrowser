@@ -5272,7 +5272,11 @@ namespace Cad3PLogBrowser
             }
 
             if (targetLine > 0)
+            {
                 ScrollLogToLine(targetLine);
+                // B9: also select the paired node in the Call Tree, not just the flat log line.
+                SelectCallTreeNodeByLine(targetLine);
+            }
             else
                 MessageBox.Show(Resources.MSG_NO_MATCHING_PAIR, Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
