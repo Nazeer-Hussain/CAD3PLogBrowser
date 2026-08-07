@@ -76,6 +76,7 @@
             this.jumpToLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.setBaselineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showApiTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -583,18 +584,26 @@
             // optionsMenuItem
             // 
             this.optionsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.settingsMenuItem});
+            this.settingsMenuItem,
+            this.setBaselineMenuItem});
             this.optionsMenuItem.Name = "optionsMenuItem";
             this.optionsMenuItem.Size = new System.Drawing.Size(69, 22);
             this.optionsMenuItem.Text = UI.AppStrings.MenuOptions;
-            // 
+            //
             // settingsMenuItem
-            // 
+            //
             this.settingsMenuItem.Image = null;
             this.settingsMenuItem.Name = "settingsMenuItem";
             this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.S));
             this.settingsMenuItem.Size = new System.Drawing.Size(218, 22);
             this.settingsMenuItem.Text = UI.AppStrings.MenuOptionsSettings;
+            //
+            // setBaselineMenuItem
+            //
+            this.setBaselineMenuItem.Name = "setBaselineMenuItem";
+            this.setBaselineMenuItem.Size = new System.Drawing.Size(218, 22);
+            this.setBaselineMenuItem.Text = "Set as &Baseline Log";
+            this.setBaselineMenuItem.Click += new System.EventHandler(this.setBaselineMenuItem_Click);
             this.settingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
             // viewMenuItem
@@ -1831,6 +1840,7 @@
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem setBaselineMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mergeLogsMenuItem;

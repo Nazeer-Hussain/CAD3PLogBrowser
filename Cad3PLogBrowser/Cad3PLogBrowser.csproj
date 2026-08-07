@@ -146,6 +146,7 @@
     <Compile Include="Services\Analysis\AiLogService.cs" />
     <Compile Include="Services\Analysis\PerformanceAnalyzer.cs" />
     <Compile Include="Services\Analysis\ExceptionGroupingService.cs" />
+    <Compile Include="Services\Analysis\BaselineService.cs" />
     <Compile Include="Services\Analysis\LogDiffService.cs" />
     <Compile Include="Services\Comparison\DifferenceHighlighter.cs" />
     <Compile Include="Services\Comparison\DifferenceNavigator.cs" />

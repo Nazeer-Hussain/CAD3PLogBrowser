@@ -751,6 +751,7 @@ namespace Cad3PLogBrowser
             InitTreeViews();
             InitAiPanel();
             InitExceptionsTab();
+            InitAnomaliesTab();
             InitThreadViewTab();
             MergeTimelineAndFlameGraphTabs();
             InitPerformanceSubViews();
@@ -1794,6 +1795,7 @@ namespace Cad3PLogBrowser
             PopulatePerformanceTab(perfStats, _allLines.Count);
             UpdateAggregateStatsPanel();
             UpdateExceptionsTab(entries);
+            UpdateAnomaliesTab();
             UpdateThreadViewTab(entries);
 
             // Load call graph: per-file when available, otherwise single merged graph
@@ -9433,6 +9435,116 @@ namespace Cad3PLogBrowser
                 string text = (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "";
                 _correlationOccurrencesListView.Items.Add(new ListViewItem(new[] { lineNo.ToString(), text }) { Tag = lineNo });
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // L3: Anomaly Detection — compares the current log's API timings/call
+        // counts against a saved baseline (Options > Set as Baseline Log).
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private TabPage  _anomaliesTab;
+        private ListView _anomaliesListView;
+        private Label    _anomaliesStatusLabel;
+
+        private void InitAnomaliesTab()
+        {
+            _anomaliesTab = new TabPage("Anomalies") { Name = "anomaliesTab", UseVisualStyleBackColor = true };
+
+            _anomaliesListView = new ListView
+            {
+                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
+                GridLines = true, Font = new Font("Consolas", 9f)
+            };
+            _anomaliesListView.Columns.Add("Method", 260);
+            _anomaliesListView.Columns.Add("Baseline Avg (ms)", 120);
+            _anomaliesListView.Columns.Add("Current Avg (ms)", 120);
+            _anomaliesListView.Columns.Add("Baseline Calls", 100);
+            _anomaliesListView.Columns.Add("Current Calls", 100);
+            _anomaliesListView.Columns.Add("Why Flagged", 260);
+            _anomaliesListView.DoubleClick += (s, e) =>
+            {
+                if (_anomaliesListView.SelectedItems.Count == 0) return;
+                if (_anomaliesListView.SelectedItems[0].Tag is string apiName)
+                { ShowApiTree(); FindAndSelectApiTreeNode(apiName); }
+            };
+
+            _anomaliesStatusLabel = new Label
+            {
+                Dock = DockStyle.Top, Height = 22, Padding = new Padding(4, 4, 0, 0),
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
+            };
+
+            _anomaliesTab.Controls.Add(_anomaliesListView);
+            _anomaliesTab.Controls.Add(_anomaliesStatusLabel);
+
+            if (mainTabControl != null)
+                mainTabControl.TabPages.Add(_anomaliesTab);
+
+            var showAnomaliesMenuItem = new ToolStripMenuItem("&Anomalies")
+            {
+                Name = "showAnomaliesTabMenuItem", CheckOnClick = true, Checked = true
+            };
+            showAnomaliesMenuItem.CheckedChanged += (s, e) =>
+            {
+                if (_anomaliesTab == null || mainTabControl == null) return;
+                if (showAnomaliesMenuItem.Checked)
+                {
+                    if (!mainTabControl.TabPages.Contains(_anomaliesTab))
+                        mainTabControl.TabPages.Add(_anomaliesTab);
+                }
+                else if (mainTabControl.TabPages.Contains(_anomaliesTab))
+                {
+                    mainTabControl.TabPages.Remove(_anomaliesTab);
+                }
+            };
+            if (tabsMenuItem != null)
+                tabsMenuItem.DropDownItems.Add(showAnomaliesMenuItem);
+        }
+
+        /// <summary>Re-runs the baseline comparison against the freshly-loaded log's stats.</summary>
+        private void UpdateAnomaliesTab()
+        {
+            if (_anomaliesListView == null) return;
+            _anomaliesListView.Items.Clear();
+
+            var baseline = Services.Analysis.BaselineService.LoadBaseline();
+            if (baseline == null)
+            {
+                _anomaliesStatusLabel.Text = "No baseline saved yet — Options > Set as Baseline Log to enable comparison.";
+                return;
+            }
+
+            var anomalies = Services.Analysis.BaselineService.CompareToBaseline(_apiPerfStatsByName.Values, baseline);
+            _anomaliesStatusLabel.Text = string.Format(
+                "Comparing against baseline saved {0:yyyy-MM-dd HH:mm} from \"{1}\" — {2} anomal{3} found.",
+                baseline.SavedAtUtc.ToLocalTime(), baseline.SourceFileName,
+                anomalies.Count, anomalies.Count == 1 ? "y" : "ies");
+
+            foreach (var a in anomalies)
+            {
+                var item = new ListViewItem(new[]
+                {
+                    a.ApiName, a.BaselineAvgMs.ToString(), a.CurrentAvgMs.ToString(),
+                    a.BaselineCalls.ToString(), a.CurrentCalls.ToString(), a.Reason
+                })
+                { Tag = a.ApiName };
+                _anomaliesListView.Items.Add(item);
+            }
+        }
+
+        private void setBaselineMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_apiPerfStatsByName == null || _apiPerfStatsByName.Count == 0)
+            {
+                MessageBox.Show("Load a log first.", Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            Services.Analysis.BaselineService.SaveBaseline(
+                Path.GetFileName(_currentFilePath ?? ""), _apiPerfStatsByName.Values);
+
+            StatusFileName.Text = string.Format("Baseline saved from {0:N0} methods.", _apiPerfStatsByName.Count);
+            UpdateAnomaliesTab();
         }
 
         // ═══════════════════════════════════════════════════════════════════════
