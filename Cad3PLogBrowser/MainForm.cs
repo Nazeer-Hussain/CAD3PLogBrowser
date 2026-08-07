@@ -788,6 +788,11 @@ namespace Cad3PLogBrowser
         {
             base.OnLoad(e);
 
+            // G2: apply the saved theme here (handle already exists by OnLoad, unlike
+            // in the constructor) rather than in OnShown, so dark mode doesn't flash
+            // light for one frame before the window is actually painted on screen.
+            ApplyTheme();
+
             // Force layout after form is fully loaded and sized
             LayoutTrees();
 
@@ -826,10 +831,7 @@ namespace Cad3PLogBrowser
         {
             base.OnShown(e);
 
-            // Apply theme now that the form and all controls are fully created and shown.
-            // This prevents the crash that occurred when ApplyTheme was called in the constructor
-            // before handles were created (Handle=False, Visible=False state).
-            ApplyTheme();
+            // G2: theme is now applied in OnLoad (see above) to avoid a startup flash.
 
             InitializePerfFilterBar();
 
