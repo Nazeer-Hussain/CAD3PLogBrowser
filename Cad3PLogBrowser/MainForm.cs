@@ -1275,8 +1275,11 @@ namespace Cad3PLogBrowser
             }
             // else: will be set to 30% in MainForm_Load after layout is ready
 
-            // Feature A3: Default to PTC_LOG_DIR environment variable if set
-            string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+            // Feature A3 / J1: default to PTC_LOG_DIR unless the user picked "always
+            // use last-used directory" in Settings > Files & Behavior.
+            string ptcLogDir = _appSettings.UseEnvVarForDefaultDirectory
+                ? Environment.GetEnvironmentVariable("PTC_LOG_DIR")
+                : null;
             if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
             {
                 openLogFileDialog.InitialDirectory = ptcLogDir;
