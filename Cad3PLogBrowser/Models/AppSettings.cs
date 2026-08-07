@@ -38,6 +38,8 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowAiTab            { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
+        // H2: whether the whole right-side tab panel is collapsed (View > Hide Tabs).
+        public bool    HideRightPanel       { get; set; } = false;
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;
         public bool    ShowStatusBar        { get; set; } = true;

@@ -286,6 +286,12 @@ namespace Cad3PLogBrowser
         {
             mainSplitContainer.Panel2Collapsed = hideTabsMenuItem.Checked;
             hideTabsMenuItem.Text = hideTabsMenuItem.Checked ? "&Show Tabs" : "&Hide Tabs";
+
+            if (_appSettings != null && _isFormLoaded)
+            {
+                _appSettings.HideRightPanel = hideTabsMenuItem.Checked;
+                _appSettings.Save();
+            }
         }
 
         private ToolStripMenuItem _recentFilesMenuItem;
@@ -1298,6 +1304,11 @@ namespace Cad3PLogBrowser
                 ShowApiTree();
             else
                 ShowCallTree();
+
+            // H2: restore the whole-right-panel Hide/Show Tabs state.
+            hideTabsMenuItem.Checked = _appSettings.HideRightPanel;
+            mainSplitContainer.Panel2Collapsed = _appSettings.HideRightPanel;
+            hideTabsMenuItem.Text = _appSettings.HideRightPanel ? "&Show Tabs" : "&Hide Tabs";
 
             // Map the human-readable setting string to a tab page
             TabPage target = null;
@@ -7193,6 +7204,16 @@ namespace Cad3PLogBrowser
                 var n = CallTree.SelectedNode;
                 if (n != null) { ShowApiTree(); FindAndSelectApiTreeNode(GetMethodNameFromNode(n)); }
             });
+
+            // C6/L2/L4: these were previously only added to the unused Designer-defined
+            // treeContextMenu, which is never assigned as CallTree's live ContextMenuStrip
+            // (this dynamically-built menu is the real one shown on right-click) — so they
+            // never actually appeared in the running app until wired in here.
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("&Reload from Disk", null, refreshMenuItem_Click);
+            menu.Items.Add("&Filter...", null, filterMenuItem_Click);
+            menu.Items.Add("Ask A&I...", null, treeContextAskAiMenuItem_Click);
+            menu.Items.Add("Root Cause (this call)...", null, treeContextRootCauseMenuItem_Click);
 
             // Grok item — always present, Visible toggled on each show.
             _callTreeGrokSep  = new ToolStripSeparator { Visible = false };
