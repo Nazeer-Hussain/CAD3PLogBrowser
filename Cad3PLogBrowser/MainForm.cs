@@ -3263,10 +3263,43 @@ namespace Cad3PLogBrowser
             ScrollLogToLine(lineNumber);
         }
 
+        // H1: line number of the last ScrollLogToLine target, so its Highlight
+        // Color marker can be cleared before the next one is applied — only one
+        // "jumped-to" line is marked at a time.
+        private int _lastJumpHighlightLine = -1;
+
         private void ScrollLogToLine(int lineNumber)
         {
             if (!_lineIndexMap.TryGetValue(lineNumber, out int idx)) return;
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
+
+            Color bookmarkColour = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(0, 70, 130)
+                : Color.FromArgb(200, 230, 255);
+
+            // Restore the previous jump target to its base (bookmark or log-level) colour.
+            if (_lastJumpHighlightLine >= 0 && _lastJumpHighlightLine != lineNumber
+                && _lineIndexMap.TryGetValue(_lastJumpHighlightLine, out int prevIdx)
+                && prevIdx >= 0 && prevIdx < _virtualLines.Count)
+            {
+                var prev = _virtualLines[prevIdx];
+                _virtualLines[prevIdx] = new VirtualLogLine
+                {
+                    LineNumber = prev.LineNumber,
+                    Text       = prev.Text,
+                    BackColour = _bookmarkService.IsBookmarked(prev.LineNumber) ? bookmarkColour : GetLineColour(prev.Text)
+                };
+            }
+
+            // H1: mark the new target with the Settings > Highlight Color, per spec.
+            var target = _virtualLines[idx];
+            _virtualLines[idx] = new VirtualLogLine
+            {
+                LineNumber = target.LineNumber,
+                Text       = target.Text,
+                BackColour = _appSettings.HighlightColor
+            };
+            _lastJumpHighlightLine = lineNumber;
 
             // Feature H1: Show 10 previous lines by scrolling appropriately
             int scrollToIdx = Math.Max(0, idx - 10);
@@ -3276,6 +3309,7 @@ namespace Cad3PLogBrowser
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
             logListView.Focus();
+            logListView.Invalidate();
         }
 
         // ── Log Details panel ─────────────────────────────────────────────────
@@ -4334,7 +4368,14 @@ namespace Cad3PLogBrowser
         {
             if (logListView == null || logListView.Columns.Count < 2) return;
 
-            logListView.Columns[0].Width = 80; // Fixed width for line numbers
+            // H1: auto-size to the widest line number actually in the file, instead
+            // of a fixed 80px that's wasteful for short files and too narrow for
+            // logs with 6+ digit line counts.
+            int maxLineNumber = _virtualLines != null && _virtualLines.Count > 0
+                ? _virtualLines[_virtualLines.Count - 1].LineNumber
+                : 0;
+            int measuredWidth = TextRenderer.MeasureText(maxLineNumber.ToString(), logListView.Font).Width;
+            logListView.Columns[0].Width = Math.Max(50, measuredWidth + 20);
 
             int viewWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - SystemInformation.VerticalScrollBarWidth;
 
