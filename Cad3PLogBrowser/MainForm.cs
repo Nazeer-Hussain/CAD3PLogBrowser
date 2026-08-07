@@ -7609,10 +7609,38 @@ namespace Cad3PLogBrowser
             return string.Format("{0}_{1}{2}", stem, DateTime.Now.ToString("yyyyMMdd_HHmmss"), ext);
         }
 
-        // I4: no PDF/Excel report-export library exists in this project. Rather than
-        // add one for a single feature, this builds a self-contained styled HTML
-        // report and opens it in the default browser — Print > Save as PDF gets a
-        // real PDF without a new dependency.
+        // I5: whole-main-window screenshot, distinct from the per-panel "Export as
+        // Image" buttons on the Call Graph/Timeline/Flame Graph/Heatmap tabs.
+        private void takeScreenshotMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter   = "PNG image (*.png)|*.png";
+                dlg.FileName = TimestampedFileName("CAD3PLogBrowser_screenshot.png");
+                dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    using (var bitmap = new Bitmap(this.Width, this.Height))
+                    {
+                        this.DrawToBitmap(bitmap, new Rectangle(0, 0, this.Width, this.Height));
+                        bitmap.Save(dlg.FileName, System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                    StatusFileName.Text = string.Format("Screenshot saved to {0}", Path.GetFileName(dlg.FileName));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to save screenshot:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // I4: HTML remains available as a fallback format; Excel is now the default
+        // (see BuildAnalyticsReportXlsx) so the report satisfies spec's PDF/Excel ask
+        // without adding a NuGet dependency for a single feature.
         private void exportAnalyticsReportMenuItem_Click(object sender, EventArgs e)
         {
             if (_lastEntries == null || _lastEntries.Count == 0)

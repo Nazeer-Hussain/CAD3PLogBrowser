@@ -89,6 +89,8 @@
             this.darkModeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewSeparatorScreenshot = new System.Windows.Forms.ToolStripSeparator();
+            this.takeScreenshotMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogDetailsTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -619,7 +621,9 @@
             this.watchFileChangesMenuItem,
             this.darkModeMenuItem,
             this.showToolbarMenuItem,
-            this.showStatusBarMenuItem});
+            this.showStatusBarMenuItem,
+            this.viewSeparatorScreenshot,
+            this.takeScreenshotMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
             this.viewMenuItem.Text = UI.AppStrings.MenuView;
@@ -770,9 +774,16 @@
             this.showStatusBarMenuItem.Size = new System.Drawing.Size(178, 22);
             this.showStatusBarMenuItem.Text = UI.AppStrings.MenuViewShowStatusBar;
             this.showStatusBarMenuItem.CheckedChanged += new System.EventHandler(this.showStatusBarMenuItem_CheckedChanged);
-            // 
+            //
+            // takeScreenshotMenuItem
+            //
+            this.takeScreenshotMenuItem.Name = "takeScreenshotMenuItem";
+            this.takeScreenshotMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.takeScreenshotMenuItem.Text = "Take &Screenshot...";
+            this.takeScreenshotMenuItem.Click += new System.EventHandler(this.takeScreenshotMenuItem_Click);
+            //
             // helpMenuItem
-            // 
+            //
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
             this.keyboardShortcutsMenuItem,
@@ -1934,6 +1945,8 @@
         private System.Windows.Forms.ToolStripMenuItem darkModeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewSeparatorScreenshot;
+        private System.Windows.Forms.ToolStripMenuItem takeScreenshotMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
