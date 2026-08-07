@@ -43,6 +43,8 @@
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTimelineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFlameGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportHeatmapFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportCallGraphFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterOpen = new System.Windows.Forms.ToolStripSeparator();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.fileSeparatorAfterExports = new System.Windows.Forms.ToolStripSeparator();
@@ -243,6 +245,8 @@
             this.exportTreeXmlMenuItem,
             this.exportTimelineMenuItem,
             this.exportFlameGraphMenuItem,
+            this.exportHeatmapFileMenuItem,
+            this.exportCallGraphFileMenuItem,
             this.fileSeparatorAfterExports,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
@@ -339,6 +343,20 @@
             this.exportFlameGraphMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportFlameGraphMenuItem.Text = UI.AppStrings.MenuFileExportFlameGraph;
             this.exportFlameGraphMenuItem.Click += new System.EventHandler(this.exportFlameGraphMenuItem_Click);
+            //
+            // exportHeatmapFileMenuItem
+            //
+            this.exportHeatmapFileMenuItem.Name = "exportHeatmapFileMenuItem";
+            this.exportHeatmapFileMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportHeatmapFileMenuItem.Text = "Export &Heatmap...";
+            this.exportHeatmapFileMenuItem.Click += new System.EventHandler(this.exportHeatmapMenuItem_Click);
+            //
+            // exportCallGraphFileMenuItem
+            //
+            this.exportCallGraphFileMenuItem.Name = "exportCallGraphFileMenuItem";
+            this.exportCallGraphFileMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportCallGraphFileMenuItem.Text = "Export Call &Graph...";
+            this.exportCallGraphFileMenuItem.Click += new System.EventHandler(this.callGraphExportButton_Click);
             // 
             // fileSeparatorAfterOpen
             // 
@@ -1857,6 +1875,8 @@
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTimelineMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFlameGraphMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportHeatmapFileMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportCallGraphFileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;

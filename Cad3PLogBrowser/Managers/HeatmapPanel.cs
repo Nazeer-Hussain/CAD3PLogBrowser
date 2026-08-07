@@ -89,6 +89,12 @@ namespace Cad3PLogBrowser.Managers
             _exportButton.Click += (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty);
             Controls.Add(_exportButton);
 
+            // F6: right-click "Export as Image..." to match Flame Graph/Timeline's
+            // context menu, in addition to the in-panel button above.
+            var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("Export as Image...", null, (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty));
+            this.ContextMenuStrip = contextMenu;
+
             PositionModeToggle();
             UpdateTheme();
         }

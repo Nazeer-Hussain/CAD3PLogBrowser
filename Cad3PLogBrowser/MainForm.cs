@@ -812,6 +812,8 @@ namespace Cad3PLogBrowser
             }
             if (heatmapPanel != null)
                 heatmapPanel.ExportImageRequested += (s, ev) => exportHeatmapMenuItem_Click(s, ev);
+            if (callGraphPanel != null)
+                callGraphPanel.ExportImageRequested += (s, ev) => callGraphExportButton_Click(s, ev);
 
             // PERFORMANCE: lazily re-render the performance tab when it becomes visible,
             // so ApplyTheme() can skip it when it is not in the foreground.
