@@ -287,6 +287,7 @@ namespace Cad3PLogBrowser.Services
                         Depth      = stack.Count,
                         SourceFile = entry.SourceFile,
                         Module     = entry.Module,
+                        ThreadId   = entry.ThreadId,
                         EpochMs    = entry.EpochMs,
                         // B3: assign Parent so GetCallChain() and any consumer that
                         // walks up the tree gets the correct full chain instead of
@@ -560,6 +561,9 @@ namespace Cad3PLogBrowser.Services
         public bool                IsFileGroupRoot { get; set; }
         public string              SourceFile      { get; set; }
         public string              Module          { get; set; }
+        // B7: needed so the Thread ID filter can actually prune the Call/API trees,
+        // not just the flat log panel.
+        public string              ThreadId        { get; set; }
         public long                EpochMs         { get; set; }
         public long                ExitEpochMs     { get; set; }
         public long                DurationMs      { get; set; }

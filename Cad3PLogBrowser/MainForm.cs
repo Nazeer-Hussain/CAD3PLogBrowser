@@ -5965,8 +5965,9 @@ namespace Cad3PLogBrowser
             bool hasDuration    = criteria != null && criteria.MinimumDurationMs.HasValue;
             bool hasTimeRange   = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
             bool hasMethodTerms = criteria != null && criteria.MethodNameTerms != null && criteria.MethodNameTerms.Count > 0;
+            bool hasThreadId    = criteria != null && !string.IsNullOrWhiteSpace(criteria.ThreadId);
 
-            if (!hasDuration && !hasTimeRange && !hasMethodTerms)
+            if (!hasDuration && !hasTimeRange && !hasMethodTerms && !hasThreadId)
             {
                 // Restore the original, unfiltered trees.
                 if (_lastCallTree != null) PopulateCallTree(_lastCallTree);
@@ -5990,6 +5991,10 @@ namespace Cad3PLogBrowser
                 if (hasMethodTerms && !MatchesAnyWildcardTerm(csNode.Label, criteria.MethodNameTerms, criteria.IsCaseSensitive))
                     return false;
 
+                // B7: Thread ID filter now reaches the Call Tree, not just the log panel.
+                if (hasThreadId && csNode.ThreadId != criteria.ThreadId)
+                    return false;
+
                 return true;
             }
 
@@ -6001,7 +6006,7 @@ namespace Cad3PLogBrowser
                 bool LineMatches(int lineNumber)
                 {
                     if (_callStackNodeByLine == null || !_callStackNodeByLine.TryGetValue(lineNumber, out var cs))
-                        return !hasDuration && !hasTimeRange; // no timing info: only OK if neither filter needs it
+                        return !hasDuration && !hasTimeRange && !hasThreadId; // no timing/thread info: only OK if none of those filters is active
                     if (hasDuration && cs.DurationMs < criteria.MinimumDurationMs.Value) return false;
                     if (hasTimeRange)
                     {
@@ -6010,6 +6015,8 @@ namespace Cad3PLogBrowser
                         if (criteria.FromTime.HasValue && callTime < criteria.FromTime.Value.TimeOfDay) return false;
                         if (criteria.ToTime.HasValue && callTime > criteria.ToTime.Value.TimeOfDay) return false;
                     }
+                    // B7: Thread ID filter now reaches the API Tree, not just the log panel.
+                    if (hasThreadId && cs.ThreadId != criteria.ThreadId) return false;
                     return true;
                 }
 
@@ -6019,7 +6026,7 @@ namespace Cad3PLogBrowser
                     if (hasMethodTerms && !MatchesAnyWildcardTerm(node.ApiName, criteria.MethodNameTerms, criteria.IsCaseSensitive))
                         continue;
 
-                    if (!hasDuration && !hasTimeRange)
+                    if (!hasDuration && !hasTimeRange && !hasThreadId)
                     {
                         prunedApiNodes.Add(node);
                         continue;
