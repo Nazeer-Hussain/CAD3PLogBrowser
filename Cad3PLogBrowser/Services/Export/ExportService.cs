@@ -28,7 +28,6 @@ namespace Cad3PLogBrowser.Services.Export
     {
         private readonly CsvExporter _csvExporter;
         private readonly ImageExporter _imageExporter;
-        private readonly XlsxExporter _xlsxExporter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExportService"/> class.
@@ -38,7 +37,6 @@ namespace Cad3PLogBrowser.Services.Export
         {
             _csvExporter = new CsvExporter();
             _imageExporter = new ImageExporter();
-            _xlsxExporter = new XlsxExporter();
         }
 
         /// <summary>
@@ -214,17 +212,6 @@ namespace Cad3PLogBrowser.Services.Export
 
             File.WriteAllLines(filePath, branchLines);
             return branchLines.Count;
-        }
-
-        /// <summary>
-        /// G7: exports a set of already-extracted branch log lines to an .xlsx workbook,
-        /// one raw line per row, so they can be filtered/sorted in Excel.
-        /// </summary>
-        /// <param name="branchLines">Log lines to export (one row per line).</param>
-        /// <param name="filePath">Destination .xlsx file path.</param>
-        public void ExportBranchToXlsx(IList<string> branchLines, string filePath)
-        {
-            _xlsxExporter.ExportLines(branchLines, filePath, "Log Line");
         }
 
         /// <summary>
@@ -472,6 +459,111 @@ namespace Cad3PLogBrowser.Services.Export
                             sb.Append(c);
                         break;
                 }
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>One worksheet's worth of tabular data for <see cref="ExportMultiSheet"/>.</summary>
+        public class XlsxSheet
+        {
+            public string SheetName;
+            public string[] Headers;
+            public List<string[]> Rows;
+        }
+
+        /// <summary>
+        /// I4: writes a real multi-sheet, multi-column .xlsx workbook (as opposed to
+        /// <see cref="ExportLines"/>'s single flat column), used by the Analytics Report
+        /// export so it produces a genuine Excel file rather than only HTML.
+        /// </summary>
+        public void ExportMultiSheet(string filePath, IList<XlsxSheet> sheets)
+        {
+            if (sheets == null || sheets.Count == 0)
+                throw new ArgumentException("At least one sheet is required", nameof(sheets));
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+
+            var contentTypes = new StringBuilder();
+            contentTypes.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            contentTypes.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
+            contentTypes.Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>");
+            contentTypes.Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
+            contentTypes.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
+            for (int i = 0; i < sheets.Count; i++)
+                contentTypes.Append("<Override PartName=\"/xl/worksheets/sheet").Append(i + 1)
+                    .Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
+            contentTypes.Append("</Types>");
+
+            var workbookRels = new StringBuilder();
+            workbookRels.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            workbookRels.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+            for (int i = 0; i < sheets.Count; i++)
+                workbookRels.Append("<Relationship Id=\"rId").Append(i + 1)
+                    .Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet")
+                    .Append(i + 1).Append(".xml\"/>");
+            workbookRels.Append("</Relationships>");
+
+            var workbook = new StringBuilder();
+            workbook.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            workbook.Append("<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" ");
+            workbook.Append("xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>");
+            for (int i = 0; i < sheets.Count; i++)
+                workbook.Append("<sheet name=\"").Append(EscapeXml(sheets[i].SheetName))
+                    .Append("\" sheetId=\"").Append(i + 1).Append("\" r:id=\"rId").Append(i + 1).Append("\"/>");
+            workbook.Append("</sheets></workbook>");
+
+            using (var archive = ZipFile.Open(filePath, ZipArchiveMode.Create))
+            {
+                AddEntry(archive, "[Content_Types].xml", contentTypes.ToString());
+                AddEntry(archive, "_rels/.rels", RootRelsXml);
+                AddEntry(archive, "xl/workbook.xml", workbook.ToString());
+                AddEntry(archive, "xl/_rels/workbook.xml.rels", workbookRels.ToString());
+                for (int i = 0; i < sheets.Count; i++)
+                    AddEntry(archive, "xl/worksheets/sheet" + (i + 1) + ".xml", BuildMultiColumnSheetXml(sheets[i]));
+            }
+        }
+
+        private static string BuildMultiColumnSheetXml(XlsxSheet sheet)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            sb.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>");
+
+            AppendMultiColumnRow(sb, 1, sheet.Headers);
+            var rows = sheet.Rows ?? new List<string[]>();
+            for (int i = 0; i < rows.Count; i++)
+                AppendMultiColumnRow(sb, i + 2, rows[i]);
+
+            sb.Append("</sheetData></worksheet>");
+            return sb.ToString();
+        }
+
+        private static void AppendMultiColumnRow(StringBuilder sb, int rowNumber, string[] cells)
+        {
+            sb.Append("<row r=\"").Append(rowNumber).Append("\">");
+            for (int col = 0; col < cells.Length; col++)
+            {
+                sb.Append("<c r=\"").Append(ColumnLetter(col)).Append(rowNumber)
+                  .Append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
+                  .Append(EscapeXml(cells[col]))
+                  .Append("</t></is></c>");
+            }
+            sb.Append("</row>");
+        }
+
+        /// <summary>Converts a 0-based column index to its spreadsheet letter (0=A, 25=Z, 26=AA, ...).</summary>
+        private static string ColumnLetter(int index)
+        {
+            var sb = new StringBuilder();
+            index++;
+            while (index > 0)
+            {
+                int rem = (index - 1) % 26;
+                sb.Insert(0, (char)('A' + rem));
+                index = (index - 1) / 26;
             }
             return sb.ToString();
         }

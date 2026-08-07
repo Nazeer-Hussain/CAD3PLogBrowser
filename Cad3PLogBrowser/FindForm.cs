@@ -108,7 +108,22 @@ namespace Cad3PLogBrowser
                 : (rank > 0 ? string.Format("Match {0} of {1}", rank, total) : string.Format("{0} matches", total));
         }
 
-        private void CloseButton_Click(object sender, System.EventArgs e) => Hide();
+        // B1: closing used to just Hide() the dialog, leaving every matched line
+        // marked in the Highlight Color indefinitely with no way back to clear them
+        // short of running a new search. Clear on both the Close button and the
+        // native title-bar X (FormClosing fires for either).
+        private void CloseButton_Click(object sender, System.EventArgs e)
+        {
+            _mainForm.ClearHighlighting();
+            Hide();
+        }
+
+        // Hide() (used by the Close button above) does NOT raise FormClosing —
+        // only the native title-bar X does, via the default Close()/Dispose path.
+        private void FindForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            _mainForm.ClearHighlighting();
+        }
 
         private void FindForm_Load(object sender, System.EventArgs e)
         {

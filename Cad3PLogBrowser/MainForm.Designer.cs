@@ -37,11 +37,14 @@
             this.saveSelectedXlsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportAnalyticsReportMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTimelineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFlameGraphMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportHeatmapFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportCallGraphFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fileSeparatorAfterOpen = new System.Windows.Forms.ToolStripSeparator();
             this.fileSeparatorAfterSave = new System.Windows.Forms.ToolStripSeparator();
             this.fileSeparatorAfterExports = new System.Windows.Forms.ToolStripSeparator();
@@ -71,13 +74,17 @@
             this.showBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearBookmarksMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyWithHeadersMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyAllVisibleMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.jumpToLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.setBaselineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showCallTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showApiTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewSeparatorHideTabs = new System.Windows.Forms.ToolStripSeparator();
+            this.hideTabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectFontMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -85,6 +92,8 @@
             this.darkModeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showStatusBarMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewSeparatorScreenshot = new System.Windows.Forms.ToolStripSeparator();
+            this.takeScreenshotMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPerformanceTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogDetailsTabMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -108,6 +117,9 @@
             this.StatusSelection = new System.Windows.Forms.ToolStripStatusLabel();
             this.mainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.treeSearchTextBox = new System.Windows.Forms.TextBox();
+            this.treeSearchMatchLabel = new System.Windows.Forms.Label();
+            this.treeSearchPrevButton = new System.Windows.Forms.Button();
+            this.treeSearchNextButton = new System.Windows.Forms.Button();
             this.ApiTree = new System.Windows.Forms.TreeView();
             this.CallTree = new System.Windows.Forms.TreeView();
             this.mainTabControl = new System.Windows.Forms.TabControl();
@@ -162,6 +174,7 @@
             this.contextExpandAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextCollapseAllMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextJumpToMatchingMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextToggleBookmarkMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.contextInspectLineMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -177,6 +190,11 @@
             this.treeContextSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.treeContextSaveBranchMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextExportBranchCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.treeContextReloadMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextFilterMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextAskAiMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.treeContextRootCauseMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextSearchInGrokMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeContextShowInOtherTreeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.treeIconList = new System.Windows.Forms.ImageList(this.components);
@@ -221,11 +239,14 @@
             this.exportFilteredLogsMenuItem,
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
+            this.exportAnalyticsReportMenuItem,
             this.exportApiCsvMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
             this.exportTimelineMenuItem,
             this.exportFlameGraphMenuItem,
+            this.exportHeatmapFileMenuItem,
+            this.exportCallGraphFileMenuItem,
             this.fileSeparatorAfterExports,
             this.reloadMenuItem,
             this.fileSeparatorBeforeExit,
@@ -278,6 +299,16 @@
             this.exportPerformanceMenuItem.Text = UI.AppStrings.MenuFileExportPerformance;
             this.exportPerformanceMenuItem.Click += new System.EventHandler(this.exportPerformanceMenuItem_Click);
             //
+            // exportAnalyticsReportMenuItem
+            //
+            // I4: no PDF/Excel library existed in the project, so this generates a
+            // styled standalone HTML report and opens it in the default browser —
+            // Print > Save as PDF gets a PDF without adding a PDF-writing dependency.
+            this.exportAnalyticsReportMenuItem.Name = "exportAnalyticsReportMenuItem";
+            this.exportAnalyticsReportMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportAnalyticsReportMenuItem.Text = "Export &Analytics Report...";
+            this.exportAnalyticsReportMenuItem.Click += new System.EventHandler(this.exportAnalyticsReportMenuItem_Click);
+            //
             // exportApiCsvMenuItem
             //
             this.exportApiCsvMenuItem.Name = "exportApiCsvMenuItem";
@@ -312,6 +343,20 @@
             this.exportFlameGraphMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportFlameGraphMenuItem.Text = UI.AppStrings.MenuFileExportFlameGraph;
             this.exportFlameGraphMenuItem.Click += new System.EventHandler(this.exportFlameGraphMenuItem_Click);
+            //
+            // exportHeatmapFileMenuItem
+            //
+            this.exportHeatmapFileMenuItem.Name = "exportHeatmapFileMenuItem";
+            this.exportHeatmapFileMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportHeatmapFileMenuItem.Text = "Export &Heatmap...";
+            this.exportHeatmapFileMenuItem.Click += new System.EventHandler(this.exportHeatmapMenuItem_Click);
+            //
+            // exportCallGraphFileMenuItem
+            //
+            this.exportCallGraphFileMenuItem.Name = "exportCallGraphFileMenuItem";
+            this.exportCallGraphFileMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportCallGraphFileMenuItem.Text = "Export Call &Graph...";
+            this.exportCallGraphFileMenuItem.Click += new System.EventHandler(this.callGraphExportButton_Click);
             // 
             // fileSeparatorAfterOpen
             // 
@@ -371,6 +416,7 @@
             this.editMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyMenuItem,
             this.copyWithHeadersMenuItem,
+            this.copyAllVisibleMenuItem,
             this.editSeparatorAfterCopy,
             this.findMenuItem,
             this.findNextMenuItem,
@@ -535,6 +581,13 @@
             this.copyWithHeadersMenuItem.Size = new System.Drawing.Size(258, 22);
             this.copyWithHeadersMenuItem.Text = UI.AppStrings.MenuEditCopyWithHeaders;
             this.copyWithHeadersMenuItem.Click += new System.EventHandler(this.copyWithHeadersMenuItem_Click);
+            //
+            // copyAllVisibleMenuItem
+            //
+            this.copyAllVisibleMenuItem.Name = "copyAllVisibleMenuItem";
+            this.copyAllVisibleMenuItem.Size = new System.Drawing.Size(258, 22);
+            this.copyAllVisibleMenuItem.Text = "Copy All &Visible";
+            this.copyAllVisibleMenuItem.Click += new System.EventHandler(this.copyAllVisibleMenuItem_Click);
             // 
             // clearFilterMenuItem
             // 
@@ -560,18 +613,26 @@
             // optionsMenuItem
             // 
             this.optionsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.settingsMenuItem});
+            this.settingsMenuItem,
+            this.setBaselineMenuItem});
             this.optionsMenuItem.Name = "optionsMenuItem";
             this.optionsMenuItem.Size = new System.Drawing.Size(69, 22);
             this.optionsMenuItem.Text = UI.AppStrings.MenuOptions;
-            // 
+            //
             // settingsMenuItem
-            // 
+            //
             this.settingsMenuItem.Image = null;
             this.settingsMenuItem.Name = "settingsMenuItem";
             this.settingsMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.S));
             this.settingsMenuItem.Size = new System.Drawing.Size(218, 22);
             this.settingsMenuItem.Text = UI.AppStrings.MenuOptionsSettings;
+            //
+            // setBaselineMenuItem
+            //
+            this.setBaselineMenuItem.Name = "setBaselineMenuItem";
+            this.setBaselineMenuItem.Size = new System.Drawing.Size(218, 22);
+            this.setBaselineMenuItem.Text = "Set as &Baseline Log";
+            this.setBaselineMenuItem.Click += new System.EventHandler(this.setBaselineMenuItem_Click);
             this.settingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
             // viewMenuItem
@@ -579,13 +640,17 @@
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showCallTreeMenuItem,
             this.showApiTreeMenuItem,
+            this.viewSeparatorHideTabs,
+            this.hideTabsMenuItem,
             this.tabsMenuItem,
             this.viewSeparator1,
             this.selectFontMenuItem,
             this.watchFileChangesMenuItem,
             this.darkModeMenuItem,
             this.showToolbarMenuItem,
-            this.showStatusBarMenuItem});
+            this.showStatusBarMenuItem,
+            this.viewSeparatorScreenshot,
+            this.takeScreenshotMenuItem});
             this.viewMenuItem.Name = "viewMenuItem";
             this.viewMenuItem.Size = new System.Drawing.Size(49, 22);
             this.viewMenuItem.Text = UI.AppStrings.MenuView;
@@ -607,9 +672,24 @@
             this.showApiTreeMenuItem.Size = new System.Drawing.Size(178, 22);
             this.showApiTreeMenuItem.Text = UI.AppStrings.MenuViewShowApiTree;
             this.showApiTreeMenuItem.CheckedChanged += new System.EventHandler(this.showApiTreeMenuItem_CheckedChanged);
-            // 
+            //
+            // viewSeparatorHideTabs
+            //
+            this.viewSeparatorHideTabs.Name = "viewSeparatorHideTabs";
+            //
+            // hideTabsMenuItem
+            //
+            // H2: single master toggle that collapses the whole right-side tab panel
+            // (expanding the tree to full width), distinct from the per-tab checkboxes
+            // in the "Tabs" submenu below it.
+            this.hideTabsMenuItem.CheckOnClick = true;
+            this.hideTabsMenuItem.Name = "hideTabsMenuItem";
+            this.hideTabsMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.hideTabsMenuItem.Text = "&Hide Tabs";
+            this.hideTabsMenuItem.CheckedChanged += new System.EventHandler(this.hideTabsMenuItem_CheckedChanged);
+            //
             // tabsMenuItem
-            // 
+            //
             this.tabsMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.showLogTabMenuItem,
             this.showPerformanceTabMenuItem,
@@ -721,9 +801,16 @@
             this.showStatusBarMenuItem.Size = new System.Drawing.Size(178, 22);
             this.showStatusBarMenuItem.Text = UI.AppStrings.MenuViewShowStatusBar;
             this.showStatusBarMenuItem.CheckedChanged += new System.EventHandler(this.showStatusBarMenuItem_CheckedChanged);
-            // 
+            //
+            // takeScreenshotMenuItem
+            //
+            this.takeScreenshotMenuItem.Name = "takeScreenshotMenuItem";
+            this.takeScreenshotMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.takeScreenshotMenuItem.Text = "Take &Screenshot...";
+            this.takeScreenshotMenuItem.Click += new System.EventHandler(this.takeScreenshotMenuItem_Click);
+            //
             // helpMenuItem
-            // 
+            //
             this.helpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.viewHelpMenuItem,
             this.keyboardShortcutsMenuItem,
@@ -862,6 +949,9 @@
             this.mainSplitContainer.Panel1.Controls.Add(this.CallTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.ApiTree);
             this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchTextBox);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchMatchLabel);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchPrevButton);
+            this.mainSplitContainer.Panel1.Controls.Add(this.treeSearchNextButton);
             this.mainSplitContainer.Panel1.Resize += new System.EventHandler(this.Panel1_Resize);
             this.mainSplitContainer.Panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel1_Paint);
             // 
@@ -887,7 +977,41 @@
             this.treeSearchTextBox.Enter += new System.EventHandler(this.treeSearchTextBox_Enter);
             this.treeSearchTextBox.Leave += new System.EventHandler(this.treeSearchTextBox_Leave);
             this.treeSearchTextBox.TextChanged += new System.EventHandler(this.treeSearchTextBox_TextChanged);
-            // 
+            this.treeSearchTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeSearchTextBox_KeyDown);
+            //
+            // treeSearchMatchLabel
+            //
+            // C5: "N of M" match counter; positioned at runtime by LayoutTrees.
+            this.treeSearchMatchLabel.AutoSize = true;
+            this.treeSearchMatchLabel.Location = new System.Drawing.Point(3, 29);
+            this.treeSearchMatchLabel.Name = "treeSearchMatchLabel";
+            this.treeSearchMatchLabel.Size = new System.Drawing.Size(70, 17);
+            this.treeSearchMatchLabel.TabIndex = 4;
+            this.treeSearchMatchLabel.Text = "0 matches";
+            this.treeSearchMatchLabel.Visible = false;
+            //
+            // treeSearchPrevButton
+            //
+            this.treeSearchPrevButton.Location = new System.Drawing.Point(226, 27);
+            this.treeSearchPrevButton.Name = "treeSearchPrevButton";
+            this.treeSearchPrevButton.Size = new System.Drawing.Size(24, 22);
+            this.treeSearchPrevButton.TabIndex = 5;
+            this.treeSearchPrevButton.Text = "▲";
+            this.treeSearchPrevButton.UseVisualStyleBackColor = true;
+            this.treeSearchPrevButton.Visible = false;
+            this.treeSearchPrevButton.Click += new System.EventHandler(this.treeSearchPrevButton_Click);
+            //
+            // treeSearchNextButton
+            //
+            this.treeSearchNextButton.Location = new System.Drawing.Point(253, 27);
+            this.treeSearchNextButton.Name = "treeSearchNextButton";
+            this.treeSearchNextButton.Size = new System.Drawing.Size(24, 22);
+            this.treeSearchNextButton.TabIndex = 6;
+            this.treeSearchNextButton.Text = "▼";
+            this.treeSearchNextButton.UseVisualStyleBackColor = true;
+            this.treeSearchNextButton.Visible = false;
+            this.treeSearchNextButton.Click += new System.EventHandler(this.treeSearchNextButton_Click);
+            //
             // ApiTree
             // 
             // ApiTree context menu handled in code (ApiTree_MouseUpForSorting)
@@ -1425,6 +1549,7 @@
             this.contextExpandAllMenuItem,
             this.contextCollapseAllMenuItem,
             this.contextJumpToMatchingMenuItem,
+            this.contextToggleBookmarkMenuItem,
             this.contextSeparator3,
             this.contextInspectLineMenuItem,
             this.contextOpenInEditorMenuItem,
@@ -1432,7 +1557,8 @@
             this.contextRefreshMenuItem});
             this.logContextMenu.Name = "logContextMenu";
             this.logContextMenu.Size = new System.Drawing.Size(280, 220);
-            // 
+            this.logContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.logContextMenu_Opening);
+            //
             // contextCopyMenuItem
             // 
             this.contextCopyMenuItem.Image = null;
@@ -1500,7 +1626,17 @@
             this.contextJumpToMatchingMenuItem.Size = new System.Drawing.Size(280, 22);
             this.contextJumpToMatchingMenuItem.Text = "&Jump to Matching ENTER/EXIT";
             this.contextJumpToMatchingMenuItem.Click += new System.EventHandler(this.jumpToMatchingMenuItem_Click);
-            // 
+            //
+            // contextToggleBookmarkMenuItem
+            //
+            // B8: text set dynamically in logContextMenu_Opening (Add/Remove) based on
+            // whether the current line is already bookmarked.
+            this.contextToggleBookmarkMenuItem.Name = "contextToggleBookmarkMenuItem";
+            this.contextToggleBookmarkMenuItem.ShortcutKeyDisplayString = "Ctrl+B";
+            this.contextToggleBookmarkMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.contextToggleBookmarkMenuItem.Text = "&Toggle Bookmark";
+            this.contextToggleBookmarkMenuItem.Click += new System.EventHandler(this.contextToggleBookmarkMenuItem_Click);
+            //
             // contextSeparator3
             // 
             this.contextSeparator3.Name = "contextSeparator3";
@@ -1547,6 +1683,11 @@
             this.treeContextSeparator2,
             this.treeContextSaveBranchMenuItem,
             this.treeContextExportBranchCsvMenuItem,
+            this.treeContextSeparator3,
+            this.treeContextReloadMenuItem,
+            this.treeContextFilterMenuItem,
+            this.treeContextAskAiMenuItem,
+            this.treeContextRootCauseMenuItem,
             this.treeContextSearchInGrokMenuItem,
             this.treeContextShowInOtherTreeMenuItem});
             this.treeContextMenu.Name = "treeContextMenu";
@@ -1614,8 +1755,46 @@
             this.treeContextExportBranchCsvMenuItem.Text = "E&xport Branch to CSV...";
             this.treeContextExportBranchCsvMenuItem.Click += new System.EventHandler(this.treeContextExportBranchCsvMenuItem_Click);
             // 
+            // treeContextSeparator3
+            //
+            this.treeContextSeparator3.Name = "treeContextSeparator3";
+            //
+            // treeContextReloadMenuItem
+            //
+            // C6: previously only reachable from the separate log panel's own menu.
+            this.treeContextReloadMenuItem.Name = "treeContextReloadMenuItem";
+            this.treeContextReloadMenuItem.ShortcutKeyDisplayString = "F5";
+            this.treeContextReloadMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextReloadMenuItem.Text = "&Reload from Disk";
+            this.treeContextReloadMenuItem.Click += new System.EventHandler(this.refreshMenuItem_Click);
+            //
+            // treeContextFilterMenuItem
+            //
+            this.treeContextFilterMenuItem.Name = "treeContextFilterMenuItem";
+            this.treeContextFilterMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextFilterMenuItem.Text = "&Filter...";
+            this.treeContextFilterMenuItem.Click += new System.EventHandler(this.filterMenuItem_Click);
+            //
+            // treeContextAskAiMenuItem
+            //
+            // L2: a natural-language Q&A entry point positioned at (right-clicking) the
+            // Call Tree itself, rather than only inside the separate AI Assistant tab.
+            this.treeContextAskAiMenuItem.Name = "treeContextAskAiMenuItem";
+            this.treeContextAskAiMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextAskAiMenuItem.Text = "Ask A&I...";
+            this.treeContextAskAiMenuItem.Click += new System.EventHandler(this.treeContextAskAiMenuItem_Click);
+            //
+            // treeContextRootCauseMenuItem
+            //
+            // L4: node-specific Root Cause — analyzes this one call's actual parent
+            // chain, not the generic Root Cause button's whole-log aggregate stats.
+            this.treeContextRootCauseMenuItem.Name = "treeContextRootCauseMenuItem";
+            this.treeContextRootCauseMenuItem.Size = new System.Drawing.Size(280, 22);
+            this.treeContextRootCauseMenuItem.Text = "Root Cause (this call)...";
+            this.treeContextRootCauseMenuItem.Click += new System.EventHandler(this.treeContextRootCauseMenuItem_Click);
+            //
             // treeContextSearchInGrokMenuItem
-            // 
+            //
             this.treeContextSearchInGrokMenuItem.Name = "treeContextSearchInGrokMenuItem";
             this.treeContextSearchInGrokMenuItem.Size = new System.Drawing.Size(280, 22);
             this.treeContextSearchInGrokMenuItem.Text = "Search in &Grok";
@@ -1690,14 +1869,18 @@
         private System.Windows.Forms.ToolStripMenuItem saveSelectedXlsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportAnalyticsReportMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTimelineMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFlameGraphMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportHeatmapFileMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportCallGraphFileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
         private System.Windows.Forms.ToolStripMenuItem optionsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem setBaselineMenuItem;
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripMenuItem reloadMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mergeLogsMenuItem;
@@ -1705,6 +1888,9 @@
         private System.Windows.Forms.SplitContainer mainSplitContainer;
         private System.Windows.Forms.TreeView CallTree;
         private System.Windows.Forms.TextBox treeSearchTextBox;
+        private System.Windows.Forms.Label treeSearchMatchLabel;
+        private System.Windows.Forms.Button treeSearchPrevButton;
+        private System.Windows.Forms.Button treeSearchNextButton;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage flameGraphTab;
         private System.Windows.Forms.TabPage timelineTab;
@@ -1779,6 +1965,8 @@
         private System.Windows.Forms.ToolStripMenuItem viewMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showCallTreeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showApiTreeMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewSeparatorHideTabs;
+        private System.Windows.Forms.ToolStripMenuItem hideTabsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tabsMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewSeparator1;
         private System.Windows.Forms.ToolStripMenuItem selectFontMenuItem;
@@ -1786,6 +1974,8 @@
         private System.Windows.Forms.ToolStripMenuItem darkModeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showStatusBarMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewSeparatorScreenshot;
+        private System.Windows.Forms.ToolStripMenuItem takeScreenshotMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showPerformanceTabMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showLogDetailsTabMenuItem;
@@ -1812,6 +2002,7 @@
         private System.Windows.Forms.ToolStripMenuItem showBookmarksMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearBookmarksMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyWithHeadersMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyAllVisibleMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearFilterMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpMenuItem;
         private System.Windows.Forms.ToolStripMenuItem viewHelpMenuItem;
@@ -1832,6 +2023,7 @@
         private System.Windows.Forms.ToolStripMenuItem contextExpandAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextCollapseAllMenuItem;
         private System.Windows.Forms.ToolStripMenuItem contextJumpToMatchingMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem contextToggleBookmarkMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextSeparator3;
         private System.Windows.Forms.ToolStripSeparator contextSeparator4;
         private System.Windows.Forms.ToolStripMenuItem  contextInspectLineMenuItem;
@@ -1847,6 +2039,11 @@
         private System.Windows.Forms.ToolStripSeparator treeContextSeparator2;
         private System.Windows.Forms.ToolStripMenuItem treeContextSaveBranchMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextExportBranchCsvMenuItem;
+        private System.Windows.Forms.ToolStripSeparator treeContextSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem treeContextReloadMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextFilterMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextAskAiMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem treeContextRootCauseMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;

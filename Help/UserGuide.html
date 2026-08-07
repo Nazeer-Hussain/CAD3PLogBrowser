@@ -341,7 +341,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2>&#128218; CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v3.1.9</p>
+        <p>User Guide &#8212; v4.0.0</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -418,7 +418,7 @@
 <div class="page-header">
     <h1>&#128218; CAD 3P Log Browser</h1>
     <p>Complete User Guide &amp; Reference Manual</p>
-    <span class="badge">v3.1.9</span>
+    <span class="badge">v4.0.0</span>
     <span class="badge">.NET Framework 4.8</span>
     <span class="badge">Windows</span>
 </div>
@@ -464,7 +464,29 @@
 
 <!-- ═══ WHAT'S NEW ═══ -->
 <div class="section" id="whats-new">
-    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v3.1.9</h2>
+    <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
+
+    <p>A large pass through the enhancement backlog &#8212; 26 fixes across nearly every part of the app, closing out real gaps found during a full feature-by-feature audit rather than cosmetic polish. Grouped by area:</p>
+
+    <h3>&#128193; Files &amp; Filtering</h3>
+    <p>Dropping a file that doesn&#8217;t look like a log (wrong file grabbed by mistake) now asks before opening it instead of failing confusingly deeper in the parser. Opening a multi-entry <code>.zip</code> now prompts which entry to load instead of silently concatenating all of them together. The <a href="#search-filter">Filter dialog</a> gained a real method-name term list (dropdown + Add, a list of terms, Remove / Remove All, wildcard support) that actually hides non-matching Call Tree / API Tree nodes &#8212; Time Range and Duration Threshold filters now hide non-matching nodes too, instead of only highlighting them. Log Level checkboxes disable themselves for levels the loaded log doesn&#8217;t have. <a href="#bookmarks">Bookmarks</a> gained a right-click Add/Remove on the log list and the Show Bookmarks list is now a real jump list (double-click or Go To) instead of a read-only dump.</p>
+
+    <h3>&#127795; Call Tree &amp; Search</h3>
+    <p>View &#8594; <strong>Hide Tabs</strong> collapses the whole right-side tab panel to give the tree full width, and whichever tree (Call Tree or API Tree) you last had active is now remembered across restarts. The tree search box gained Next/Previous navigation, a &#8220;N of M&#8221; match counter, and Escape to clear. <strong>Reload from Disk</strong> and <strong>Filter...</strong> are now on the tree&#8217;s own <a href="#tree-context">right-click menu</a> too, not only the log panel&#8217;s.</p>
+
+    <h3>&#128268; API View &amp; Performance</h3>
+    <p>The <a href="#call-tree">API Invocation Details</a> panel now shows a Total/Avg/Min/Max time summary. API Tree sorting gained Avg Time and Total Time modes plus an Ascending toggle, and now defaults to Count-descending. The API CSV export includes Total/Avg/Min/Max columns. Clicking a row in the <a href="#performance">Performance tab</a> now selects that method in the API Tree, matching the other cross-navigating views. &#8220;Most Frequently Called&#8221; now draws a real proportional bar instead of Unicode block characters.</p>
+
+    <h3>&#128293; Visualizations</h3>
+    <p>Clicking a <a href="#timeline">flame graph</a> bar now also selects the Call Tree node, and Timeline/Gantt zoom now scales vertically as well as horizontally. The <a href="#heatmap">Heatmap</a> gained a Count-vs-Time colour toggle and its first export option (PNG). Call Graph export now captures the whole graph regardless of current zoom/pan, instead of only whatever was on screen.</p>
+
+    <h3>&#128276; Errors &amp; Reporting</h3>
+    <p>Help &#8594; <strong>Report Errors...</strong> is now a real dialog (recipient, steps to reproduce, the relevant crash log named) instead of just opening a GitHub Issues page. File &#8594; <strong>Export Analytics Report...</strong> is new &#8212; a styled HTML report (aggregate stats, top slowest, most called, call depth) that opens in your browser; Print &#8594; Save as PDF gets a PDF without a new dependency. Export Filtered Logs now confirms via the status bar instead of a dialog you have to dismiss, and every visualization export (Call Graph, Timeline, Flame Graph, Heatmap) now gets a timestamped filename so repeated exports don&#8217;t overwrite each other.</p>
+
+    <h3>&#129504; AI Assistant</h3>
+    <p>Conversation history (both the Q&amp;A flow and the chat assistant) is now capped instead of resending the entire unbounded history every turn. The AI Assistant chat gained example prompt chips. The <a href="#ai-assistant">AI Log Summarizer</a> now feeds real per-method timing data into its analysis instead of only aggregate totals. Right-clicking the Call Tree gained <strong>Ask AI...</strong> (a natural-language question entry point at the tree itself) and <strong>Root Cause (this call)...</strong>, which analyzes one specific call using its actual parent chain rather than whole-log statistics, with results cached per call.</p>
+
+    <h3 style="margin-top:24px;">Previously in v3.1.9</h3>
 
     <h3>&#128260; Compare Logs</h3>
     <p>A full side-by-side log comparison tool, reachable from <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>) or by dropping exactly two files onto the window. Trees are colour-coded per difference type, scroll together, and a <strong>Performance Delta</strong> tab shows which methods got slower or faster between the two files. See <a href="#compare-logs">Compare Logs</a>.</p>
@@ -753,7 +775,8 @@
             <tr><td><strong>From time</strong></td><td>Log lines at or after this time-of-day</td><td><code>14:30:00</code></td></tr>
             <tr><td><strong>To time</strong></td><td>Log lines at or before this time-of-day</td><td><code>14:35:00</code></td></tr>
             <tr><td><strong>Thread ID</strong></td><td>Only lines from this thread &#8212; a drop-down of the thread IDs actually detected in the loaded log (editable, so you can still type one by hand). Hidden entirely when the log has none.</td><td><code>T7978</code></td></tr>
-            <tr><td><strong>Log level</strong></td><td>Independent checkboxes for Debug, Info, Warning, Error &#8212; check any combination to show lines matching <em>any</em> of the checked levels</td><td>Warning + Error</td></tr>
+            <tr><td><strong>Log level</strong></td><td>Independent checkboxes for Debug, Info, Warning, Error &#8212; check any combination to show lines matching <em>any</em> of the checked levels. A level&#8217;s checkbox is disabled when the loaded log has none of that level.</td><td>Warning + Error</td></tr>
+            <tr><td><strong>Method name terms</strong></td><td>A dropdown + <strong>Add</strong> button build a list of method-name terms (wildcards <code>*</code> and <code>?</code> supported, or a plain substring with no wildcard); <strong>Remove</strong> / <strong>Remove All</strong> manage the list</td><td><code>Connect*</code></td></tr>
         </tbody>
     </table>
 
@@ -762,7 +785,7 @@
     </div>
 
     <div class="note">
-        <strong>&#128278; Filters reach the trees too:</strong> When the <strong>Min duration</strong> or time-range criteria are active, matching nodes in the Call Tree are highlighted and their ancestor chains auto-expanded &#8212; the same non-destructive highlight approach used by the tree search box, not a separate filter mechanism. Text/thread/level criteria still apply only to the Log view.
+        <strong>&#128278; Filters actually hide tree nodes:</strong> When <strong>Method name terms</strong>, <strong>Min duration</strong>, or the time-range criteria are active, non-matching nodes are removed from the Call Tree / API Tree (not just highlighted) &#8212; a node is kept if it matches directly or has any matching descendant, so the path down to a match stays visible. Clearing the filter restores the full tree. Text/thread/level criteria still apply only to the Log view.
     </div>
 
     <h3>Regex Examples</h3>
@@ -794,6 +817,10 @@
 
     <div class="note">
         <strong>&#128190; Persistence:</strong> Bookmarks are saved to the application settings file and automatically restored when you re-open the same log file.
+    </div>
+
+    <div class="tip">
+        <strong>&#128161; Right-click, or jump straight there:</strong> The log list&#8217;s right-click menu has an <strong>Add Bookmark</strong> / <strong>Remove Bookmark</strong> item (its label switches depending on whether the selected line is already bookmarked) as an alternative to <kbd>Ctrl+B</kbd>. <strong>Show Bookmarks</strong> opens a real list &#8212; double-click a row, or select it and click <strong>Go To</strong>, to jump straight to that line.
     </div>
 </div>
 
@@ -935,6 +962,10 @@
             <tr><td>Expand to Level&#8230;</td><td>Expands just this tree down to a chosen depth &#8212; see <a href="#expand-to-level">Expand to Level</a></td></tr>
             <tr><td>Show in API Tree</td><td>Switches to API Tree and selects the matching node</td></tr>
             <tr><td>Search in Grok</td><td>Opens Grok URL with the method name (only shown if Grok URL is configured in Settings)</td></tr>
+            <tr><td>Reload</td><td><em>(v4.0)</em> Re-runs the current file reload without leaving the tree</td></tr>
+            <tr><td>Filter&#8230;</td><td><em>(v4.0)</em> Opens the <a href="#search-filter">Filter dialog</a> directly from the tree</td></tr>
+            <tr><td>Ask AI about this node&#8230;</td><td><em>(v4.0)</em> Prompts for a question, switches to the <a href="#ai-assistant">AI Assistant</a> tab, and asks it using the selected node&#8217;s method name as context</td></tr>
+            <tr><td>Analyze Root Cause</td><td><em>(v4.0)</em> Walks the selected node&#8217;s full parent chain (up to 200 levels) and asks the AI Assistant to explain the likely root cause using only that call chain</td></tr>
         </tbody>
     </table>
 
@@ -942,9 +973,12 @@
     <table>
         <thead><tr><th>Item</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>Sort by Name</td><td>Alphabetical sort (default)</td></tr>
-            <tr><td>Sort by Call Count</td><td>Most-called methods first</td></tr>
+            <tr><td>Sort by Name</td><td>Alphabetical sort</td></tr>
+            <tr><td>Sort by Call Count</td><td>Most-called methods first (default)</td></tr>
             <tr><td>Sort by First Line</td><td>Order of first appearance in the log</td></tr>
+            <tr><td>Sort by Avg Time</td><td><em>(v4.0)</em> Highest average call duration first</td></tr>
+            <tr><td>Sort by Total Time</td><td><em>(v4.0)</em> Highest cumulative time spent first</td></tr>
+            <tr><td>Ascending</td><td><em>(v4.0)</em> Checkable toggle &#8212; reverses whichever sort above is active; the root node label shows an &#8593;/&#8595; arrow for the current direction</td></tr>
             <tr><td>Copy API Name</td><td>Copies the method name to clipboard</td></tr>
             <tr><td>Expand All / Collapse All</td><td>Tree expand/collapse</td></tr>
             <tr><td>Expand to Level&#8230;</td><td>Expands just this tree down to a chosen depth</td></tr>
@@ -1077,6 +1111,10 @@
 
     <p><strong>Click any column header</strong> to sort by that column; click again to reverse. The sort direction indicator updates in the header.</p>
 
+    <div class="tip">
+        <strong>&#128161; v4.0:</strong> <strong>Click any row</strong> to jump to and select that API in the API Tree &#8212; no need to search for it manually after spotting it in the table.
+    </div>
+
     <h3>Row Colours</h3>
     <table>
         <thead><tr><th>Colour</th><th>Condition</th></tr></thead>
@@ -1097,7 +1135,7 @@
     <p>Shows contextual details about the currently selected log line or API tree node. Automatically switches to this tab when:</p>
     <ul>
         <li>A log list row is selected (shows line number + full text).</li>
-        <li>An API Tree node is clicked (shows invocation summary: total calls, line numbers, match status).</li>
+        <li>An API Tree node is clicked (shows invocation summary: total calls, line numbers, match status, and, when timing data is available, a Total/Avg/Min/Max timing summary <em>(v4.0)</em>).</li>
     </ul>
 </div>
 
@@ -1145,7 +1183,7 @@
     <div class="card">
         <div class="feature-row"><span class="label">Aggregation</span><span class="desc">Sibling calls sharing the same function name under the same parent merge into one wider bar, labelled <code>Name &#215;N</code>, with summed duration/self-time/call-count &#8212; recursively at every depth</span></div>
         <div class="feature-row"><span class="label">Hover</span><span class="desc">Tooltip shows method name, duration, percentage of total time, and &#8220;Calls merged: N&#8221; when applicable</span></div>
-        <div class="feature-row"><span class="label">Click</span><span class="desc">Zooms into that call and its children</span></div>
+        <div class="feature-row"><span class="label">Click</span><span class="desc">Zooms into that call and its children, and also selects the matching node in the Call Tree</span></div>
         <div class="feature-row"><span class="label">Dark/Light theme</span><span class="desc">Colours update automatically with the active theme</span></div>
         <div class="feature-row"><span class="label">Export to Speedscope JSON</span><span class="desc">Right-click &#8594; Export to Speedscope JSON&#8230; or right-click &#8594; Open in Speedscope.app</span></div>
         <div class="feature-row"><span class="label">Export as Image</span><span class="desc">Right-click &#8594; <strong>Export as Image&#8230;</strong> <em>or</em> File &#8594; Export Flame Graph&#8230; (1920&#215;1080 PNG)</span></div>
@@ -1171,6 +1209,8 @@
         <div class="feature-row"><span class="label">Hover a cell</span><span class="desc">Tooltip shows the API name, that bucket&#8217;s time range, total duration, and call count</span></div>
         <div class="feature-row"><span class="label">Click a row</span><span class="desc">Selects that API elsewhere in the app</span></div>
         <div class="feature-row"><span class="label">Time-axis ticks</span><span class="desc">Five evenly-spaced labels across the header show the elapsed time at each point</span></div>
+        <div class="feature-row"><span class="label">Time / Count toggle</span><span class="desc"><em>(v4.0)</em> Switches what cell colour depth represents &#8212; total duration spent (default) or call count &#8212; the subtitle names the active dimension</span></div>
+        <div class="feature-row"><span class="label">Export&#8230; button</span><span class="desc"><em>(v4.0)</em> Saves the full matrix as a PNG, including rows currently scrolled out of view</span></div>
     </div>
 
     <div class="note">
@@ -1261,6 +1301,10 @@
     <div class="warn">
         <strong>&#9888; Legacy Claude integration:</strong> the AI &amp; Integration page also has a separate, deprecated &#8220;Legacy Integration&#8221; box left over from an older single-provider Claude setup. Use the <strong>Anthropic Claude</strong> provider above instead &#8212; the legacy fields are kept only for backward compatibility.
     </div>
+
+    <div class="tip">
+        <strong>&#128161; v4.0 &#8212; jumping in from the Call Tree:</strong> right-click any Call Tree node &#8594; <strong>Ask AI about this node&#8230;</strong> to switch to this tab and ask a question pre-scoped to that method, or <strong>Analyze Root Cause</strong> to send the node&#8217;s full parent chain (up to 200 levels) and get an explanation grounded in that exact call path. Root-cause answers are cached per node/chain, so re-selecting the same node is instant on a second look. See <a href="#tree-context">Tree Context Menu</a>.
+    </div>
 </div>
 
 
@@ -1288,6 +1332,7 @@
             <tr><td>Call Tree XML</td><td>File &#8594; Export Tree as XML&#8230;</td><td>Complete call tree structure</td></tr>
             <tr><td>Branch CSV</td><td>Right-click node &#8594; Export Branch as CSV&#8230;</td><td>Name, Depth, Duration columns for a subtree</td></tr>
             <tr><td>Branch log</td><td>Right-click node &#8594; Save Branch&#8230;</td><td>The raw ENTER&#8594;EXIT log section for one method</td></tr>
+            <tr><td>Analytics Report (.html)</td><td><em>(v4.0)</em> File &#8594; Export Analytics Report&#8230;</td><td>A self-contained, styled HTML report: aggregate statistics, top slowest calls, most frequently called methods, and call-depth analysis &#8212; opens automatically in your browser after saving</td></tr>
         </tbody>
     </table>
 
@@ -1295,11 +1340,16 @@
     <table>
         <thead><tr><th>Visualisation</th><th>How to access</th><th>Resolution</th></tr></thead>
         <tbody>
-            <tr><td>Call Graph</td><td>Export&#8230; button on the Call Graph tab</td><td>Current panel size (min 800&#215;600)</td></tr>
+            <tr><td>Call Graph</td><td>Export&#8230; button on the Call Graph tab</td><td>Current panel size (min 800&#215;600), reset to fit before capture</td></tr>
             <tr><td>Flame Graph</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Flame Graph&#8230;</td><td>1920&#215;1080</td></tr>
             <tr><td>Timeline</td><td>Right-click &#8594; Export as Image&#8230; <em>or</em> File &#8594; Export Timeline&#8230;</td><td>1920&#215;1080</td></tr>
+            <tr><td>Heatmap</td><td><em>(v4.0)</em> Export&#8230; button on the Heatmap tab</td><td>Full matrix, including rows scrolled out of view</td></tr>
         </tbody>
     </table>
+
+    <div class="note">
+        <strong>&#128221; v4.0 &#8212; filenames:</strong> every image/report export above now appends a <code>_yyyyMMdd_HHmmss</code> timestamp to the default filename, so repeated exports during one session never silently overwrite each other.
+    </div>
 </div>
 
 
@@ -1772,7 +1822,7 @@
 
 
 <footer>
-    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v3.1.9 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v4.0.0 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
     <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
 </footer>
 

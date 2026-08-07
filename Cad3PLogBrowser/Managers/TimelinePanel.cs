@@ -33,7 +33,7 @@ namespace Cad3PLogBrowser.Managers
         // Stores the last mouse position for zoom-centering (Issue 2)
         private Point _lastMouseForZoom = new Point(0, 0);
 
-        // Issues 2/3: cached GDI resources — allocated once and reused across paint
+        // Issues 2/3: cached GDI resources ï¿½ allocated once and reused across paint
         // calls instead of being created and disposed for every visible entry.
         private Font        _entryFont;     // bar label font
         private Font        _durFont;       // duration sub-label font
@@ -46,6 +46,11 @@ namespace Cad3PLogBrowser.Managers
         private int _maxDepth = 0;
 
         private const float ROW_HEIGHT  = 28f;
+        // F2: zoom previously only scaled bar width, never row height, so "zoom" read
+        // as horizontal-only. _zoom already drives the pivot-based pan recentering for
+        // both axes (see ZoomBy) â€” scaling row height by the same factor was the only
+        // piece missing to make zoom genuinely 2D.
+        private float ScaledRowHeight => ROW_HEIGHT * _zoom;
         private const float BAR_RADIUS  = 4f;
         private const float MIN_ZOOM    = 0.1f;
         private const float MAX_ZOOM    = 100.0f;
@@ -264,10 +269,10 @@ namespace Cad3PLogBrowser.Managers
             // Translate for pan (zoom is baked into Bounds by CalculateLayout)
             g.TranslateTransform(_panOffset.X, _panOffset.Y);
 
-            // Issues 2/3: Viewport culling — compute the visible rectangle in
+            // Issues 2/3: Viewport culling ï¿½ compute the visible rectangle in
             // layout-space so we skip entries that are completely off-screen.
             // For a merged log with 10 000 entries this reduces the rendered set
-            // to the ~30–80 entries actually visible, giving 100–300x fewer
+            // to the ~30ï¿½80 entries actually visible, giving 100ï¿½300x fewer
             // DrawTimelineEntry calls per paint event.
             float visLeft   = -_panOffset.X;
             float visRight  = visLeft  + _contentPanel.ClientSize.Width;
@@ -300,8 +305,8 @@ namespace Cad3PLogBrowser.Managers
                 g.FillRectangle(bgBrush, 0, y0, _contentPanel.Width, H);
             using (var sep = new Pen(AxisColor))
                 g.DrawLine(sep, 0, y0, _contentPanel.Width, y0);
-            string txt = $"  {_entries.Count} calls  •  {_totalDurationMs}ms total" +
-                         $"  •  Zoom {_zoom*100:F0}%  •  Scroll=Zoom  Drag=Pan  Click=Jump";
+            string txt = $"  {_entries.Count} calls  ï¿½  {_totalDurationMs}ms total" +
+                         $"  ï¿½  Zoom {_zoom*100:F0}%  ï¿½  Scroll=Zoom  Drag=Pan  Click=Jump";
             using (var f = new Font("Segoe UI", 7.5f))
             using (var b = new SolidBrush(Color.FromArgb(140, Dark ? 185 : 65, Dark ? 192 : 72, Dark ? 215 : 105)))
                 g.DrawString(txt, f, b, 0, y0 + 4);
@@ -345,7 +350,7 @@ namespace Cad3PLogBrowser.Managers
         {
             if (_entries.Count == 0) return;
             float zoomedWidth  = LEFT_MARGIN + (_contentPanel.ClientSize.Width - LEFT_MARGIN - 20) * _zoom + 40;
-            float zoomedHeight = TOP_MARGIN + (_maxDepth + 1) * ROW_HEIGHT + 40;  // cached _maxDepth
+            float zoomedHeight = TOP_MARGIN + (_maxDepth + 1) * ScaledRowHeight + 40;  // cached _maxDepth
             _contentPanel.AutoScrollMinSize = new Size(
                 (int)Math.Max(0, zoomedWidth),
                 (int)Math.Max(0, zoomedHeight));
@@ -416,7 +421,7 @@ namespace Cad3PLogBrowser.Managers
             }
 
             // Issue 4: show wait cursor during conversion so the user knows the
-            // application is working, not frozen — especially for merged logs.
+            // application is working, not frozen ï¿½ especially for merged logs.
             Cursor prev = Cursor.Current;
             Cursor.Current = Cursors.WaitCursor;
 
@@ -431,7 +436,7 @@ namespace Cad3PLogBrowser.Managers
                     ConvertToTimelineRecursive(node, 0, ref currentTime);
 
                 // Issues 2/3: cache _maxDepth once after loading so paint
-                // handlers don’t run O(N) LINQ on every frame.
+                // handlers donï¿½t run O(N) LINQ on every frame.
                 _maxDepth = 0;
                 foreach (var entry in _entries)
                     if (entry.Depth > _maxDepth) _maxDepth = entry.Depth;
@@ -481,8 +486,8 @@ namespace Cad3PLogBrowser.Managers
                     float offsetMs = (float)(entry.StartTime - _startTime).TotalMilliseconds;
                     float x = LEFT_MARGIN + (offsetMs / _totalDurationMs) * availableWidth;
                     float bw = Math.Max(2f, (entry.DurationMs / (float)_totalDurationMs) * availableWidth);
-                    float y = TOP_MARGIN + (entry.Depth * ROW_HEIGHT);
-                    entry.Bounds = new RectangleF(x, y, bw, ROW_HEIGHT - 2);
+                    float y = TOP_MARGIN + (entry.Depth * ScaledRowHeight);
+                    entry.Bounds = new RectangleF(x, y, bw, ScaledRowHeight - 2);
                 }
 
                 foreach (var entry in _entries)
@@ -555,12 +560,12 @@ namespace Cad3PLogBrowser.Managers
 
         private Color GetColorForDuration(long durationMs)
         {
-            if (durationMs <= 0)   return Color.FromArgb( 75, 190, 165);  // teal  – no data
-            if (durationMs <  50)  return Color.FromArgb( 60, 195, 130);  // emerald – very fast
-            if (durationMs <  200) return Color.FromArgb(100, 185, 225);  // sky blue – fast
-            if (durationMs <  500) return Color.FromArgb(240, 185,  55);  // amber – medium
-            if (durationMs < 1000) return Color.FromArgb(240, 130,  60);  // orange – slow
-            return                        Color.FromArgb(225,  65,  60);  // red – very slow
+            if (durationMs <= 0)   return Color.FromArgb( 75, 190, 165);  // teal  ï¿½ no data
+            if (durationMs <  50)  return Color.FromArgb( 60, 195, 130);  // emerald ï¿½ very fast
+            if (durationMs <  200) return Color.FromArgb(100, 185, 225);  // sky blue ï¿½ fast
+            if (durationMs <  500) return Color.FromArgb(240, 185,  55);  // amber ï¿½ medium
+            if (durationMs < 1000) return Color.FromArgb(240, 130,  60);  // orange ï¿½ slow
+            return                        Color.FromArgb(225,  65,  60);  // red ï¿½ very slow
         }
 
         // ??????????????????????????????????????????????????????????????????????
@@ -581,8 +586,8 @@ namespace Cad3PLogBrowser.Managers
                 float offsetMs = (float)(entry.StartTime - _startTime).TotalMilliseconds;
                 float x = LEFT_MARGIN + (offsetMs / _totalDurationMs) * availableWidth;
                 float width = Math.Max(2f, (entry.DurationMs / (float)_totalDurationMs) * availableWidth);
-                float y = TOP_MARGIN + (entry.Depth * ROW_HEIGHT);
-                entry.Bounds = new RectangleF(x, y, width, ROW_HEIGHT - 2);
+                float y = TOP_MARGIN + (entry.Depth * ScaledRowHeight);
+                entry.Bounds = new RectangleF(x, y, width, ScaledRowHeight - 2);
             }
         }
 
@@ -691,12 +696,12 @@ namespace Cad3PLogBrowser.Managers
             // Alternating row shading
             for (int depth = 0; depth <= maxDepth; depth++)
             {
-                float rowY = TOP_MARGIN + _panOffset.Y + depth * ROW_HEIGHT;
-                if (rowY + ROW_HEIGHT < TOP_MARGIN || rowY > _contentPanel.Height) continue;
+                float rowY = TOP_MARGIN + _panOffset.Y + depth * ScaledRowHeight;
+                if (rowY + ScaledRowHeight < TOP_MARGIN || rowY > _contentPanel.Height) continue;
                 if (depth % 2 == 1)
                     using (var rb = new SolidBrush(Color.FromArgb(Dark ? 10 : 8,
                         Dark ? 255 : 0, Dark ? 255 : 0, Dark ? 255 : 0)))
-                        g.FillRectangle(rb, LEFT_MARGIN, rowY, _contentPanel.Width - LEFT_MARGIN, ROW_HEIGHT);
+                        g.FillRectangle(rb, LEFT_MARGIN, rowY, _contentPanel.Width - LEFT_MARGIN, ScaledRowHeight);
             }
 
             using (var brush = new SolidBrush(LabelColor))
@@ -704,7 +709,7 @@ namespace Cad3PLogBrowser.Managers
                 // use cached _axisLabelFont (Issues 2/3)
                 for (int depth = 0; depth <= maxDepth; depth++)
                 {
-                    float y = TOP_MARGIN + _panOffset.Y + depth * ROW_HEIGHT + ROW_HEIGHT / 2f;
+                    float y = TOP_MARGIN + _panOffset.Y + depth * ScaledRowHeight + ScaledRowHeight / 2f;
                     if (y < TOP_MARGIN || y > _contentPanel.Height) continue;
 
                     string lbl = string.Format("D{0}", depth);
@@ -732,7 +737,7 @@ namespace Cad3PLogBrowser.Managers
             Color fillBot = Darken(fill, 0.75f);
             var   r       = entry.Bounds;
 
-            // Shadow — cached brush (Issues 2/3)
+            // Shadow ï¿½ cached brush (Issues 2/3)
             { var sr = r; sr.Offset(1, 2); FillRounded(g, _shadowBrush, sr, BAR_RADIUS); }
 
             // Gradient body
@@ -740,7 +745,7 @@ namespace Cad3PLogBrowser.Managers
                 new PointF(r.X, r.Y), new PointF(r.X, r.Bottom), fill, fillBot))
                 FillRounded(g, gb, r, BAR_RADIUS);
 
-            // Gloss strip — cached brush
+            // Gloss strip ï¿½ cached brush
             FillRounded(g, _glossBrush, new RectangleF(r.X + 1, r.Y + 1, r.Width - 2, 7), 3);
 
             // Border
@@ -755,7 +760,7 @@ namespace Cad3PLogBrowser.Managers
                 using (var gp = new Pen(Color.FromArgb(100, 0, 150, 230), 1f))
                     StrokeRounded(g, gp, RectangleF.Inflate(r, 2, 2), BAR_RADIUS + 2);
 
-            // Label — use cached fonts (Issues 2/3)
+            // Label ï¿½ use cached fonts (Issues 2/3)
             if (r.Width > 36)
             {
                 using (var tb = new SolidBrush(Dark ? Color.FromArgb(238, 240, 248) : Color.FromArgb(20, 28, 55)))

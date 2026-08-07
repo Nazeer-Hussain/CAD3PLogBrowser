@@ -21,6 +21,33 @@ namespace Cad3PLogBrowser.Services.Core
                 @"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)",
                 System.Text.RegularExpressions.RegexOptions.Compiled);
 
+        private static readonly CompressedLogService _compressedLogService = new CompressedLogService();
+
+        /// <summary>A6: routes through CompressedLogService for .gz/.zip sources so merging
+        /// a compressed file no longer reads its compressed bytes as garbage text — merge
+        /// previously always used a raw StreamReader regardless of the drag-drop/Open
+        /// dialog's A7 decompression support.</summary>
+        private static IEnumerable<string> ReadRawLines(string path)
+        {
+            if (CompressedLogService.IsCompressed(path))
+                return _compressedLogService.ReadLines(path);
+
+            return ReadPlainTextLines(path);
+        }
+
+        private static IEnumerable<string> ReadPlainTextLines(string path)
+        {
+            using (var stream = new FileStream(path, FileMode.Open,
+                FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = new StreamReader(stream, Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true))
+            {
+                string raw;
+                while ((raw = reader.ReadLine()) != null)
+                    yield return raw;
+            }
+        }
+
         public Task<List<string>> MergeAsync(IEnumerable<string> filePaths)
         {
             return Task.Run(() => Merge(filePaths));
@@ -47,18 +74,11 @@ namespace Cad3PLogBrowser.Services.Core
             {
                 string tag = Path.GetFileName(path);
 
-                using (var stream = new FileStream(path, FileMode.Open,
-                    FileAccess.Read, FileShare.ReadWrite))
-                using (var reader = new StreamReader(stream, Encoding.UTF8,
-                    detectEncodingFromByteOrderMarks: true))
+                foreach (var raw in ReadRawLines(path))
                 {
-                    string raw;
-                    while ((raw = reader.ReadLine()) != null)
-                    {
-                        long ts = ExtractTimestamp(raw);
-                        string tagged = string.Format("[{0}] {1}", tag, raw);
-                        buckets.Add((ts, tagged));
-                    }
+                    long ts = ExtractTimestamp(raw);
+                    string tagged = string.Format("[{0}] {1}", tag, raw);
+                    buckets.Add((ts, tagged));
                 }
             }
 
@@ -82,7 +102,10 @@ namespace Cad3PLogBrowser.Services.Core
             return a.ts.CompareTo(b.ts);
         }
 
-        private static long ExtractTimestamp(string line)
+        /// <summary>Extracts a raw log line's epoch-ms timestamp (from the trailing
+        /// ENTER/EXIT tab-field, or a leading ISO timestamp), 0 if neither is found.
+        /// Shared with G7's branch-to-XLSX export for its Timestamp column.</summary>
+        public static long ExtractTimestamp(string line)
         {
             // Fast path: epoch ms is the last tab-field on ENTER/EXIT lines
             int lastTab = line.LastIndexOf('\t');
@@ -128,17 +151,10 @@ namespace Cad3PLogBrowser.Services.Core
                 {
                     if (!File.Exists(path)) continue;
                     string tag = Path.GetFileName(path);
-                    using (var stream = new FileStream(path, FileMode.Open,
-                        FileAccess.Read, FileShare.ReadWrite))
-                    using (var reader = new StreamReader(stream, Encoding.UTF8,
-                        detectEncodingFromByteOrderMarks: true))
+                    foreach (var raw in ReadRawLines(path))
                     {
-                        string raw;
-                        while ((raw = reader.ReadLine()) != null)
-                        {
-                            long ts = ExtractTimestamp(raw);
-                            buckets.Add((ts, string.Format("[{0}] {1}", tag, raw)));
-                        }
+                        long ts = ExtractTimestamp(raw);
+                        buckets.Add((ts, string.Format("[{0}] {1}", tag, raw)));
                     }
                 }
 

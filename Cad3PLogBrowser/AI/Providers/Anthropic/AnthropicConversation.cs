@@ -186,8 +186,16 @@ namespace Cad3PLogBrowser.AI.Providers.Anthropic
             return total;
         }
 
+        /// <summary>L6: spec requires a hard cap of the last 6 turns, enforced
+        /// alongside the token-based trim above so history never grows unbounded
+        /// even when individual messages are short enough to stay under budget.</summary>
+        private const int MaxHistoryMessages = 12; // 6 turns x (user + assistant)
+
         public void TrimToTokenLimit(int maxTokens)
         {
+            while (_messages.Count > MaxHistoryMessages)
+                _messages.RemoveAt(0);
+
             int currentTokens = EstimateTotalTokens();
 
             if (currentTokens <= maxTokens)

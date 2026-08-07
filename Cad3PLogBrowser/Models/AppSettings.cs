@@ -20,6 +20,14 @@ namespace Cad3PLogBrowser.Services
         // Services.Core.RecentFilesService), not here — only the preference below does.
         public int          MaxRecentFiles   { get; set; } = 10;
         public string       InitialDirectory { get; set; } = "";
+        // J1: which source wins for the Open dialog's default folder when the
+        // manual InitialDirectory above is blank — the PTC_LOG_DIR environment
+        // variable (true, matching A3's original default) or always the last-used
+        // directory even when PTC_LOG_DIR is set (false).
+        public bool         UseEnvVarForDefaultDirectory { get; set; } = true;
+        // G10: pre-populates the Report Errors dialog's recipient field; remembered
+        // across sessions once the user fills it in once.
+        public string       ErrorReportEmail { get; set; } = "";
 
         // ── UI preferences ────────────────────────────────────────────────────
         public string  HighlightColorName   { get; set; } = "Yellow";
@@ -35,6 +43,8 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowAiTab            { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
+        // H2: whether the whole right-side tab panel is collapsed (View > Hide Tabs).
+        public bool    HideRightPanel       { get; set; } = false;
         public string  ToolbarIconSize      { get; set; } = "Medium"; // "Small" | "Medium" | "Large"
         public bool    ShowToolbar          { get; set; } = true;
         public bool    ShowStatusBar        { get; set; } = true;

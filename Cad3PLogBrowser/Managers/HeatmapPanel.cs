@@ -19,6 +19,9 @@ namespace Cad3PLogBrowser.Managers
     public class HeatmapPanel : Panel
     {
         public event EventHandler<string> ApiSelected;
+        /// <summary>F6: raised when the user clicks "Export PNG...". MainForm owns the
+        /// SaveFileDialog and file I/O, matching how Timeline/FlameGraph export works.</summary>
+        public event EventHandler ExportImageRequested;
 
         private const int RowHeight    = 24;
         private const int HeaderHeight = 46;
@@ -39,10 +42,15 @@ namespace Cad3PLogBrowser.Managers
 
         private List<ApiRow> _rows = new List<ApiRow>();
         private long _maxCellDuration = 1;
+        private int  _maxCellCallCount = 1;
+        // F5: toggles cell colour depth between time-spent (default) and call-count.
+        private bool _colorByCount = false;
         private long _startEpochMs, _endEpochMs;
         private int _hoveredRow = -1, _hoveredBucket = -1;
         private readonly ToolTip _tip = new ToolTip();
         private readonly VScrollBar _scrollBar;
+        private readonly Button _modeToggle;
+        private readonly Button _exportButton;
 
         public HeatmapPanel()
         {
@@ -53,12 +61,80 @@ namespace Cad3PLogBrowser.Managers
             _scrollBar = new VScrollBar { Dock = DockStyle.Right, SmallChange = RowHeight, LargeChange = RowHeight * 5, Visible = false };
             _scrollBar.ValueChanged += (s, e) => Invalidate();
             Controls.Add(_scrollBar);
+
+            _modeToggle = new Button
+            {
+                Text      = "Colour: Time",
+                Size      = new Size(110, 22),
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+                TabStop   = false
+            };
+            _modeToggle.Click += (s, e) =>
+            {
+                _colorByCount = !_colorByCount;
+                _modeToggle.Text = _colorByCount ? "Colour: Count" : "Colour: Time";
+                Invalidate();
+            };
+            Controls.Add(_modeToggle);
+
+            _exportButton = new Button
+            {
+                Text      = "Export PNG...",
+                Size      = new Size(100, 22),
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+                TabStop   = false
+            };
+            _exportButton.Click += (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty);
+            Controls.Add(_exportButton);
+
+            // F6: right-click "Export as Image..." to match Flame Graph/Timeline's
+            // context menu, in addition to the in-panel button above.
+            var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("Export as Image...", null, (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty));
+            this.ContextMenuStrip = contextMenu;
+
+            PositionModeToggle();
+            UpdateTheme();
+        }
+
+        private void PositionModeToggle()
+        {
+            _modeToggle.Location = new Point(Math.Max(0, GridAreaWidth - _modeToggle.Width - RightPad), 2);
+            _exportButton.Location = new Point(_modeToggle.Left - _exportButton.Width - 6, 2);
+        }
+
+        /// <summary>F6: Heatmap previously had no export at all. Renders every row
+        /// (ignoring the current scroll position, unlike a plain screenshot would) at
+        /// the panel's current width — there's no zoom/pan to reset here, just the
+        /// vertical scroll that would otherwise crop everything below the fold.</summary>
+        public Bitmap ExportAsImage()
+        {
+            int width  = Math.Max(1, GridAreaWidth);
+            int height = Math.Max(1, HeaderHeight + _rows.Count * RowHeight);
+            var bmp = new Bitmap(width, height);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(ThemeManager.BackgroundColor);
+                for (int i = 0; i < _rows.Count; i++)
+                    DrawRow(g, i, HeaderHeight + i * RowHeight, width);
+                DrawHeader(g, width);
+            }
+            return bmp;
         }
 
         /// <summary>Re-reads theme colours after a Light/Dark toggle.</summary>
         public void UpdateTheme()
         {
             BackColor = ThemeManager.BackgroundColor;
+            _modeToggle.BackColor = ThemeManager.ButtonBackgroundColor;
+            _modeToggle.ForeColor = ThemeManager.ForegroundColor;
+            _modeToggle.FlatAppearance.BorderColor = ThemeManager.BorderColor;
+            _exportButton.BackColor = ThemeManager.ButtonBackgroundColor;
+            _exportButton.ForeColor = ThemeManager.ForegroundColor;
+            _exportButton.FlatAppearance.BorderColor = ThemeManager.BorderColor;
             Invalidate();
         }
 
@@ -113,11 +189,17 @@ namespace Cad3PLogBrowser.Managers
             _rows = byApi.Values.OrderByDescending(r => r.TotalDurationMs).ToList();
 
             _maxCellDuration = 1;
+            _maxCellCallCount = 1;
             foreach (var row in _rows)
+            {
                 foreach (var d in row.BucketDurationMs)
                     if (d > _maxCellDuration) _maxCellDuration = d;
+                foreach (var c in row.BucketCallCount)
+                    if (c > _maxCellCallCount) _maxCellCallCount = c;
+            }
 
             UpdateScrollBar();
+            PositionModeToggle();
             Invalidate();
         }
 
@@ -186,6 +268,7 @@ namespace Cad3PLogBrowser.Managers
         {
             base.OnResize(e);
             UpdateScrollBar();
+            PositionModeToggle();
             Invalidate();
         }
 
@@ -239,8 +322,11 @@ namespace Cad3PLogBrowser.Managers
 
             using (var hintFont = new Font("Segoe UI", 8f))
             using (var hintBrush = new SolidBrush(MutedInk))
-                g.DrawString(string.Format("{0} APIs — colour depth = time spent in that window", _rows.Count),
+            {
+                string colourBy = _colorByCount ? "call count" : "time spent";
+                g.DrawString(string.Format("{0} APIs — colour depth = {1} in that window", _rows.Count, colourBy),
                     hintFont, hintBrush, 14, 21);
+            }
 
             // Time-axis ticks under the title, spanning the grid area.
             float gridLeft  = LabelWidth;
@@ -304,11 +390,18 @@ namespace Cad3PLogBrowser.Managers
                 float cellX = LabelWidth + b * cellW;
                 var cellRect = new RectangleF(cellX, cellY, Math.Max(1f, cellW - 1), cellH);
 
-                long dur = row.BucketDurationMs[b];
-                float t = dur / (float)_maxCellDuration;
+                // F5: colour depth is either time-spent (default) or call-count,
+                // toggled by _modeToggle — both dimensions were always tracked per
+                // bucket, but only time was ever drawn.
+                long dur   = row.BucketDurationMs[b];
+                int  count = row.BucketCallCount[b];
+                float t = _colorByCount
+                    ? count / (float)_maxCellCallCount
+                    : dur   / (float)_maxCellDuration;
+                bool hasActivity = _colorByCount ? count > 0 : dur > 0;
                 bool hoveredCell = hoveredRow && b == _hoveredBucket;
 
-                using (var brush = new SolidBrush(dur > 0 ? HeatColor(t) : ThemeManager.ControlBackgroundColor))
+                using (var brush = new SolidBrush(hasActivity ? HeatColor(t) : ThemeManager.ControlBackgroundColor))
                     g.FillRectangle(brush, cellRect);
 
                 if (hoveredCell)

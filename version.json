@@ -1,7 +1,7 @@
 {
-  "version": "3.1.11",
-  "downloadUrl": "https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases/download/v3.1.11/Cad3PLogBrowser.exe",
-  "releaseNotes": "v3.1 - CI/CD + Update Enhancements",
+  "version": "4.0.0",
+  "downloadUrl": "https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases/download/v4.0.0/Cad3PLogBrowser.exe",
+  "releaseNotes": "v4.0 - Real tree filtering, AI-assisted root cause, full export/reporting suite, and 20+ usability fixes",
   "mandatory": false,
   "sha256": "",
   "downloadSizeBytes": 0

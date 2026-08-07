@@ -77,7 +77,25 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("API_DETAILS_FIRST_OCCURRENCE", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Total time        : {0:N0} ms.
+        /// </summary>
+        internal static string API_DETAILS_TIMING_SUMMARY {
+            get {
+                return ResourceManager.GetString("API_DETAILS_TIMING_SUMMARY", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Timing            : (no matched ENTER/EXIT pairs to time).
+        /// </summary>
+        internal static string API_DETAILS_NO_TIMING {
+            get {
+                return ResourceManager.GetString("API_DETAILS_NO_TIMING", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to === API Details: {0} ===.
         /// </summary>
@@ -401,7 +419,16 @@ namespace Cad3PLogBrowser.Properties {
                 return ResourceManager.GetString("ERR_EXPORT_FLAME_GRAPH_FAILED", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export heatmap:\n{0}.
+        /// </summary>
+        internal static string ERR_EXPORT_HEATMAP_FAILED {
+            get {
+                return ResourceManager.GetString("ERR_EXPORT_HEATMAP_FAILED", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Could not export performance data:\n{0}.
         /// </summary>
@@ -1134,6 +1161,15 @@ namespace Cad3PLogBrowser.Properties {
         internal static string MSG_FLAME_GRAPH_EXPORTED {
             get {
                 return ResourceManager.GetString("MSG_FLAME_GRAPH_EXPORTED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Heatmap exported to:\n{0}.
+        /// </summary>
+        internal static string MSG_HEATMAP_EXPORTED {
+            get {
+                return ResourceManager.GetString("MSG_HEATMAP_EXPORTED", resourceCulture);
             }
         }
         

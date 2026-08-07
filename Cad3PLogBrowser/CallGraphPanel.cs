@@ -11,14 +11,19 @@ namespace Cad3PLogBrowser
 {
     /// <summary>
     /// Professional call-graph panel with two view modes:
-    ///   Weighted   — edge thickness and node heat colour scale with call frequency
-    ///   Structural — flat colours, uniform edges (who-calls-whom, no weights)
+    ///   Weighted   ï¿½ edge thickness and node heat colour scale with call frequency
+    ///   Structural ï¿½ flat colours, uniform edges (who-calls-whom, no weights)
     /// Features: dot-grid background, gradient nodes, heat-map colouring,
     ///           arrowhead edges with weight badges, zoom/pan, hover highlight,
     ///           status bar, legend.
     /// </summary>
     public class CallGraphPanel : Panel
     {
+        /// <summary>F6: raised when the user chooses "Export as Image..." from the
+        /// right-click context menu. MainForm owns the SaveFileDialog and file I/O,
+        /// matching how Timeline/FlameGraph/Heatmap export works.</summary>
+        public event EventHandler ExportImageRequested;
+
         // ?? State ??????????????????????????????????????????????????????????????
         private CallGraph _graph;
         private float     _zoom      = 1.0f;
@@ -55,10 +60,10 @@ namespace Cad3PLogBrowser
         // Heat palette: cool (few calls) ? hot (many calls)
         private static readonly Color[] Heat =
         {
-            Color.FromArgb(50,  95, 170),   // cool  – blue
-            Color.FromArgb(30, 165, 125),   // warm  – teal
-            Color.FromArgb(205,175,  28),   // hot   – amber
-            Color.FromArgb(215,  55,  50),  // very hot – red
+            Color.FromArgb(50,  95, 170),   // cool  ï¿½ blue
+            Color.FromArgb(30, 165, 125),   // warm  ï¿½ teal
+            Color.FromArgb(205,175,  28),   // hot   ï¿½ amber
+            Color.FromArgb(215,  55,  50),  // very hot ï¿½ red
         };
 
         // ?? Welcome panel ?????????????????????????????????????????????????????
@@ -109,6 +114,12 @@ namespace Cad3PLogBrowser
 
             _toolbar.BringToFront();
             _statusBar.BringToFront();
+
+            // F6: right-click "Export as Image..." to match Flame Graph/Timeline/
+            // Heatmap's context menu, in addition to the separate toolbar button.
+            var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("Export as Image...", null, (s, e) => ExportImageRequested?.Invoke(this, EventArgs.Empty));
+            this.ContextMenuStrip = contextMenu;
         }
 
         // ?? Public API ?????????????????????????????????????????????????????????
@@ -194,6 +205,13 @@ namespace Cad3PLogBrowser
         }
 
         public void ResetView() { FitToWindow(); Invalidate(); }
+
+        // F6: lets the export path temporarily fit the whole graph into view (so the
+        // exported image isn't just whatever part of a zoomed/panned graph happened to
+        // be on screen) and then restore exactly what the user was looking at.
+        public float CurrentZoom => _zoom;
+        public PointF CurrentPan => _pan;
+        public void SetView(float zoom, PointF pan) { _zoom = zoom; _pan = pan; Invalidate(); }
 
         public void ToggleViewMode() { _structuralView = !_structuralView; Invalidate(); }
 
@@ -463,8 +481,8 @@ namespace Cad3PLogBrowser
                 g.DrawLine(sep, 0, y0, Width, y0);
 
             string mode = _structuralView ? "Structural" : "Weighted";
-            string txt  = $"  {_graph.Nodes.Count} nodes  •  {_graph.Edges.Count} edges  •  Mode: {mode}" +
-                          $"  •  Zoom {_zoom * 100:F0}%  •  Scroll=Zoom  Drag=Pan  Click=Info  Dbl-Click=Center";
+            string txt  = $"  {_graph.Nodes.Count} nodes  ï¿½  {_graph.Edges.Count} edges  ï¿½  Mode: {mode}" +
+                          $"  ï¿½  Zoom {_zoom * 100:F0}%  ï¿½  Scroll=Zoom  Drag=Pan  Click=Info  Dbl-Click=Center";
             using (var f = new Font("Segoe UI", 7.5f))
             using (var b = new SolidBrush(Color.FromArgb(145, Dark ? 195 : 75, Dark ? 200 : 80, Dark ? 218 : 105)))
                 g.DrawString(txt, f, b, 0, y0 + 4);
@@ -616,7 +634,7 @@ namespace Cad3PLogBrowser
                           $"Outgoing calls : {outgoing}  ({callees.Count} callee{(callees.Count == 1 ? "" : "s")})";
             if (callers.Count > 0) info += $"\n\nCallers:\n  {string.Join("\n  ", callers)}";
             if (callees.Count > 0) info += $"\n\nCallees:\n  {string.Join("\n  ", callees)}";
-            MessageBox.Show(info, "Call Graph — Node Details", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(info, "Call Graph ï¿½ Node Details", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

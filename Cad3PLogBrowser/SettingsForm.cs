@@ -45,6 +45,8 @@ namespace Cad3PLogBrowser
 
         // -- Files & Behavior --------------------------------------------------
         private TextBox        txtInitialDir;
+        private RadioButton    rdoUseEnvVarDir;
+        private RadioButton    rdoUseLastUsedDir;
         private NumericUpDown  nudMaxRecentFiles;
         private TextBox        txtSnippetSuffix;
         private CheckBox       chkRestoreSession;
@@ -622,7 +624,7 @@ namespace Cad3PLogBrowser
                 // it here so the box title doesn't silently drop the ampersand.
                 Text = SettingsDialogStrings.TabFilesAndBehavior.Replace("&", "&&"),
                 Location = new Point(12, 10),
-                Size = new Size(530, 225),
+                Size = new Size(530, 251),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -634,13 +636,33 @@ namespace Cad3PLogBrowser
             btnBrowse.Click += (s, e) => BrowseFolder();
             grpFiles.Controls.Add(btnBrowse);
 
-            nudMaxRecentFiles = AddNud(grpFiles, SettingsDialogStrings.LabelMaxRecentFiles, 58, 5, 20, 10);
-            txtSnippetSuffix  = AddTxt(grpFiles, SettingsDialogStrings.LabelSnippetFileSuffix, 94, SettingsDialogStrings.DefaultSnippetSuffix, 160);
+            // J1: the folder above IS the "last used directory" (MainForm overwrites
+            // it after every successful file load, see SettingsService.SaveLastDirectory)
+            // — this toggle controls whether PTC_LOG_DIR still takes priority over it
+            // when both are set, or whether the last-used value should always win.
+            rdoUseEnvVarDir = new RadioButton
+            {
+                AutoSize = true,
+                Location = new Point(175, 50),
+                Text     = "Prefer PTC_LOG_DIR environment variable",
+            };
+            grpFiles.Controls.Add(rdoUseEnvVarDir);
+
+            rdoUseLastUsedDir = new RadioButton
+            {
+                AutoSize = true,
+                Location = new Point(175, 70),
+                Text     = "Always use last-used directory",
+            };
+            grpFiles.Controls.Add(rdoUseLastUsedDir);
+
+            nudMaxRecentFiles = AddNud(grpFiles, SettingsDialogStrings.LabelMaxRecentFiles, 96, 5, 20, 10);
+            txtSnippetSuffix  = AddTxt(grpFiles, SettingsDialogStrings.LabelSnippetFileSuffix, 132, SettingsDialogStrings.DefaultSnippetSuffix, 160);
 
             chkRestoreSession = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(12, 128),
+                Location = new Point(12, 166),
                 Text     = SettingsDialogStrings.CheckboxRestoreSession,
             };
             grpFiles.Controls.Add(chkRestoreSession);
@@ -649,20 +671,20 @@ namespace Cad3PLogBrowser
             chkWatchFileChanges = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(12, 154),
+                Location = new Point(12, 192),
                 Text     = SettingsDialogStrings.CheckboxWatchFileChanges,
             };
             grpFiles.Controls.Add(chkWatchFileChanges);
 
-            nudAutoReloadDelay = AddNud(grpFiles, SettingsDialogStrings.LabelAutoReloadDelay, 184, 0, 3600, 0);
-            Lbl(grpFiles, SettingsDialogStrings.HintAutoReloadDelay, 290, 188);
+            nudAutoReloadDelay = AddNud(grpFiles, SettingsDialogStrings.LabelAutoReloadDelay, 222, 0, 3600, 0);
+            Lbl(grpFiles, SettingsDialogStrings.HintAutoReloadDelay, 290, 226);
 
             tp.Controls.Add(grpFiles);
 
             var grpPerformance = new GroupBox
             {
                 Text = SettingsDialogStrings.TabPerformance,
-                Location = new Point(12, 245),
+                Location = new Point(12, 271),
                 Size = new Size(530, 216),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1089,6 +1111,8 @@ namespace Cad3PLogBrowser
 
             // Files & Behavior
             txtInitialDir.Text         = _settings.InitialDirectory ?? "";
+            rdoUseEnvVarDir.Checked    = _settings.UseEnvVarForDefaultDirectory;
+            rdoUseLastUsedDir.Checked  = !_settings.UseEnvVarForDefaultDirectory;
             nudMaxRecentFiles.Value    = Math.Max(5, Math.Min(20, _settings.MaxRecentFiles));
             txtSnippetSuffix.Text      = _settings.SaveSnippetSuffix ?? "_snippet";
             chkRestoreSession.Checked  = _settings.RestoreSessionOnStartup;
@@ -1213,6 +1237,7 @@ namespace Cad3PLogBrowser
 
             // Files & Behavior
             _settings.InitialDirectory  = txtInitialDir.Text.Trim();
+            _settings.UseEnvVarForDefaultDirectory = rdoUseEnvVarDir.Checked;
             _settings.MaxRecentFiles    = (int)nudMaxRecentFiles.Value;
             _settings.SaveSnippetSuffix = txtSnippetSuffix.Text.Trim();
             _settings.RestoreSessionOnStartup = chkRestoreSession.Checked;
@@ -1295,6 +1320,7 @@ namespace Cad3PLogBrowser
             _settings.LogFontSize         = def.LogFontSize;
             _settings.LogFontStyle        = def.LogFontStyle;
             _settings.InitialDirectory    = def.InitialDirectory;
+            _settings.UseEnvVarForDefaultDirectory = def.UseEnvVarForDefaultDirectory;
             _settings.MaxRecentFiles      = def.MaxRecentFiles;
             _settings.SaveSnippetSuffix   = def.SaveSnippetSuffix;
             _settings.RestoreSessionOnStartup = def.RestoreSessionOnStartup;

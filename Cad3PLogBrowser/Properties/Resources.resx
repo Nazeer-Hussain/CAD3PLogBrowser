@@ -184,6 +184,9 @@
   <data name="MSG_FLAME_GRAPH_EXPORTED" xml:space="preserve">
     <value> Flame graph exported to:&#10;{0}</value>
   </data>
+  <data name="MSG_HEATMAP_EXPORTED" xml:space="preserve">
+    <value>Heatmap exported to:&#10;{0}</value>
+  </data>
   <data name="ERR_EXPORT_FILE_FAILED" xml:space="preserve">
     <value>Failed to export file:&#10;{0}</value>
   </data>
@@ -243,6 +246,9 @@
   </data>
   <data name="ERR_EXPORT_FLAME_GRAPH_FAILED" xml:space="preserve">
     <value>Failed to export flame graph:&#10;{0}</value>
+  </data>
+  <data name="ERR_EXPORT_HEATMAP_FAILED" xml:space="preserve">
+    <value>Failed to export heatmap:&#10;{0}</value>
   </data>
   <data name="ERR_FONT_CHANGE_FAILED" xml:space="preserve">
     <value>Failed to change font:&#10;{0}</value>
@@ -481,6 +487,12 @@
   <data name="API_DETAILS_FIRST_OCCURRENCE" xml:space="preserve">
     <value>First occurrence  : Line {0}</value>
   </data>
+  <data name="API_DETAILS_TIMING_SUMMARY" xml:space="preserve">
+    <value>Total time        : {0:N0} ms&#10;Avg time          : {1:N0} ms&#10;Min time          : {2:N0} ms&#10;Max time          : {3:N0} ms</value>
+  </data>
+  <data name="API_DETAILS_NO_TIMING" xml:space="preserve">
+    <value>Timing            : (no matched ENTER/EXIT pairs to time)</value>
+  </data>
   <data name="API_DETAILS_INVOCATION_LINES" xml:space="preserve">
     <value>Invocation lines:</value>
   </data>
@@ -503,7 +515,7 @@
   </data>
   <!-- Tooltip Format -->
   <data name="TREE_NODE_TOOLTIP_FORMAT" xml:space="preserve">
-    <value>API: {0}&#10;Source: {1}&#10;ENTER line: {2}&#10;EXIT line: {3}&#10;Duration: {4} ms&#10;Depth: {5}</value>
+    <value>API: {0}&#10;Lines {2}&#8594;{3}  ({4} ms, depth {5})&#10;Source: {1}</value>
   </data>
   <data name="TREE_NODE_EXIT_NOT_FOUND" xml:space="preserve">
     <value>? (no EXIT found)</value>
