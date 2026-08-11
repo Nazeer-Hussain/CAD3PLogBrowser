@@ -107,6 +107,7 @@
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.checkForUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewUpdateLogMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.visitProjectPageMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reportErrorsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.FileStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -818,6 +819,7 @@
             this.aboutMenuItem,
             this.checkForUpdatesMenuItem,
             this.viewUpdateLogMenuItem,
+            this.visitProjectPageMenuItem,
             this.reportErrorsMenuItem});
             this.helpMenuItem.Name = "helpMenuItem";
             this.helpMenuItem.Size = new System.Drawing.Size(48, 22);
@@ -865,7 +867,14 @@
             this.viewUpdateLogMenuItem.Size = new System.Drawing.Size(200, 22);
             this.viewUpdateLogMenuItem.Text = UI.AppStrings.MenuHelpViewUpdateLog;
             this.viewUpdateLogMenuItem.Click += new System.EventHandler(this.viewUpdateLogMenuItem_Click);
-            // 
+            //
+            // visitProjectPageMenuItem
+            //
+            this.visitProjectPageMenuItem.Name = "visitProjectPageMenuItem";
+            this.visitProjectPageMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.visitProjectPageMenuItem.Text = "&Visit Project Page";
+            this.visitProjectPageMenuItem.Click += new System.EventHandler(this.visitProjectPageMenuItem_Click);
+            //
             // reportErrorsMenuItem
             // 
             this.reportErrorsMenuItem.Name = "reportErrorsMenuItem";
@@ -2012,6 +2021,7 @@
         private System.Windows.Forms.ToolStripMenuItem checkForUpdatesMenuItem;
         private System.Windows.Forms.ToolStripMenuItem reportErrorsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem viewUpdateLogMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem visitProjectPageMenuItem;
         private System.Windows.Forms.ListView logListView;
         private System.Windows.Forms.ContextMenuStrip logContextMenu;
         private System.Windows.Forms.ToolStripMenuItem contextCopyMenuItem;

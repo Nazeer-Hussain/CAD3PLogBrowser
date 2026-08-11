@@ -3,6 +3,7 @@
     using System;
     using System.Diagnostics;
     using System.Drawing;
+    using System.IO;
     using System.Reflection;
     using System.Windows.Forms;
     using Cad3PLogBrowser.Services;
@@ -272,7 +273,7 @@
             _service.DownloadStatsChanged    += OnDownloadStats;   // ENH-1
 
             // Pass expected SHA-256 so UpdateService can verify (ENH-6)
-            string tempPath = await _service.DownloadUpdateAsync(
+            string zipPath = await _service.DownloadUpdateAsync(
                 _manifest.DownloadUrl, _manifest.Sha256);
 
             _service.DownloadProgressChanged -= OnDownloadProgress;
@@ -282,27 +283,39 @@
             bool wasCancelled = _cancelledByUser;
             SetDownloadingState(false);
 
-            if (tempPath == null)
+            if (zipPath == null)
             {
                 if (!wasCancelled)
                 {
-                    // Genuine failure (network error or hash/PE verification failure)
-                    MessageBox.Show(
-                        "Download failed or the downloaded file failed verification.\n" +
-                        "Please check your internet connection and try again.",
-                        "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Show the specific reason (e.g. a stall timeout) when UpdateService
+                    // captured one, instead of always a generic message.
+                    string detail = string.IsNullOrWhiteSpace(_service.LastDownloadError)
+                        ? "Download failed or the downloaded file failed verification.\nPlease check your internet connection and try again."
+                        : _service.LastDownloadError;
+                    MessageBox.Show(detail, "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 // If cancelled by user: no message, just re-enable the buttons silently
                 return;
             }
 
+            string extractedDir = _service.ExtractUpdate(zipPath);
+            if (extractedDir == null)
+            {
+                MessageBox.Show(
+                    "The downloaded update package could not be extracted.\nPlease try again.",
+                    "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             // Hand off to batch-script updater and close
-            string currentExe = Assembly.GetExecutingAssembly().Location;
-            int    currentPid = Process.GetCurrentProcess().Id;
+            string currentExePath = Assembly.GetExecutingAssembly().Location;
+            string installDir     = Path.GetDirectoryName(currentExePath);
+            string exeFileName    = Path.GetFileName(currentExePath);
+            int    currentPid     = Process.GetCurrentProcess().Id;
 
             try
             {
-                _service.ApplyUpdate(currentExe, tempPath, currentPid);
+                _service.ApplyUpdate(extractedDir, installDir, exeFileName, currentPid);
             }
             catch (Exception ex)
             {

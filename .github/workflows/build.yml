@@ -14,34 +14,33 @@ jobs:
       contents: write
 
     steps:
-      # ?? 1. Checkout (full history so we can push back) ????????????????????
+      # ── 1. Checkout (full history so we can push back) ──────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ?? 2. Bump patch on master, read version everywhere else ?????????????
+      # ── 2. Bump patch on master, read version everywhere else ───────────────
+      # The manifest lives at docs/version.json (published via GitHub Pages) --
+      # NOT a repo-root file and NOT a GitHub Release asset. GitHub's own
+      # release-assets.githubusercontent.com CDN showed repeated timeouts on the
+      # network this app is actually used on (see the app's own update.log
+      # history), while GitHub Pages' CDN is a separate, so far reliable path.
       - name: Compute version
         id: ver
         shell: pwsh
         run: |
-          $json  = Get-Content version.json -Raw | ConvertFrom-Json
-          $parts = $json.version -split '\.'   # ["3","1","0"]
+          $json  = Get-Content docs/version.json -Raw | ConvertFrom-Json
+          $parts = $json.version -split '\.'   # ["4","0","1"]
 
           if ($env:GITHUB_REF -eq 'refs/heads/master' -and $env:GITHUB_EVENT_NAME -eq 'push') {
-            # Auto-increment patch digit
+            # Auto-increment patch digit. Minor/major bumps are still done by hand
+            # by editing docs/version.json's "version" field directly in a PR.
             $parts[2] = [string]([int]$parts[2] + 1)
+            $newVer = $parts -join '.'
 
-            $newVer  = $parts -join '.'                                   # "3.1.1"
-            $newUrl  = "https://github.com/Nazeer-Hussain/CAD3PLogBrowser/releases/download/v$newVer/Cad3PLogBrowser.exe"
-
-            # Update version.json
-            $json.version     = $newVer
-            $json.downloadUrl = $newUrl
-            $json | ConvertTo-Json -Depth 5 | Set-Content version.json -Encoding UTF8
-
-            # Update AssemblyInfo.cs  (store as major.minor.patch.0 for .NET)
+            # AssemblyInfo.cs (store as major.minor.patch.0 for .NET)
             $asmVer = "$newVer.0"
             $ai     = Get-Content Cad3PLogBrowser\Properties\AssemblyInfo.cs -Raw
             $ai     = $ai -replace 'AssemblyVersion\("[^"]+"\)',     "AssemblyVersion(`"$asmVer`")"
@@ -54,8 +53,12 @@ jobs:
           $tag = "v$newVer"
           echo "VERSION=$newVer" >> $env:GITHUB_OUTPUT
           echo "TAG=$tag"        >> $env:GITHUB_OUTPUT
+          # Carry the release notes already in docs/version.json through to later
+          # steps (a human edits this text directly for a real feature release;
+          # an auto patch-bump leaves it as whatever was last written).
+          echo "NOTES=$($json.releaseNotes)" >> $env:GITHUB_OUTPUT
 
-      # ?? 3. Build ???????????????????????????????????????????????????????????
+      # ── 3. Build ──────────────────────────────────────────────────────────
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
@@ -69,28 +72,96 @@ jobs:
             "/p:Platform=Any CPU" `
             /m
 
-      # ?? 4. Upload build artifact (every branch / PR) ??????????????????????
+      # ── 4. Package the portable release (exe + config + Help folder) ────────
+      # This .zip -- not a bare exe -- is what the app's own auto-updater
+      # downloads and extracts (see UpdateService.ExtractUpdate/ApplyUpdate).
+      # The .pdb is a debug symbol file, not shipped to end users.
+      - name: Package portable zip
+        id: package
+        shell: pwsh
+        run: |
+          $stagingDir = "staging"
+          New-Item -ItemType Directory -Path $stagingDir | Out-Null
+          Copy-Item "Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe" $stagingDir
+          Copy-Item "Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe.config" $stagingDir
+          Copy-Item "Cad3PLogBrowser\bin\Release\Help" "$stagingDir\Help" -Recurse
+
+          $zipName = "Cad3PLogBrowser-${{ steps.ver.outputs.VERSION }}.zip"
+          Compress-Archive -Path "$stagingDir\*" -DestinationPath $zipName -CompressionLevel Optimal
+
+          $size = (Get-Item $zipName).Length
+          $hash = (Get-FileHash $zipName -Algorithm SHA256).Hash.ToLower()
+          echo "ZIP_NAME=$zipName"   >> $env:GITHUB_OUTPUT
+          echo "SIZE_BYTES=$size"    >> $env:GITHUB_OUTPUT
+          echo "SHA256=$hash"        >> $env:GITHUB_OUTPUT
+
+      # ── 5. Upload build artifact (every branch / PR) ─────────────────────────
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Cad3PLogBrowser-${{ steps.ver.outputs.VERSION }}
-          path: Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe
+          path: ${{ steps.package.outputs.ZIP_NAME }}
           if-no-files-found: error
 
-      # ?? 5. Commit bumped files back to master ?????????????????????????????
+      # ── 6. Publish to the GitHub Pages site (master push only) ──────────────
+      # Copies the zip into docs/downloads/, updates docs/version.json (the
+      # app-facing manifest) and prepends an entry to docs/versions.json (the
+      # site's version-history/changelog page, which also reads the same file).
+      - name: Publish to docs/ site
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        shell: pwsh
+        run: |
+          $version   = "${{ steps.ver.outputs.VERSION }}"
+          $zipName   = "${{ steps.package.outputs.ZIP_NAME }}"
+          $sizeBytes = [int64]"${{ steps.package.outputs.SIZE_BYTES }}"
+          $sha256    = "${{ steps.package.outputs.SHA256 }}"
+          $notes     = "${{ steps.ver.outputs.NOTES }}"
+          $pagesUrl  = "https://nazeer-hussain.github.io/CAD3PLogBrowser"
+
+          Copy-Item $zipName "docs\downloads\$zipName"
+
+          $manifest = [ordered]@{
+            version           = $version
+            downloadUrl       = "$pagesUrl/downloads/$zipName"
+            releaseNotes      = $notes
+            mandatory         = $false
+            sha256            = $sha256
+            downloadSizeBytes = $sizeBytes
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content docs\version.json -Encoding UTF8
+
+          # NOTE: @(Get-Content ... | ConvertFrom-Json) as a single pipeline
+          # expression double-wraps a 1-element JSON array in Windows PowerShell
+          # 5.1 (parse first, then @()-wrap the already-materialized variable).
+          $parsedVersions = Get-Content docs\versions.json -Raw | ConvertFrom-Json
+          $versions = @($parsedVersions)
+          $newEntry = [ordered]@{
+            version   = $version
+            date      = (Get-Date -Format "yyyy-MM-dd")
+            notes     = $notes
+            zip       = "downloads/$zipName"
+            sizeBytes = $sizeBytes
+          }
+          $versions = @($newEntry) + $versions
+          $versions | ConvertTo-Json -Depth 5 | Set-Content docs\versions.json -Encoding UTF8
+
+      # ── 7. Commit bumped/published files back to master ──────────────────────
       - name: Commit version bump
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         shell: pwsh
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add version.json Cad3PLogBrowser/Properties/AssemblyInfo.cs
+          git add Cad3PLogBrowser/Properties/AssemblyInfo.cs docs/version.json docs/versions.json docs/downloads/${{ steps.package.outputs.ZIP_NAME }}
           git commit -m "chore: bump version to ${{ steps.ver.outputs.VERSION }} [skip ci]"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ?? 6. Create GitHub Release (master push only) ???????????????????????
+      # ── 8. Create GitHub Release (master push only) ──────────────────────────
+      # Kept as a redundant distribution channel (harmless, and useful to anyone
+      # not on a network that blocks release-assets.githubusercontent.com) --
+      # but the app itself relies on the docs/ site above, not this.
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         uses: softprops/action-gh-release@v2
@@ -100,10 +171,15 @@ jobs:
           body: |
             **Version:** `${{ steps.ver.outputs.VERSION }}`
 
-            - **Patch** (`x.x.N`) � auto-incremented on every master build
-            - **Minor** (`x.N.x`) � bumped manually for major enhancements
-            - **Major** (`N.x.x`) � bumped manually for breaking changes
-          files: Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe
+            ${{ steps.ver.outputs.NOTES }}
+
+            Portable .zip -- unzip and run `Cad3PLogBrowser.exe`, no installer needed.
+            Also available from the [project page](https://nazeer-hussain.github.io/CAD3PLogBrowser/), which is what the app's own auto-updater uses.
+
+            - **Patch** (`x.x.N`) — auto-incremented on every master build
+            - **Minor** (`x.N.x`) — bumped manually for major enhancements
+            - **Major** (`N.x.x`) — bumped manually for breaking changes
+          files: ${{ steps.package.outputs.ZIP_NAME }}
           fail_on_unmatched_files: true
           make_latest: true
         env:
