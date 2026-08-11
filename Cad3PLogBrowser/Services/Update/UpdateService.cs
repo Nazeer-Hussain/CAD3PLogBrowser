@@ -1,7 +1,8 @@
-﻿namespace Cad3PLogBrowser.Services.Update
+namespace Cad3PLogBrowser.Services.Update
 {
     using System;
     using System.IO;
+    using System.IO.Compression;
     using System.Net;
     using System.Reflection;
     using System.Runtime.Serialization.Json;
@@ -15,18 +16,25 @@
     /// </summary>
     /// <remarks>
     /// Update flow:
-    /// 1. Fetch a small JSON manifest (with retry + timeout).
+    /// 1. Fetch a small JSON manifest (with retry + timeout) from GitHub Pages.
     /// 2. Compare manifest version with the running assembly version.
     /// 3. Optionally query download size via HTTP HEAD (ENH-5).
-    /// 4. If newer: download the new EXE to a temp path with progress reporting.
-    /// 5. Optionally verify SHA-256 hash (ENH-6) and PE magic bytes (ENH-2).
-    /// 6. Write a batch script that waits (with limit) for the current process
-    ///    to exit, copies the downloaded EXE over the running one, then restarts.
-    /// 7. Launch the batch script and signal the app to close.
+    /// 4. If newer: download the portable .zip release (exe + config + Help
+    ///    folder) to a temp file with progress reporting and a stall watchdog
+    ///    (BUG-19 -- WebClient has no built-in timeout, so a stalled connection
+    ///    previously hung forever with the progress bar frozen and no error).
+    /// 5. Optionally verify SHA-256 hash (ENH-6) and the ZIP local-file-header
+    ///    magic bytes (adapted from the old single-exe MZ check).
+    /// 6. Extract the zip to a temp folder.
+    /// 7. Write a batch script that waits (with limit) for the current process
+    ///    to exit, robocopies the extracted folder over the install directory
+    ///    (replacing the exe, config, and Help folder in one pass), relaunches,
+    ///    then deletes itself.
+    /// 8. Launch the batch script and signal the app to close.
     /// </remarks>
     public class UpdateService
     {
-        // ?? Events ????????????????????????????????????????????????????????????
+        // ── Events ────────────────────────────────────────────────────────────
 
         /// <summary>Raised periodically during download. Value is 0–100.</summary>
         public event Action<int> DownloadProgressChanged;
@@ -37,7 +45,7 @@
         /// </summary>
         public event Action<long, long, long> DownloadStatsChanged;
 
-        // ?? Constants ?????????????????????????????????????????????????????????
+        // ── Constants ─────────────────────────────────────────────────────────
 
         /// <summary>HTTP timeout for manifest fetch and HEAD request (seconds).</summary>
         private const int FetchTimeoutSeconds = 15;
@@ -51,12 +59,30 @@
         /// <summary>Maximum seconds the batch updater will wait for the app to exit (BUG-4).</summary>
         private const int UpdaterWaitLimitSeconds = 60;
 
-        // ?? Fields ????????????????????????????????????????????????????????????
+        /// <summary>
+        /// BUG-19: WebClient.DownloadFileAsync has no built-in timeout, unlike the
+        /// HttpWebRequest-based manifest/HEAD calls above. If a connection stalls
+        /// (dead proxy, firewall silently dropping the transfer, flaky corporate
+        /// network -- observed directly in this app's own update.log), the old
+        /// unconditional wait blocked the background thread and the "Update Now"
+        /// UI forever with the progress bar frozen at 0% and no error ever shown.
+        /// This caps how long the download may go with zero incoming bytes before
+        /// it's treated as failed; it does not cap total time for a slow-but-
+        /// progressing transfer.
+        /// </summary>
+        private const int DownloadStallTimeoutSeconds = 45;
+
+        // ── Fields ────────────────────────────────────────────────────────────
 
         private readonly string _manifestUrl;
         private volatile WebClient _activeClient;
 
-        // ?? Constructor ???????????????????????????????????????????????????????
+        /// <summary>Set by <see cref="DownloadUpdateAsync"/> on failure so the UI can show
+        /// a more specific message than "download failed" (e.g. distinguishing a stall
+        /// timeout from a verification failure). Null after a successful download.</summary>
+        public string LastDownloadError { get; private set; }
+
+        // ── Constructor ───────────────────────────────────────────────────────
 
         public UpdateService(string manifestUrl)
         {
@@ -65,7 +91,7 @@
             _manifestUrl = manifestUrl;
         }
 
-        // ?? Public API ????????????????????????????????????????????????????????
+        // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Fetches the remote manifest with timeout and retry (ENH-7, BUG-2).
@@ -182,12 +208,16 @@
         }
 
         /// <summary>
-        /// Downloads the new EXE to a temp file with progress + speed reporting.
-        /// Verifies SHA-256 (ENH-6) and PE magic bytes (ENH-2) before returning.
-        /// Returns the temp path on success, or null on failure/cancellation/verification fail.
+        /// Downloads the new release .zip to a temp file with progress + speed
+        /// reporting. Verifies SHA-256 (ENH-6) and the ZIP local-file-header magic
+        /// bytes before returning. Returns the temp .zip path on success, or null
+        /// on failure/cancellation/verification failure (see
+        /// <see cref="LastDownloadError"/> for the reason).
         /// </summary>
         public Task<string> DownloadUpdateAsync(string downloadUrl, string expectedSha256 = null)
         {
+            LastDownloadError = null;
+
             return Task.Run<string>(() =>
             {
                 string tempPath = Path.Combine(Path.GetTempPath(),
@@ -200,10 +230,17 @@
                         _activeClient.Headers[HttpRequestHeader.UserAgent] = GetUserAgent();
 
                         // Speed tracking
-                        var    speedTimer    = System.Diagnostics.Stopwatch.StartNew();
+                        var speedTimer = System.Diagnostics.Stopwatch.StartNew();
+
+                        // BUG-19: tracks the last time ANY bytes arrived, so a stalled
+                        // connection can be detected and cancelled instead of hanging forever.
+                        var progressLock    = new object();
+                        var lastProgressUtc = DateTime.UtcNow;
 
                         _activeClient.DownloadProgressChanged += (s, e) =>
                         {
+                            lock (progressLock) lastProgressUtc = DateTime.UtcNow;
+
                             // Progress percent
                             var pctHandler = DownloadProgressChanged;
                             if (pctHandler != null)
@@ -221,7 +258,7 @@
                             }
                         };
 
-                        var    waitHandle     = new ManualResetEventSlim(false);
+                        var       waitHandle    = new ManualResetEventSlim(false);
                         Exception downloadError = null;
 
                         _activeClient.DownloadFileCompleted += (s, e) =>
@@ -231,7 +268,31 @@
                         };
 
                         _activeClient.DownloadFileAsync(new Uri(downloadUrl), tempPath);
-                        waitHandle.Wait();
+
+                        // Poll in 1s slices instead of an unbounded Wait() and bail out
+                        // once no bytes have arrived for DownloadStallTimeoutSeconds.
+                        bool timedOut = false;
+                        while (!waitHandle.Wait(1000))
+                        {
+                            TimeSpan idle;
+                            lock (progressLock) idle = DateTime.UtcNow - lastProgressUtc;
+                            if (idle.TotalSeconds >= DownloadStallTimeoutSeconds)
+                            {
+                                timedOut = true;
+                                _activeClient.CancelAsync();
+                                waitHandle.Wait(TimeSpan.FromSeconds(5)); // let the cancel's completion event fire
+                                break;
+                            }
+                        }
+
+                        if (timedOut)
+                        {
+                            LastDownloadError = string.Format(
+                                "No data received for {0} seconds. Check your network connection, firewall, or proxy settings.",
+                                DownloadStallTimeoutSeconds);
+                            TryDeleteFile(tempPath);
+                            return null;
+                        }
 
                         if (downloadError != null)
                             throw downloadError;
@@ -239,9 +300,10 @@
 
                     _activeClient = null;
 
-                    // ENH-2: Verify the file is a valid Windows PE executable
-                    if (!IsValidPeFile(tempPath))
+                    // Verify the file is a valid ZIP archive (local file header magic "PK\x03\x04")
+                    if (!IsValidZipFile(tempPath))
                     {
+                        LastDownloadError = "The downloaded file is not a valid update package.";
                         TryDeleteFile(tempPath);
                         return null;
                     }
@@ -253,6 +315,7 @@
                         if (!string.Equals(actualHash, expectedSha256.ToLowerInvariant(),
                                 StringComparison.OrdinalIgnoreCase))
                         {
+                            LastDownloadError = "The downloaded file's checksum did not match the expected value.";
                             TryDeleteFile(tempPath);
                             return null;
                         }
@@ -260,10 +323,12 @@
 
                     return tempPath;
                 }
-                catch
+                catch (Exception ex)
                 {
                     _activeClient = null;
                     TryDeleteFile(tempPath);
+                    if (LastDownloadError == null)
+                        LastDownloadError = ex.Message;
                     return null;
                 }
             });
@@ -277,27 +342,63 @@
         }
 
         /// <summary>
-        /// Writes a self-replacement batch script, launches it detached, and returns
-        /// the script path.
-        ///
-        /// Fixes applied:
-        ///   BUG-3 — paths with % characters are escaped as %% in the SET lines.
-        ///   BUG-4 — a counter limits the wait loop to <see cref="UpdaterWaitLimitSeconds"/> seconds.
+        /// Extracts the downloaded release .zip to a fresh temp directory. Returns
+        /// the extracted directory path, or null if extraction fails (corrupt
+        /// archive, disk full, etc.) -- the caller treats this the same as a
+        /// download failure.
         /// </summary>
-        public string ApplyUpdate(string currentExePath, string newExePath, int currentPid)
+        public string ExtractUpdate(string zipPath)
+        {
+            string extractDir = Path.Combine(Path.GetTempPath(),
+                UpdateServiceStrings.UpdateExtractDirPrefix + Guid.NewGuid().ToString("N"));
+
+            try
+            {
+                Directory.CreateDirectory(extractDir);
+                ZipFile.ExtractToDirectory(zipPath, extractDir);
+                return extractDir;
+            }
+            catch
+            {
+                TryDeleteDirectory(extractDir);
+                return null;
+            }
+            finally
+            {
+                TryDeleteFile(zipPath);
+            }
+        }
+
+        /// <summary>
+        /// Writes a self-replacement batch script, launches it detached, and returns
+        /// the script path. The script waits for the current process to exit (with
+        /// a time limit, BUG-4), robocopies the extracted release over the install
+        /// directory (replacing the exe, config, and Help folder in one pass —
+        /// unlike the old single-exe copy, this release ships multiple files),
+        /// relaunches the app, then deletes itself.
+        /// </summary>
+        /// <param name="extractedDir">Directory containing the freshly-extracted release
+        /// (see <see cref="ExtractUpdate"/>).</param>
+        /// <param name="installDir">Directory the running app is installed in
+        /// (<c>Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)</c>).</param>
+        /// <param name="exeFileName">The exe's file name (no path), used to relaunch
+        /// (e.g. "Cad3PLogBrowser.exe").</param>
+        /// <param name="currentPid">PID of the running process, so the script waits
+        /// for it to exit before overwriting its files.</param>
+        public string ApplyUpdate(string extractedDir, string installDir, string exeFileName, int currentPid)
         {
             string scriptPath = Path.Combine(Path.GetTempPath(),
                 UpdateServiceStrings.UpdaterScriptNamePrefix + Guid.NewGuid().ToString("N") + UpdateServiceStrings.UpdaterScriptNameSuffix);
 
             // BUG-3: escape % as %% in the SET value (paths can contain %)
-            string safeTarget = currentExePath.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
-            string safeNew    = newExePath.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
+            string safeSource = extractedDir.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
+            string safeTarget = installDir.Replace(UpdateServiceStrings.PercentNormal, UpdateServiceStrings.PercentEscaped);
 
-            // BUG-4: add a counter so the wait loop terminates after the limit
             string script = string.Format(
                 UpdateServiceStrings.BatchScriptTemplate,
+                safeSource,
                 safeTarget,
-                safeNew,
+                exeFileName,
                 currentPid,
                 UpdaterWaitLimitSeconds);
 
@@ -316,7 +417,7 @@
             return scriptPath;
         }
 
-        // ?? Helpers ???????????????????????????????????????????????????????????
+        // ── Helpers ───────────────────────────────────────────────────────────
 
         private static UpdateManifest DeserializeManifest(string json)
         {
@@ -338,20 +439,30 @@
             catch { /* ignore */ }
         }
 
+        private static void TryDeleteDirectory(string path)
+        {
+            try { if (Directory.Exists(path)) Directory.Delete(path, recursive: true); }
+            catch { /* ignore */ }
+        }
+
         /// <summary>
-        /// ENH-2: Checks the first two bytes of a file for the MZ magic number (0x4D 0x5A)
-        /// that marks a valid Windows Portable Executable.
+        /// Checks the first four bytes of a file for the ZIP local-file-header
+        /// magic number (0x50 0x4B 0x03 0x04 = "PK\x03\x04") that marks a valid
+        /// ZIP archive. Replaces the old single-exe MZ/PE check now that releases
+        /// are distributed as a portable .zip.
         /// </summary>
-        private static bool IsValidPeFile(string path)
+        private static bool IsValidZipFile(string path)
         {
             try
             {
                 using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    if (fs.Length < 2) return false;
+                    if (fs.Length < 4) return false;
                     int b0 = fs.ReadByte();
                     int b1 = fs.ReadByte();
-                    return b0 == 0x4D && b1 == 0x5A; // 'M' 'Z'
+                    int b2 = fs.ReadByte();
+                    int b3 = fs.ReadByte();
+                    return b0 == 0x50 && b1 == 0x4B && b2 == 0x03 && b3 == 0x04; // 'P' 'K' 0x03 0x04
                 }
             }
             catch
@@ -377,4 +488,3 @@
         }
     }
 }
-

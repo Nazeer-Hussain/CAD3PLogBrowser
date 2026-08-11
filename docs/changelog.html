@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAD 3P Log Browser &mdash; Version History</title>
+<style>
+    :root {
+        --blue:     #2980b9;
+        --darkblue: #1a5276;
+        --green:    #27ae60;
+        --bg:       #f0f4f8;
+        --card:     #ffffff;
+        --border:   #d5e0ed;
+        --text:     #2c3e50;
+        --muted:    #7f8c8d;
+        --code-bg:  #eaf0fb;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+    }
+    header {
+        background: linear-gradient(135deg, var(--darkblue), var(--blue));
+        color: #fff;
+        padding: 40px 24px 34px;
+        text-align: center;
+    }
+    header h1 { font-size: 26px; margin-bottom: 6px; }
+    header a.back { color: #fff; opacity: 0.85; font-size: 13.5px; text-decoration: none; }
+    header a.back:hover { text-decoration: underline; }
+
+    main { max-width: 740px; margin: -18px auto 60px; padding: 0 20px; }
+
+    .entry {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 22px 26px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(26,82,118,0.06);
+    }
+    .entry:first-child { border-left: 4px solid var(--green); }
+    .entry-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .entry-version { font-size: 18px; font-weight: 700; color: var(--darkblue); }
+    .entry-version .latest-tag {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #fff;
+        background: var(--green);
+        padding: 2px 8px;
+        border-radius: 20px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .entry-date { color: var(--muted); font-size: 13px; }
+    .entry-notes { font-size: 14.5px; margin-bottom: 12px; }
+    .entry-download {
+        display: inline-block;
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13.5px;
+        border: 1px solid var(--blue);
+        border-radius: 6px;
+        padding: 6px 14px;
+    }
+    .entry-download:hover { background: var(--code-bg); }
+    .entry-size { color: var(--muted); font-size: 12.5px; margin-left: 8px; }
+
+    #loading, #empty { text-align: center; color: var(--muted); padding: 30px; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Version History</h1>
+    <a class="back" href="index.html">&larr; Back to CAD 3P Log Browser</a>
+</header>
+
+<main>
+    <p id="loading">Loading version history&hellip;</p>
+    <div id="entries"></div>
+</main>
+
+<script>
+fetch('versions.json')
+    .then(r => r.json())
+    .then(function (versions) {
+        var container = document.getElementById('entries');
+        document.getElementById('loading').style.display = 'none';
+
+        if (!versions || versions.length === 0) {
+            container.innerHTML = '<p id="empty">No releases yet.</p>';
+            return;
+        }
+
+        versions.forEach(function (v, i) {
+            var sizeText = v.sizeBytes ? (v.sizeBytes / (1024*1024)).toFixed(1) + ' MB' : '';
+            var entry = document.createElement('div');
+            entry.className = 'entry';
+            entry.innerHTML =
+                '<div class="entry-header">' +
+                    '<span class="entry-version">v' + v.version +
+                        (i === 0 ? '<span class="latest-tag">Latest</span>' : '') +
+                    '</span>' +
+                    '<span class="entry-date">' + (v.date || '') + '</span>' +
+                '</div>' +
+                '<div class="entry-notes">' + (v.notes || '') + '</div>' +
+                '<a class="entry-download" href="' + v.zip + '">Download v' + v.version + ' (.zip)</a>' +
+                '<span class="entry-size">' + sizeText + '</span>';
+            container.appendChild(entry);
+        });
+    })
+    .catch(function () {
+        document.getElementById('loading').textContent =
+            'Could not load version history right now. Try again shortly.';
+    });
+</script>
+
+</body>
+</html>

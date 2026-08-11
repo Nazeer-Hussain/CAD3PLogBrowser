@@ -120,9 +120,18 @@ namespace Cad3PLogBrowser.Services
         // ── Auto-update ───────────────────────────────────────────────────────
         /// <summary>When true, checks for a new version once per <see cref="UpdateCheckIntervalDays"/> on startup.</summary>
         /// <summary>The canonical default manifest URL — used as a fallback whenever the
-        /// user-configured value is blank.</summary>
+        /// user-configured value is blank. Hosted on the project's GitHub Pages site
+        /// rather than raw.githubusercontent.com/GitHub Releases: both have shown
+        /// intermittent timeouts on some corporate networks (see update.log history),
+        /// while GitHub Pages' CDN is a separate, so-far-reliable path. The download
+        /// itself is now a portable .zip (exe + config + Help folder), not a bare exe.</summary>
         public const string DefaultUpdateManifestUrl =
-            "https://raw.githubusercontent.com/Nazeer-Hussain/CAD3PLogBrowser/master/version.json";
+            "https://nazeer-hussain.github.io/CAD3PLogBrowser/version.json";
+
+        /// <summary>Human-facing project page — linked from a Help-menu item and from
+        /// the update dialog's "View Details" (release notes / version history).</summary>
+        public const string ProjectPageUrl =
+            "https://nazeer-hussain.github.io/CAD3PLogBrowser/";
 
         public bool     CheckForUpdatesOnStartup  { get; set; } = true;
         /// <summary>URL of the remote version manifest JSON.

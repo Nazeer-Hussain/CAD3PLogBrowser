@@ -3,16 +3,18 @@ namespace Cad3PLogBrowser.Services.Update
     using System.Runtime.Serialization;
 
     /// <summary>
-    /// Represents the remote version manifest JSON file hosted on GitHub.
-    /// Expected format (version.json at repo root):
+    /// Represents the remote version manifest JSON file hosted on the project's
+    /// GitHub Pages site (docs/version.json in the repo). Expected format:
     /// {
-    ///   "version": "3.1.0.0",
-    ///   "downloadUrl": "https://github.com/.../releases/download/v3.1/Cad3PLogBrowser.exe",
+    ///   "version": "4.0.2",
+    ///   "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.2.zip",
     ///   "releaseNotes": "Bug fixes and performance improvements.",
     ///   "mandatory": false,
     ///   "sha256": "a3f2...e9b1",
     ///   "downloadSizeBytes": 4567890
     /// }
+    /// downloadUrl now points to a portable .zip (exe + config + Help folder), not
+    /// a bare exe -- see UpdateService.ExtractUpdate/ApplyUpdate.
     /// </summary>
     [DataContract]
     public class UpdateManifest
@@ -21,7 +23,7 @@ namespace Cad3PLogBrowser.Services.Update
         [DataMember(Name = "version")]
         public string Version { get; set; }
 
-        /// <summary>Direct URL to download the new EXE.</summary>
+        /// <summary>Direct URL to download the new release's portable .zip.</summary>
         [DataMember(Name = "downloadUrl")]
         public string DownloadUrl { get; set; }
 

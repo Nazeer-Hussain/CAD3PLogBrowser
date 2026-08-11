@@ -6432,6 +6432,16 @@ namespace Cad3PLogBrowser
             CheckForUpdatesAsync(silent: false);
         }
 
+        private void visitProjectPageMenuItem_Click(object sender, EventArgs e)
+        {
+            try { System.Diagnostics.Process.Start(Services.AppSettings.ProjectPageUrl); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format("Could not open the project page:\n{0}", ex.Message),
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         private void viewUpdateLogMenuItem_Click(object sender, EventArgs e)
         {
             string logPath = Services.Update.UpdateLogger.LogFilePath;
@@ -6454,11 +6464,36 @@ namespace Cad3PLogBrowser
         /// <summary>Public entry point so SettingsForm's "Check Now" button can trigger a check.</summary>
         public void TriggerUpdateCheck() => CheckForUpdatesAsync(silent: false);
 
+        /// <summary>Guards against a manual "Check for Updates" click racing a
+        /// silent startup check still in flight -- previously both ran their own
+        /// full fetch-with-retries concurrently (visible as duplicate near-
+        /// simultaneous FetchManifest entries in update.log).</summary>
+        private bool _isCheckingForUpdates = false;
+
         /// <summary>
         /// Checks for an update.  When <paramref name="silent"/> is true the method
         /// shows no UI unless a newer version is actually available.
         /// </summary>
         private async void CheckForUpdatesAsync(bool silent)
+        {
+            if (_isCheckingForUpdates)
+            {
+                Services.Update.UpdateLogger.Log(
+                    "CheckForUpdatesAsync: silent={0} — a check is already in progress, ignoring", silent);
+                return;
+            }
+            _isCheckingForUpdates = true;
+            try
+            {
+                await CheckForUpdatesCoreAsync(silent);
+            }
+            finally
+            {
+                _isCheckingForUpdates = false;
+            }
+        }
+
+        private async Task CheckForUpdatesCoreAsync(bool silent)
         {
             string manifestUrl = string.IsNullOrWhiteSpace(_appSettings.UpdateManifestUrl)
                 ? Services.AppSettings.DefaultUpdateManifestUrl
