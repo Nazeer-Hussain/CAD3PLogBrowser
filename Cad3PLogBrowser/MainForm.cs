@@ -6480,6 +6480,12 @@ namespace Cad3PLogBrowser
             {
                 Services.Update.UpdateLogger.Log(
                     "CheckForUpdatesAsync: silent={0} — a check is already in progress, ignoring", silent);
+                // A silent (startup) check dropping itself should stay invisible, by
+                // design. But a MANUAL click landing here would otherwise produce no
+                // visible feedback at all -- the button just does nothing, which
+                // reads as broken rather than "already handled".
+                if (!silent)
+                    StatusFileName.Text = "A check for updates is already in progress...";
                 return;
             }
             _isCheckingForUpdates = true;
