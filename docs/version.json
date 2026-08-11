@@ -1,8 +1,8 @@
 {
-  "version": "4.0.1",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.1.zip",
+  "version": "4.0.2",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.2.zip",
   "releaseNotes": "Real tree filtering, AI-assisted root cause, full export/reporting suite, and 20+ usability fixes.",
   "mandatory": false,
-  "sha256": "",
-  "downloadSizeBytes": 2605254
+  "sha256": "dc0977cd6689f93386020c46271eb8c55584dde4ccaf1e2b4c27fa129499264c",
+  "downloadSizeBytes": 2613541
 }
