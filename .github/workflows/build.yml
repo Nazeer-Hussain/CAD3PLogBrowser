@@ -58,6 +58,27 @@ jobs:
           # an auto patch-bump leaves it as whatever was last written).
           echo "NOTES=$($json.releaseNotes)" >> $env:GITHUB_OUTPUT
 
+      # ── 2b. Keep the Help guide's displayed version in sync ──────────────────
+      # Help/UserGuide.html shows its own version number in three places
+      # (sidebar tagline, header badge, footer) that would otherwise silently go
+      # stale on every auto patch-bump. Runs before Build so the updated file
+      # flows into bin/Release/Help -> the packaged zip -> docs/help via the
+      # steps below, all from one edit. Patterns are anchored to each line's
+      # unique surrounding text so they can't touch the deliberately-preserved
+      # "Previously in vX.Y.Z" / "Earlier in the vX.Y line" historical notes
+      # elsewhere in the same file.
+      - name: Update Help guide version
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        shell: pwsh
+        run: |
+          $newVer = "${{ steps.ver.outputs.VERSION }}"
+          $path = "Help\UserGuide.html"
+          $html = Get-Content $path -Raw
+          $html = $html -replace '(<p>User Guide &#8212; v)[\d.]+(</p>)', "`${1}$newVer`$2"
+          $html = $html -replace '(<span class="badge">v)[\d.]+(</span>)', "`${1}$newVer`$2"
+          $html = $html -replace '(User Guide v)[\d.]+( &nbsp;)', "`${1}$newVer`$2"
+          Set-Content $path $html -Encoding UTF8
+
       # ── 3. Build ──────────────────────────────────────────────────────────
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -105,8 +126,12 @@ jobs:
 
       # ── 6. Publish to the GitHub Pages site (master push only) ──────────────
       # Copies the zip into docs/downloads/, updates docs/version.json (the
-      # app-facing manifest) and prepends an entry to docs/versions.json (the
-      # site's version-history/changelog page, which also reads the same file).
+      # app-facing manifest), prepends an entry to docs/versions.json (the
+      # site's version-history/changelog page, which also reads the same file),
+      # and refreshes docs/help/ from the just-updated Help/ source so the
+      # published guide's version number (and any content changes) stay in
+      # sync automatically -- previously docs/help/ was a one-time snapshot
+      # that would never be touched by CI again after the initial seed.
       - name: Publish to docs/ site
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         shell: pwsh
@@ -119,6 +144,14 @@ jobs:
           $pagesUrl  = "https://nazeer-hussain.github.io/CAD3PLogBrowser"
 
           Copy-Item $zipName "docs\downloads\$zipName"
+
+          # Source from the build OUTPUT (Cad3PLogBrowser\bin\Release\Help), not
+          # the repo's Help\ folder directly -- the repo folder also holds old
+          # UserGuide_backup.html/_Enhanced.html/_v2.0_original.html files that
+          # the .csproj's content items correctly exclude from what's actually
+          # shipped, and the build output is exactly what's already in the zip.
+          Remove-Item "docs\help" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item "Cad3PLogBrowser\bin\Release\Help" "docs\help" -Recurse
 
           $manifest = [ordered]@{
             version           = $version
@@ -152,7 +185,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cad3PLogBrowser/Properties/AssemblyInfo.cs docs/version.json docs/versions.json docs/downloads/${{ steps.package.outputs.ZIP_NAME }}
+          git add Cad3PLogBrowser/Properties/AssemblyInfo.cs Help/UserGuide.html docs/version.json docs/versions.json docs/downloads/${{ steps.package.outputs.ZIP_NAME }} docs/help
           git commit -m "chore: bump version to ${{ steps.ver.outputs.VERSION }} [skip ci]"
           git push
         env:
