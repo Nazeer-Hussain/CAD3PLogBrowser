@@ -300,10 +300,15 @@ namespace Cad3PLogBrowser.Services.Update
 
                     _activeClient = null;
 
-                    // Verify the file is a valid ZIP archive (local file header magic "PK\x03\x04")
+                    // Verify the file is a valid ZIP archive (local file header magic "PK\x03\x04").
+                    // A security proxy that returns its notice page with HTTP 200 (rather
+                    // than 403, handled in the catch below) lands here -- the "download"
+                    // succeeded but the bytes are HTML, not an archive.
                     if (!IsValidZipFile(tempPath))
                     {
-                        LastDownloadError = "The downloaded file is not a valid update package.";
+                        LastDownloadError = LooksLikeHtml(tempPath)
+                            ? BuildProxyInterceptedMessage(downloadUrl)
+                            : "The downloaded file is not a valid update package.";
                         TryDeleteFile(tempPath);
                         return null;
                     }
@@ -328,10 +333,73 @@ namespace Cad3PLogBrowser.Services.Update
                     _activeClient = null;
                     TryDeleteFile(tempPath);
                     if (LastDownloadError == null)
-                        LastDownloadError = ex.Message;
+                        LastDownloadError = DescribeDownloadException(ex, downloadUrl);
                     return null;
                 }
             });
+        }
+
+        /// <summary>
+        /// Turns a download exception into something the user can act on.
+        ///
+        /// The important case is HTTP 403: corporate web-security proxies (Zscaler,
+        /// Blue Coat, etc.) intercept binary/archive downloads and answer with 403
+        /// plus an HTML notice page while they scan the file -- observed directly
+        /// against this project's own GitHub Pages release URL, where the proxy's
+        /// page states the file "is not blocked" and that analysis "can take up to
+        /// 10 minutes", after which the download succeeds. Reporting the raw
+        /// "(403) Forbidden" there is actively misleading: it reads as a permanent
+        /// denial when the correct user action is simply to retry in a few minutes.
+        /// </summary>
+        private static string DescribeDownloadException(Exception ex, string downloadUrl)
+        {
+            var webEx = ex as WebException;
+            if (webEx != null)
+            {
+                var response = webEx.Response as HttpWebResponse;
+                if (response != null && response.StatusCode == HttpStatusCode.Forbidden)
+                    return BuildProxyInterceptedMessage(downloadUrl);
+            }
+            return ex.Message;
+        }
+
+        private static string BuildProxyInterceptedMessage(string downloadUrl)
+        {
+            return
+                "The download was intercepted by a web-security proxy on your network.\n\n" +
+                "Many corporate proxies scan installers and archives before releasing them, " +
+                "which can take several minutes. The file is usually not blocked -- it just " +
+                "isn't available yet.\n\n" +
+                "What to try:\n" +
+                "  1. Wait a few minutes, then click Update Now again.\n" +
+                "  2. If it still fails, download it manually from:\n     " + (downloadUrl ?? "") + "\n" +
+                "  3. If your browser also shows a security-scan or blocked page, ask your " +
+                "IT/security team to allow this URL.";
+        }
+
+        /// <summary>Cheap check for a proxy notice page delivered in place of the
+        /// real download: leading whitespace then '&lt;' (e.g. "&lt;!DOCTYPE", "&lt;html",
+        /// or an SSI/comment header as Zscaler uses).</summary>
+        private static bool LooksLikeHtml(string path)
+        {
+            try
+            {
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    for (int i = 0; i < 16; i++)
+                    {
+                        int b = fs.ReadByte();
+                        if (b < 0) return false;
+                        if (b == ' ' || b == '\t' || b == '\r' || b == '\n') continue;
+                        return b == '<';
+                    }
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>Cancels any in-progress download.</summary>
