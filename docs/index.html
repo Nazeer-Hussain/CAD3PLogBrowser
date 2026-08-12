@@ -6,70 +6,100 @@
 <title>CAD 3P Log Browser</title>
 <style>
     :root {
-        --blue:     #2980b9;
-        --darkblue: #1a5276;
-        --green:    #27ae60;
-        --bg:       #f0f4f8;
-        --card:     #ffffff;
-        --border:   #d5e0ed;
-        --text:     #2c3e50;
-        --muted:    #7f8c8d;
-        --code-bg:  #eaf0fb;
+        --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, 'Cascadia Code', Consolas, 'SFMono-Regular', Menlo, monospace;
+
+        --ink:        #1c1e22;
+        --ink-soft:   #2b2e34;
+        --paper:      #faf8f4;
+        --card:       #ffffff;
+        --surface-alt:#f2efe7;
+        --border:     #e2ddd0;
+        --text:       #22252a;
+        --muted:      #78756d;
+        --heading:    #1c1e22;
+
+        --accent:      #b8721f;
+        --accent-dark: #8f5817;
+        --accent-soft: #f3e6d2;
+        --green:       #2f8f52;
+        --green-dark:  #226b3d;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: var(--bg);
+        font-family: var(--font-body);
+        background: var(--paper);
         color: var(--text);
         line-height: 1.7;
+        font-size: 15px;
     }
+
+    a { color: var(--accent-dark); }
+
     header {
-        background: linear-gradient(135deg, var(--darkblue), var(--blue));
+        background: linear-gradient(160deg, var(--ink) 0%, var(--ink-soft) 100%);
         color: #fff;
-        padding: 56px 24px 48px;
-        text-align: center;
+        border-bottom: 3px solid var(--accent);
     }
-    header h1 { font-size: 32px; margin-bottom: 10px; }
-    header p.tagline { font-size: 16px; opacity: 0.92; max-width: 640px; margin: 0 auto; }
-    nav {
+    .header-inner {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 22px 24px 0;
+    }
+    .topbar {
         display: flex;
-        justify-content: center;
-        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
         flex-wrap: wrap;
-        margin-top: 26px;
+        padding-bottom: 20px;
     }
-    nav a {
+    .wordmark {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.01em;
         color: #fff;
+    }
+    .wordmark .prompt { color: var(--accent); margin-right: 2px; }
+
+    nav.toplinks { display: flex; gap: 22px; flex-wrap: wrap; }
+    nav.toplinks a {
+        color: #cfcabe;
         text-decoration: none;
         font-size: 13.5px;
         font-weight: 600;
-        padding: 8px 16px;
-        border: 1px solid rgba(255,255,255,0.5);
-        border-radius: 20px;
-        transition: background 0.15s ease;
+        padding-bottom: 3px;
+        border-bottom: 2px solid transparent;
+        transition: color .15s ease, border-color .15s ease;
     }
-    nav a:hover { background: rgba(255,255,255,0.15); }
+    nav.toplinks a:hover { color: #fff; border-color: var(--accent); }
 
-    main { max-width: 760px; margin: -28px auto 60px; padding: 0 20px; }
+    .hero { padding: 8px 0 40px; max-width: 620px; }
+    .hero h1 { font-family: var(--font-mono); font-size: 26px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.01em; }
+    .hero p { color: #cfcabe; font-size: 15px; }
+
+    main { max-width: 880px; margin: -20px auto 64px; padding: 0 24px; }
 
     .card {
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 28px 30px;
-        margin-bottom: 22px;
-        box-shadow: 0 2px 10px rgba(26,82,118,0.06);
+        border-radius: 8px;
+        padding: 30px 32px;
+        margin-bottom: 20px;
     }
     .card h2 {
-        color: var(--darkblue);
-        font-size: 19px;
-        margin-bottom: 14px;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        color: var(--heading);
+        font-size: 18px;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
         border-bottom: 2px solid var(--border);
-        padding-bottom: 8px;
     }
-    .card p { margin-bottom: 10px; font-size: 14.5px; }
-    .card ul { margin: 8px 0 8px 22px; font-size: 14.5px; }
-    .card li { margin-bottom: 4px; }
+    .card p { margin-bottom: 12px; font-size: 14.5px; }
+    .card ul { margin: 10px 0 4px 20px; font-size: 14.5px; }
+    .card li { margin-bottom: 6px; }
 
     .download-card { text-align: center; }
     .download-btn {
@@ -79,46 +109,47 @@
         text-decoration: none;
         font-weight: 700;
         font-size: 16px;
-        padding: 14px 34px;
-        border-radius: 8px;
-        margin: 10px 0 8px;
-        transition: transform 0.1s ease, box-shadow 0.15s ease;
-        box-shadow: 0 3px 0 #1e8449;
+        padding: 13px 32px;
+        border-radius: 6px;
+        margin: 12px 0 10px;
+        transition: background .15s ease;
     }
-    .download-btn:hover { transform: translateY(-1px); }
-    .download-btn:active { transform: translateY(2px); box-shadow: none; }
-    .download-meta { color: var(--muted); font-size: 13px; }
+    .download-btn:hover { background: var(--green-dark); }
+    .download-meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
     .download-meta code {
-        background: var(--code-bg);
+        background: var(--surface-alt);
         padding: 1px 6px;
         border-radius: 4px;
-        font-family: Consolas, monospace;
+        font-family: var(--font-mono);
+        color: var(--accent-dark);
     }
     .portable-note {
-        margin-top: 14px;
+        margin-top: 18px;
         font-size: 13px;
         color: var(--muted);
-        background: var(--code-bg);
+        background: var(--surface-alt);
         border-radius: 6px;
-        padding: 10px 14px;
+        padding: 12px 16px;
         text-align: left;
     }
+    .portable-note code { font-family: var(--font-mono); color: var(--accent-dark); }
 
-    .quicklinks { display: flex; gap: 12px; flex-wrap: wrap; }
+    .quicklinks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .quicklinks a {
-        flex: 1;
-        min-width: 160px;
-        text-align: center;
-        background: var(--code-bg);
-        color: var(--darkblue);
+        display: block;
+        text-align: left;
+        background: var(--surface-alt);
+        color: var(--heading);
         text-decoration: none;
         font-weight: 600;
         font-size: 14px;
-        padding: 14px;
-        border-radius: 8px;
+        padding: 16px 18px;
+        border-radius: 6px;
         border: 1px solid var(--border);
+        transition: border-color .15s ease;
     }
-    .quicklinks a:hover { background: var(--border); }
+    .quicklinks a:hover { border-color: var(--accent); }
+    .quicklinks .ico { margin-right: 6px; }
 
     footer {
         text-align: center;
@@ -126,20 +157,32 @@
         font-size: 12.5px;
         padding: 20px;
     }
-    footer a { color: var(--blue); }
+    footer a { color: var(--accent-dark); }
+
+    @media (max-width: 620px) {
+        .quicklinks { grid-template-columns: 1fr; }
+        .card { padding: 24px 20px; }
+    }
 </style>
 </head>
 <body>
 
 <header>
-    <h1>CAD 3P Log Browser</h1>
-    <p class="tagline">A fast, offline-first log analysis tool for CAD 3rd-party diagnostic logs &mdash; call tree visualization, performance analytics, and AI-assisted root cause analysis, all in one portable Windows app.</p>
-    <nav>
-        <a href="#download">Download</a>
-        <a href="help/UserGuide.html">Help Guide</a>
-        <a href="changelog.html">Version History</a>
-        <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser">Source</a>
-    </nav>
+    <div class="header-inner">
+        <div class="topbar">
+            <span class="wordmark"><span class="prompt">&gt;</span>CAD 3P Log Browser</span>
+            <nav class="toplinks">
+                <a href="#download">Download</a>
+                <a href="help/UserGuide.html">Help Guide</a>
+                <a href="changelog.html">Version History</a>
+                <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser">Source</a>
+            </nav>
+        </div>
+        <div class="hero">
+            <h1>Make sense of CAD 3rd-party diagnostic logs</h1>
+            <p>A fast, offline-first log analysis tool: call tree visualization, performance analytics, and AI-assisted root cause analysis, all in one portable Windows app.</p>
+        </div>
+    </div>
 </header>
 
 <main>
@@ -170,8 +213,8 @@
     <div class="card">
         <h2>Quick links</h2>
         <div class="quicklinks">
-            <a href="help/UserGuide.html">&#128218; Full Help Guide</a>
-            <a href="changelog.html">&#128203; Version History &amp; Older Downloads</a>
+            <a href="help/UserGuide.html"><span class="ico">&#128218;</span>Full Help Guide</a>
+            <a href="changelog.html"><span class="ico">&#128203;</span>Version History &amp; Older Downloads</a>
         </div>
     </div>
 </main>
