@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.6",
+    "date": "2026-08-12",
+    "notes": "Real tree filtering, AI-assisted root cause, full export/reporting suite, and 20+ usability fixes.",
+    "zip": "downloads/Cad3PLogBrowser-4.0.6.zip",
+    "sizeBytes": 2614111
+  },
+  {
     "version": "4.0.5",
     "date": "2026-08-12",
     "notes": "Real tree filtering, AI-assisted root cause, full export/reporting suite, and 20+ usability fixes.",
