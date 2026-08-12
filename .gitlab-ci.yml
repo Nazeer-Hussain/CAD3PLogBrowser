@@ -19,6 +19,14 @@ pages:
   # line entirely when using a shell runner.
   image: alpine:latest
 
+  # This instance's shared runners only pick up jobs whose tags match theirs
+  # (see the two Online/Active shared runners under Settings > CI/CD >
+  # Runners, both tagged linux/docker/shared) -- an untagged job is never
+  # assigned to them, which is why the first pipeline sat stuck with no
+  # runner. `docker` alone is enough to match both.
+  tags:
+    - docker
+
   # Publish only from the default branch -- feature branches shouldn't
   # overwrite the live internal site.
   rules:
