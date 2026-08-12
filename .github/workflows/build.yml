@@ -186,7 +186,13 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Cad3PLogBrowser/Properties/AssemblyInfo.cs Help/UserGuide.html docs/version.json docs/versions.json docs/downloads/${{ steps.package.outputs.ZIP_NAME }} docs/help
-          git commit -m "chore: bump version to ${{ steps.ver.outputs.VERSION }} [skip ci]"
+          # [skip actions] (not [skip ci]) deliberately: this stops GitHub
+          # Actions from re-triggering itself on the bot's own push (avoiding
+          # an infinite build loop), but GitLab CI does NOT recognize this
+          # marker -- unlike the universal [skip ci]/[ci skip], which GitLab's
+          # mirror pipeline would also honor and skip its Pages deploy job on
+          # the very commit it exists to publish.
+          git commit -m "chore: bump version to ${{ steps.ver.outputs.VERSION }} [skip actions]"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
