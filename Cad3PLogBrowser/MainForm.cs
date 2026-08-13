@@ -127,6 +127,11 @@ namespace Cad3PLogBrowser
         private Label  _perfFilterLabel;
         private Button _perfClearFilterButton;
 
+        // Log (flat view) active-filter indicator bar
+        private Panel  _logFilterBar;
+        private Label  _logFilterLabel;
+        private Button _logClearFilterButton;
+
         // F9: per-source-file tint state for merged sessions.
         private bool              _showSourceTints = false;
         private ToolStripButton   _sourceTintButton;
@@ -142,7 +147,7 @@ namespace Cad3PLogBrowser
         private int               _currentWarningIndex = -1;
 
         // ── Tab identifiers (used by SettingsForm) ────────────────────────────
-        public enum TabId { Log, Performance, LogDetails, CallGraph, Timeline, Heatmap }
+        public enum TabId { Log, Performance, LogDetails, CallGraph, Timeline, Heatmap, Exceptions, Anomalies, ThreadView }
 
         /// <summary>Returns whether the given tab is currently visible.</summary>
         public bool IsTabVisible(TabId id) => mainTabControl.TabPages.Contains(GetTab(id));
@@ -176,6 +181,9 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return callGraphTab;
                 case TabId.Timeline:    return timelineTab;
                 case TabId.Heatmap:     return heatmapTab;
+                case TabId.Exceptions:  return _exceptionsTab;
+                case TabId.Anomalies:   return _anomaliesTab;
+                case TabId.ThreadView:  return _threadViewTab;
                 default:                return logTab;
             }
         }
@@ -190,6 +198,9 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
                 case TabId.Heatmap:     return showHeatmapTabMenuItem;
+                case TabId.Exceptions:  return _showExceptionsTabMenuItem;
+                case TabId.Anomalies:   return _showAnomaliesTabMenuItem;
+                case TabId.ThreadView:  return _showThreadViewTabMenuItem;
                 default:                return null;
             }
         }
@@ -198,7 +209,8 @@ namespace Cad3PLogBrowser
         private TabPage[] GetCanonicalTabOrder() => new[]
         {
             logTab, performanceTab, logDetailTab,
-            callGraphTab, timelineTab, heatmapTab, _aiTab
+            callGraphTab, timelineTab, heatmapTab,
+            _exceptionsTab, _anomaliesTab, _threadViewTab, _aiTab
         };
 
         private void SetTabVisible(TabPage tab, bool visible)
@@ -233,6 +245,9 @@ namespace Cad3PLogBrowser
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
                 if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
                 if (ReferenceEquals(tab, heatmapTab))     showHeatmapTabMenuItem.Checked     = true;
+                if (ReferenceEquals(tab, _exceptionsTab) && _showExceptionsTabMenuItem != null) _showExceptionsTabMenuItem.Checked = true;
+                if (ReferenceEquals(tab, _anomaliesTab)  && _showAnomaliesTabMenuItem  != null) _showAnomaliesTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, _threadViewTab) && _showThreadViewTabMenuItem != null) _showThreadViewTabMenuItem.Checked = true;
                 // B10: guard the AI tab so closing it when it is the last visible tab
                 // does not leave the TabControl in a 0-tab state.
                 if (_aiTab != null && ReferenceEquals(tab, _aiTab))
@@ -836,6 +851,7 @@ namespace Cad3PLogBrowser
             // G2: theme is now applied in OnLoad (see above) to avoid a startup flash.
 
             InitializePerfFilterBar();
+            InitializeLogFilterBar();
 
             // Force layout again when form is shown to ensure correct positioning
             LayoutTrees();
@@ -1159,6 +1175,7 @@ namespace Cad3PLogBrowser
 
                 // Apply theme to the performance subtree filter bar.
                 ApplyPerfFilterBarTheme();
+                ApplyLogFilterBarTheme();
 
                 // BUG-14: re-apply placeholder colour to the tree search box so it
                 // matches the new theme (system GrayText is invisible in dark theme).
@@ -1764,6 +1781,14 @@ namespace Cad3PLogBrowser
             _perfFilterActive   = false;
             _perfFilterNodeName = string.Empty;
             if (_perfFilterBar != null) _perfFilterBar.Visible = false;
+
+            // Clear any stale flat-log/tree filter from the previous file — otherwise
+            // loading (or merging in) a new file while a filter was active on the old
+            // one leaves _logFilterBar showing the previous filter's description even
+            // though the newly-loaded data is completely unfiltered.
+            _activeFilterText = string.Empty;
+            if (_logFilterBar != null) _logFilterBar.Visible = false;
+
             _lastEntries  = entries;
             _apiNodes     = apiNodes;
 
@@ -1864,6 +1889,11 @@ namespace Cad3PLogBrowser
 
         private void PopulateApiTree(List<ApiCallNode> apiNodes)
         {
+            // BUG FIX: rebuilding the tree detaches all previous TreeNodes (Nodes.Clear()),
+            // so any cached search matches referencing the old nodes become stale/dangling.
+            _treeSearchMatches.Clear();
+            _treeSearchMatchIndex = -1;
+
             // D6: Sort based on current mode, in each mode's own natural default
             // direction (most calls / slowest / longest-total first for the magnitude
             // modes; A→Z / earliest-line-first for the identity/position modes), then
@@ -2019,6 +2049,11 @@ namespace Cad3PLogBrowser
 
         private void PopulateCallTree(List<CallStackNode> roots)
         {
+            // BUG FIX: rebuilding the tree detaches all previous TreeNodes (Nodes.Clear()),
+            // so any cached search matches referencing the old nodes become stale/dangling.
+            _treeSearchMatches.Clear();
+            _treeSearchMatchIndex = -1;
+
             CallTree.BeginUpdate();
             CallTree.Nodes.Clear();
             _lazyChildrenMap.Clear(); // Clear lazy load cache
@@ -2116,11 +2151,20 @@ namespace Cad3PLogBrowser
         // C2: Build tree node with optional lazy loading
         private TreeNode BuildTreeNode(CallStackNode csNode, bool useLazyLoading)
         {
-            bool matched = csNode.ExitLineNumber > 0;
+            // BUG FIX: synthetic per-file group root nodes (created by
+            // BuildCallTreeGroupedByFile to label a merged file's section) are not
+            // real ENTER/EXIT calls, so they never have an ExitLineNumber and were
+            // incorrectly showing the red "unmatched" cross. Treat them as always
+            // matched (green check) and skip the duration overlay entirely.
+            bool matched = csNode.IsFileGroupRoot || csNode.ExitLineNumber > 0;
 
             // Feature C3: Duration overlay with color coding
             string label = csNode.Label;
-            if (csNode.DurationMs > 0)
+            if (csNode.IsFileGroupRoot)
+            {
+                // no duration overlay — this node represents a source file, not a call
+            }
+            else if (csNode.DurationMs > 0)
                 label = string.Format("{0}  [{1} ms]", label, csNode.DurationMs);
             else if (matched)
                 label = string.Format("{0}  [<1 ms]", label);
@@ -2250,6 +2294,86 @@ namespace Cad3PLogBrowser
             _perfClearFilterButton.ForeColor                  = btnFg;
             _perfClearFilterButton.FlatAppearance.BorderColor =
                 dark ? Color.FromArgb(70, 90, 120) : Color.FromArgb(170, 200, 240);
+        }
+
+        // ── Log (flat view) active-filter indicator bar ───────────────────────
+
+        private void InitializeLogFilterBar()
+        {
+            if (_logFilterBar != null || logTab == null) return;
+
+            _logFilterLabel = new Label
+            {
+                AutoSize  = false,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Padding   = new Padding(6, 0, 0, 0),
+            };
+
+            _logClearFilterButton = new Button
+            {
+                Text      = "Clear Filter",
+                Dock      = DockStyle.Right,
+                Width     = 90,
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+            };
+            _logClearFilterButton.Click += (s, ev) => ClearFilter();
+
+            _logFilterBar = new Panel
+            {
+                Dock    = DockStyle.Top,
+                Height  = 28,
+                Padding = new Padding(4, 2, 4, 2),
+                Visible = false,
+            };
+            _logFilterBar.Controls.Add(_logFilterLabel);
+            _logFilterBar.Controls.Add(_logClearFilterButton);
+
+            // Same docking rule as the performance filter bar: Controls.Add() places
+            // this Dock=Top panel at the highest index so it is processed before the
+            // Dock=Fill logListView, carving its height off the top instead of floating
+            // on top of the list view.
+            logTab.Controls.Add(_logFilterBar);
+            ApplyLogFilterBarTheme();
+        }
+
+        private void ApplyLogFilterBarTheme()
+        {
+            if (_logFilterBar == null) return;
+            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            Color barBg = dark ? Color.FromArgb(38, 50, 56)    : Color.FromArgb(232, 244, 253);
+            Color barFg = dark ? Color.FromArgb(180, 210, 255) : Color.FromArgb(0, 80, 160);
+            Color btnBg = dark ? Color.FromArgb(55, 70, 90)    : Color.FromArgb(210, 228, 252);
+            Color btnFg = dark ? Color.FromArgb(200, 215, 235) : SystemColors.ControlText;
+            _logFilterBar.BackColor                          = barBg;
+            _logFilterLabel.BackColor                        = barBg;
+            _logFilterLabel.ForeColor                        = barFg;
+            _logClearFilterButton.BackColor                  = btnBg;
+            _logClearFilterButton.ForeColor                  = btnFg;
+            _logClearFilterButton.FlatAppearance.BorderColor =
+                dark ? Color.FromArgb(70, 90, 120) : Color.FromArgb(170, 200, 240);
+        }
+
+        /// <summary>
+        /// Shows/hides the log-tab filter indicator bar based on <see cref="_activeFilterText"/>.
+        /// Called whenever a filter is applied or cleared so the user always has an
+        /// obvious, discoverable way to see that a filter is active and remove it.
+        /// </summary>
+        private void UpdateLogFilterBar()
+        {
+            if (_logFilterBar == null) return;
+
+            if (!string.IsNullOrEmpty(_activeFilterText))
+            {
+                _logFilterLabel.Text  = string.Format("\u25bc  Filter active: {0}", _activeFilterText);
+                _logFilterBar.Visible = true;
+            }
+            else
+            {
+                _logFilterBar.Visible = false;
+            }
         }
 
         /// <summary>
@@ -5924,6 +6048,7 @@ namespace Cad3PLogBrowser
                 _activeFilterText = criteria.GetDescription();
                 PopulateVirtualListViewFiltered(filtered);
                 ClearHighlighting();
+                UpdateLogFilterBar();
 
                 // B4/B5: a Time Range or Duration Threshold filter used to only ever
                 // affect this flat log list — the Call Tree / API Tree looked untouched.
@@ -5952,6 +6077,7 @@ namespace Cad3PLogBrowser
             // DEF-D01: ClearHighlighting() removed — PopulateVirtualListView already
             // sets BackColour = GetLineColour() for every line; a second pass is O(N) waste.
             ApplyTreeNodeFilter(null);
+            UpdateLogFilterBar();
         }
 
         /// <summary>
@@ -5970,13 +6096,43 @@ namespace Cad3PLogBrowser
             bool hasTimeRange   = criteria != null && (criteria.FromTime.HasValue || criteria.ToTime.HasValue);
             bool hasMethodTerms = criteria != null && criteria.MethodNameTerms != null && criteria.MethodNameTerms.Count > 0;
             bool hasThreadId    = criteria != null && !string.IsNullOrWhiteSpace(criteria.ThreadId);
+            bool hasTextSearch  = criteria != null && !string.IsNullOrWhiteSpace(criteria.SearchText);
 
-            if (!hasDuration && !hasTimeRange && !hasMethodTerms && !hasThreadId)
+            if (!hasDuration && !hasTimeRange && !hasMethodTerms && !hasThreadId && !hasTextSearch)
             {
                 // Restore the original, unfiltered trees.
                 if (_lastCallTree != null) PopulateCallTree(_lastCallTree);
                 if (_apiNodes != null)     PopulateApiTree(_apiNodes);
                 return;
+            }
+
+            // BUG: Call Tree / API Tree previously ignored criteria.SearchText entirely —
+            // only the flat log ListView (via MatchesFilterRaw) honoured a plain Text
+            // filter. Mirror that same matching logic here (regex or plain substring,
+            // case-sensitive or not) so a Text-only filter also prunes both trees.
+            System.Text.RegularExpressions.Regex textSearchRegex = null;
+            if (hasTextSearch && criteria.UseRegex)
+            {
+                try
+                {
+                    var opts = criteria.IsCaseSensitive
+                        ? System.Text.RegularExpressions.RegexOptions.None
+                        : System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                    textSearchRegex = new System.Text.RegularExpressions.Regex(criteria.SearchText, opts);
+                }
+                catch (ArgumentException) { /* invalid pattern — TextMatches falls back to false below */ }
+            }
+
+            bool TextMatches(string text)
+            {
+                if (string.IsNullOrEmpty(text)) return false;
+                if (criteria.UseRegex)
+                    return textSearchRegex != null && textSearchRegex.IsMatch(text);
+
+                var comparison = criteria.IsCaseSensitive
+                    ? StringComparison.Ordinal
+                    : StringComparison.OrdinalIgnoreCase;
+                return text.IndexOf(criteria.SearchText, comparison) >= 0;
             }
 
             bool NodeMatches(CallStackNode csNode)
@@ -5997,6 +6153,9 @@ namespace Cad3PLogBrowser
 
                 // B7: Thread ID filter now reaches the Call Tree, not just the log panel.
                 if (hasThreadId && csNode.ThreadId != criteria.ThreadId)
+                    return false;
+
+                if (hasTextSearch && !TextMatches(csNode.Label))
                     return false;
 
                 return true;
@@ -6028,6 +6187,11 @@ namespace Cad3PLogBrowser
                 foreach (var node in _apiNodes)
                 {
                     if (hasMethodTerms && !MatchesAnyWildcardTerm(node.ApiName, criteria.MethodNameTerms, criteria.IsCaseSensitive))
+                        continue;
+
+                    // Text filter now also reaches the API Tree — matched at the API-name
+                    // level, same granularity as MethodNameTerms above.
+                    if (hasTextSearch && !TextMatches(node.ApiName))
                         continue;
 
                     if (!hasDuration && !hasTimeRange && !hasThreadId)
@@ -6232,11 +6396,29 @@ namespace Cad3PLogBrowser
             if (string.IsNullOrEmpty(line))
                 return Models.LogLevel.Info;
 
-            // Look for log level indicator (2nd field after first colon)
-            int first = line.IndexOf(": ", StringComparison.Ordinal);
-            if (first >= 0 && first + 3 < line.Length)
+            // BUG: merged-log lines are tagged with a "[filename] " prefix by
+            // MergeLogService, which shifts the ": " field-offset used below into
+            // the middle of the ISO timestamp (e.g. "07:48:00.304Z"), causing the
+            // extracted "level" character to be a digit instead of E/W/I/D — the
+            // exact same defect already fixed in GetLineColour/ParseRawThreadId.
+            // Strip the prefix the same way before parsing the level field.
+            string parseable = line;
+            if (line.Length > 2 && line[0] == '[')
             {
-                char level = line[first + 2];
+                int cb = line.IndexOf("] ", StringComparison.Ordinal);
+                if (cb > 1)
+                {
+                    string tag = line.Substring(1, cb - 1);
+                    if (tag.IndexOf('.') >= 0) // looks like a filename, not [Thread:NNN]
+                        parseable = line.Substring(cb + 2);
+                }
+            }
+
+            // Look for log level indicator (2nd field after first colon)
+            int first = parseable.IndexOf(": ", StringComparison.Ordinal);
+            if (first >= 0 && first + 3 < parseable.Length)
+            {
+                char level = parseable[first + 2];
                 switch (level)
                 {
                     case 'E': return Models.LogLevel.Error;
@@ -6386,6 +6568,9 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
                     SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
+                    SetTabVisible(TabId.Exceptions,  _appSettings.ShowExceptionsTab);
+                    SetTabVisible(TabId.Anomalies,   _appSettings.ShowAnomaliesTab);
+                    SetTabVisible(TabId.ThreadView,  _appSettings.ShowThreadViewTab);
                     // AI tab is a dynamic TabPage — toggle directly
                     if (_aiTab != null && mainTabControl != null)
                     {
@@ -7989,9 +8174,14 @@ namespace Cad3PLogBrowser
                         {
                             if (item.Text == "──── TOTAL ────") continue;
 
-                            var values = new string[8];
+                            // BUG FIX: the ListView has 9 columns (Name, Log File, Calls,
+                            // Total, Avg, Min, Max, Self, Source File) but this array was
+                            // capped at 8, so every column from "Calls" onward was shifted
+                            // left by one under the wrong header, and "Source File" data
+                            // was silently dropped. Widen to match CSV_HEADER_PERFORMANCE.
+                            var values = new string[9];
                             values[0] = EscapeCsv(item.Text);
-                            for (int i = 0; i < item.SubItems.Count && i < 8; i++)
+                            for (int i = 0; i < item.SubItems.Count && i < 9; i++)
                                 values[i] = EscapeCsv(item.SubItems[i].Text);
 
                             writer.WriteLine(string.Join(",", values));
@@ -8638,10 +8828,29 @@ namespace Cad3PLogBrowser
         {
             if (_treeSearchMatches.Count == 0) return;
 
-            _treeSearchMatchIndex = (_treeSearchMatchIndex + direction + _treeSearchMatches.Count) % _treeSearchMatches.Count;
-            var node = _treeSearchMatches[_treeSearchMatchIndex];
-            node.TreeView.SelectedNode = node;
-            node.EnsureVisible();
+            // BUG FIX: a tree rebuild (reload, filter, theme refresh) clears and
+            // recreates TreeNodes without notifying _treeSearchMatches, leaving stale
+            // TreeNode references whose .TreeView is null (detached). Guard against
+            // that instead of crashing with an NRE.
+            int attempts = 0;
+            while (attempts < _treeSearchMatches.Count)
+            {
+                _treeSearchMatchIndex = (_treeSearchMatchIndex + direction + _treeSearchMatches.Count) % _treeSearchMatches.Count;
+                var node = _treeSearchMatches[_treeSearchMatchIndex];
+                if (node != null && node.TreeView != null)
+                {
+                    node.TreeView.SelectedNode = node;
+                    node.EnsureVisible();
+                    UpdateTreeSearchMatchLabel();
+                    return;
+                }
+                attempts++;
+            }
+
+            // All cached matches are stale (tree was rebuilt since the search ran) —
+            // clear them so subsequent clicks don't keep spinning through dead nodes.
+            _treeSearchMatches.Clear();
+            _treeSearchMatchIndex = -1;
             UpdateTreeSearchMatchLabel();
         }
 
@@ -9557,6 +9766,7 @@ namespace Cad3PLogBrowser
         // ═══════════════════════════════════════════════════════════════════════
 
         private TabPage  _exceptionsTab;
+        private ToolStripMenuItem _showExceptionsTabMenuItem;
         private ListView _exceptionGroupsListView;
         private ListView _correlationIdsListView;
         private ListView _correlationOccurrencesListView;
@@ -9636,14 +9846,18 @@ namespace Cad3PLogBrowser
             if (mainTabControl != null)
                 mainTabControl.TabPages.Add(_exceptionsTab);
 
-            var showExceptionsMenuItem = new ToolStripMenuItem("E&xceptions")
+            _showExceptionsTabMenuItem = new ToolStripMenuItem("E&xceptions")
             {
-                Name = "showExceptionsTabMenuItem", CheckOnClick = true, Checked = true
+                Name = "showExceptionsTabMenuItem", CheckOnClick = true, Checked = _appSettings.ShowExceptionsTab
             };
-            showExceptionsMenuItem.CheckedChanged += (s, e) =>
+            if (!_appSettings.ShowExceptionsTab && mainTabControl != null && mainTabControl.TabPages.Contains(_exceptionsTab))
+                mainTabControl.TabPages.Remove(_exceptionsTab);
+            _showExceptionsTabMenuItem.CheckedChanged += (s, e) =>
             {
                 if (_exceptionsTab == null || mainTabControl == null) return;
-                if (showExceptionsMenuItem.Checked)
+                _appSettings.ShowExceptionsTab = _showExceptionsTabMenuItem.Checked;
+                _appSettings.Save();
+                if (_showExceptionsTabMenuItem.Checked)
                 {
                     if (!mainTabControl.TabPages.Contains(_exceptionsTab))
                         mainTabControl.TabPages.Add(_exceptionsTab);
@@ -9654,7 +9868,7 @@ namespace Cad3PLogBrowser
                 }
             };
             if (tabsMenuItem != null)
-                tabsMenuItem.DropDownItems.Add(showExceptionsMenuItem);
+                tabsMenuItem.DropDownItems.Add(_showExceptionsTabMenuItem);
         }
 
         /// <summary>Refreshes the K2/K3 tab from the freshly-loaded log entries.</summary>
@@ -9702,6 +9916,7 @@ namespace Cad3PLogBrowser
         // ═══════════════════════════════════════════════════════════════════════
 
         private TabPage  _anomaliesTab;
+        private ToolStripMenuItem _showAnomaliesTabMenuItem;
         private ListView _anomaliesListView;
         private Label    _anomaliesStatusLabel;
 
@@ -9739,14 +9954,18 @@ namespace Cad3PLogBrowser
             if (mainTabControl != null)
                 mainTabControl.TabPages.Add(_anomaliesTab);
 
-            var showAnomaliesMenuItem = new ToolStripMenuItem("&Anomalies")
+            _showAnomaliesTabMenuItem = new ToolStripMenuItem("&Anomalies")
             {
-                Name = "showAnomaliesTabMenuItem", CheckOnClick = true, Checked = true
+                Name = "showAnomaliesTabMenuItem", CheckOnClick = true, Checked = _appSettings.ShowAnomaliesTab
             };
-            showAnomaliesMenuItem.CheckedChanged += (s, e) =>
+            if (!_appSettings.ShowAnomaliesTab && mainTabControl != null && mainTabControl.TabPages.Contains(_anomaliesTab))
+                mainTabControl.TabPages.Remove(_anomaliesTab);
+            _showAnomaliesTabMenuItem.CheckedChanged += (s, e) =>
             {
                 if (_anomaliesTab == null || mainTabControl == null) return;
-                if (showAnomaliesMenuItem.Checked)
+                _appSettings.ShowAnomaliesTab = _showAnomaliesTabMenuItem.Checked;
+                _appSettings.Save();
+                if (_showAnomaliesTabMenuItem.Checked)
                 {
                     if (!mainTabControl.TabPages.Contains(_anomaliesTab))
                         mainTabControl.TabPages.Add(_anomaliesTab);
@@ -9757,7 +9976,7 @@ namespace Cad3PLogBrowser
                 }
             };
             if (tabsMenuItem != null)
-                tabsMenuItem.DropDownItems.Add(showAnomaliesMenuItem);
+                tabsMenuItem.DropDownItems.Add(_showAnomaliesTabMenuItem);
         }
 
         /// <summary>Re-runs the baseline comparison against the freshly-loaded log's stats.</summary>
@@ -9886,6 +10105,7 @@ namespace Cad3PLogBrowser
         // ═══════════════════════════════════════════════════════════════════════
 
         private TabPage  _threadViewTab;
+        private ToolStripMenuItem _showThreadViewTabMenuItem;
         private ComboBox _threadACombo;
         private ComboBox _threadBCombo;
         private TreeView _threadATree;
@@ -9961,14 +10181,18 @@ namespace Cad3PLogBrowser
             if (mainTabControl != null)
                 mainTabControl.TabPages.Add(_threadViewTab);
 
-            var showThreadViewMenuItem = new ToolStripMenuItem("&Thread View")
+            _showThreadViewTabMenuItem = new ToolStripMenuItem("&Thread View")
             {
-                Name = "showThreadViewTabMenuItem", CheckOnClick = true, Checked = true
+                Name = "showThreadViewTabMenuItem", CheckOnClick = true, Checked = _appSettings.ShowThreadViewTab
             };
-            showThreadViewMenuItem.CheckedChanged += (s, e) =>
+            if (!_appSettings.ShowThreadViewTab && mainTabControl != null && mainTabControl.TabPages.Contains(_threadViewTab))
+                mainTabControl.TabPages.Remove(_threadViewTab);
+            _showThreadViewTabMenuItem.CheckedChanged += (s, e) =>
             {
                 if (_threadViewTab == null || mainTabControl == null) return;
-                if (showThreadViewMenuItem.Checked)
+                _appSettings.ShowThreadViewTab = _showThreadViewTabMenuItem.Checked;
+                _appSettings.Save();
+                if (_showThreadViewTabMenuItem.Checked)
                 {
                     if (!mainTabControl.TabPages.Contains(_threadViewTab))
                         mainTabControl.TabPages.Add(_threadViewTab);
@@ -9979,7 +10203,7 @@ namespace Cad3PLogBrowser
                 }
             };
             if (tabsMenuItem != null)
-                tabsMenuItem.DropDownItems.Add(showThreadViewMenuItem);
+                tabsMenuItem.DropDownItems.Add(_showThreadViewTabMenuItem);
         }
 
         /// <summary>B6: log levels actually present in the loaded log (using the same
@@ -10124,6 +10348,9 @@ namespace Cad3PLogBrowser
                     SetTabVisible(TabId.CallGraph,   _appSettings.ShowCallGraphTab);
                     SetTabVisible(TabId.Timeline,    _appSettings.ShowTimelineTab);
                     SetTabVisible(TabId.Heatmap,     _appSettings.ShowHeatmapTab);
+                    SetTabVisible(TabId.Exceptions,  _appSettings.ShowExceptionsTab);
+                    SetTabVisible(TabId.Anomalies,   _appSettings.ShowAnomaliesTab);
+                    SetTabVisible(TabId.ThreadView,  _appSettings.ShowThreadViewTab);
 
                     // AI tab is a dynamic TabPage — toggle directly
                     if (_aiTab != null && mainTabControl != null)
