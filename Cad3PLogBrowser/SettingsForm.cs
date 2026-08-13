@@ -35,6 +35,7 @@ namespace Cad3PLogBrowser
         // -- Tabs & Layout -----------------------------------------------------
         private CheckBox  chkShowLog, chkShowPerformance, chkShowLogDetails;
         private CheckBox  chkShowCallGraph, chkShowTimeline, chkShowAiTab;
+        private CheckBox  chkShowExceptions, chkShowAnomalies, chkShowThreadView;
         private ComboBox  cmbInitialView;
         private ComboBox  cmbDefaultTreeView;
 
@@ -168,7 +169,7 @@ namespace Cad3PLogBrowser
             _tabControl = new TabControl
             {
                 Location = new Point(12, 10),
-                Size     = new Size(580, 532),
+                Size     = new Size(580, 570),
                 Font     = new Font("Segoe UI", 9f)
             };
 
@@ -329,7 +330,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.GroupVisibleTabs,
                 Location = new Point(12, 165),
-                Size = new Size(530, 115),
+                Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -337,11 +338,14 @@ namespace Cad3PLogBrowser
             chkShowLog = Chk(grpTabs, SettingsDialogStrings.CheckboxLogView, 14, 24);
             chkShowPerformance = Chk(grpTabs, SettingsDialogStrings.CheckboxPerformance, 160, 24);
             chkShowLogDetails = Chk(grpTabs, SettingsDialogStrings.CheckboxLogDetails, 300, 24);
-            // Row 2: Call Graph, Flame Graph, Timeline
+            // Row 2: Call Graph, Timeline, AI Assistant
             chkShowCallGraph = Chk(grpTabs, SettingsDialogStrings.CheckboxCallGraph, 14, 52);
             chkShowTimeline = Chk(grpTabs, SettingsDialogStrings.CheckboxTimeline, 160, 52);
-            // Row 3: AI Assistant
-            chkShowAiTab = Chk(grpTabs, SettingsDialogStrings.CheckboxAIAssistant, 14, 80);
+            chkShowAiTab = Chk(grpTabs, SettingsDialogStrings.CheckboxAIAssistant, 300, 52);
+            // Row 3: Exceptions, Anomalies, Thread View
+            chkShowExceptions = Chk(grpTabs, "Exceptions", 14, 80);
+            chkShowAnomalies  = Chk(grpTabs, "Anomalies", 160, 80);
+            chkShowThreadView = Chk(grpTabs, "Thread View", 300, 80);
 
             tp.Controls.Add(grpTabs);
 
@@ -349,7 +353,7 @@ namespace Cad3PLogBrowser
             var lblStartup = new Label
             {
                 Text = SettingsDialogStrings.LabelStartupTab,
-                Location = new Point(12, 295),
+                Location = new Point(12, 325),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             };
@@ -358,7 +362,7 @@ namespace Cad3PLogBrowser
             cmbInitialView = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(175, 292),
+                Location = new Point(175, 322),
                 Size = new Size(180, 24),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -379,7 +383,7 @@ namespace Cad3PLogBrowser
             var lblTreeView = new Label
             {
                 Text = SettingsDialogStrings.LabelDefaultTreeView,
-                Location = new Point(12, 325),
+                Location = new Point(12, 355),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             };
@@ -388,7 +392,7 @@ namespace Cad3PLogBrowser
             cmbDefaultTreeView = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(175, 322),
+                Location = new Point(175, 352),
                 Size = new Size(130, 24),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -401,7 +405,7 @@ namespace Cad3PLogBrowser
             var grpFont = new GroupBox
             {
                 Text = "Log Font",
-                Location = new Point(12, 360),
+                Location = new Point(12, 390),
                 Size = new Size(530, 145),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1097,6 +1101,9 @@ namespace Cad3PLogBrowser
             chkShowCallGraph.Checked   = _mainForm.IsTabVisible(MainForm.TabId.CallGraph);
             chkShowTimeline.Checked    = _mainForm.IsTabVisible(MainForm.TabId.Timeline);
             chkShowAiTab.Checked       = _settings.ShowAiTab;
+            chkShowExceptions.Checked  = _mainForm.IsTabVisible(MainForm.TabId.Exceptions);
+            chkShowAnomalies.Checked   = _mainForm.IsTabVisible(MainForm.TabId.Anomalies);
+            chkShowThreadView.Checked  = _mainForm.IsTabVisible(MainForm.TabId.ThreadView);
             cmbInitialView.SelectedItem = _settings.InitialView ?? "Log";
             if (cmbInitialView.SelectedIndex < 0) cmbInitialView.SelectedIndex = 0;
             cmbDefaultTreeView.SelectedItem = _settings.DefaultTreeView == "Api" ? "API Tree" : "Call Tree";
@@ -1224,6 +1231,9 @@ namespace Cad3PLogBrowser
             _settings.ShowCallGraphTab   = chkShowCallGraph.Checked;
             _settings.ShowTimelineTab    = chkShowTimeline.Checked;
             _settings.ShowAiTab          = chkShowAiTab.Checked;
+            _settings.ShowExceptionsTab  = chkShowExceptions.Checked;
+            _settings.ShowAnomaliesTab   = chkShowAnomalies.Checked;
+            _settings.ShowThreadViewTab  = chkShowThreadView.Checked;
             _settings.InitialView        = cmbInitialView.SelectedItem?.ToString() ?? "Log";
             _settings.DefaultTreeView    = cmbDefaultTreeView.SelectedItem?.ToString() == "API Tree" ? "Api" : "Call";
 
@@ -1314,6 +1324,9 @@ namespace Cad3PLogBrowser
             _settings.ShowCallGraphTab    = def.ShowCallGraphTab;
             _settings.ShowTimelineTab     = def.ShowTimelineTab;
             _settings.ShowAiTab           = def.ShowAiTab;
+            _settings.ShowExceptionsTab   = def.ShowExceptionsTab;
+            _settings.ShowAnomaliesTab    = def.ShowAnomaliesTab;
+            _settings.ShowThreadViewTab   = def.ShowThreadViewTab;
             _settings.InitialView         = def.InitialView;
             _settings.DefaultTreeView     = def.DefaultTreeView;
             _settings.LogFontFamily       = def.LogFontFamily;

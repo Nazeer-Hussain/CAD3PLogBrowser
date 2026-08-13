@@ -41,6 +41,9 @@ namespace Cad3PLogBrowser.Services
         public bool    ShowTimelineTab      { get; set; } = true;
         public bool    ShowHeatmapTab       { get; set; } = true;
         public bool    ShowAiTab            { get; set; } = true;
+        public bool    ShowExceptionsTab    { get; set; } = true;
+        public bool    ShowAnomaliesTab     { get; set; } = true;
+        public bool    ShowThreadViewTab    { get; set; } = true;
         public string  Theme                { get; set; } = "Light"; // "Light" | "Dark"
         public string  DefaultTreeView      { get; set; } = "Call";  // "Call" | "Api"
         // H2: whether the whole right-side tab panel is collapsed (View > Hide Tabs).
