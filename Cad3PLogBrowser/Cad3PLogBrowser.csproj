@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -290,6 +290,10 @@
       <Link>Help\UserGuide.html</Link>
       <LogicalName>Cad3PLogBrowser.Help.UserGuide.html</LogicalName>
     </EmbeddedResource>
+    <Content Include="..\Help\images\cad3plog.gif">
+      <Link>Help\images\cad3plog.gif</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\Help\images\compare-logs-dialog.png">
       <Link>Help\images\compare-logs-dialog.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

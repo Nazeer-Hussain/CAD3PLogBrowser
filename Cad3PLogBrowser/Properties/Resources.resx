@@ -678,7 +678,7 @@
   </data>
   <!-- CSV Export Headers -->
   <data name="CSV_HEADER_PERFORMANCE" xml:space="preserve">
-    <value>API Name,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File</value>
+    <value>API Name,Log File,Calls,Total (ms),Avg (ms),Min (ms),Max (ms),Self (ms),Source File</value>
   </data>
   <data name="CSV_HEADER_BRANCH" xml:space="preserve">
     <value>Method,Depth,Duration_ms</value>

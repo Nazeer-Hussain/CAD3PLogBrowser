@@ -68,8 +68,15 @@ namespace Cad3PLogBrowser.Services.Core
             const int maxEstimate = 5_000_000;
             int estimatedLines = totalBytes > 0 ? (int)Math.Min(totalBytes / 120L, maxEstimate) : 4096;
 
-            var buckets = new List<(long ts, string line)>(estimatedLines);
+            // BUG FIX: List<T>.Sort is an unstable introsort. Lines sharing the same
+            // epoch timestamp (very common — ENTER/EXIT pairs and lines from different
+            // files logged in the same millisecond) could get reordered relative to each
+            // other, breaking the ENTER/EXIT nesting that BuildCallTree relies on and
+            // producing a corrupted merged call tree (missing/mismatched nodes). Adding
+            // the original insertion index as a tiebreaker makes the sort stable.
+            var buckets = new List<(long ts, int seq, string line)>(estimatedLines);
 
+            int seq = 0;
             foreach (var path in paths)
             {
                 string tag = Path.GetFileName(path);
@@ -78,28 +85,30 @@ namespace Cad3PLogBrowser.Services.Core
                 {
                     long ts = ExtractTimestamp(raw);
                     string tagged = string.Format("[{0}] {1}", tag, raw);
-                    buckets.Add((ts, tagged));
+                    buckets.Add((ts, seq++, tagged));
                 }
             }
 
-            // Stable sort: lines with timestamp first (ascending), unknowns last
+            // Stable sort: lines with timestamp first (ascending), unknowns last,
+            // ties broken by original order.
             // P3: use a static Comparison<T> to avoid allocating a new delegate on every call.
             buckets.Sort(TimestampComparison);
 
             var result = new List<string>(buckets.Count);
-            foreach (var (_, line) in buckets)
+            foreach (var (_, _, line) in buckets)
                 result.Add(line);
 
             return result;
         }
 
         // P3: static comparison method — captured once, no per-sort delegate allocation.
-        private static int TimestampComparison((long ts, string line) a, (long ts, string line) b)
+        private static int TimestampComparison((long ts, int seq, string line) a, (long ts, int seq, string line) b)
         {
-            if (a.ts == 0 && b.ts == 0) return 0;
+            if (a.ts == 0 && b.ts == 0) return a.seq.CompareTo(b.seq);
             if (a.ts == 0) return 1;
             if (b.ts == 0) return -1;
-            return a.ts.CompareTo(b.ts);
+            int cmp = a.ts.CompareTo(b.ts);
+            return cmp != 0 ? cmp : a.seq.CompareTo(b.seq);
         }
 
         /// <summary>Extracts a raw log line's epoch-ms timestamp (from the trailing
@@ -140,11 +149,12 @@ namespace Cad3PLogBrowser.Services.Core
         {
             return Task.Run(() =>
             {
-                var buckets = new List<(long ts, string line)>(existingTaggedLines.Count + 512);
+                var buckets = new List<(long ts, int seq, string line)>(existingTaggedLines.Count + 512);
+                int seq = 0;
 
                 // Existing lines already carry correct [filename] tags — keep as-is
                 foreach (var line in existingTaggedLines)
-                    buckets.Add((ExtractTimestamp(line), line));
+                    buckets.Add((ExtractTimestamp(line), seq++, line));
 
                 // New files: tag and add
                 foreach (var path in newFilePaths)
@@ -154,14 +164,14 @@ namespace Cad3PLogBrowser.Services.Core
                     foreach (var raw in ReadRawLines(path))
                     {
                         long ts = ExtractTimestamp(raw);
-                        buckets.Add((ts, string.Format("[{0}] {1}", tag, raw)));
+                        buckets.Add((ts, seq++, string.Format("[{0}] {1}", tag, raw)));
                     }
                 }
 
                 buckets.Sort(TimestampComparison);
 
                 var result = new List<string>(buckets.Count);
-                foreach (var (_, line) in buckets)
+                foreach (var (_, _, line) in buckets)
                     result.Add(line);
                 return result;
             });
