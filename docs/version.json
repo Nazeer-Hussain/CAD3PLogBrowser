@@ -1,8 +1,8 @@
 {
-  "version": "4.0.11",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.11.zip",
-  "releaseNotes": "Derive release notes from the triggering commit instead of copying stale text",
+  "version": "4.0.12",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.12.zip",
+  "releaseNotes": "Make AI Assistant tab follow the app theme; finish AI provider consolidation",
   "mandatory": false,
-  "sha256": "e22e3c094d17a932c99eca3208495c3bfe7649a54e55263f2290d8f44d77a0b8",
-  "downloadSizeBytes": 2792308
+  "sha256": "9446113d0c4aa19a7c2fd7ca030b8b2888bc65de171e9f789df5245131784612",
+  "downloadSizeBytes": 2793312
 }
