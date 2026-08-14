@@ -47,6 +47,10 @@ namespace Cad3PLogBrowser
         private const float NR      = NH / 2f;
         private const float MinZoom = 0.15f;
         private const float MaxZoom = 10.0f;
+        // Lower bound used specifically by FitToWindow: below this, text and nodes
+        // become unreadable, so we prefer to let the user scroll (AutoScroll is on)
+        // rather than squeeze the whole graph in at an illegible size.
+        private const float ReadableMinZoom = 0.45f;
 
         // ?? Theme helpers ?????????????????????????????????????????????????????
         private bool Dark => ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
@@ -216,17 +220,45 @@ namespace Cad3PLogBrowser
         public void ToggleViewMode() { _structuralView = !_structuralView; Invalidate(); }
 
         // ?? Layout ????????????????????????????????????????????????????????????
+        // Above this many nodes a circular layout becomes unreadable because its
+        // radius (and therefore bounding box) grows linearly with node count,
+        // forcing FitToWindow to shrink the zoom to near-illegible levels.
+        // For larger graphs we switch to a compact grid whose footprint grows
+        // with the square root of the node count instead.
+        private const int GridLayoutThreshold = 24;
+
         private void LayoutNodes()
         {
             if (_graph == null || _graph.Nodes.Count == 0) return;
             var nodes = new List<CallGraphNode>(_graph.Nodes.Values);
             int n = nodes.Count;
-            float radius = Math.Max(180f, n * 52f);
-            for (int i = 0; i < n; i++)
+
+            if (n <= GridLayoutThreshold)
             {
-                double a = 2 * Math.PI * i / n - Math.PI / 2;
-                nodes[i].X = radius * (float)Math.Cos(a);
-                nodes[i].Y = radius * (float)Math.Sin(a);
+                float radius = Math.Max(180f, n * 30f);
+                for (int i = 0; i < n; i++)
+                {
+                    double a = 2 * Math.PI * i / n - Math.PI / 2;
+                    nodes[i].X = radius * (float)Math.Cos(a);
+                    nodes[i].Y = radius * (float)Math.Sin(a);
+                }
+            }
+            else
+            {
+                // Compact grid: columns ~ sqrt(n), spaced tightly by node size.
+                int cols = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(n)));
+                int rows = (int)Math.Ceiling((double)n / cols);
+                float colSpacing = NW + 40f;
+                float rowSpacing = NH + 60f;
+                float startX = -(cols - 1) * colSpacing / 2f;
+                float startY = -(rows - 1) * rowSpacing / 2f;
+                for (int i = 0; i < n; i++)
+                {
+                    int col = i % cols;
+                    int row = i / cols;
+                    nodes[i].X = startX + col * colSpacing;
+                    nodes[i].Y = startY + row * rowSpacing;
+                }
             }
         }
 
@@ -246,7 +278,11 @@ namespace Cad3PLogBrowser
             int statusBarH = _statusBar?.Visible == true ? _statusBar.Height : 0;
             float zx = (Width  - 60) / gw;
             float zy = (Height - toolbarH - statusBarH - 20) / gh;
-            _zoom = Math.Max(MinZoom, Math.Min(MaxZoom, Math.Min(zx, zy) * 0.88f));
+            float fitZoom = Math.Min(zx, zy) * 0.88f;
+            // Never let auto-fit shrink the graph below a readable size; if the
+            // graph doesn't fit at that size the panel's AutoScroll lets the user
+            // pan/scroll to see the rest instead of rendering illegible text.
+            _zoom = Math.Max(ReadableMinZoom, Math.Min(MaxZoom, fitZoom));
             _pan  = PointF.Empty;
             _toolbar?.UpdateZoomLevel(_zoom);
             _statusBar?.UpdateZoom(_zoom);

@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Cad3PLogBrowser.AI.Models;
 using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
+using Cad3PLogBrowser.UI;
 
 namespace Cad3PLogBrowser.UI.AI
 {
@@ -52,6 +53,7 @@ namespace Cad3PLogBrowser.UI.AI
         public AISettingsDialog()
         {
             InitializeComponent();
+            Icon = AppIcon.Get();
             LoadSettings();
         }
 

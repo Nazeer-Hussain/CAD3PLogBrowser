@@ -123,6 +123,7 @@ namespace Cad3PLogBrowser
         public SettingsForm(MainForm mainForm, int initialTabIndex)
         {
             InitializeComponent();
+            Icon = AppIcon.Get();
 
             _mainForm = mainForm;
             _settings = mainForm.AppSettings;
