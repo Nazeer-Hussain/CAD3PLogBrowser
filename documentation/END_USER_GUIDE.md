@@ -52,9 +52,20 @@ If AI tab is visible, click the ?? icon in the AI panel header
    - AI Provider
    - Model Configuration
    - Privacy & Conversation
-   - Legacy Integration (ignore this - it's for old versions)
 
 ---
+
+## ?? Real Analysis vs. Sample Responses
+
+The AI Assistant **always shows a response** when you click an analysis button or ask a question — but it's important to know which kind you're looking at:
+
+| Mode | When it happens | How to tell |
+|------|------------------|-------------|
+| **Real Analysis** | A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid API key) | The status label at the top of the AI panel reads `<Provider> ready — real analysis` |
+| **Sample Response** | AI is disabled, unconfigured, or a live request fails (e.g. server unreachable) | The status label reads `Sample Mode (AI not configured)`, and every answer is prefixed with a highlighted **?? SAMPLE RESPONSE** banner |
+
+A Sample Response is generated **entirely offline** from your log's statistics (error/warning counts, slowest API calls, etc.) using deterministic rules — no data is sent anywhere, and it is not real AI-generated text. If a configured provider fails mid-request (e.g. Ollama server stops responding), the panel automatically falls back to a Sample Response for that answer and includes the underlying error in the banner so you can diagnose it.
+
 
 ## ?? Choosing an AI Provider
 
@@ -370,6 +381,18 @@ AI: Add a null check before accessing the property:
 ---
 
 ## ?? Troubleshooting
+
+### Problem: "I keep getting Sample Responses even though I enabled AI"
+
+**Solutions**:
+1. Check the status label at the top of the AI Assistant panel — if it reads `Sample Mode (AI not configured)`, the app is not currently able to reach a real provider.
+2. Open Settings ? AI & Integration and confirm:
+   - **Enable AI Features** is checked
+   - The correct **Provider** is selected (e.g. Ollama, not Mock)
+   - The required field is filled in (Server URL for Ollama, API key for cloud providers)
+3. Click **Test Connection** on the same page to confirm the app can actually reach the provider.
+4. If a Sample Response banner mentions a specific error (e.g. "Real AI request failed..."), that error text tells you what actually went wrong (server down, wrong URL, invalid key, etc.) — fix that and try again.
+5. Selecting **Mock** or an unimplemented provider (OpenAI, Azure OpenAI, Google Gemini — "Coming Soon") will always produce Sample Responses; these are not bugs.
 
 ### Problem: "Cannot connect to Ollama server"
 

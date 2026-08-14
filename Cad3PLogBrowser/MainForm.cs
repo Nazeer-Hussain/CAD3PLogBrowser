@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -23,7 +24,6 @@ namespace Cad3PLogBrowser
         private readonly LogParserService  _parserService;
         private readonly CallGraphService  _callGraphService;
         private readonly Services.Core.MergeLogService _mergeLogService;
-        private Services.Analysis.AiLogService _aiService;
         private Managers.AiAssistantPanel _aiPanel;
         private OperationOverlayPanel      _overlay;
         private UI.LineInspectorPanel      _lineInspector;
@@ -750,8 +750,6 @@ namespace Cad3PLogBrowser
             _parserService    = new LogParserService();
             _callGraphService = new CallGraphService();
             _mergeLogService  = new Services.Core.MergeLogService();
-            _aiService        = new Services.Analysis.AiLogService(
-                _appSettings.ClaudeApiKey, _appSettings.UseClaudeApi, _appSettings.ClaudeModel);
             _logFileService   = new LogFileService(this);
             _bookmarkService  = new Services.Navigation.BookmarkService();
             _sessionService   = new Services.Core.SessionService(_appSettings);
@@ -3175,6 +3173,31 @@ namespace Cad3PLogBrowser
             treeSearchTextBox.Location = new Point(3, 3);
             treeSearchTextBox.Width = panelWidth - 6;
 
+            // UX: reserve space inside the text box for the search icon (left) and the
+            // clear ("X") button (right) so they never overlap typed text.
+            if (_treeSearchIcon != null)
+            {
+                _treeSearchIcon.Location = new Point(
+                    treeSearchTextBox.Left + 4,
+                    treeSearchTextBox.Top + (treeSearchTextBox.Height - _treeSearchIcon.Height) / 2);
+                _treeSearchIcon.BringToFront();
+            }
+            if (_treeSearchClearButton != null)
+            {
+                _treeSearchClearButton.Location = new Point(
+                    treeSearchTextBox.Right - _treeSearchClearButton.Width - 3,
+                    treeSearchTextBox.Top + (treeSearchTextBox.Height - _treeSearchClearButton.Height) / 2);
+                _treeSearchClearButton.BringToFront();
+            }
+            if (_treeSearchSuggestionsListBox != null)
+            {
+                _treeSearchSuggestionsListBox.Location = new Point(treeSearchTextBox.Left, treeSearchTextBox.Bottom + 1);
+                _treeSearchSuggestionsListBox.Width = treeSearchTextBox.Width;
+                _treeSearchSuggestionsListBox.BringToFront();
+            }
+
+            ApplyTreeSearchTextMargins();
+
             // C5: match-count row (only visible while a search is active) sits directly
             // below the search box; Prev/Next stay right-aligned as the panel resizes.
             treeSearchMatchLabel.Location = new Point(3, 29);
@@ -3182,8 +3205,12 @@ namespace Cad3PLogBrowser
             treeSearchPrevButton.Location = new Point(
                 treeSearchNextButton.Left - 3 - treeSearchPrevButton.Width, 27);
 
-            // Position trees below the search row (at Y=54 to give room for the match row)
-            int treeY = 54;
+            // BUG FIX: previously treeY was a fixed 54px, leaving a visible blank gap
+            // between the search box and the tree whenever the match-count row was
+            // hidden (i.e. no active search). Only reserve that extra space when the
+            // match row is actually visible.
+            bool matchRowVisible = treeSearchMatchLabel.Visible;
+            int treeY = matchRowVisible ? 54 : 29;
             int treeHeight = panelHeight - treeY - 3; // Leave 3px at bottom
             int treeWidth = panelWidth - 6;
 
@@ -6583,9 +6610,6 @@ namespace Cad3PLogBrowser
                     ApplyThemeWithOverlay();
                     ApplyToolbarVisibility();
                     ApplyFontSettings();
-                    // Propagate updated AI settings (including configurable model) to the service.
-                    _aiService?.UpdateConfig(_appSettings.ClaudeApiKey, _appSettings.UseClaudeApi,
-                                             _appSettings.ClaudeModel);
                     // C2/C3: re-render the call tree so updated lazy-load/color-threshold
                     // settings apply immediately, without requiring a file reload.
                     if (_lastCallTree != null && _lastCallTree.Count > 0)
@@ -8693,6 +8717,14 @@ namespace Cad3PLogBrowser
         private readonly List<TreeNode> _treeSearchMatches = new List<TreeNode>();
         private int _treeSearchMatchIndex = -1;
 
+        // UX: search icon shown inside the search box so it's obvious it's a search
+        // field, a clear ("X") button to reset it, and a contains-matching suggestion
+        // dropdown that lists tree node names matching what's typed so far.
+        private PictureBox _treeSearchIcon;
+        private Button _treeSearchClearButton;
+        private ListBox _treeSearchSuggestionsListBox;
+        private const int MaxTreeSearchSuggestions = 12;
+
         // PERF-06: debounce the tree-search TextChanged event so that FilterTreeNodes
         // is only called once after the user stops typing, not on every individual
         // keystroke.  For a 10K-node tree this prevents 10K IndexOf calls per character.
@@ -8705,7 +8737,17 @@ namespace Cad3PLogBrowser
                 // BUG-A02: compare text not ForeColor — placeholder colour differs per theme.
                 if (textBox.Text == TREE_SEARCH_PLACEHOLDER
                     || textBox.Text == Resources.TREE_SEARCH_PLACEHOLDER)
+                {
+                    if (_treeSearchClearButton != null) _treeSearchClearButton.Visible = false;
+                    HideTreeSearchSuggestions();
                     return;
+                }
+
+                // UX: show the clear ("X") button only once there's something to clear,
+                // and refresh the contains-matching suggestions dropdown as the user types.
+                if (_treeSearchClearButton != null)
+                    _treeSearchClearButton.Visible = !string.IsNullOrEmpty(textBox.Text);
+                ShowTreeSearchSuggestions(textBox.Text);
 
                 // PERF-06: restart the debounce timer; FilterTreeNodes fires after 120 ms
                 // of inactivity, collapsing rapid keystrokes into a single filter pass.
@@ -8729,12 +8771,43 @@ namespace Cad3PLogBrowser
         {
             if (e.KeyCode == Keys.Escape)
             {
-                treeSearchTextBox.Text = string.Empty;
+                if (_treeSearchSuggestionsListBox != null && _treeSearchSuggestionsListBox.Visible)
+                {
+                    HideTreeSearchSuggestions();
+                }
+                else
+                {
+                    treeSearchTextBox.Text = string.Empty;
+                }
                 e.SuppressKeyPress = true;
             }
             else if (e.KeyCode == Keys.Enter)
             {
-                NavigateTreeSearchMatch(e.Shift ? -1 : 1);
+                if (_treeSearchSuggestionsListBox != null && _treeSearchSuggestionsListBox.Visible
+                    && _treeSearchSuggestionsListBox.SelectedItem is string selected)
+                {
+                    treeSearchTextBox.Text = selected;
+                    treeSearchTextBox.SelectionStart = selected.Length;
+                    HideTreeSearchSuggestions();
+                }
+                else
+                {
+                    NavigateTreeSearchMatch(e.Shift ? -1 : 1);
+                }
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Down && _treeSearchSuggestionsListBox != null && _treeSearchSuggestionsListBox.Visible)
+            {
+                if (_treeSearchSuggestionsListBox.Items.Count > 0)
+                {
+                    _treeSearchSuggestionsListBox.SelectedIndex =
+                        Math.Min(_treeSearchSuggestionsListBox.SelectedIndex + 1, _treeSearchSuggestionsListBox.Items.Count - 1);
+                }
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Up && _treeSearchSuggestionsListBox != null && _treeSearchSuggestionsListBox.Visible)
+            {
+                _treeSearchSuggestionsListBox.SelectedIndex = Math.Max(_treeSearchSuggestionsListBox.SelectedIndex - 1, 0);
                 e.SuppressKeyPress = true;
             }
         }
@@ -8773,7 +8846,18 @@ namespace Cad3PLogBrowser
                     textBox.ForeColor = dark
                         ? Color.FromArgb(100, 105, 120)
                         : SystemColors.GrayText;
+                    if (_treeSearchClearButton != null) _treeSearchClearButton.Visible = false;
                 }
+
+                // UX: defer hiding the suggestions dropdown so a click on one of its
+                // items (which fires Leave first) still gets processed by the
+                // ListBox's own Click handler before it disappears.
+                BeginInvoke((Action)(() =>
+                {
+                    if (!treeSearchTextBox.Focused
+                        && (_treeSearchSuggestionsListBox == null || !_treeSearchSuggestionsListBox.Focused))
+                        HideTreeSearchSuggestions();
+                }));
             }
         }
 
@@ -8859,6 +8943,7 @@ namespace Cad3PLogBrowser
             if (treeSearchMatchLabel == null) return;
 
             bool hasQuery = !string.IsNullOrWhiteSpace(_treeSearchText);
+            bool wasVisible = treeSearchMatchLabel.Visible;
             treeSearchMatchLabel.Visible     = hasQuery;
             treeSearchPrevButton.Visible     = hasQuery;
             treeSearchNextButton.Visible     = hasQuery;
@@ -8868,6 +8953,12 @@ namespace Cad3PLogBrowser
             treeSearchMatchLabel.Text = _treeSearchMatches.Count == 0
                 ? "0 matches"
                 : string.Format("{0} of {1}", _treeSearchMatchIndex + 1, _treeSearchMatches.Count);
+
+            // BUG FIX: the tree's Y position/height depends on whether the match row is
+            // visible (see LayoutTrees); re-layout whenever that visibility flips so no
+            // gap is left when the row disappears (and no overlap when it appears).
+            if (wasVisible != hasQuery)
+                LayoutTrees();
         }
 
         /// <summary>
@@ -8943,6 +9034,179 @@ namespace Cad3PLogBrowser
                     ? Color.FromArgb(100, 105, 120)
                     : SystemColors.GrayText;
             }
+
+            EnsureTreeSearchAdornments();
+        }
+
+        /// <summary>
+        /// UX fix: it wasn't obvious the tree-search text box was actually a search
+        /// field. Adds a small magnifying-glass icon on the left (purely visual —
+        /// the placeholder text already communicates intent, this reinforces it),
+        /// a clear ("X") button on the right that appears once text is typed, and a
+        /// contains-matching suggestions drop-down populated from existing tree node
+        /// names as the user types.
+        /// </summary>
+        private void EnsureTreeSearchAdornments()
+        {
+            if (treeSearchTextBox == null || treeSearchTextBox.Parent == null) return;
+
+            var parent = treeSearchTextBox.Parent;
+
+            if (_treeSearchIcon == null)
+            {
+                _treeSearchIcon = new PictureBox
+                {
+                    Size      = new Size(16, 16),
+                    SizeMode  = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent,
+                    Image     = IconGenerator.CreateFindIcon(IconGenerator.IconSize.Small),
+                    Cursor    = Cursors.Default
+                };
+                _treeSearchIcon.Click += (s, e) => treeSearchTextBox.Focus();
+                parent.Controls.Add(_treeSearchIcon);
+                _treeSearchIcon.BringToFront();
+            }
+
+            if (_treeSearchClearButton == null)
+            {
+                _treeSearchClearButton = new Button
+                {
+                    Size            = new Size(18, 18),
+                    FlatStyle       = FlatStyle.Flat,
+                    Text            = "\u2715",
+                    Font            = new Font("Segoe UI", 8f),
+                    TabStop         = false,
+                    Cursor          = Cursors.Default,
+                    Visible         = false
+                };
+                _treeSearchClearButton.FlatAppearance.BorderSize = 0;
+                _treeSearchClearButton.Click += (s, e) =>
+                {
+                    treeSearchTextBox.Text = string.Empty;
+                    treeSearchTextBox.Focus();
+                };
+                parent.Controls.Add(_treeSearchClearButton);
+                _treeSearchClearButton.BringToFront();
+            }
+
+            if (_treeSearchSuggestionsListBox == null)
+            {
+                _treeSearchSuggestionsListBox = new ListBox
+                {
+                    Visible     = false,
+                    IntegralHeight = false,
+                    Font        = treeSearchTextBox.Font
+                };
+                _treeSearchSuggestionsListBox.Click += (s, e) =>
+                {
+                    if (_treeSearchSuggestionsListBox.SelectedItem is string text)
+                    {
+                        treeSearchTextBox.Text = text;
+                        treeSearchTextBox.SelectionStart = text.Length;
+                        HideTreeSearchSuggestions();
+                        treeSearchTextBox.Focus();
+                    }
+                };
+                parent.Controls.Add(_treeSearchSuggestionsListBox);
+                _treeSearchSuggestionsListBox.BringToFront();
+            }
+
+            UpdateTreeSearchAdornmentColors();
+        }
+
+        // UX: pushes the text box's editable text area inward so typed text never
+        // renders underneath the overlaid search icon (left) or clear button (right).
+        private const int EM_SETMARGINS = 0xD3;
+        private const int EC_LEFTMARGIN = 0x1;
+        private const int EC_RIGHTMARGIN = 0x2;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        private void ApplyTreeSearchTextMargins()
+        {
+            if (treeSearchTextBox == null || !treeSearchTextBox.IsHandleCreated) return;
+            int leftMargin  = _treeSearchIcon != null ? 20 : 4;
+            int rightMargin = _treeSearchClearButton != null ? 20 : 4;
+            IntPtr lParam = (IntPtr)((rightMargin << 16) | (leftMargin & 0xFFFF));
+            SendMessage(treeSearchTextBox.Handle, EM_SETMARGINS,
+                (IntPtr)(EC_LEFTMARGIN | EC_RIGHTMARGIN), lParam);
+        }
+
+        private void UpdateTreeSearchAdornmentColors()
+        {
+            if (_treeSearchClearButton != null)
+            {
+                _treeSearchClearButton.BackColor = ThemeManager.ControlBackgroundColor;
+                _treeSearchClearButton.ForeColor = ThemeManager.ForegroundColor;
+            }
+            if (_treeSearchSuggestionsListBox != null)
+            {
+                _treeSearchSuggestionsListBox.BackColor = ThemeManager.ControlBackgroundColor;
+                _treeSearchSuggestionsListBox.ForeColor = ThemeManager.ForegroundColor;
+            }
+        }
+
+        /// <summary>Populates the suggestions list with up to <see cref="MaxTreeSearchSuggestions"/>
+        /// distinct tree-node names containing <paramref name="query"/> (case-insensitive,
+        /// "contains" match) drawn from whichever tree is currently active.</summary>
+        private void ShowTreeSearchSuggestions(string query)
+        {
+            if (_treeSearchSuggestionsListBox == null || string.IsNullOrWhiteSpace(query))
+            {
+                HideTreeSearchSuggestions();
+                return;
+            }
+
+            var activeTree = CallTreeButton.Checked ? CallTree : ApiTree;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var suggestions = new List<string>();
+            CollectTreeSearchSuggestions(activeTree.Nodes, query, seen, suggestions);
+
+            if (suggestions.Count == 0)
+            {
+                HideTreeSearchSuggestions();
+                return;
+            }
+
+            _treeSearchSuggestionsListBox.BeginUpdate();
+            _treeSearchSuggestionsListBox.Items.Clear();
+            foreach (var s in suggestions)
+                _treeSearchSuggestionsListBox.Items.Add(s);
+            _treeSearchSuggestionsListBox.EndUpdate();
+
+            _treeSearchSuggestionsListBox.Height = Math.Min(suggestions.Count, MaxTreeSearchSuggestions) *
+                _treeSearchSuggestionsListBox.ItemHeight + 4;
+            _treeSearchSuggestionsListBox.Visible = true;
+            _treeSearchSuggestionsListBox.BringToFront();
+        }
+
+        private void CollectTreeSearchSuggestions(TreeNodeCollection nodes, string query,
+            HashSet<string> seen, List<string> results, int depth = 0)
+        {
+            if (depth > 500 || results.Count >= MaxTreeSearchSuggestions) return;
+            foreach (TreeNode node in nodes)
+            {
+                if (results.Count >= MaxTreeSearchSuggestions) return;
+
+                // Strip the "[N ms]" duration overlay / "(N calls)" count suffix / "— Ln N"
+                // line-number suffix so suggestions show just the method name, not the
+                // decorated tree-node label.
+                string name = GetMethodNameFromNode(node);
+                if (!string.IsNullOrEmpty(name)
+                    && name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+                    && seen.Add(name))
+                {
+                    results.Add(name);
+                }
+                CollectTreeSearchSuggestions(node.Nodes, query, seen, results, depth + 1);
+            }
+        }
+
+        private void HideTreeSearchSuggestions()
+        {
+            if (_treeSearchSuggestionsListBox != null)
+                _treeSearchSuggestionsListBox.Visible = false;
         }
 
         // ═══════════════════════════════════════════════════════════════════════

@@ -281,7 +281,14 @@ namespace Cad3PLogBrowser.Services
                 }
                 else if (control is Panel panel)
                 {
-                    if (panel.Name != "panelColorPreview" && panel.GetType().Name != "CallGraphPanel")
+                    // AiAssistantPanel manages its own fixed dark palette (mirrors the
+                    // real vs. sample response banners), so it must be excluded here the
+                    // same way CallGraphPanel/FlameGraphPanel/TimelinePanel are — otherwise
+                    // the generic light/dark walk overwrites its BackColor and makes the
+                    // AI tab look visually inconsistent with itself when the app theme changes.
+                    if (panel.Name != "panelColorPreview" &&
+                        panel.GetType().Name != "CallGraphPanel" &&
+                        panel.GetType().Name != "AiAssistantPanel")
                         SetBack(panel, BackgroundColor);
                     SetFore(panel, ControlForegroundColor);
                 }
@@ -312,7 +319,8 @@ namespace Cad3PLogBrowser.Services
                 if (control.Controls.Count > 0 &&
                     typeName != "CallGraphPanel" &&
                     typeName != "FlameGraphPanel" &&
-                    typeName != "TimelinePanel")
+                    typeName != "TimelinePanel" &&
+                    typeName != "AiAssistantPanel")
                 {
                     ApplyThemeToControls(control.Controls);
                 }

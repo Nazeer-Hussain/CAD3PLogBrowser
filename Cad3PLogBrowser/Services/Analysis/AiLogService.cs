@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cad3PLogBrowser.Models;
@@ -9,59 +8,24 @@ using Cad3PLogBrowser.Models;
 namespace Cad3PLogBrowser.Services.Analysis
 {
     /// <summary>
-    /// L1-L6 — AI Features (Option B hybrid approach).
+    /// Offline / rule-based canned-response generator (L1-L6 features).
     ///
-    /// DEFAULT (offline): All methods work without any configuration using
-    /// rule-based analysis on log statistics. No data leaves the machine.
-    ///
-    /// ENHANCED (Claude API): When UseClaudeApi=true and a ClaudeApiKey is
-    /// provided in Settings, every method upgrades to a real Claude API call.
-    /// Only structured summaries (method names, counts, durations) are sent —
-    /// NEVER raw log lines.
+    /// This service NEVER calls out to any AI provider — it produces deterministic,
+    /// statistics-driven "sample" text entirely on-device. It exists purely as a
+    /// fallback used by <see cref="Cad3PLogBrowser.Managers.AiAssistantPanel"/> when
+    /// the real AI service (<see cref="Cad3PLogBrowser.AI.Services.AIService"/>) is
+    /// disabled, unconfigured, or offline, so the UI always has something useful to
+    /// show. Callers are responsible for clearly labeling this output as a SAMPLE
+    /// response, not real AI analysis.
     /// </summary>
     public class AiLogService
     {
-        // ── Configuration ─────────────────────────────────────────────────────
-        private string _apiKey;
-        private bool   _useApi;
-        // D-10: model name is user-configurable so the app does not hard-break
-        // when Anthropic deprecates the previously baked-in version string.
-        private string _model;
-
-        private const string ApiUrl        = "https://api.anthropic.com/v1/messages";
-        private const string DefaultModel  = "claude-sonnet-4-20250514";
-
-        public bool IsApiEnabled => _useApi && !string.IsNullOrWhiteSpace(_apiKey);
         public bool IsConfigured => true; // offline always works
 
-        public AiLogService(string apiKey = "", bool useClaudeApi = false, string model = null)
-        {
-            _apiKey = apiKey ?? string.Empty;
-            _useApi = useClaudeApi;
-            _model  = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
-        }
-
-        /// <summary>Call after user changes settings so the running instance picks up new values.</summary>
-        public void UpdateConfig(string apiKey, bool useClaudeApi, string model = null)
-        {
-            _apiKey = apiKey ?? string.Empty;
-            _useApi = useClaudeApi;
-            _model  = string.IsNullOrWhiteSpace(model) ? DefaultModel : model;
-        }
-
         // ── L1: Summarize ─────────────────────────────────────────────────────
-        public async Task<string> SummarizeAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
+        public Task<string> SummarizeAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            if (IsApiEnabled)
-            {
-                string prompt =
-                    "You are a software performance analyst. Provide a concise plain-English " +
-                    "summary (4-6 sentences) covering: overall health, notable slow calls, " +
-                    "error/warning count, and top concerns.\n\n" +
-                    BuildStructuredSummary(stats, perfStats);
-                return await CallClaudeAsync(prompt) ?? OfflineSummarize(stats, perfStats);
-            }
-            return OfflineSummarize(stats, perfStats);
+            return Task.FromResult(OfflineSummarize(stats, perfStats));
         }
 
         private string OfflineSummarize(AggregateStats stats, List<ApiPerfStats> perfStats)
@@ -112,18 +76,9 @@ namespace Cad3PLogBrowser.Services.Analysis
         }
 
         // ── L2: Natural Language Search ───────────────────────────────────────
-        public async Task<string> NlSearchAsync(string question, AggregateStats stats, List<ApiPerfStats> perfStats)
+        public Task<string> NlSearchAsync(string question, AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            if (IsApiEnabled)
-            {
-                string prompt =
-                    "Answer this developer question about their application log session. " +
-                    "Use ONLY the structured data provided — do not invent details. " +
-                    "If the data is insufficient, say so.\n\n" +
-                    $"Question: {question}\n\n" + BuildStructuredSummary(stats, perfStats);
-                return await CallClaudeAsync(prompt) ?? OfflineNlSearch(question, stats, perfStats);
-            }
-            return OfflineNlSearch(question, stats, perfStats);
+            return Task.FromResult(OfflineNlSearch(question, stats, perfStats));
         }
 
         private string OfflineNlSearch(string question, AggregateStats stats, List<ApiPerfStats> perfStats)
@@ -178,18 +133,9 @@ namespace Cad3PLogBrowser.Services.Analysis
         }
 
         // ── L3: Anomaly Detection ─────────────────────────────────────────────
-        public async Task<string> DetectAnomaliesAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
+        public Task<string> DetectAnomaliesAsync(AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            if (IsApiEnabled)
-            {
-                string prompt =
-                    "You are a performance anomaly detector. Identify statistical anomalies " +
-                    "(e.g. calls 10x the average, unexpectedly high errors, deep call stacks). " +
-                    "List each with a brief explanation and priority.\n\n" +
-                    BuildStructuredSummary(stats, perfStats);
-                return await CallClaudeAsync(prompt) ?? OfflineDetectAnomalies(stats, perfStats);
-            }
-            return OfflineDetectAnomalies(stats, perfStats);
+            return Task.FromResult(OfflineDetectAnomalies(stats, perfStats));
         }
 
         private string OfflineDetectAnomalies(AggregateStats stats, List<ApiPerfStats> perfStats)
@@ -251,20 +197,10 @@ namespace Cad3PLogBrowser.Services.Analysis
         }
 
         // ── L4: Root Cause Suggester ──────────────────────────────────────────
-        public async Task<string> SuggestRootCauseAsync(AggregateStats stats, List<ApiPerfStats> perfStats,
+        public Task<string> SuggestRootCauseAsync(AggregateStats stats, List<ApiPerfStats> perfStats,
             int errorCount, int warningCount)
         {
-            if (IsApiEnabled)
-            {
-                string prompt =
-                    "You are a root cause analysis expert. The log shows " +
-                    $"{errorCount} errors and {warningCount} warnings. " +
-                    "Suggest the 2-3 most likely root causes and what to investigate first.\n\n" +
-                    BuildStructuredSummary(stats, perfStats,
-                        $"{errorCount} errors, {warningCount} warnings");
-                return await CallClaudeAsync(prompt) ?? OfflineRootCause(stats, perfStats, errorCount, warningCount);
-            }
-            return OfflineRootCause(stats, perfStats, errorCount, warningCount);
+            return Task.FromResult(OfflineRootCause(stats, perfStats, errorCount, warningCount));
         }
 
         private string OfflineRootCause(AggregateStats stats, List<ApiPerfStats> perfStats,
@@ -307,19 +243,10 @@ namespace Cad3PLogBrowser.Services.Analysis
         }
 
         // ── L5: Bug Report Generator ──────────────────────────────────────────
-        public async Task<string> GenerateBugReportAsync(AggregateStats stats,
+        public Task<string> GenerateBugReportAsync(AggregateStats stats,
             List<ApiPerfStats> perfStats, string appVersion)
         {
-            if (IsApiEnabled)
-            {
-                string prompt =
-                    "Generate a concise bug report in Markdown format. Include: " +
-                    "Summary, Observed Behaviour (from API patterns), Performance Impact, " +
-                    "and Recommended Priority.\n\n" +
-                    BuildStructuredSummary(stats, perfStats, $"App version: {appVersion}");
-                return await CallClaudeAsync(prompt) ?? OfflineBugReport(stats, perfStats, appVersion);
-            }
-            return OfflineBugReport(stats, perfStats, appVersion);
+            return Task.FromResult(OfflineBugReport(stats, perfStats, appVersion));
         }
 
         private string OfflineBugReport(AggregateStats stats, List<ApiPerfStats> perfStats, string version)
@@ -346,32 +273,11 @@ namespace Cad3PLogBrowser.Services.Analysis
         }
 
         // ── L6: Conversational Chat ───────────────────────────────────────────
-        public async Task<string> ChatAsync(string userMessage,
+        public Task<string> ChatAsync(string userMessage,
             List<(string role, string content)> history,
             AggregateStats stats, List<ApiPerfStats> perfStats)
         {
-            if (IsApiEnabled)
-            {
-                // Build messages array for multi-turn conversation
-                var messages = new StringBuilder("[");
-                foreach (var (role, msg) in history)
-                {
-                    if (messages.Length > 1) messages.Append(",");
-                    messages.Append($"{{\"role\":\"{EscJson(role)}\",\"content\":\"{EscJson(msg)}\"}}");
-                }
-                if (messages.Length > 1) messages.Append(",");
-                messages.Append($"{{\"role\":\"user\",\"content\":\"{EscJson(userMessage)}\"}}");
-                messages.Append("]");
-
-                string system =
-                    "You are a helpful log analysis assistant. Answer concisely. " +
-                    "You have access to structured log session data only — no raw log text.\n\n" +
-                    BuildStructuredSummary(stats, perfStats);
-
-                return await CallClaudeAsync(null, system, messages.ToString())
-                    ?? OfflineNlSearch(userMessage, stats, perfStats);
-            }
-            return OfflineNlSearch(userMessage, stats, perfStats);
+            return Task.FromResult(OfflineNlSearch(userMessage, stats, perfStats));
         }
 
         // ── L5 (offline): Performance Insights ───────────────────────────────
@@ -482,113 +388,6 @@ namespace Cad3PLogBrowser.Services.Analysis
             if (q.Contains("bug") || q.Contains("report"))       return GenerateBugReportAsync(stats, perfStats, "");
             if (q.Contains("summary") || q.Contains("overview")) return SummarizeAsync(stats, perfStats);
             return NlSearchAsync(query, stats, perfStats);
-        }
-
-        // ── Helpers ───────────────────────────────────────────────────────────
-        /// <summary>
-        /// Builds the structured data payload sent to Claude.
-        /// NEVER includes raw log lines — only aggregated statistics.
-        /// </summary>
-        private static string BuildStructuredSummary(AggregateStats stats,
-            List<ApiPerfStats> perfStats, string extra = "")
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("=== Structured Log Session Data (no raw log content) ===");
-            sb.AppendLine($"Total lines: {stats.TotalLines}");
-            sb.AppendLine($"Errors: {stats.ErrorCount}  Warnings: {stats.WarningCount}");
-            sb.AppendLine($"API calls: {stats.TotalApiCalls}  Unique: {stats.UniqueApiCount}");
-            sb.AppendLine($"Max depth: {stats.MaxCallDepth}  Max single call: {stats.MaxCallDurationMs} ms");
-            sb.AppendLine($"Session duration: {stats.SessionDurationMs} ms");
-            if (perfStats != null && perfStats.Count > 0)
-            {
-                // Sorted descending by TotalDurationMs by ConvertPerfStats — index directly.
-                sb.AppendLine("\nTop 10 APIs by total time:");
-                int top10 = Math.Min(10, perfStats.Count);
-                for (int i = 0; i < top10; i++)
-                {
-                    var p = perfStats[i];
-                    sb.AppendLine($"  {p.ApiName}: total={p.TotalDurationMs}ms avg={p.AvgDurationMs}ms min={p.MinDurationMs}ms max={p.MaxDurationMs}ms calls={p.CallCount}");
-                }
-            }
-            if (!string.IsNullOrEmpty(extra)) sb.AppendLine($"\nContext: {extra}");
-            return sb.ToString();
-        }
-
-        private async Task<string> CallClaudeAsync(string userPrompt,
-            string system = "You are a log analysis assistant.",
-            string messagesJson = null)
-        {
-            try
-            {
-                if (messagesJson == null)
-                    messagesJson = $"[{{\"role\":\"user\",\"content\":\"{EscJson(userPrompt)}\"}}]";
-
-                string body = $"{{\"model\":\"{_model}\",\"max_tokens\":1000,\"system\":\"{EscJson(system)}\",\"messages\":{messagesJson}}}";
-
-                // Use WebClient instead of HttpClient (compatible with .NET Framework 4.8 without extra packages)
-                using (var client = new WebClient())
-                {
-                    // DEF-E11: set a 30-second timeout so a hung server does not
-                    // freeze the AI panel permanently. WebClient does not expose
-                    // Timeout directly; derive and override GetWebRequest instead.
-                    client.Headers.Add("x-api-key", _apiKey);
-                    client.Headers.Add("anthropic-version", "2023-06-01");
-                    client.Headers.Add("Content-Type", "application/json");
-
-                    // Wrap in a timeout task so the async await can be cancelled.
-                    var uploadTask   = client.UploadStringTaskAsync(ApiUrl, body);
-                    var timeoutTask  = Task.Delay(30_000);
-                    var completed    = await Task.WhenAny(uploadTask, timeoutTask);
-                    if (completed == timeoutTask)
-                    {
-                        client.CancelAsync();
-                        return "[Claude API timed out after 30 seconds]";  
-                    }
-                    string raw = await uploadTask;
-
-                    // Parse "text" from response
-                    int start = raw.IndexOf("\"text\":\"", StringComparison.Ordinal);
-                    if (start < 0) return null;
-                    start += 8;
-                    int end = FindJsonStringEnd(raw, start);
-                    if (end < 0) return null;
-                    return raw.Substring(start, end - start)
-                        .Replace("\\n", "\n").Replace("\\\"", "\"").Replace("\\\\", "\\");
-                }
-            }
-            catch (WebException wex)
-            {
-                try
-                {
-                    using (var reader = new System.IO.StreamReader(wex.Response.GetResponseStream()))
-                    {
-                        string error = reader.ReadToEnd();
-                        return $"[Claude API error: {error}]";
-                    }
-                }
-                catch
-                {
-                    return $"[Claude API unavailable: {wex.Message}]";
-                }
-            }
-            catch (Exception ex)
-            {
-                return $"[Claude API unavailable: {ex.Message}]";
-            }
-        }
-
-        private static string EscJson(string s) =>
-            (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
-                     .Replace("\n", "\\n").Replace("\r", "").Replace("\t", "\\t");
-
-        private static int FindJsonStringEnd(string json, int start)
-        {
-            for (int i = start; i < json.Length; i++)
-            {
-                if (json[i] == '\\') { i++; continue; }
-                if (json[i] == '"') return i;
-            }
-            return -1;
         }
 
         // ── Static helpers used by MainForm ───────────────────────────────────

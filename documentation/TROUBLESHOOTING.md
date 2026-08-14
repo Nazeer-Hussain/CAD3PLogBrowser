@@ -51,6 +51,17 @@ ollama list
 ? Connection successful!
 ```
 
+### 5. Confirm the AI Assistant Panel Is Actually Using Ollama
+
+A successful **Test Connection** only confirms the settings dialog *can* reach the server — it does not by itself guarantee the AI Assistant tab is using it. After saving settings:
+
+1. Open the **AI Assistant** tab.
+2. Look at the status label at the top of the panel:
+   - `Ollama ready — real analysis` ? real requests are being sent to Ollama.
+   - `Sample Mode (AI not configured)` ? **Enable AI Features** is unchecked, no provider is selected, or settings weren't saved — real requests are NOT being sent.
+3. Every response from the panel is either real AI output, or a clearly-labeled **?? SAMPLE RESPONSE** (a deterministic, offline summary generated from log statistics only). If you see the SAMPLE RESPONSE banner even though Test Connection succeeded, re-check that AI is enabled and Ollama is the selected provider, then reopen the AI tab (or click the panel's Settings button, which refreshes the active provider).
+4. If a request that started with real Ollama analysis switches mid-stream to a Sample Response, the banner will include the underlying error (e.g. connection dropped) — use that message together with the sections below to diagnose it.
+
 #### Common Failures
 
 **Server Not Reachable**
