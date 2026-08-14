@@ -30,6 +30,8 @@ jobs:
       - name: Compute version
         id: ver
         shell: pwsh
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           $json  = Get-Content docs/version.json -Raw | ConvertFrom-Json
           $parts = $json.version -split '\.'   # ["4","0","1"]
@@ -53,10 +55,33 @@ jobs:
           $tag = "v$newVer"
           echo "VERSION=$newVer" >> $env:GITHUB_OUTPUT
           echo "TAG=$tag"        >> $env:GITHUB_OUTPUT
-          # Carry the release notes already in docs/version.json through to later
-          # steps (a human edits this text directly for a real feature release;
-          # an auto patch-bump leaves it as whatever was last written).
-          echo "NOTES=$($json.releaseNotes)" >> $env:GITHUB_OUTPUT
+
+          # Derive this release's notes from the actual commit that triggered the
+          # build, rather than blindly carrying forward whatever text was last
+          # written to docs/version.json -- with [skip actions] on the bot's own
+          # bump commits, every real run's head commit IS a human merge (or a
+          # squash-merge), so its message/PR title is a real description of what
+          # changed. Falls back to the existing releaseNotes only if that head
+          # commit message can't be parsed into anything useful (e.g. a manual
+          # feature release where a human already wrote a better one by hand into
+          # docs/version.json directly -- editing docs/version.json's
+          # "releaseNotes" field in the PR still overrides this).
+          $autoNotes = $json.releaseNotes
+          $headLines = "$env:HEAD_COMMIT_MESSAGE" -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+          if ($headLines.Count -gt 0) {
+            if ($headLines[0] -match '^Merge pull request #\d+' -and $headLines.Count -gt 1) {
+              # Regular (non-squash) merge commit: "Merge pull request #N ..."
+              # followed by a blank line then the actual PR title.
+              $autoNotes = $headLines[1]
+            } elseif ($headLines[0] -notmatch '^Merge pull request #\d+') {
+              # Squash-merge or direct push: first line is the PR/commit title,
+              # usually suffixed with " (#123)" -- strip that back off.
+              $autoNotes = $headLines[0] -replace '\s*\(#\d+\)\s*$', ''
+            }
+          }
+          echo "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+          echo "$autoNotes" >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
 
       # ── 2b. Keep the Help guide's displayed version in sync ──────────────────
       # Help/UserGuide.html shows its own version number in three places
