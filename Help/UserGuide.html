@@ -1279,6 +1279,19 @@
     <h2 class="section-title"><span class="ico">&#129504;</span> AI Assistant Tab</h2>
     <p>An integrated AI analysis panel that can analyse the currently loaded log using a choice of providers, configured on the <strong>AI &amp; Integration</strong> page of Settings.</p>
 
+    <h3>Real Analysis vs. Sample Responses</h3>
+    <p>The AI Assistant always produces a response &#8212; but it is important to know <strong>which kind</strong> you are looking at:</p>
+    <table>
+        <thead><tr><th>Mode</th><th>When it happens</th><th>How to tell</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Real Analysis</strong></td><td>A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid Anthropic/GitHub Copilot key)</td><td>The status label at the top of the panel reads <code>&lt;Provider&gt; ready &#8212; real analysis</code></td></tr>
+            <tr><td><strong>Sample Response</strong></td><td>AI is disabled, no provider is configured, or a live request fails (e.g. Ollama server unreachable)</td><td>The status label reads <code>Sample Mode (AI not configured)</code>, and every sample answer is prefixed with a highlighted <strong>&#9888; SAMPLE RESPONSE</strong> banner explaining it is a locally-generated, rule-based summary &#8212; not real AI output</td></tr>
+        </tbody>
+    </table>
+    <div class="note">
+        <strong>&#128161; Why you might see a Sample Response even with AI enabled:</strong> if the configured provider becomes unreachable mid-request (for example, the Ollama server was stopped, or the network dropped), the panel automatically falls back to a Sample Response for that one request rather than showing a bare error, and labels it accordingly with the underlying error message included in the banner.
+    </div>
+
     <h3>Providers</h3>
     <table>
         <thead><tr><th>Provider</th><th>Status</th><th>Notes</th></tr></thead>
@@ -1309,16 +1322,13 @@
             <tr><td>Timeline</td><td>Chronological narrative of the log&#8217;s events</td></tr>
         </tbody>
     </table>
+    <p>Every button above works whether or not AI is configured &#8212; if no real provider is available, you get a clearly-labeled Sample Response generated from the same log statistics instead of an error.</p>
 
     <h3>Chat Interface</h3>
     <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request.</p>
 
     <div class="note">
         <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, or Server URL for Ollama). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
-    </div>
-
-    <div class="warn">
-        <strong>&#9888; Legacy Claude integration:</strong> the AI &amp; Integration page also has a separate, deprecated &#8220;Legacy Integration&#8221; box left over from an older single-provider Claude setup. Use the <strong>Anthropic Claude</strong> provider above instead &#8212; the legacy fields are kept only for backward compatibility.
     </div>
 
     <div class="tip">
@@ -1793,9 +1803,11 @@
 
     <h3>AI Assistant returns no results, or a provider seems unavailable</h3>
     <ul>
+        <li>If AI is disabled or unconfigured, this is expected &#8212; the panel automatically shows a clearly labeled <strong>&#9888; SAMPLE RESPONSE</strong> instead of a real answer. Check the status label at the top of the panel: it reads <code>Sample Mode (AI not configured)</code> when no real provider is active.</li>
         <li>In <strong>Mock mode</strong>: a file must be loaded first.</li>
-        <li>In <strong>Anthropic / GitHub Copilot / Ollama mode</strong>: verify the API key or Server URL in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm.</li>
-        <li><strong>OpenAI / Azure OpenAI / Google Gemini</strong> are listed in the provider drop-down but are not yet functional (&#8220;Coming Soon&#8221;) &#8212; selecting one won&#8217;t send any requests.</li>
+        <li>In <strong>Anthropic / GitHub Copilot / Ollama mode</strong>: verify the API key or Server URL in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm. If the status label still shows <code>Sample Mode</code> after saving, double-check that <em>Enable AI Features</em> is checked and the correct provider is selected.</li>
+        <li>If a request that started with a real provider suddenly falls back to a Sample Response mid-way, the banner text will include the underlying error (e.g. connection refused) &#8212; use that to diagnose (server stopped, wrong URL/port, expired key, etc.).</li>
+        <li><strong>OpenAI / Azure OpenAI / Google Gemini</strong> are listed in the provider drop-down but are not yet functional (&#8220;Coming Soon&#8221;) &#8212; selecting one won&#8217;t send any requests and will always show Sample Responses.</li>
     </ul>
 
     <h3>Compare Logs shows no differences but the files look different</h3>

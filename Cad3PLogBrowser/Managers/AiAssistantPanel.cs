@@ -9,31 +9,54 @@ using Cad3PLogBrowser.AI.Context;
 using Cad3PLogBrowser.AI.Models;
 using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
+using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.Services.Analysis;
 
 namespace Cad3PLogBrowser.Managers
 {
     /// <summary>
     /// AI Assistant Panel with modern AI framework integration.
-    /// Supports multiple AI providers (Anthropic, OpenAI, Azure OpenAI, etc.)
+    /// Supports multiple AI providers (Anthropic, OpenAI, Azure OpenAI, Ollama, etc.).
+    ///
+    /// Merges two response sources into one experience:
+    ///  - Real analysis: when a configured AI provider is enabled and reachable,
+    ///    responses stream from <see cref="AIService"/> exactly as before.
+    ///  - Sample/canned analysis: when AI is disabled, unconfigured, or the live
+    ///    call fails (e.g. offline provider), a deterministic, rule-based response
+    ///    is generated locally by <see cref="AiLogService"/> and clearly labeled
+    ///    as a SAMPLE response so it is never mistaken for real AI output.
     /// </summary>
     public class AiAssistantPanel : Panel
     {
         // ?? AI Service ????????????????????????????????????????????????????????
         private AIService _aiService;
         private AISettings _aiSettings;
+        // Offline/rule-based fallback used whenever the real provider is disabled,
+        // unconfigured, or a live request fails — output is always clearly labeled
+        // as a SAMPLE response so users can never confuse it with real AI analysis.
+        private readonly AiLogService _canned = new AiLogService();
         private Func<Models.AggregateStats> _getStats;
         private Func<List<Services.ApiPerfStats>> _getPerfStats;
         private Func<string> _getCurrentFilePath;
         private Func<string> _getSelectedText;
         private CancellationTokenSource _cancellationTokenSource;
 
+        private const string SampleBanner =
+            "?????????????????????????????????????????????????????????\n" +
+            "?? SAMPLE RESPONSE — not real AI analysis.\n" +
+            "AI is disabled, unconfigured, or unreachable. This is a\n" +
+            "deterministic, rule-based summary generated locally.\n" +
+            "Configure and enable a provider in Settings for real analysis.\n" +
+            "?????????????????????????????????????????????????????????\n\n";
+
         // ?? Events ????????????????????????????????????????????????????????????
         public event EventHandler SettingsRequested;
 
         // ?? Controls ?????????????????????????????????????????????????????????
+        private Panel      _titlePanel;
         private Label      _statusLabel;
         private Label      _apiModeLabel;
-        private Panel      _buttonPanel;
+        private FlowLayoutPanel _buttonPanel;
         private Panel      _inputPanel;
         private Button     _summarizeBtn, _rootCauseBtn, _findErrorsBtn,
                            _findWarningsBtn, _perfBtn, _timelineBtn;
@@ -80,6 +103,50 @@ namespace Cad3PLogBrowser.Managers
             UpdateStatusLabel();
         }
 
+        // ── Theme-aware styling helpers ──────────────────────────────────────
+        // AiAssistantPanel used to hardcode a fixed dark palette independent of
+        // ThemeManager, so it looked out of place whenever the app itself was in
+        // Light theme. These mirror the exact rules ThemeManager.ApplyThemeToControls
+        // applies to ordinary buttons/panels elsewhere in the app, so the AI tab
+        // renders identically to the rest of the UI in both themes.
+        private static void StyleButton(Button btn)
+        {
+            bool dark = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark;
+            btn.ForeColor = ThemeManager.ControlForegroundColor;
+            btn.BackColor = ThemeManager.ButtonBackgroundColor;
+            btn.FlatStyle = dark ? FlatStyle.Flat : FlatStyle.Standard;
+            if (dark)
+            {
+                btn.FlatAppearance.BorderColor = ThemeManager.BorderColor;
+                btn.FlatAppearance.MouseOverBackColor = ThemeManager.ButtonHoverColor;
+            }
+        }
+
+        // Secondary/status text (API mode strip, token counter) reads softer than
+        // primary text everywhere else in the app; ThemeManager has no dedicated
+        // "muted" color, so blend foreground toward background instead of a
+        // literal gray that would only look right in one theme.
+        private static Color MutedForeground =>
+            Blend(ThemeManager.ForegroundColor, ThemeManager.BackgroundColor, 0.45);
+
+        private static Color Blend(Color a, Color b, double t) => Color.FromArgb(
+            (int)(a.R * (1 - t) + b.R * t),
+            (int)(a.G * (1 - t) + b.G * t),
+            (int)(a.B * (1 - t) + b.B * t));
+
+        // Markdown-style accents in AI responses (bold/headers) need enough
+        // contrast against BackgroundColor in both themes -- the original literal
+        // gold/blue only read correctly on the panel's old fixed dark background.
+        private static Color BoldAccentColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(255, 200, 100)
+                : Color.FromArgb(150, 90, 0);
+
+        private static Color HeaderAccentColor =>
+            ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
+                ? Color.FromArgb(100, 150, 255)
+                : Color.FromArgb(20, 80, 190);
+
         private void BuildUI()
         {
             SuspendLayout();
@@ -91,17 +158,17 @@ namespace Cad3PLogBrowser.Managers
                 Dock      = DockStyle.Top,
                 Height    = 22,
                 Font      = new Font("Segoe UI", 8f),
-                ForeColor = Color.FromArgb(130, 140, 160),
+                ForeColor = MutedForeground,
                 Padding   = new Padding(8, 3, 0, 0),
-                BackColor = Color.FromArgb(40, 44, 54)
+                BackColor = ThemeManager.ControlBackgroundColor
             };
 
             // ?? Title with Settings button ????????????????????????????????
-            var titlePanel = new Panel
+            _titlePanel = new Panel
             {
                 Dock      = DockStyle.Top,
                 Height    = 32,
-                BackColor = Color.FromArgb(35, 38, 48)
+                BackColor = ThemeManager.ControlBackgroundColor
             };
 
             _statusLabel = new Label
@@ -109,7 +176,7 @@ namespace Cad3PLogBrowser.Managers
                 Text      = "AI Assistant",
                 Dock      = DockStyle.Fill,
                 Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(200, 215, 240),
+                ForeColor = ThemeManager.ForegroundColor,
                 Padding   = new Padding(8, 7, 0, 0),
                 BackColor = Color.Transparent
             };
@@ -120,32 +187,35 @@ namespace Cad3PLogBrowser.Managers
                 Dock      = DockStyle.Right,
                 Width     = 100,
                 Height    = 28,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(45, 50, 62),
-                ForeColor = Color.FromArgb(200, 215, 240),
                 Margin    = new Padding(0, 2, 5, 2),
                 Cursor    = Cursors.Hand
             };
-            _settingsBtn.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            StyleButton(_settingsBtn);
             _settingsBtn.Click += (s, e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
-            titlePanel.Controls.AddRange(new Control[] { _statusLabel, _settingsBtn });
+            _titlePanel.Controls.AddRange(new Control[] { _statusLabel, _settingsBtn });
 
             // ?? Analysis Buttons ??????????????????????????????????????????
-            _buttonPanel = new Panel
+            // FlowLayoutPanel with WrapContents lets the buttons reflow to fit the
+            // available width instead of relying on hardcoded pixel Location/Size
+            // math, which previously misaligned buttons whenever the panel was
+            // resized or the font/DPI differed from the assumed 90x28 grid cell.
+            _buttonPanel = new FlowLayoutPanel
             {
-                Height    = 70,
-                Dock      = DockStyle.Top,
-                BackColor = Color.FromArgb(35, 38, 48),
-                Padding   = new Padding(6, 4, 6, 4)
+                AutoSize      = true,
+                Dock          = DockStyle.Top,
+                BackColor     = ThemeManager.ControlBackgroundColor,
+                Padding       = new Padding(6, 6, 6, 6),
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents  = true
             };
 
-            _summarizeBtn     = MakeBtn("Summarize",       0);
-            _rootCauseBtn     = MakeBtn("Root Cause",      1);
-            _findErrorsBtn    = MakeBtn("Find Errors",     2);
-            _findWarningsBtn  = MakeBtn("Warnings",   3);
-            _perfBtn          = MakeBtn("Performance",     4);
-            _timelineBtn      = MakeBtn("Timeline",        5);
+            _summarizeBtn     = MakeBtn("Summarize");
+            _rootCauseBtn     = MakeBtn("Root Cause");
+            _findErrorsBtn    = MakeBtn("Find Errors");
+            _findWarningsBtn  = MakeBtn("Warnings");
+            _perfBtn          = MakeBtn("Performance");
+            _timelineBtn      = MakeBtn("Timeline");
 
             _summarizeBtn.Click     += async (s, e) => await RunAnalysisAsync(AnalysisType.Summarize);
             _rootCauseBtn.Click     += async (s, e) => await RunAnalysisAsync(AnalysisType.RootCause);
@@ -165,8 +235,8 @@ namespace Cad3PLogBrowser.Managers
             {
                 Dock        = DockStyle.Fill,
                 Font        = new Font("Segoe UI", 9.5f),
-                BackColor   = Color.FromArgb(30, 33, 43),
-                ForeColor   = Color.FromArgb(210, 220, 235),
+                BackColor   = ThemeManager.BackgroundColor,
+                ForeColor   = ThemeManager.ForegroundColor,
                 BorderStyle = BorderStyle.None,
                 ReadOnly    = true,
                 Padding     = new Padding(10),
@@ -194,9 +264,9 @@ namespace Cad3PLogBrowser.Managers
                 Dock      = DockStyle.Bottom,
                 Height    = 22,
                 Font      = new Font("Segoe UI", 8f),
-                ForeColor = Color.FromArgb(130, 140, 160),
+                ForeColor = MutedForeground,
                 Padding   = new Padding(8, 3, 0, 0),
-                BackColor = Color.FromArgb(35, 38, 48),
+                BackColor = ThemeManager.ControlBackgroundColor,
                 Text      = "Ready"
             };
 
@@ -205,7 +275,7 @@ namespace Cad3PLogBrowser.Managers
             {
                 Height    = 40,
                 Dock      = DockStyle.Bottom,
-                BackColor = Color.FromArgb(35, 38, 48),
+                BackColor = ThemeManager.ControlBackgroundColor,
                 Padding   = new Padding(6, 5, 6, 5)
             };
 
@@ -213,8 +283,8 @@ namespace Cad3PLogBrowser.Managers
             {
                 Dock        = DockStyle.Fill,
                 Font        = new Font("Segoe UI", 9.5f),
-                BackColor   = Color.FromArgb(48, 52, 64),
-                ForeColor   = Color.FromArgb(210, 220, 235),
+                BackColor   = ThemeManager.InputBackgroundColor,
+                ForeColor   = ThemeManager.ControlForegroundColor,
                 BorderStyle = BorderStyle.FixedSingle,
                 Multiline   = false,
                 Height      = 30
@@ -240,7 +310,7 @@ namespace Cad3PLogBrowser.Managers
             {
                 Height        = 34,
                 Dock          = DockStyle.Bottom,
-                BackColor     = Color.FromArgb(35, 38, 48),
+                BackColor     = ThemeManager.ControlBackgroundColor,
                 Padding       = new Padding(6, 4, 6, 4),
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents  = false
@@ -252,6 +322,8 @@ namespace Cad3PLogBrowser.Managers
                 MakeChip("Any errors?")
             });
 
+            BackColor = ThemeManager.BackgroundColor;
+
             // ?? Add all to panel ??????????????????????????????????????????
             Controls.AddRange(new Control[]
             {
@@ -261,7 +333,7 @@ namespace Cad3PLogBrowser.Managers
                 _inputPanel,
                 _promptChipsPanel,
                 _buttonPanel,
-                titlePanel,
+                _titlePanel,
                 _apiModeLabel
             });
 
@@ -269,25 +341,21 @@ namespace Cad3PLogBrowser.Managers
         }
 
         // ?? Button Factory ????????????????????????????????????????????????????
-        private Button MakeBtn(string text, int col)
+        private Button MakeBtn(string text)
         {
-            int w = 90, h = 28, gap = 4;
-            int rowHeight = h + gap;
-            int row = col / 3;
-            int colInRow = col % 3;
-
-            return new Button
+            var btn = new Button
             {
                 Text      = text,
-                Location  = new Point(gap + colInRow * (w + gap), gap + row * rowHeight),
-                Size      = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(45, 50, 62),
-                ForeColor = Color.FromArgb(200, 215, 240),
+                AutoSize  = true,
+                MinimumSize = new Size(90, 28),
+                Padding   = new Padding(10, 0, 10, 0),
+                Margin    = new Padding(0, 0, 6, 6),
                 Font      = new Font("Segoe UI", 8.5f),
                 Cursor    = Cursors.Hand,
                 TabStop   = false
             };
+            StyleButton(btn);
+            return btn;
         }
 
         private Button MakeSmallBtn(string text, DockStyle dock, int width)
@@ -298,15 +366,12 @@ namespace Cad3PLogBrowser.Managers
                 Dock      = dock,
                 Width     = width,
                 Height    = 28,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(45, 50, 62),
-                ForeColor = Color.FromArgb(200, 215, 240),
                 Font      = new Font("Segoe UI", 9f),
                 Margin    = new Padding(3, 0, 0, 0),
                 Cursor    = Cursors.Hand,
                 TabStop   = false
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            StyleButton(btn);
             return btn;
         }
 
@@ -319,15 +384,12 @@ namespace Cad3PLogBrowser.Managers
                 AutoSize  = true,
                 Height    = 24,
                 Padding   = new Padding(8, 0, 8, 0),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(48, 52, 64),
-                ForeColor = Color.FromArgb(180, 195, 220),
                 Font      = new Font("Segoe UI", 8f),
                 Margin    = new Padding(0, 0, 6, 0),
                 Cursor    = Cursors.Hand,
                 TabStop   = false
             };
-            chip.FlatAppearance.BorderColor = Color.FromArgb(60, 65, 77);
+            StyleButton(chip);
             chip.Click += async (s, e) =>
             {
                 _chatInputBox.Text = promptText;
@@ -357,8 +419,6 @@ namespace Cad3PLogBrowser.Managers
         /// timing), and caches the result per method+chain.</summary>
         public async Task AnalyzeNodeRootCause(string methodName, string parentChainContext)
         {
-            if (!CheckAIAvailable()) return;
-
             string cacheKey = methodName + "␟" + parentChainContext;
             if (_rootCauseCache.TryGetValue(cacheKey, out string cached))
             {
@@ -372,12 +432,19 @@ namespace Cad3PLogBrowser.Managers
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
 
+            _responseBox.Clear();
+
+            if (!IsRealAiAvailable)
+            {
+                await RunCannedAnalysisAsync(AnalysisType.RootCause);
+                return;
+            }
+
             var providers = new List<IContextProvider>
             {
                 new PlainTextContextProvider("Specific Call Chain", parentChainContext)
             };
 
-            _responseBox.Clear();
             ShowProgress(string.Format("Analyzing root cause for {0}...", methodName));
 
             var captured = new System.Text.StringBuilder();
@@ -392,7 +459,11 @@ namespace Cad3PLogBrowser.Managers
                         if (result.Success) _rootCauseCache[cacheKey] = captured.ToString();
                         OnAnalysisCompleteAnalysis(result);
                     },
-                    onError: ex => OnAnalysisError(ex),
+                    onError: async ex =>
+                    {
+                        _responseBox.Clear();
+                        await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
+                    },
                     userQuery: string.Format(
                         "Analyze the likely root cause for '{0}' using ONLY the specific call chain below " +
                         "(not general log statistics) — what called it, at what depth, and with what timing.",
@@ -401,7 +472,8 @@ namespace Cad3PLogBrowser.Managers
             }
             catch (Exception ex)
             {
-                OnAnalysisError(ex);
+                _responseBox.Clear();
+                await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
             }
         }
 
@@ -423,17 +495,22 @@ namespace Cad3PLogBrowser.Managers
         // ?? Analysis Execution ????????????????????????????????????????????????
         private async Task RunAnalysisAsync(AnalysisType analysisType)
         {
-            if (!CheckAIAvailable()) return;
-
             // Cancel any ongoing operation
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
 
+            // Clear previous response
+            _responseBox.Clear();
+
+            if (!IsRealAiAvailable)
+            {
+                await RunCannedAnalysisAsync(analysisType);
+                return;
+            }
+
             // Create context providers
             var contextProviders = CreateContextProviders();
 
-            // Clear previous response
-            _responseBox.Clear();
             ShowProgress($"Running {analysisType} analysis...");
 
             try
@@ -443,8 +520,37 @@ namespace Cad3PLogBrowser.Managers
                     contextProviders,
                     onChunkReceived: chunk => AppendText(chunk),
                     onComplete: result => OnAnalysisCompleteAnalysis(result),
-                    onError: ex => OnAnalysisError(ex),
+                    onError: async ex =>
+                    {
+                        // Real provider failed at runtime (e.g. offline/unreachable) —
+                        // gracefully fall back to a clearly-labeled sample response
+                        // instead of just showing an error.
+                        _responseBox.Clear();
+                        await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
+                    },
                     cancellationToken: _cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                _responseBox.Clear();
+                await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
+            }
+        }
+
+        /// <summary>Runs the local rule-based fallback and clearly labels the output as a sample.</summary>
+        private async Task RunCannedAnalysisAsync(AnalysisType analysisType, string realAiError = null)
+        {
+            ShowProgress($"Generating sample {analysisType} response (AI unavailable)...");
+            try
+            {
+                string content = await GetCannedAnalysisAsync(analysisType);
+                string banner = realAiError != null
+                    ? SampleBanner.Replace("AI is disabled, unconfigured, or unreachable.",
+                        $"Real AI request failed ({realAiError}).")
+                    : SampleBanner;
+
+                AppendText(banner + content);
+                OnAnalysisCompleteAnalysis(AnalysisResult.CreateSuccess(content, analysisType));
             }
             catch (Exception ex)
             {
@@ -457,7 +563,14 @@ namespace Cad3PLogBrowser.Managers
             string message = _chatInputBox.Text.Trim();
             if (string.IsNullOrEmpty(message)) return;
 
-            if (!CheckAIAvailable()) return;
+            _chatInputBox.Clear();
+
+            if (!IsRealAiAvailable)
+            {
+                AppendText($"\n\nYou: {message}\n\n");
+                await RunCannedChatAsync(message);
+                return;
+            }
 
             // Start conversation if not already started
             if (_aiService.ActiveConversation == null)
@@ -468,7 +581,6 @@ namespace Cad3PLogBrowser.Managers
 
             // Display user message
             AppendText($"\n\nYou: {message}\n\n");
-            _chatInputBox.Clear();
 
             // Context for first message only
             var contextProviders = _aiService.ActiveConversation.Messages.Count == 0
@@ -488,9 +600,38 @@ namespace Cad3PLogBrowser.Managers
                     message,
                     onChunkReceived: chunk => AppendText(chunk),
                     onComplete: result => OnAnalysisComplete(result),
-                    onError: ex => OnAnalysisError(ex),
+                    onError: async ex =>
+                    {
+                        // Real provider failed mid-conversation — fall back to a
+                        // clearly-labeled sample answer rather than a bare error.
+                        await RunCannedChatAsync(message, realAiError: ex.Message);
+                    },
                     contextProviders: contextProviders,
                     cancellationToken: _cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                await RunCannedChatAsync(message, realAiError: ex.Message);
+            }
+        }
+
+        /// <summary>Runs the local rule-based fallback for chat and clearly labels the output as a sample.</summary>
+        private async Task RunCannedChatAsync(string message, string realAiError = null)
+        {
+            ShowProgress("Generating sample response (AI unavailable)...");
+            AppendText("AI: ");
+            try
+            {
+                var stats = _getStats?.Invoke() ?? new Models.AggregateStats();
+                var perfStats = _getPerfStats?.Invoke() ?? new List<Services.ApiPerfStats>();
+                string content = await _canned.NlSearchAsync(message, stats, perfStats);
+                string banner = realAiError != null
+                    ? SampleBanner.Replace("AI is disabled, unconfigured, or unreachable.",
+                        $"Real AI request failed ({realAiError}).")
+                    : SampleBanner;
+
+                AppendText(banner + content);
+                OnAnalysisCompleteAnalysis(AnalysisResult.CreateSuccess(content, AnalysisType.Custom));
             }
             catch (Exception ex)
             {
@@ -664,7 +805,7 @@ namespace Cad3PLogBrowser.Managers
                         // Make the text bold and colored
                         _responseBox.Select(boldStart, boldText.Length);
                         _responseBox.SelectionFont = new Font(_responseBox.Font, FontStyle.Bold);
-                        _responseBox.SelectionColor = Color.FromArgb(255, 200, 100); // Orange/gold
+                        _responseBox.SelectionColor = BoldAccentColor;
 
                         // Update fullText since we removed characters
                         fullText = _responseBox.Text;
@@ -711,7 +852,7 @@ namespace Cad3PLogBrowser.Managers
                 // Format the entire header line (including ###)
                 _responseBox.Select(lineStart, lineEnd - lineStart);
                 _responseBox.SelectionFont = new Font(_responseBox.Font.FontFamily, _responseBox.Font.Size, FontStyle.Bold);
-                _responseBox.SelectionColor = Color.FromArgb(100, 150, 255); // Light blue
+                _responseBox.SelectionColor = HeaderAccentColor;
 
                 searchStart = lineEnd + 1;
             }
@@ -830,7 +971,7 @@ namespace Cad3PLogBrowser.Managers
                             _responseBox.Select(boldStart, boldText.Length);
                             var boldFont = new Font(_responseBox.Font.FontFamily, _responseBox.Font.Size, FontStyle.Bold);
                             _responseBox.SelectionFont = boldFont;
-                            _responseBox.SelectionColor = Color.FromArgb(255, 200, 100);
+                            _responseBox.SelectionColor = BoldAccentColor;
 
                             boldCount++;
                             fullText = _responseBox.Text;
@@ -871,7 +1012,7 @@ namespace Cad3PLogBrowser.Managers
                     _responseBox.Select(lineStart, lineEnd - lineStart);
                     var headerFont = new Font(_responseBox.Font.FontFamily, _responseBox.Font.Size, FontStyle.Bold);
                     _responseBox.SelectionFont = headerFont;
-                    _responseBox.SelectionColor = Color.FromArgb(100, 150, 255);
+                    _responseBox.SelectionColor = HeaderAccentColor;
 
                     headerCount++;
                     searchStart = lineEnd + 1;
@@ -882,7 +1023,7 @@ namespace Cad3PLogBrowser.Managers
                 _responseBox.SelectionLength = 0;
                 var defaultFont = new Font(_responseBox.Font.FontFamily, _responseBox.Font.Size, FontStyle.Regular);
                 _responseBox.SelectionFont = defaultFont;
-                _responseBox.SelectionColor = Color.FromArgb(210, 220, 235);
+                _responseBox.SelectionColor = _responseBox.ForeColor;
 
             }
             catch (Exception ex)
@@ -956,42 +1097,103 @@ namespace Cad3PLogBrowser.Managers
 
         private string GetProviderStatus()
         {
-            if (_aiService == null || !_aiService.IsEnabled)
-                return "AI Disabled - Click Settings to configure";
+            if (_aiService != null && _aiService.IsEnabled && _aiService.CurrentProvider != null)
+                return $"{_aiService.CurrentProvider.ProviderName} ready — real analysis";
 
-            var provider = _aiService.CurrentProvider;
-            if (provider == null)
-                return "No provider configured";
-
-            return $"{provider.ProviderName} ready";
+            return "Sample Mode (AI not configured) — Click Settings to enable real analysis";
         }
 
-        private bool CheckAIAvailable()
+        /// <summary>True when a real, configured AI provider is available for live requests.</summary>
+        private bool IsRealAiAvailable => _aiService != null && _aiService.IsEnabled && _aiService.CurrentProvider != null;
+
+        /// <summary>
+        /// Generates a deterministic, rule-based "sample" response for the given analysis
+        /// type using only locally-available aggregate statistics — no network call. Used
+        /// whenever the real AI provider is disabled, unconfigured, or fails at runtime.
+        /// </summary>
+        private async Task<string> GetCannedAnalysisAsync(AnalysisType analysisType)
         {
-            if (_aiService == null || !_aiService.IsEnabled)
+            var stats = _getStats?.Invoke() ?? new Models.AggregateStats();
+            var perfStats = _getPerfStats?.Invoke() ?? new List<Services.ApiPerfStats>();
+
+            switch (analysisType)
             {
-                var result = MessageBox.Show(
-                    "AI features are not configured.\n\nWould you like to configure them now?",
-                    "AI Not Configured",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (result == DialogResult.Yes)
-                {
-                    SettingsRequested?.Invoke(this, EventArgs.Empty);
-                }
-
-                return false;
+                case AnalysisType.Summarize:
+                    return await _canned.SummarizeAsync(stats, perfStats);
+                case AnalysisType.RootCause:
+                    return await _canned.SuggestRootCauseAsync(stats, perfStats, stats.ErrorCount, stats.WarningCount);
+                case AnalysisType.FindErrors:
+                    return await _canned.NlSearchAsync("find errors", stats, perfStats);
+                case AnalysisType.FindWarnings:
+                    return await _canned.NlSearchAsync("find warnings", stats, perfStats);
+                case AnalysisType.Performance:
+                    return await _canned.AnalyzePerformanceAsync(perfStats);
+                default:
+                    return await _canned.NlSearchAsync(analysisType.ToString(), stats, perfStats);
             }
-
-            return true;
         }
+
+        /// <summary>
+        /// Legacy gate kept for compatibility — no longer blocks usage. Real vs. sample
+        /// routing is now decided per-call via <see cref="IsRealAiAvailable"/> so users
+        /// always get a response, clearly labeled when it's a sample.
+        /// </summary>
+        private bool CheckAIAvailable() => true;
 
         // ?? Theme Support ?????????????????????????????????????????????????????
+        // Called from MainForm whenever the app's Light/Dark theme changes (same
+        // hook HeatmapPanel/FlameGraphPanel/TimelinePanel use) -- re-applies the
+        // exact colors BuildUI assigned at construction so the AI tab stays in
+        // sync with a live theme switch instead of freezing at whatever theme was
+        // active when the app started.
         public void UpdateTheme()
         {
-            // This method can be called from MainForm when theme changes
-            // Color scheme already set in BuildUI, but can be updated here if needed
+            BackColor = ThemeManager.BackgroundColor;
+
+            if (_apiModeLabel != null)
+            {
+                _apiModeLabel.ForeColor = MutedForeground;
+                _apiModeLabel.BackColor = ThemeManager.ControlBackgroundColor;
+            }
+            if (_titlePanel != null) _titlePanel.BackColor = ThemeManager.ControlBackgroundColor;
+            if (_statusLabel != null) _statusLabel.ForeColor = ThemeManager.ForegroundColor;
+            if (_buttonPanel != null) _buttonPanel.BackColor = ThemeManager.ControlBackgroundColor;
+            if (_responseBox != null)
+            {
+                _responseBox.BackColor = ThemeManager.BackgroundColor;
+                _responseBox.ForeColor = ThemeManager.ForegroundColor;
+            }
+            if (_tokenLabel != null)
+            {
+                _tokenLabel.ForeColor = MutedForeground;
+                _tokenLabel.BackColor = ThemeManager.ControlBackgroundColor;
+            }
+            if (_inputPanel != null) _inputPanel.BackColor = ThemeManager.ControlBackgroundColor;
+            if (_chatInputBox != null)
+            {
+                _chatInputBox.BackColor = ThemeManager.InputBackgroundColor;
+                _chatInputBox.ForeColor = ThemeManager.ControlForegroundColor;
+            }
+            if (_promptChipsPanel != null) _promptChipsPanel.BackColor = ThemeManager.ControlBackgroundColor;
+
+            // The 6 analysis buttons, Settings, Send/Copy/Clear, and the 3 example
+            // chips all share one StyleButton() rule -- restyle whichever ones
+            // exist by walking their containers rather than listing every field
+            // (the chips in particular are anonymous, created only as Controls).
+            RestyleButtonsIn(_buttonPanel);
+            RestyleButtonsIn(_inputPanel);
+            RestyleButtonsIn(_promptChipsPanel);
+            if (_settingsBtn != null) StyleButton(_settingsBtn);
+        }
+
+        private static void RestyleButtonsIn(Control container)
+        {
+            if (container == null) return;
+            foreach (Control child in container.Controls)
+            {
+                if (child is Button btn)
+                    StyleButton(btn);
+            }
         }
 
         public void SetApiMode(bool enabled)

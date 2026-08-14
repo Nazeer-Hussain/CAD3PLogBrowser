@@ -59,8 +59,7 @@ namespace Cad3PLogBrowser
         private CheckBox       chkFilterPerfOnTreeSelect;
 
         // -- Integration -------------------------------------------------------
-        private TextBox   txtGrokUrl, txtClaudeApiKey;
-        private CheckBox  chkUseClaudeApi;
+        private TextBox   txtGrokUrl;
 
         // -- AI Settings -------------------------------------------------------
         private CheckBox chkEnableAI;
@@ -767,7 +766,7 @@ namespace Cad3PLogBrowser
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Location = new Point(100, 48),
-                Size = new Size(380, 24)
+                Size = new Size(430, 24)
             };
             cmbAIProvider.Items.AddRange(new object[] 
             { 
@@ -793,7 +792,7 @@ namespace Cad3PLogBrowser
             txtAIApiKey = new TextBox
             {
                 Location = new Point(100, 78),
-                Size = new Size(330, 23),
+                Size = new Size(375, 23),
                 UseSystemPasswordChar = true
             };
             grpAI.Controls.Add(txtAIApiKey);
@@ -801,7 +800,7 @@ namespace Cad3PLogBrowser
             btnShowHideAIKey = new Button
             {
                 Text = SettingsDialogStrings.ButtonShow,
-                Location = new Point(435, 78),
+                Location = new Point(480, 78),
                 Size = new Size(50, 25),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 8f)
@@ -823,7 +822,7 @@ namespace Cad3PLogBrowser
             txtOllamaServerUrl = new TextBox
             {
                 Location = new Point(100, 108),
-                Size = new Size(380, 23),
+                Size = new Size(430, 23),
                 Text = SettingsDialogStrings.DefaultOllamaServerUrl,
                 Visible = false
             };
@@ -839,7 +838,7 @@ namespace Cad3PLogBrowser
             cmbOllamaModel = new ComboBox
             {
                 Location = new Point(100, 138),
-                Size = new Size(200, 24),
+                Size = new Size(260, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Visible = false
             };
@@ -856,7 +855,7 @@ namespace Cad3PLogBrowser
             cmbAIModel = new ComboBox
             {
                 Location = new Point(100, 138),
-                Size = new Size(200, 24),
+                Size = new Size(260, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cmbAIModel.Items.Add(SettingsDialogStrings.ModelPlaceholder);
@@ -884,7 +883,7 @@ namespace Cad3PLogBrowser
             trackAITemperature = new TrackBar
             {
                 Location = new Point(100, 22),
-                Size = new Size(310, 45),
+                Size = new Size(365, 45),
                 Minimum = 0,
                 Maximum = 20,
                 Value = 7,
@@ -899,8 +898,8 @@ namespace Cad3PLogBrowser
             lblAITemperatureValue = new Label
             {
                 Text = "0.7",
-                Location = new Point(415, 27),
-                Size = new Size(65, 20),
+                Location = new Point(470, 27),
+                Size = new Size(60, 20),
                 TextAlign = ContentAlignment.MiddleRight
             };
             grpModel.Controls.Add(lblAITemperatureValue);
@@ -909,7 +908,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.HintTemperature,
                 Location = new Point(100, 62),
-                Size = new Size(380, 16),
+                Size = new Size(430, 16),
                 ForeColor = SystemColors.GrayText,
                 Font = new Font("Segoe UI", 8.5f)
             };
@@ -996,7 +995,7 @@ namespace Cad3PLogBrowser
             {
                 Text = SettingsDialogStrings.GroupSourceIntegration,
                 Location = new Point(12, 368),
-                Size = new Size(264, 92),
+                Size = new Size(540, 92),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -1009,56 +1008,12 @@ namespace Cad3PLogBrowser
             });
             txtGrokUrl = new TextBox
             {
-                Location = new Point(70, 25),
-                Size = new Size(184, 23)
+                Location = new Point(100, 25),
+                Size = new Size(430, 23)
             };
             grpSource.Controls.Add(txtGrokUrl);
 
             tp.Controls.Add(grpSource);
-
-            // --- Legacy Integration Section ---
-            var grpLegacy = new GroupBox 
-            { 
-                Text = SettingsDialogStrings.GroupLegacyIntegration, 
-                Location = new Point(288, 368),
-                Size = new Size(264, 92),
-                Font = new Font("Segoe UI", 9f)
-            };
-
-            grpLegacy.Controls.Add(new Label { 
-                Text = SettingsDialogStrings.LabelClaudeKey, 
-                Location = new Point(10, 27), 
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9f)
-            });
-            txtClaudeApiKey = new TextBox
-            {
-                Location = new Point(84, 25),
-                Size = new Size(170, 23),
-                UseSystemPasswordChar = true
-            };
-            grpLegacy.Controls.Add(txtClaudeApiKey);
-
-            chkUseClaudeApi = new CheckBox
-            {
-                Text = SettingsDialogStrings.CheckboxEnableLegacyClaude,
-                Location = new Point(10, 50),
-                Size = new Size(246, 18)
-            };
-            grpLegacy.Controls.Add(chkUseClaudeApi);
-
-            var lblDeprecated = new Label
-            {
-                Text = SettingsDialogStrings.HintLegacyWarning,
-                Location = new Point(10, 68),
-                AutoSize = false,
-                Size = new Size(246, 20),
-                ForeColor = Color.DarkOrange,
-                Font = new Font("Segoe UI", 7.5f)
-            };
-            grpLegacy.Controls.Add(lblDeprecated);
-
-            tp.Controls.Add(grpLegacy);
 
             // --- Connection Testing ---
             btnTestAIConnection = new Button
@@ -1075,6 +1030,7 @@ namespace Cad3PLogBrowser
                 Text = "",
                 Location = new Point(160, 473),
                 Size = new Size(392, 20),
+                AutoEllipsis = true,
                 ForeColor = Color.DarkGreen
             };
             tp.Controls.Add(lblAIStatus);
@@ -1141,8 +1097,6 @@ namespace Cad3PLogBrowser
 
             // Integration
             txtGrokUrl.Text         = _settings.GrokUrl ?? "";
-            txtClaudeApiKey.Text    = _settings.ClaudeApiKey ?? "";
-            chkUseClaudeApi.Checked = _settings.UseClaudeApi;
 
             // Updates (ENH-4)
             chkCheckOnStartup.Checked    = _settings.CheckForUpdatesOnStartup;
@@ -1264,8 +1218,6 @@ namespace Cad3PLogBrowser
 
             // Integration
             _settings.GrokUrl      = txtGrokUrl.Text.Trim();
-            _settings.ClaudeApiKey = txtClaudeApiKey.Text.Trim();
-            _settings.UseClaudeApi = chkUseClaudeApi.Checked;
 
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
@@ -1346,7 +1298,6 @@ namespace Cad3PLogBrowser
             _settings.LazyLoadThreshold         = def.LazyLoadThreshold;
             _settings.FilterPerfOnTreeSelect    = def.FilterPerfOnTreeSelect;
             _settings.GrokUrl             = def.GrokUrl;
-            // Note: API key and UseClaudeApi are NOT reset (security/convenience)
             // Updates � reset to defaults but preserve LastUpdateCheck and SkippedVersion
             _settings.CheckForUpdatesOnStartup = def.CheckForUpdatesOnStartup;
             _settings.UpdateCheckIntervalDays  = def.UpdateCheckIntervalDays;

@@ -115,7 +115,6 @@ namespace Cad3PLogBrowser.UI
         public const string GroupModelConfiguration = "Model Configuration";
         public const string GroupPrivacyAndConversation = "Privacy & Conversation";
         public const string GroupSourceIntegration = "Source Integration";
-        public const string GroupLegacyIntegration = "Legacy Integration (Deprecated)";
 
         public const string CheckboxEnableAI = "Enable AI Features";
         public const string LabelProvider = "Provider:";
@@ -126,15 +125,12 @@ namespace Cad3PLogBrowser.UI
         public const string LabelMaxTokens = "Max Tokens:";
         public const string LabelMaxMessages = "Max messages:";
         public const string LabelGrokURL = "Grok URL:";
-        public const string LabelClaudeKey = "Claude Key:";
 
         public const string CheckboxEnableStreaming = "Enable streaming";
         public const string CheckboxRedactSensitiveData = "Redact sensitive data (emails, IPs, paths)";
         public const string CheckboxRememberConversation = "Remember conversation history";
-        public const string CheckboxEnableLegacyClaude = "Enable legacy Claude integration";
 
         public const string HintTemperature = "Lower = focused, Higher = creative";
-        public const string HintLegacyWarning = "WARNING: Use 'Anthropic Claude' provider above instead";
 
         public const string ProviderMock = "Mock (Testing)";
         public const string ProviderAnthropic = "Anthropic Claude";
