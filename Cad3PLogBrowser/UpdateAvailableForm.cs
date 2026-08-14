@@ -8,6 +8,7 @@
     using System.Windows.Forms;
     using Cad3PLogBrowser.Services;
     using Cad3PLogBrowser.Services.Update;
+    using Cad3PLogBrowser.UI;
 
     /// <summary>
     /// Displays information about an available update and lets the user
@@ -56,6 +57,7 @@
             _manifest = manifest ?? throw new ArgumentNullException("manifest");
             _service  = service  ?? throw new ArgumentNullException("service");
 
+            Icon = AppIcon.Get();
             BuildUI();
             PopulateContent();
             // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation

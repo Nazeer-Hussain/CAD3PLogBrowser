@@ -19,6 +19,7 @@ namespace Cad3PLogBrowser.UI
         public CompareOptionsDialog(CompareOptions currentOptions)
         {
             InitializeComponent();
+            Icon = AppIcon.Get();
 
             _options = currentOptions ?? CompareOptions.CreateDefaultLogOptions();
             LoadOptions();

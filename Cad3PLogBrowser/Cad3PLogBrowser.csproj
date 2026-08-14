@@ -213,6 +213,7 @@
     <Compile Include="UI\AI\AISettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UI\AppIcon.cs" />
     <Compile Include="UI\AppStrings.cs" />
     <Compile Include="UI\CompareLogsForm.cs">
       <SubType>Form</SubType>
