@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Properties;
 using Cad3PLogBrowser.Services;
+using Cad3PLogBrowser.UI;
 
 namespace Cad3PLogBrowser
 {
@@ -23,6 +24,7 @@ namespace Cad3PLogBrowser
         {
             _mainForm = mainForm;
             InitializeComponent();
+            Icon = AppIcon.Get();
             // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
 
             Text = $"Find All Results - '{searchTerm}'";

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CAD 3P Log Browser</title>
+<link rel="icon" type="image/gif" href="help/images/cad3plog.gif">
 <style>
     :root {
         --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -60,8 +61,11 @@
         font-size: 16px;
         letter-spacing: -0.01em;
         color: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
-    .wordmark .prompt { color: var(--accent); margin-right: 2px; }
+    .wordmark img { width: 22px; height: 22px; }
 
     nav.toplinks { display: flex; gap: 22px; flex-wrap: wrap; }
     nav.toplinks a {
@@ -170,7 +174,7 @@
 <header>
     <div class="header-inner">
         <div class="topbar">
-            <span class="wordmark"><span class="prompt">&gt;</span>CAD 3P Log Browser</span>
+            <span class="wordmark"><img src="help/images/cad3plog.gif" alt="CAD 3P Log Browser icon">CAD 3P Log Browser</span>
             <nav class="toplinks">
                 <a href="#download">Download</a>
                 <a href="help/UserGuide.html">Help Guide</a>

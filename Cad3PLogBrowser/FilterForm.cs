@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Cad3PLogBrowser.Services;
 using Cad3PLogBrowser.Models;
+using Cad3PLogBrowser.UI;
 
 namespace Cad3PLogBrowser
 {
@@ -18,6 +19,7 @@ namespace Cad3PLogBrowser
         public FilterForm(MainForm mainForm)
         {
             InitializeComponent();
+            Icon = AppIcon.Get();
             _mainForm = mainForm;
             // NOTE: ThemeManager.ApplyTheme moved to Load event to avoid premature handle creation
         }
