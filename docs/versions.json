@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.11",
+    "date": "2026-08-14",
+    "notes": "Derive release notes from the triggering commit instead of copying stale text",
+    "zip": "downloads/Cad3PLogBrowser-4.0.11.zip",
+    "sizeBytes": 2792308
+  },
+  {
     "version": "4.0.10",
     "date": "2026-08-14",
     "notes": "Fix call graph readability + show the app icon in every dialog",

@@ -1,8 +1,8 @@
 {
-  "version": "4.0.10",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.10.zip",
-  "releaseNotes": "Fix call graph readability + show the app icon in every dialog",
+  "version": "4.0.11",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.11.zip",
+  "releaseNotes": "Derive release notes from the triggering commit instead of copying stale text",
   "mandatory": false,
-  "sha256": "37d2d6e9719ff2de56fde4d649cbc12e8c9fa91b472021243532ce8eeeedb578",
-  "downloadSizeBytes": 2792313
+  "sha256": "e22e3c094d17a932c99eca3208495c3bfe7649a54e55263f2290d8f44d77a0b8",
+  "downloadSizeBytes": 2792308
 }
