@@ -2511,15 +2511,15 @@ namespace Cad3PLogBrowser
             {
                 performanceView.ColumnClick += PerformanceView_ColumnClick;
                 performanceView.HeaderStyle  = ColumnHeaderStyle.Clickable;
-                // E1: clicking a row selects the same API in the API Tree, matching
+                // E1: double-clicking a row selects the same API in the Call Tree, matching
                 // the cross-navigation the Top-N-Slowest and Heatmap views already have.
-                performanceView.Click += (s, ev) =>
+                performanceView.DoubleClick += (s, ev) =>
                 {
                     if (performanceView.SelectedItems.Count == 0) return;
                     if (performanceView.SelectedItems[0].Tag is string apiName)
                     {
-                        ShowApiTree();
-                        FindAndSelectApiTreeNode(apiName);
+                        ShowCallTree();
+                        FindAndSelectCallTreeNode(apiName);
                     }
                 };
                 _perfHeaderWired = true;
@@ -3602,7 +3602,14 @@ namespace Cad3PLogBrowser
             }
             var vl   = _virtualLines[e.ItemIndex];
             var item = new ListViewItem(vl.LineNumber.ToString());
-            item.SubItems.Add(vl.Text);
+            // BUG-FIX: raw API ENTER/EXIT lines are tab-delimited
+            // (State\tModule\tSourceFile\tApiName\tENTER\tEpochMs — see LogParserService),
+            // but the native ListView control does not expand '\t' characters when
+            // rendering a subitem's text — it simply drops them, making all the
+            // tab-separated fields run together with no visible whitespace.
+            // Replace tabs with a few spaces purely for display; vl.Text itself
+            // (and _allLines) remain unchanged for parsing/search/export.
+            item.SubItems.Add(vl.Text.IndexOf('\t') >= 0 ? vl.Text.Replace("\t", "    ") : vl.Text);
 
             // P-08: use the pre-computed BackColour (bookmark / highlight / level colour).
             // The previous code re-ran text.Contains("ERROR") etc. on every paint call which
@@ -4359,6 +4366,7 @@ namespace Cad3PLogBrowser
             // ── File menu ─────────────────────────────────────────────────────
             openMenuItem.Image                 = IconGenerator.CreateOpenIcon(msz);
             saveAsMenuItem.Image               = IconGenerator.CreateSaveIcon(msz);
+            saveSelectedXlsMenuItem.Image       = IconGenerator.CreateExportXlsIcon(msz);
             exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportFileIcon(msz);
             exportPerformanceMenuItem.Image    = IconGenerator.CreateExportCsvIcon(msz);
             exportTreeJsonMenuItem.Image       = IconGenerator.CreateExportJsonIcon(msz);
@@ -4368,6 +4376,13 @@ namespace Cad3PLogBrowser
             mergeLogsMenuItem.Image            = IconGenerator.CreateMergeLogsIcon(msz);
             reloadMenuItem.Image               = IconGenerator.CreateReloadIcon(msz);
             exitMenuItem.Image                 = IconGenerator.CreateExitIcon(msz);
+            compareLogsMenuItem.Image          = IconGenerator.CreateCompareLogsIcon(msz);
+            exportAnalyticsReportMenuItem.Image = IconGenerator.CreateExportAnalyticsIcon(msz);
+            exportApiCsvMenuItem.Image         = IconGenerator.CreateExportApiCsvIcon(msz);
+            exportCallGraphFileMenuItem.Image  = IconGenerator.CreateExportCallGraphIcon(msz);
+            exportHeatmapFileMenuItem.Image    = IconGenerator.CreateExportHeatmapIcon(msz);
+            setBaselineMenuItem.Image          = IconGenerator.CreateSetBaselineIcon(msz);
+            takeScreenshotMenuItem.Image       = IconGenerator.CreateScreenshotIcon(msz);
 
             // ── Edit menu ─────────────────────────────────────────────────────
             copyMenuItem.Image             = IconGenerator.CreateCopyIcon(msz);
@@ -4386,6 +4401,8 @@ namespace Cad3PLogBrowser
             previousBookmarkMenuItem.Image = IconGenerator.CreateBookmarkPrevIcon(msz);
             showBookmarksMenuItem.Image    = IconGenerator.CreateBookmarkShowIcon(msz);
             clearBookmarksMenuItem.Image   = IconGenerator.CreateBookmarkClearIcon(msz);
+            copyAllVisibleMenuItem.Image   = IconGenerator.CreateCopyAllVisibleIcon(msz);
+            expandToLevelMenuItem.Image    = IconGenerator.CreateExpandToLevelIcon(msz);
 
             // ── View menu ─────────────────────────────────────────────────────
             showCallTreeMenuItem.Image     = IconGenerator.CreateCallTreeIcon(msz);
@@ -4398,6 +4415,11 @@ namespace Cad3PLogBrowser
             showLogDetailsTabMenuItem.Image          = IconGenerator.CreateTabLogDetailsIcon(msz);
             showCallGraphMenuItem.Image     = IconGenerator.CreateTabCallGraphIcon(msz);
             showTimelineTabMenuItem.Image   = IconGenerator.CreateTabTimelineIcon(msz);
+            showHeatmapTabMenuItem.Image    = IconGenerator.CreateTabHeatmapIcon(msz);
+            darkModeMenuItem.Image          = IconGenerator.CreateMoonIcon(msz);
+            hideTabsMenuItem.Image          = IconGenerator.CreateHideTabsIcon(msz);
+            watchFileChangesMenuItem.Image  = IconGenerator.CreateWatchFileIcon(msz);
+            showStatusBarMenuItem.Image     = IconGenerator.CreateStatusBarIcon(msz);
 
             // ── Options menu ──────────────────────────────────────────────────
             settingsMenuItem.Image         = IconGenerator.CreateSettingsIcon(msz);
@@ -4408,6 +4430,8 @@ namespace Cad3PLogBrowser
             aboutMenuItem.Image            = IconGenerator.CreateAboutIcon(msz);
             checkForUpdatesMenuItem.Image  = IconGenerator.CreateCheckUpdatesIcon(msz);
             reportErrorsMenuItem.Image     = IconGenerator.CreateReportErrorsIcon(msz);
+            viewUpdateLogMenuItem.Image    = IconGenerator.CreateUpdateLogIcon(msz);
+            visitProjectPageMenuItem.Image = IconGenerator.CreateProjectPageIcon(msz);
 
             // ── Log view context menu ─────────────────────────────────────────
             contextCopyMenuItem.Image          = IconGenerator.CreateCopyIcon(msz);
@@ -4418,6 +4442,9 @@ namespace Cad3PLogBrowser
             contextCollapseAllMenuItem.Image   = IconGenerator.CreateCollapseIcon(msz);
             contextJumpToMatchingMenuItem.Image = IconGenerator.CreateJumpMatchIcon(msz);
             contextRefreshMenuItem.Image       = IconGenerator.CreateReloadIcon(msz);
+            contextInspectLineMenuItem.Image    = IconGenerator.CreateInspectLineIcon(msz);
+            contextOpenInEditorMenuItem.Image   = IconGenerator.CreateOpenInEditorIcon(msz);
+            contextToggleBookmarkMenuItem.Image = IconGenerator.CreateToggleBookmarkIcon(msz);
 
             // ── Tree context menu ─────────────────────────────────────────────
             treeContextCopyNodeNameMenuItem.Image   = IconGenerator.CreateCopyIcon(msz);
@@ -4429,6 +4456,10 @@ namespace Cad3PLogBrowser
             treeContextExportBranchCsvMenuItem.Image = IconGenerator.CreateExportCsvIcon(msz);
             treeContextSearchInGrokMenuItem.Image   = IconGenerator.CreateGrokIcon(msz);
             treeContextShowInOtherTreeMenuItem.Image = IconGenerator.CreateShowInTreeIcon(msz);
+            treeContextAskAiMenuItem.Image      = IconGenerator.CreateAskAiIcon(msz);
+            treeContextFilterMenuItem.Image     = IconGenerator.CreateFilterIcon(msz);
+            treeContextReloadMenuItem.Image     = IconGenerator.CreateReloadIcon(msz);
+            treeContextRootCauseMenuItem.Image  = IconGenerator.CreateRootCauseIcon(msz);
         }
 
         // ── Tab Icons ─────────────────────────────────────────────────────────
