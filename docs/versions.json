@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.13",
+    "date": "2026-08-17",
+    "notes": "Added missing icons",
+    "zip": "downloads/Cad3PLogBrowser-4.0.13.zip",
+    "sizeBytes": 2794182
+  },
+  {
     "version": "4.0.12",
     "date": "2026-08-14",
     "notes": "Make AI Assistant tab follow the app theme; finish AI provider consolidation",
