@@ -1,8 +1,8 @@
 {
-  "version": "4.0.13",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.13.zip",
-  "releaseNotes": "Added missing icons",
+  "version": "4.0.14",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.14.zip",
+  "releaseNotes": "Bring the Help Guide, docs site, and shortcuts dialog up to date with recent menu/dialog changes",
   "mandatory": false,
-  "sha256": "d86bc79b1fd7a5b0180ee72870ec384ec13603dbcc6459aac6ea19d461cf28af",
-  "downloadSizeBytes": 2794182
+  "sha256": "a6f49200595ebf5f5c7ded80f87be8a7553d28cbaccafd629886ec1177036ad4",
+  "downloadSizeBytes": 3038820
 }
