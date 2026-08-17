@@ -1,0 +1,222 @@
+name: Release
+
+# Deliberately manual-only (no push/PR trigger). Run this from the Actions tab
+# ("Run workflow") -- or `gh workflow run release.yml` -- whenever you've
+# decided it's time to ship, whether that's after one PR or ten accumulated
+# over a couple of weeks. Every push to master still builds via build.yml, but
+# nothing about the version, docs/ site, or a GitHub Release changes until
+# this workflow actually runs.
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      # ── 1. Checkout master (full history so we can find the last release and push back) ──
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Bump patch, and collect notes for EVERY commit since the last release ──
+      # Unlike the old per-push flow, there's no single "triggering commit" here --
+      # this run may be bundling a week's worth of separate merges into one
+      # release, so the notes list every one of them individually instead of
+      # describing only whatever happened to be the latest merge.
+      - name: Compute version and aggregate release notes
+        id: ver
+        shell: pwsh
+        run: |
+          $json  = Get-Content docs/version.json -Raw | ConvertFrom-Json
+          $parts = $json.version -split '\.'   # ["4","0","13"]
+
+          # Auto-increment patch digit. Minor/major bumps are still done by hand
+          # by editing docs/version.json's "version" field directly in a PR --
+          # this run will then patch-bump from whatever base that PR set.
+          $parts[2] = [string]([int]$parts[2] + 1)
+          $newVer = $parts -join '.'
+          $tag    = "v$newVer"
+
+          # AssemblyInfo.cs (store as major.minor.patch.0 for .NET)
+          $asmVer = "$newVer.0"
+          $ai     = Get-Content Cad3PLogBrowser\Properties\AssemblyInfo.cs -Raw
+          $ai     = $ai -replace 'AssemblyVersion\("[^"]+"\)',     "AssemblyVersion(`"$asmVer`")"
+          $ai     = $ai -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$asmVer`")"
+          Set-Content Cad3PLogBrowser\Properties\AssemblyInfo.cs $ai -Encoding UTF8
+
+          echo "VERSION=$newVer" >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag"        >> $env:GITHUB_OUTPUT
+
+          # The last commit to touch docs/version.json is the previous release's
+          # bump commit (or a manual minor/major edit) -- everything after it is
+          # new since that release.
+          $lastVersionCommit = (git log -1 --format=%H -- docs/version.json)
+          if ($lastVersionCommit) { $range = "$lastVersionCommit..HEAD" } else { $range = "HEAD" }
+
+          # Only real MERGE commits become note items -- processing every commit
+          # in range double-counts each PR (once for its own commit(s), again for
+          # the merge commit that brought them in). PowerShell also silently
+          # mangles multi-line output captured from an external command into an
+          # array instead of one string, so -join "`n" forces a canonical single
+          # string before any -split, rather than splitting the array itself
+          # (confirmed by hand: doing it the other way around silently produced
+          # single-character garbage for some commits).
+          $noteItems = New-Object System.Collections.Generic.List[string]
+          $mergeShas = git log $range --merges --format="%H" --reverse
+          foreach ($sha in $mergeShas) {
+            $bodyRaw = (git log -1 $sha --format="%b") -join "`n"
+            $bodyFirstLine = $bodyRaw -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Select-Object -First 1
+            if ($bodyFirstLine) { $noteItems.Add($bodyFirstLine) }
+          }
+          # Fallback for squash-merges or direct pushes, where no true merge
+          # commit exists at all -- use every non-bump commit's own subject line.
+          if ($noteItems.Count -eq 0) {
+            $allShas = git log $range --format="%H" --reverse
+            foreach ($sha in $allShas) {
+              $subject = ((git log -1 $sha --format="%s") -join "`n").Trim()
+              if ($subject -match '^chore: bump version to') { continue }
+              $noteItems.Add(($subject -replace '\s*\(#\d+\)\s*$', ''))
+            }
+          }
+          if ($noteItems.Count -gt 0) {
+            $notes = ($noteItems | ForEach-Object { "- $_" }) -join "`n"
+          } else {
+            $notes = $json.releaseNotes
+          }
+          echo "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+          echo "$notes" >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+
+      # ── 2b. Keep the Help guide's displayed version in sync ──────────────────
+      - name: Update Help guide version
+        shell: pwsh
+        run: |
+          $newVer = "${{ steps.ver.outputs.VERSION }}"
+          $path = "Help\UserGuide.html"
+          $html = Get-Content $path -Raw
+          $html = $html -replace '(<p>User Guide &#8212; v)[\d.]+(</p>)', "`${1}$newVer`$2"
+          $html = $html -replace '(<span class="badge">v)[\d.]+(</span>)', "`${1}$newVer`$2"
+          $html = $html -replace '(User Guide v)[\d.]+( &nbsp;)', "`${1}$newVer`$2"
+          Set-Content $path $html -Encoding UTF8
+
+      # ── 3. Build ──────────────────────────────────────────────────────────
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore Cad3PLogBrowser.sln
+
+      - name: Build (Release / Any CPU)
+        run: |
+          msbuild Cad3PLogBrowser.sln `
+            /p:Configuration=Release `
+            "/p:Platform=Any CPU" `
+            /m
+
+      # ── 4. Package the portable release (exe + config + Help folder) ────────
+      - name: Package portable zip
+        id: package
+        shell: pwsh
+        run: |
+          $stagingDir = "staging"
+          New-Item -ItemType Directory -Path $stagingDir | Out-Null
+          Copy-Item "Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe" $stagingDir
+          Copy-Item "Cad3PLogBrowser\bin\Release\Cad3PLogBrowser.exe.config" $stagingDir
+          Copy-Item "Cad3PLogBrowser\bin\Release\Help" "$stagingDir\Help" -Recurse
+
+          $zipName = "Cad3PLogBrowser-${{ steps.ver.outputs.VERSION }}.zip"
+          Compress-Archive -Path "$stagingDir\*" -DestinationPath $zipName -CompressionLevel Optimal
+
+          $size = (Get-Item $zipName).Length
+          $hash = (Get-FileHash $zipName -Algorithm SHA256).Hash.ToLower()
+          echo "ZIP_NAME=$zipName"   >> $env:GITHUB_OUTPUT
+          echo "SIZE_BYTES=$size"    >> $env:GITHUB_OUTPUT
+          echo "SHA256=$hash"        >> $env:GITHUB_OUTPUT
+
+      # ── 5. Publish to the GitHub Pages site ──────────────────────────────────
+      - name: Publish to docs/ site
+        shell: pwsh
+        run: |
+          $version   = "${{ steps.ver.outputs.VERSION }}"
+          $zipName   = "${{ steps.package.outputs.ZIP_NAME }}"
+          $sizeBytes = [int64]"${{ steps.package.outputs.SIZE_BYTES }}"
+          $sha256    = "${{ steps.package.outputs.SHA256 }}"
+          $notes     = "${{ steps.ver.outputs.NOTES }}"
+          $pagesUrl  = "https://nazeer-hussain.github.io/CAD3PLogBrowser"
+
+          Copy-Item $zipName "docs\downloads\$zipName"
+
+          Remove-Item "docs\help" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item "Cad3PLogBrowser\bin\Release\Help" "docs\help" -Recurse
+
+          $manifest = [ordered]@{
+            version           = $version
+            downloadUrl       = "$pagesUrl/downloads/$zipName"
+            releaseNotes      = $notes
+            mandatory         = $false
+            sha256            = $sha256
+            downloadSizeBytes = $sizeBytes
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content docs\version.json -Encoding UTF8
+
+          # NOTE: @(Get-Content ... | ConvertFrom-Json) as a single pipeline
+          # expression double-wraps a 1-element JSON array in Windows PowerShell
+          # 5.1 (parse first, then @()-wrap the already-materialized variable).
+          $parsedVersions = Get-Content docs\versions.json -Raw | ConvertFrom-Json
+          $versions = @($parsedVersions)
+          $newEntry = [ordered]@{
+            version   = $version
+            date      = (Get-Date -Format "yyyy-MM-dd")
+            notes     = $notes
+            zip       = "downloads/$zipName"
+            sizeBytes = $sizeBytes
+          }
+          $versions = @($newEntry) + $versions
+          $versions | ConvertTo-Json -Depth 5 | Set-Content docs\versions.json -Encoding UTF8
+
+      # ── 6. Commit bumped/published files back to master ──────────────────────
+      - name: Commit version bump
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cad3PLogBrowser/Properties/AssemblyInfo.cs Help/UserGuide.html docs/version.json docs/versions.json docs/downloads/${{ steps.package.outputs.ZIP_NAME }} docs/help
+          # [skip actions] (not [skip ci]) deliberately: this stops GitHub
+          # Actions' build.yml from re-triggering on the bot's own push, but
+          # GitLab CI does NOT recognize this marker -- unlike the universal
+          # [skip ci]/[ci skip], which GitLab's mirror pipeline would also
+          # honor and skip its Pages deploy job on the very commit meant to
+          # publish it.
+          git commit -m "chore: bump version to ${{ steps.ver.outputs.VERSION }} [skip actions]"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 7. Create GitHub Release ──────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.TAG }}
+          name: "Release ${{ steps.ver.outputs.TAG }}"
+          body: |
+            **Version:** `${{ steps.ver.outputs.VERSION }}`
+
+            ${{ steps.ver.outputs.NOTES }}
+
+            Portable .zip -- unzip and run `Cad3PLogBrowser.exe`, no installer needed.
+            Also available from the [project page](https://nazeer-hussain.github.io/CAD3PLogBrowser/), which is what the app's own auto-updater uses.
+
+            - **Patch** (`x.x.N`) — auto-incremented by this workflow
+            - **Minor** (`x.N.x`) — bumped manually for major enhancements
+            - **Major** (`N.x.x`) — bumped manually for breaking changes
+          files: ${{ steps.package.outputs.ZIP_NAME }}
+          fail_on_unmatched_files: true
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
