@@ -7135,7 +7135,7 @@ namespace Cad3PLogBrowser
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false, MinimizeBox = false,
-                ShowIcon = false
+                Icon = UI.AppIcon.Get()
             })
             {
                 var rtb = new RichTextBox
@@ -7195,6 +7195,8 @@ namespace Cad3PLogBrowser
             // These act globally (ProcessCmdKey) rather than through a menu item, so the
             // walk above can't see them — kept to a short, hand-verified list.
             sb.Append("OTHER SHORTCUTS\r\n");
+            sb.Append(FormatShortcutLine("Shift+F3", "Find Previous")).Append("\r\n");
+            sb.Append(FormatShortcutLine("F12", "Inspect Selected Line")).Append("\r\n");
             sb.Append(FormatShortcutLine("F8", "Next Error")).Append("\r\n");
             sb.Append(FormatShortcutLine("Shift+F8", "Previous Error")).Append("\r\n");
             sb.Append(FormatShortcutLine("Ctrl+F8", "Next Warning")).Append("\r\n");

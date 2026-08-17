@@ -406,6 +406,7 @@
         <li><a href="#heatmap">Heatmap Tab</a></li>
         <li><a href="#thread-view">Thread View Tab</a></li>
         <li><a href="#exceptions">Exceptions Tab</a></li>
+        <li><a href="#anomalies">Anomalies Tab</a></li>
         <li><a href="#ai-assistant">AI Assistant Tab</a></li>
     </ul>
 
@@ -460,6 +461,7 @@
                 <li>Heatmap (API activity over time)</li>
                 <li>Thread View (side-by-side per-thread trees)</li>
                 <li>Exceptions (grouped by type + correlation ID)</li>
+                <li>Anomalies (compare against a saved baseline)</li>
                 <li>AI Assistant (multi-provider)</li>
             </ul>
         </div>
@@ -484,6 +486,9 @@
 <!-- ═══ WHAT'S NEW ═══ -->
 <div class="section" id="whats-new">
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
+
+    <h3>&#128295; Most Recent (v4.0.8 &#8211; v4.0.13)</h3>
+    <p>The app icon now appears consistently in every dialog window (Filter, Find, Settings, Update Available, Compare Options, AI Settings) instead of only the main window and About box &#8212; each previously fell back to the generic default WinForms icon. The <a href="#ai-assistant">AI Assistant tab</a> now follows the app&#8217;s Light/Dark theme instead of a fixed dark palette that clashed with the rest of the UI in Light mode, and its underlying AI settings were consolidated onto a single multi-provider path (the old direct Claude-API-key fields are gone from Settings). The tree search box above the Call Tree/API Tree gained a search icon, a clear (&#8220;&#215;&#8221;) button, and a contains-matching suggestions dropdown as you type. A new <a href="#anomalies">Anomalies tab</a> compares the loaded log&#8217;s performance against a saved baseline (<span class="menu">Options <span class="menu-arrow">&#8594;</span> Set as Baseline Log</span>) and flags methods that regressed. The Call Graph now uses a more compact layout on large graphs so the auto-fit zoom no longer shrinks it to an illegible size. Auto-update now runs entirely off GitHub Pages (with an internal GitLab Pages mirror for networks that block it) instead of GitHub Releases &#8212; see <a href="#updates">Auto-Update</a>.</p>
 
     <p>A large pass through the enhancement backlog &#8212; 26 fixes across nearly every part of the app, closing out real gaps found during a full feature-by-feature audit rather than cosmetic polish. Grouped by area:</p>
 
@@ -588,7 +593,7 @@
 
     <div class="screenshot">
         <img src="images/interface-overview.png" alt="Main window showing the tree panel, tab strip, and Log Summary bar">
-        <div class="caption">Main window: tree panel (left), tab strip with all nine tabs, and the collapsible Log Summary bar under the toolbar.</div>
+        <div class="caption">Main window: tree panel with a color-coded Call Tree (left), tab strip with all ten tabs, and the collapsible Log Summary bar under the toolbar.</div>
     </div>
 
     <table>
@@ -1274,10 +1279,31 @@
 </div>
 
 
+<!-- ═══ ANOMALIES TAB ═══ -->
+<div class="section" id="anomalies">
+    <h2 class="section-title"><span class="ico">&#128269;</span> Anomalies Tab</h2>
+    <p>Compares the currently loaded log&#8217;s per-method performance against a previously saved <strong>baseline</strong> log, and flags methods whose call count or average duration has drifted &#8212; useful for spotting a regression between two runs of the same workflow without eyeballing two Performance tabs side by side.</p>
+
+    <h3>Saving a Baseline</h3>
+    <p>Load a known-good log, then <span class="menu">Options <span class="menu-arrow">&#8594;</span> Set as Baseline Log</span>. This saves that log&#8217;s per-method call counts and average durations to disk, tagged with the source filename and a timestamp.</p>
+
+    <h3>Reading the Results</h3>
+    <p>Every time a log loads, the Anomalies tab automatically re-compares it against the saved baseline and lists any method whose behaviour changed enough to be flagged, with columns for <strong>Method</strong>, <strong>Baseline Avg (ms)</strong>, <strong>Current Avg (ms)</strong>, <strong>Baseline Calls</strong>, <strong>Current Calls</strong>, and <strong>Why Flagged</strong> (the specific reason &#8212; e.g. a large average-duration increase or an unexpected change in call count). The status line at the top names the baseline&#8217;s source file and when it was saved, or explains that no baseline has been set yet.</p>
+    <div class="info">
+        <strong>&#128161; Tip:</strong> hide it via <span class="menu">View <span class="menu-arrow">&#8594;</span> Tabs <span class="menu-arrow">&#8594;</span> Anomalies</span> if you don&#8217;t use baselines &#8212; it&#8217;s visible by default.
+    </div>
+</div>
+
+
 <!-- ═══ AI ASSISTANT TAB ═══ -->
 <div class="section" id="ai-assistant">
     <h2 class="section-title"><span class="ico">&#129504;</span> AI Assistant Tab</h2>
     <p>An integrated AI analysis panel that can analyse the currently loaded log using a choice of providers, configured on the <strong>AI &amp; Integration</strong> page of Settings.</p>
+
+    <div class="screenshot">
+        <img src="images/ai-assistant-tab.png" alt="AI Assistant tab with analysis buttons, response area, and chat input">
+        <div class="caption">The AI Assistant tab now follows the app&#8217;s Light/Dark theme &#8212; buttons and colours match the rest of the app instead of a fixed dark palette.</div>
+    </div>
 
     <h3>Real Analysis vs. Sample Responses</h3>
     <p>The AI Assistant always produces a response &#8212; but it is important to know <strong>which kind</strong> you are looking at:</p>
@@ -1317,7 +1343,7 @@
         <tbody>
             <tr><td>Summarize</td><td>High-level summary of what happened in the log</td></tr>
             <tr><td>Root Cause</td><td>Suggests probable root causes for errors</td></tr>
-            <tr><td>Find Errors / Find Warnings</td><td>Jumps straight to error/warning analysis</td></tr>
+            <tr><td>Find Errors / Warnings</td><td>Jumps straight to error/warning analysis</td></tr>
             <tr><td>Performance</td><td>Performance bottleneck analysis with recommendations</td></tr>
             <tr><td>Timeline</td><td>Chronological narrative of the log&#8217;s events</td></tr>
         </tbody>
@@ -1325,7 +1351,7 @@
     <p>Every button above works whether or not AI is configured &#8212; if no real provider is available, you get a clearly-labeled Sample Response generated from the same log statistics instead of an error.</p>
 
     <h3>Chat Interface</h3>
-    <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request.</p>
+    <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request. A row of example prompt chips (e.g. <em>&#8220;Summarize this log&#8221;</em>, <em>&#8220;Slowest methods?&#8221;</em>, <em>&#8220;Any errors?&#8221;</em>) sits above the chat box &#8212; click one to send it immediately without typing.</p>
 
     <div class="note">
         <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, or Server URL for Ollama). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
@@ -1432,7 +1458,7 @@
     </table>
 
     <h3>AI &amp; Integration (tab 3)</h3>
-    <p>See <a href="#ai-assistant">AI Assistant Tab</a> for the full provider table and screenshot. This page also has a legacy Grok URL field (unrelated to the AI providers) and the deprecated legacy-Claude fields.</p>
+    <p>See <a href="#ai-assistant">AI Assistant Tab</a> for the full provider table and screenshot. This page also has a legacy Grok URL field, unrelated to the AI providers above it.</p>
 
     <h3>Comparison (tab 4)</h3>
     <p>See <a href="#compare-logs">Compare Logs</a> for the full list of comparison options &#8212; the same page is shown here and from the Compare Logs dialog&#8217;s own Options button.</p>
@@ -1535,10 +1561,14 @@
             <tr><td>Export Tree as XML&#8230;</td><td></td><td>Export call tree as XML</td></tr>
             <tr><td>Export Timeline&#8230;</td><td></td><td>Save timeline PNG (1920&#215;1080)</td></tr>
             <tr><td>Export Flame Graph&#8230;</td><td></td><td>Save flame graph PNG (1920&#215;1080)</td></tr>
+            <tr><td>Export Heatmap&#8230;</td><td></td><td>Save heatmap PNG</td></tr>
+            <tr><td>Export Call Graph&#8230;</td><td></td><td>Save call graph PNG</td></tr>
+            <tr><td>Export Analytics Report&#8230;</td><td></td><td>Full analytics report combining performance, call graph, and log statistics</td></tr>
+            <tr><td>Save Selected as XLS&#8230;</td><td></td><td>Save the ENTER&#8594;EXIT block of the selected tree node as an Excel spreadsheet</td></tr>
             <tr><td>Merge Logs&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
             <tr><td>Compare Logs&#8230;</td><td><kbd>Ctrl+D</kbd></td><td>Open the side-by-side diff tool</td></tr>
             <tr><td>Reload</td><td><kbd>F5</kbd></td><td>Re-read current file</td></tr>
-            <tr><td>Recent Files</td><td></td><td>Submenu of last N opened files (from <code>recentfiles.json</code>)</td></tr>
+            <tr><td>Recent Files</td><td></td><td>Submenu of last N opened files (from <code>recentfiles.json</code>); only appears once at least one file has been opened</td></tr>
             <tr><td>Exit</td><td><kbd>Alt+F4</kbd></td><td>Close application</td></tr>
         </tbody>
     </table>
@@ -1549,6 +1579,7 @@
         <tbody>
             <tr><td>Copy</td><td><kbd>Ctrl+C</kbd></td><td>Copy selected log lines as plain text</td></tr>
             <tr><td>Copy with Headers</td><td><kbd>Ctrl+Shift+C</kbd></td><td>Copy with &#8220;Line #&#9;Log Text&#8221; header row</td></tr>
+            <tr><td>Copy All Visible</td><td></td><td>Copy every currently-visible (filtered) log line, not just the selection</td></tr>
             <tr><td>Find&#8230;</td><td><kbd>Ctrl+F</kbd></td><td>Open floating Find dialog</td></tr>
             <tr><td>Find Next</td><td><kbd>F3</kbd></td><td>Find next occurrence</td></tr>
             <tr><td>Find All&#8230;</td><td><kbd>Ctrl+Alt+F</kbd></td><td>Show all matches in results window</td></tr>
@@ -1572,6 +1603,7 @@
         <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>Settings&#8230;</td><td><kbd>Ctrl+Shift+S</kbd></td><td>Open the full Settings dialog</td></tr>
+            <tr><td>Set as Baseline Log</td><td></td><td>Save the current log as the baseline anomaly detection compares future logs against &#8212; see <a href="#ai-assistant">AI Assistant Tab</a></td></tr>
         </tbody>
     </table>
 
@@ -1589,12 +1621,15 @@
             <tr><td>Tabs &#8594; Heatmap</td><td>Show/hide the Heatmap tab</td></tr>
             <tr><td>Tabs &#8594; AI Assistant</td><td>Show/hide the AI Assistant tab</td></tr>
             <tr><td>Tabs &#8594; Exceptions</td><td>Show/hide the Exceptions tab</td></tr>
+            <tr><td>Tabs &#8594; Anomalies</td><td>Show/hide the Anomalies tab</td></tr>
             <tr><td>Tabs &#8594; Thread View</td><td>Show/hide the Thread View tab</td></tr>
+            <tr><td>Hide Tabs / Show Tabs</td><td>Collapses the entire right-hand tab panel to give the tree full width, or restores it; label switches to reflect the current state</td></tr>
             <tr><td>Select Font&#8230;</td><td>Open font picker for the log view</td></tr>
             <tr><td>Watch for File Changes (&#10003;)</td><td>Master toggle for disk-change monitoring and auto-reload</td></tr>
             <tr><td>Dark Mode (&#10003;)</td><td>Toggle Dark/Light theme &#8212; stays in sync with the toolbar button, <kbd>Ctrl+T</kbd>, and the Settings dialog&#8217;s Theme dropdown</td></tr>
             <tr><td>Show Toolbar (&#10003;)</td><td>Hide/show the main toolbar</td></tr>
             <tr><td>Show Status Bar (&#10003;)</td><td>Hide/show the status bar</td></tr>
+            <tr><td>Take Screenshot&#8230;</td><td>Saves a PNG of the whole application window</td></tr>
         </tbody>
     </table>
 
@@ -1608,6 +1643,7 @@
             <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Shows a &#8220;Checking for Updates&#8230;&#8221; progress indicator in the status bar while it runs, and a distinct error message if the fetch fails.</td></tr>
             <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
             <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
+            <tr><td>Visit Project Page</td><td></td><td>Opens the project&#8217;s GitHub Pages site &#8212; download the latest version, browse version history, or read this guide online</td></tr>
         </tbody>
     </table>
 </div>
