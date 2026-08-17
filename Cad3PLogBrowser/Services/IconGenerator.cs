@@ -34,9 +34,18 @@ namespace Cad3PLogBrowser.Services
         private const char IconMergeLogs       = '\uE8F0'; // MergeCall
         private const char IconReload          = '\uE72C'; // Refresh
         private const char IconExit            = '\uE7E8'; // ChromeClose
+        private const char IconCompareLogs     = '\uE8AA'; // OpenPane (side-by-side compare)
+        private const char IconExportAnalytics = '\uE9D9'; // AnalyticsReport
+        private const char IconExportApiCsv    = '\uE8F1'; // Page (CSV export, list-like)
+        private const char IconExportCallGraph = '\uE8EE'; // Relationship
+        private const char IconExportHeatmap   = '\uE9D2'; // Heatmap / grid
+        private const char IconSetBaseline     = '\uE735'; // Flag / mark baseline
+        private const char IconScreenshot      = '\uE722'; // Pictures (screenshot/capture)
+        private const char IconExportXls       = '\uE9D9'; // ExcelDocument (Save Selected as XLS)
         // Edit menu
         private const char IconCopy            = '\uE8C8'; // Copy
         private const char IconCopyHeaders     = '\uE8CF'; // ClipboardList
+        private const char IconCopyAllVisible  = '\uE8C8'; // Copy (visible-scope copy)
         private const char IconFind            = '\uE721'; // Search
         private const char IconFindNext        = '\uE893'; // ChevronRight
         private const char IconFindAll         = '\uE773'; // SearchAndApps
@@ -51,12 +60,16 @@ namespace Cad3PLogBrowser.Services
         private const char IconBookmarkPrev    = '\uE892'; // ChevronLeft (prev bookmark)
         private const char IconBookmarkShow    = '\uE8A4'; // ShowAll
         private const char IconBookmarkClear   = '\uE8D4'; // BookmarkOutline
+        private const char IconExpandToLevel   = '\uE8BB'; // NumberedListText (expand to specific level)
         // View menu
         private const char IconCallTree        = '\uE8AC'; // Hierarchy
         private const char IconApiTree         = '\uE71D'; // SortLines (API list)
         private const char IconFont            = '\uE8D2'; // Font
         private const char IconToolbar         = '\uE700'; // GlobalNavButton
         private const char IconTab             = '\uE74C'; // Tab (generic / submenu header)
+        private const char IconHideTabs        = '\uE71A'; // FullScreen (hide/show tabs)
+        private const char IconWatchFile       = '\uE890'; // View (watch for changes)
+        private const char IconStatusBar       = '\uE73A'; // AlignBottom (status bar)
         // Per-tab icons
         private const char IconTabLog          = '\uE8F1'; // Page / document list  - Log view
         private const char IconTabRaw          = '\uE8A5'; // Document              - Raw text view
@@ -66,6 +79,7 @@ namespace Cad3PLogBrowser.Services
         private const char IconTabFlameGraph   = '\uE7C1'; // BulletedList2 (stacked bars)
         private const char IconTabTimeline     = '\uE81C'; // Timeline / clock      ? Timeline
         private const char IconTabAI           = '\uE8BD'; // Chat / message        ? AI Assistant
+        private const char IconTabHeatmap      = '\uE9D2'; // Heatmap / grid        ? Heatmap tab
         // Navigation buttons
         private const char IconPrevError       = '\uE892'; // ChevronLeft
         private const char IconNextError       = '\uE893'; // ChevronRight
@@ -77,11 +91,19 @@ namespace Cad3PLogBrowser.Services
         private const char IconAbout           = '\uE946'; // Info
         private const char IconUpdate          = '\uE895'; // Sync
         private const char IconReport          = '\uE730'; // ReportDocument
+        private const char IconUpdateLog       = '\uE81C'; // Timeline / log history
+        private const char IconProjectPage     = '\uE774'; // WebSearch (external link)
         // Tree context menu
         private const char IconSaveBranch      = '\uE78C'; // SaveLocal
         private const char IconGrok            = '\uE774'; // WebSearch
         private const char IconShowInTree      = '\uE8B0'; // ShowResults
         private const char IconSettings        = '\uE713'; // Settings gear
+        private const char IconAskAi           = '\uE8BD'; // Chat / message (Ask AI)
+        private const char IconRootCause       = '\uE9D9'; // AnalyticsReport (root cause analysis)
+        // Line/context menu
+        private const char IconInspectLine     = '\uE946'; // Info (inspect line)
+        private const char IconOpenInEditor    = '\uE8E5'; // OpenFile (open in editor)
+        private const char IconToggleBookmark  = '\uE8D3'; // Bookmark
         // Status bar indicators
         private const char IconStatusOk        = '\uE73E'; // Accept
         private const char IconStatusLoad      = '\uE72C'; // Refresh (loading indicator)
@@ -217,6 +239,13 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateMergeLogsIcon(IconSize sz)    => Render(IconMergeLogs,   sz, AccentBlue);
         public static Bitmap CreateReloadIcon(IconSize sz)       => Render(IconReload,      sz, GlyphColor);
         public static Bitmap CreateExitIcon(IconSize sz)         => Render(IconExit,        sz, AccentRed);
+        public static Bitmap CreateExportAnalyticsIcon(IconSize sz)  => Render(IconExportAnalytics, sz, AccentGreen);
+        public static Bitmap CreateExportApiCsvIcon(IconSize sz)     => Render(IconExportApiCsv,    sz, AccentGreen);
+        public static Bitmap CreateExportCallGraphIcon(IconSize sz)  => Render(IconExportCallGraph, sz, AccentGreen);
+        public static Bitmap CreateExportHeatmapIcon(IconSize sz)    => Render(IconExportHeatmap,   sz, AccentGreen);
+        public static Bitmap CreateSetBaselineIcon(IconSize sz)      => Render(IconSetBaseline,     sz, AccentAmber);
+        public static Bitmap CreateScreenshotIcon(IconSize sz)       => Render(IconScreenshot,      sz, AccentBlue);
+        public static Bitmap CreateExportXlsIcon(IconSize sz)        => Render(IconExportXls,       sz, AccentGreen);
 
         // ??????????????????????????????????????????????????????????????????????
         // EDIT MENU
@@ -237,6 +266,8 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateBookmarkPrevIcon(IconSize sz)  => Render(IconBookmarkPrev,  sz, AccentAmber);
         public static Bitmap CreateBookmarkShowIcon(IconSize sz)  => Render(IconBookmarkShow,  sz, AccentAmber);
         public static Bitmap CreateBookmarkClearIcon(IconSize sz) => Render(IconBookmarkClear, sz, GlyphColor);
+        public static Bitmap CreateCopyAllVisibleIcon(IconSize sz) => Render(IconCopyAllVisible, sz, GlyphColor);
+        public static Bitmap CreateExpandToLevelIcon(IconSize sz)  => Render(IconExpandToLevel,  sz, GlyphColor);
 
         // ??????????????????????????????????????????????????????????????????????
         // VIEW MENU
@@ -246,6 +277,9 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateFontIcon(IconSize sz)      => Render(IconFont,     sz, GlyphColor);
         public static Bitmap CreateToolbarIcon(IconSize sz)   => Render(IconToolbar,  sz, GlyphColor);
         public static Bitmap CreateTabIcon(IconSize sz)       => Render(IconTab,      sz, GlyphColor);
+        public static Bitmap CreateHideTabsIcon(IconSize sz)  => Render(IconHideTabs, sz, GlyphColor);
+        public static Bitmap CreateWatchFileIcon(IconSize sz) => Render(IconWatchFile, sz, AccentBlue);
+        public static Bitmap CreateStatusBarIcon(IconSize sz) => Render(IconStatusBar, sz, GlyphColor);
 
         // Per-tab icons — each tab gets a distinct, semantically matching glyph
         public static Bitmap CreateTabLogIcon(IconSize sz)         => Render(IconTabLog,         sz, AccentBlue);
@@ -256,6 +290,7 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateTabFlameGraphIcon(IconSize sz)  => Render(IconTabFlameGraph,  sz, AccentRed);
         public static Bitmap CreateTabTimelineIcon(IconSize sz)    => Render(IconTabTimeline,    sz, AccentAmber);
         public static Bitmap CreateTabAiIcon(IconSize sz)          => Render(IconTabAI,          sz, AccentTeal);
+        public static Bitmap CreateTabHeatmapIcon(IconSize sz)     => Render(IconTabHeatmap,     sz, AccentAmber);
 
         // ??????????????????????????????????????????????????????????????????????
         // NAVIGATION BUTTONS (prev/next error/warning)
@@ -273,6 +308,8 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateAboutIcon(IconSize sz)         => Render(IconAbout,    sz, AccentBlue);
         public static Bitmap CreateCheckUpdatesIcon(IconSize sz)  => Render(IconUpdate,   sz, AccentGreen);
         public static Bitmap CreateReportErrorsIcon(IconSize sz)  => Render(IconReport,   sz, AccentRed);
+        public static Bitmap CreateUpdateLogIcon(IconSize sz)     => Render(IconUpdateLog,   sz, AccentBlue);
+        public static Bitmap CreateProjectPageIcon(IconSize sz)   => Render(IconProjectPage, sz, AccentBlue);
 
         // ??????????????????????????????????????????????????????????????????????
         // TREE CONTEXT MENU
@@ -282,6 +319,12 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateShowInTreeIcon(IconSize sz)  => Render(IconShowInTree, sz, GlyphColor);
         public static Bitmap CreateSettingsIcon(IconSize sz)    => Render(IconSettings,   sz, GlyphColor);
         public static Bitmap CreateRefreshIcon(IconSize sz)     => Render(IconReload,     sz, GlyphColor);
+        public static Bitmap CreateAskAiIcon(IconSize sz)          => Render(IconAskAi,          sz, AccentTeal);
+        public static Bitmap CreateRootCauseIcon(IconSize sz)       => Render(IconRootCause,      sz, AccentAmber);
+        public static Bitmap CreateInspectLineIcon(IconSize sz)     => Render(IconInspectLine,    sz, AccentBlue);
+        public static Bitmap CreateOpenInEditorIcon(IconSize sz)    => Render(IconOpenInEditor,   sz, GlyphColor);
+        public static Bitmap CreateToggleBookmarkIcon(IconSize sz)  => Render(IconToggleBookmark, sz, AccentAmber);
+        public static Bitmap CreateCompareLogsIcon(IconSize sz)     => CreateCompareIcon(sz);
 
         // ?? Legacy aliases so GenerateAllIcons signature is unchanged ?????????
         public static Bitmap CreateExportIcon(IconSize sz)  => CreateExportFileIcon(sz);
