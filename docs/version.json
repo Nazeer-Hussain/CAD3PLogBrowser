@@ -1,8 +1,8 @@
 {
-  "version": "4.0.20",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.20.zip",
-  "releaseNotes": "- Signed-off-by: Nazeer Hussain <55686595+Nazeer-Hussain@users.noreply.github.com>\r\n- Fix: Make AssemblyInfo.cs the source of truth for release version bumping",
+  "version": "5.0.3",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-5.0.3.zip",
+  "releaseNotes": "- Fix: Make AssemblyInfo.cs the source of truth for release version bumping",
   "mandatory": false,
-  "sha256": "2c1335e56e74ee7b73bf229ec91b7d36e2e00325258cd9fe19a7a2008691f993",
-  "downloadSizeBytes": 3043872
+  "sha256": "a419ee29c4931874c511c23cd3a6ada602e57fd987944d229567d03c8611c27c",
+  "downloadSizeBytes": 3043878
 }
