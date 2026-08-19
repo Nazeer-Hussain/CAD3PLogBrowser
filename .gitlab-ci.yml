@@ -26,6 +26,7 @@ pages:
   # runner. `docker` alone is enough to match both.
   tags:
     - docker
+    - shared
 
   # Publish only from the default branch -- feature branches shouldn't
   # overwrite the live internal site.
