@@ -33,22 +33,28 @@ jobs:
         id: ver
         shell: pwsh
         run: |
-          $json  = Get-Content docs/version.json -Raw | ConvertFrom-Json
-          $parts = $json.version -split '\.'   # ["4","0","13"]
-
-          # Auto-increment patch digit. Minor/major bumps are still done by hand
-          # by editing docs/version.json's "version" field directly in a PR --
-          # this run will then patch-bump from whatever base that PR set.
-          $parts[2] = [string]([int]$parts[2] + 1)
-          $newVer = $parts -join '.'
+          # AssemblyInfo.cs is the single source of truth for the app's version.
+          # Minor/major bumps are done by hand by editing its AssemblyVersion /
+          # AssemblyFileVersion attributes directly in a PR -- this run then
+          # patch-bumps from whatever base that PR set, and propagates the
+          # result to every other place the version is stored/read from.
+          $aiPath = "Cad3PLogBrowser\Properties\AssemblyInfo.cs"
+          $ai     = Get-Content $aiPath -Raw
+          $match  = [regex]::Match($ai, 'AssemblyVersion\("(\d+)\.(\d+)\.(\d+)(?:\.\d+)?"\)')
+          if (-not $match.Success) {
+            throw "Could not find AssemblyVersion(...) in $aiPath"
+          }
+          $major = [int]$match.Groups[1].Value
+          $minor = [int]$match.Groups[2].Value
+          $patch = [int]$match.Groups[3].Value + 1
+          $newVer = "$major.$minor.$patch"
           $tag    = "v$newVer"
 
           # AssemblyInfo.cs (store as major.minor.patch.0 for .NET)
           $asmVer = "$newVer.0"
-          $ai     = Get-Content Cad3PLogBrowser\Properties\AssemblyInfo.cs -Raw
           $ai     = $ai -replace 'AssemblyVersion\("[^"]+"\)',     "AssemblyVersion(`"$asmVer`")"
           $ai     = $ai -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$asmVer`")"
-          Set-Content Cad3PLogBrowser\Properties\AssemblyInfo.cs $ai -Encoding UTF8
+          Set-Content $aiPath $ai -Encoding UTF8
 
           echo "VERSION=$newVer" >> $env:GITHUB_OUTPUT
           echo "TAG=$tag"        >> $env:GITHUB_OUTPUT
@@ -86,8 +92,10 @@ jobs:
           }
           if ($noteItems.Count -gt 0) {
             $notes = ($noteItems | ForEach-Object { "- $_" }) -join "`n"
+          } elseif (Test-Path docs/version.json) {
+            $notes = (Get-Content docs/version.json -Raw | ConvertFrom-Json).releaseNotes
           } else {
-            $notes = $json.releaseNotes
+            $notes = ""
           }
           echo "NOTES<<EOF" >> $env:GITHUB_OUTPUT
           echo "$notes" >> $env:GITHUB_OUTPUT
