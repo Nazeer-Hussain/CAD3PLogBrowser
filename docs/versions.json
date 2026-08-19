@@ -1,5 +1,12 @@
 [
   {
+    "version": "5.0.4",
+    "date": "2026-08-19",
+    "notes": "- Fix: Make AssemblyInfo.cs the source of truth for release version bumping",
+    "zip": "downloads/Cad3PLogBrowser-5.0.4.zip",
+    "sizeBytes": 3043879
+  },
+  {
     "version": "5.0.3",
     "date": "2026-08-19",
     "notes": "- Fix: Make AssemblyInfo.cs the source of truth for release version bumping",
