@@ -1,5 +1,11 @@
 [
     {
+        "date": "2026-08-19",
+        "type": "feature",
+        "title": "New: Open a whole UWGM Logging Session in one step",
+        "body": "File &rarr; Open UWGM Logging Session... (Ctrl+Shift+O) now loads an entire session folder at once &mdash; merging the cadapp logs into the main view, and loading the optional uwgm_client and cadloader logs into their own tabs. Selecting any Call Tree / API Tree entry automatically scrolls the UWGM Client tab to the matching time window. See the <a href=\"help/UserGuide.html#uwgm-session\">User Guide</a> for details."
+    },
+    {
         "date": "2026-08-15",
         "type": "upcoming",
         "title": "v5.0.0 coming soon",

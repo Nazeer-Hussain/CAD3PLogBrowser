@@ -360,7 +360,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2><img src="images/cad3plog.gif" alt="CAD 3P Log Browser icon"> CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v4.0.20</p>
+        <p>User Guide &#8212; v4.0.21</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -395,6 +395,7 @@
     <ul>
         <li><a href="#multi-file">Opening Multiple Files</a></li>
         <li><a href="#compare-logs">Compare Logs</a></li>
+        <li><a href="#uwgm-session">UWGM Logging Session</a></li>
     </ul>
 
     <div class="nav-section">Analysis Tabs</div>
@@ -487,7 +488,10 @@
 <div class="section" id="whats-new">
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
 
-    <h3>&#128295; Most Recent (v4.0.8 &#8211; v4.0.13)</h3>
+    <h3>&#128193; Most Recent (v4.0.14 &#8211; v4.0.20)</h3>
+    <p>A new <span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) command opens an entire UWGM session folder in one step &#8212; merging the <code>cadapp</code> subfolder into the main log view, and loading the optional <code>uwgm_client.log.*</code> file and <code>cadloader</code> subfolder into their own dedicated tabs when present. Selecting any Call Tree / API Tree node now scrolls the <strong>UWGM Client</strong> tab to the matching time window automatically, so you can correlate a slow call with what the UWGM client was doing at the same moment &#8212; the window size (&#177; N seconds) is configurable on the new <em>UWGM Logging Session</em> group in <a href="#settings">Settings &#8594; Files &amp; Behavior</a>. See <a href="#uwgm-session">UWGM Logging Session</a> for the full walkthrough. This release also fixes a timestamp-scale bug where ISO-format log lines were compared against a completely different numeric scale than epoch-millisecond lines, which could silently break cross-file time lookups such as this new UWGM Client sync.</p>
+
+    <h3>&#128295; v4.0.8 &#8211; v4.0.13</h3>
     <p>The app icon now appears consistently in every dialog window (Filter, Find, Settings, Update Available, Compare Options, AI Settings) instead of only the main window and About box &#8212; each previously fell back to the generic default WinForms icon. The <a href="#ai-assistant">AI Assistant tab</a> now follows the app&#8217;s Light/Dark theme instead of a fixed dark palette that clashed with the rest of the UI in Light mode, and its underlying AI settings were consolidated onto a single multi-provider path (the old direct Claude-API-key fields are gone from Settings). The tree search box above the Call Tree/API Tree gained a search icon, a clear (&#8220;&#215;&#8221;) button, and a contains-matching suggestions dropdown as you type. A new <a href="#anomalies">Anomalies tab</a> compares the loaded log&#8217;s performance against a saved baseline (<span class="menu">Options <span class="menu-arrow">&#8594;</span> Set as Baseline Log</span>) and flags methods that regressed. The Call Graph now uses a more compact layout on large graphs so the auto-fit zoom no longer shrinks it to an illegible size. Auto-update now runs entirely off GitHub Pages (with an internal GitLab Pages mirror for networks that block it) instead of GitHub Releases &#8212; see <a href="#updates">Auto-Update</a>.</p>
 
     <p>A large pass through the enhancement backlog &#8212; 26 fixes across nearly every part of the app, closing out real gaps found during a full feature-by-feature audit rather than cosmetic polish. Grouped by area:</p>
@@ -1118,6 +1122,32 @@
 </div>
 
 
+<!-- ═══ UWGM LOGGING SESSION ═══ -->
+<div class="section" id="uwgm-session">
+    <h2 class="section-title"><span class="ico">&#128193;</span> UWGM Logging Session</h2>
+    <p>Loads an entire UWGM session in one step instead of opening each log source separately. Use <span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) and select the session&#8217;s root folder.</p>
+
+    <h3>Expected Folder Layout</h3>
+    <table>
+        <thead><tr><th>Item</th><th>Location</th><th>Required?</th><th>Loaded into</th></tr></thead>
+        <tbody>
+            <tr><td><strong>cadapp</strong> logs</td><td><code>&lt;root&gt;\cadapp\*.log*</code></td><td>Required</td><td>Merged into the main Log / Call Tree / API Tree view, same as <a href="#file-operations">Merge Logs</a></td></tr>
+            <tr><td><strong>uwgm_client</strong> log</td><td><code>&lt;root&gt;\uwgm_client.log.*</code></td><td>Optional</td><td>Its own <strong>UWGM Client</strong> tab</td></tr>
+            <tr><td><strong>cadloader</strong> logs</td><td><code>&lt;root&gt;\cadloader\*.log*</code></td><td>Optional</td><td>Its own <strong>CAD Loader</strong> tab</td></tr>
+        </tbody>
+    </table>
+    <div class="info">
+        <strong>&#128161; Tip:</strong> the <code>uwgm_client</code> file and <code>cadloader</code> folder are both optional and independent of each other &#8212; their absence doesn&#8217;t raise an error, it just leaves that tab disabled. Before loading, a summary dialog lists how many files were found for each of the three sources so you can confirm or cancel.
+    </div>
+
+    <h3>UWGM Client &amp; CAD Loader Tabs</h3>
+    <p>Each tab shows its merged log as a virtual-mode list view with line number, a date/level/PID/TID/area prefix column, and a message column &#8212; column widths persist across sessions. If a source wasn&#8217;t found when the session was opened, its tab is disabled rather than shown empty.</p>
+
+    <h3>Time-Synced Navigation</h3>
+    <p>Selecting any entry in the Call Tree or API Tree automatically scrolls and highlights the matching time window in the <strong>UWGM Client</strong> tab &#8212; every line whose timestamp falls within &#177;<em>N</em> seconds of the selected entry is selected and scrolled into view, making it easy to see what the UWGM client was doing at the same moment a slow or failing call happened. The window size is configurable via <a href="#settings">Settings &#8594; Files &amp; Behavior &#8594; UWGM Logging Session &#8212; time window</a> (default &#177;2 seconds).</p>
+</div>
+
+
 <!-- ═══ PERFORMANCE TAB ═══ -->
 <div class="section" id="performance">
     <h2 class="section-title"><span class="ico">&#128202;</span> Performance Tab</h2>
@@ -1442,7 +1472,7 @@
     <h3>Files &amp; Behavior (tab 2)</h3>
     <div class="screenshot">
         <img src="images/settings-files-behavior.png" alt="Files and Behavior settings page">
-        <div class="caption">Files &amp; Behavior &#8212; note Restore last session is off by default, and the new Watch/Auto-reload controls.</div>
+        <div class="caption">Files &amp; Behavior &#8212; note Restore last session is off by default, the Watch/Auto-reload controls, and the new UWGM Logging Session group.</div>
     </div>
     <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
@@ -1453,6 +1483,7 @@
             <tr><td>Restore last session on startup</td><td>&#9744; Off</td><td>When on, reopens the most recent file automatically at launch &#8212; but only if no file was already given on the command line</td></tr>
             <tr><td>Watch for file changes (auto-reload)</td><td>&#10003; On</td><td>Master toggle for the file-change watcher; mirrored by <span class="menu">View <span class="menu-arrow">&#8594;</span> Watch for File Changes</span></td></tr>
             <tr><td>Auto-reload after (seconds)</td><td>0</td><td>0 = non-blocking &#8212; the status bar shows a clickable &#8220;File changed on disk&#8221; message and nothing reloads until you click it. Any value above 0 reloads automatically after a silent countdown shown in the status bar.</td></tr>
+            <tr><td>UWGM Logging Session &#8212; time window (&#177; seconds)</td><td>2 sec</td><td>How many seconds before/after a selected Call Tree / API Tree entry's timestamp to highlight and scroll into view in the <a href="#uwgm-session">UWGM Client tab</a></td></tr>
             <tr><td>Fast call threshold</td><td>100 ms</td><td>Below this, calls are shown green in the Call Tree</td></tr>
             <tr><td>Slow call threshold</td><td>1000 ms</td><td>At/above this, calls are shown red in the Call Tree; between the two thresholds is amber</td></tr>
             <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list view is bypassed</td></tr>
