@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.17",
+    "date": "2026-08-19",
+    "notes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",
+    "zip": "downloads/Cad3PLogBrowser-4.0.17.zip",
+    "sizeBytes": 3038821
+  },
+  {
     "version": "4.0.16",
     "date": "2026-08-19",
     "notes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",

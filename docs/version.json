@@ -1,8 +1,8 @@
 {
-  "version": "4.0.16",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.16.zip",
+  "version": "4.0.17",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.17.zip",
   "releaseNotes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",
   "mandatory": false,
-  "sha256": "5c5cb241a95fbc205f32f98e0c5ae96d3b15cc5d6385bbdee6118e62c95fdcb0",
-  "downloadSizeBytes": 3038822
+  "sha256": "1bb9104eb9744ea937c90fa1ac8fe4bf8eaffe0377747a6d9df1f1087d56c776",
+  "downloadSizeBytes": 3038821
 }
