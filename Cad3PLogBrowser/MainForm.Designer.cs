@@ -33,6 +33,7 @@
             this.mainMenuStrip = new System.Windows.Forms.MenuStrip();
             this.fileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openUwgmSessionMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveSelectedXlsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -127,6 +128,7 @@
             this.logTab = new System.Windows.Forms.TabPage();
             this.logListView = new System.Windows.Forms.ListView();
             this.colLineNumber = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colLogPrefix = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colLogText = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.performanceTab = new System.Windows.Forms.TabPage();
             this.logDetailTab = new System.Windows.Forms.TabPage();
@@ -232,6 +234,7 @@
             // 
             this.fileMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openMenuItem,
+            this.openUwgmSessionMenuItem,
             this.mergeLogsMenuItem,
             this.compareLogsMenuItem,
             this.fileSeparatorAfterOpen,
@@ -267,6 +270,15 @@
             this.openMenuItem.Text = UI.AppStrings.MenuFileOpen;
             this.openMenuItem.TextImageRelation = System.Windows.Forms.TextImageRelation.Overlay;
             this.openMenuItem.Click += new System.EventHandler(this.openMenuItem_Click);
+            // 
+            // openUwgmSessionMenuItem
+            // 
+            this.openUwgmSessionMenuItem.Name = "openUwgmSessionMenuItem";
+            this.openUwgmSessionMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) | System.Windows.Forms.Keys.O)));
+            this.openUwgmSessionMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.openUwgmSessionMenuItem.Text = "Open &UWGM Logging Session...";
+            this.openUwgmSessionMenuItem.ToolTipText = "Opens a UWGM logging session folder (cadapp, plus optional uwgm_client and cadloader logs)";
+            this.openUwgmSessionMenuItem.Click += new System.EventHandler(this.openUwgmSessionMenuItem_Click);
             // 
             // saveAsMenuItem
             // 
@@ -1094,10 +1106,11 @@
             // 
             this.logListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colLineNumber,
+            this.colLogPrefix,
             this.colLogText});
             this.logListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logListView.FullRowSelect = true;
-            this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.logListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Clickable;
             this.logListView.Scrollable = true;
             this.logListView.Name = "logListView";
             this.logListView.ShowItemToolTips = true;
@@ -1113,15 +1126,21 @@
             this.logListView.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
             this.logListView.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
             this.logListView.Resize += new System.EventHandler(this.logListView_Resize);
+            this.logListView.ColumnWidthChanged += new System.Windows.Forms.ColumnWidthChangedEventHandler(this.logListView_ColumnWidthChanged);
             // 
             // colLineNumber
             // 
             this.colLineNumber.Text = "Line #";
             this.colLineNumber.Width = 80;
             // 
+            // colLogPrefix
+            // 
+            this.colLogPrefix.Text = "Date / Level / PID / TID / App / Area";
+            this.colLogPrefix.Width = 340;
+            // 
             // colLogText
             // 
-            this.colLogText.Text = "Log Text";
+            this.colLogText.Text = "Message";
             this.colLogText.Width = 600;
 
             // 
@@ -1874,6 +1893,7 @@
         private System.Windows.Forms.MenuStrip mainMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem fileMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openUwgmSessionMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveSelectedXlsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
@@ -2057,6 +2077,7 @@
         private System.Windows.Forms.ToolStripMenuItem treeContextSearchInGrokMenuItem;
         private System.Windows.Forms.ToolStripMenuItem treeContextShowInOtherTreeMenuItem;
         private System.Windows.Forms.ColumnHeader colLineNumber;
+        private System.Windows.Forms.ColumnHeader colLogPrefix;
         private System.Windows.Forms.ColumnHeader colLogText;
         private System.Windows.Forms.ToolStripProgressBar FileLoadProgress;
     }

@@ -766,6 +766,8 @@ namespace Cad3PLogBrowser
             InitExceptionsTab();
             InitAnomaliesTab();
             InitThreadViewTab();
+            InitUwgmClientTab();
+            InitCadLoaderTab();
             MergeTimelineAndFlameGraphTabs();
             InitPerformanceSubViews();
             BuildMruMenu();
@@ -1306,6 +1308,14 @@ namespace Cad3PLogBrowser
                 string lastDir = _settingsService.LoadLastDirectory();
                 if (!string.IsNullOrEmpty(lastDir) && Directory.Exists(lastDir))
                     openLogFileDialog.InitialDirectory = lastDir;
+            }
+
+            // Log tab: restore persisted column widths (Line #, prefix). The message
+            // column is left to AutoResizeLogListColumns() to fill remaining space.
+            if (logListView != null && logListView.Columns.Count >= 3)
+            {
+                logListView.Columns[0].Width = _appSettings.LogColLineWidth;
+                logListView.Columns[1].Width = _appSettings.LogColPrefixWidth;
             }
         }
 
@@ -3424,6 +3434,14 @@ namespace Cad3PLogBrowser
             if (!_lineIndexMap.TryGetValue(lineNumber, out int idx)) return;
             if (idx < 0 || idx >= logListView.VirtualListSize) return;
 
+            // UWGM Logging Session (3a): scroll the UWGM Client tab to show entries
+            // within ±N seconds of this tree node's timestamp, when that tab is available.
+            if (_uwgmClientTabAvailable && idx < _virtualLines.Count)
+            {
+                long ts = Services.Core.MergeLogService.ExtractTimestamp(_virtualLines[idx].Text);
+                if (ts > 0) ScrollUwgmClientToTime(ts);
+            }
+
             Color bookmarkColour = ThemeManager.CurrentTheme == ThemeManager.Theme.Dark
                 ? Color.FromArgb(0, 70, 130)
                 : Color.FromArgb(200, 230, 255);
@@ -3609,7 +3627,9 @@ namespace Cad3PLogBrowser
             // tab-separated fields run together with no visible whitespace.
             // Replace tabs with a few spaces purely for display; vl.Text itself
             // (and _allLines) remain unchanged for parsing/search/export.
-            item.SubItems.Add(vl.Text.IndexOf('\t') >= 0 ? vl.Text.Replace("\t", "    ") : vl.Text);
+            SplitLogLine(vl.Text, out string prefix, out string message);
+            item.SubItems.Add(prefix.IndexOf('\t') >= 0 ? prefix.Replace("\t", "    ") : prefix);
+            item.SubItems.Add(message.IndexOf('\t') >= 0 ? message.Replace("\t", "    ") : message);
 
             // P-08: use the pre-computed BackColour (bookmark / highlight / level colour).
             // The previous code re-ran text.Contains("ERROR") etc. on every paint call which
@@ -3619,6 +3639,59 @@ namespace Cad3PLogBrowser
             item.BackColor = vl.BackColour;
             item.ForeColor = ThemeManager.ForegroundColor;
             e.Item = item;
+        }
+
+        /// <summary>
+        /// Splits a main-log line — formatted as
+        /// "{date}: {level}: {pid}: {tid}: {app}: {area}: {payload}" (6 colon-separated
+        /// prefix fields, then payload) — into its "prefix" (date/level/pid/tid/app/area)
+        /// and "message" (payload) halves. Handles the "[filename] " tag MergeLogService adds.
+        /// Falls back to (line, "") when the line doesn't match the expected 6-colon-field shape.
+        /// </summary>
+        private static void SplitLogLine(string line, out string prefix, out string message)
+        {
+            prefix  = line ?? string.Empty;
+            message = string.Empty;
+            if (string.IsNullOrEmpty(line)) return;
+
+            string tag = string.Empty;
+            string rest = line;
+
+            // Preserve a leading "[filename] " tag (added by MergeLogService) as part
+            // of the displayed prefix column rather than losing it.
+            if (rest.Length > 2 && rest[0] == '[')
+            {
+                int closingBracket = rest.IndexOf("] ", StringComparison.Ordinal);
+                if (closingBracket > 1 && rest.Substring(1, closingBracket - 1).IndexOf('.') >= 0)
+                {
+                    tag  = rest.Substring(0, closingBracket + 2);
+                    rest = rest.Substring(closingBracket + 2);
+                }
+            }
+
+            // Walk 6 colon-separated fields: date, level, pid, tid, app, area, then message.
+            // Field layout: "{date}: {level}: {pid}: {tid}: {app}: {area}: {payload...}"
+            const string sep = ": ";
+            int pos = 0;
+            int fieldIndex = 0;
+            while (fieldIndex < 6 && pos < rest.Length)
+            {
+                int next = rest.IndexOf(sep, pos, StringComparison.Ordinal);
+                if (next < 0) break;
+                pos = next + sep.Length;
+                fieldIndex++;
+            }
+
+            if (fieldIndex == 6 && pos > 0 && pos <= rest.Length)
+            {
+                prefix  = tag + rest.Substring(0, pos).TrimEnd();
+                message = rest.Substring(pos);
+            }
+            else
+            {
+                prefix  = tag + rest;
+                message = string.Empty;
+            }
         }
 
         /// <summary>
@@ -3786,6 +3859,14 @@ namespace Cad3PLogBrowser
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
+
+            // UWGM Logging Session (feature 2): a single dropped folder is treated as
+            // a UWGM logging session root rather than an individual log file.
+            if (files.Length == 1 && Directory.Exists(files[0]))
+            {
+                _ = OpenUwgmLoggingSessionAsync(files[0]);
+                return;
+            }
 
             if (files.Length > 1)
             {
@@ -4365,6 +4446,7 @@ namespace Cad3PLogBrowser
 
             // ── File menu ─────────────────────────────────────────────────────
             openMenuItem.Image                 = IconGenerator.CreateOpenIcon(msz);
+            openUwgmSessionMenuItem.Image       = IconGenerator.CreateOpenUwgmSessionIcon(msz);
             saveAsMenuItem.Image               = IconGenerator.CreateSaveIcon(msz);
             saveSelectedXlsMenuItem.Image       = IconGenerator.CreateExportXlsIcon(msz);
             exportFilteredLogsMenuItem.Image   = IconGenerator.CreateExportFileIcon(msz);
@@ -4492,10 +4574,22 @@ namespace Cad3PLogBrowser
             il.Images.Add("flame",      IconGenerator.CreateTabFlameGraphIcon(sz));
             // Index 6 – Timeline
             il.Images.Add("timeline",   IconGenerator.CreateTabTimelineIcon(sz));
+            // Index 6b – Heatmap
+            il.Images.Add("heatmap",    IconGenerator.CreateTabHeatmapIcon(sz));
             // Index 7 – AI Assistant
             il.Images.Add("ai",         IconGenerator.CreateTabAiIcon(sz));
             // Index 8 – generic fallback
             il.Images.Add("generic",    IconGenerator.CreateTabIcon(sz));
+            // Index 9 – Exceptions
+            il.Images.Add("exceptions", IconGenerator.CreateTabExceptionsIcon(sz));
+            // Index 10 – Anomalies
+            il.Images.Add("anomalies",  IconGenerator.CreateTabAnomaliesIcon(sz));
+            // Index 11 – Thread View
+            il.Images.Add("threadview", IconGenerator.CreateTabThreadViewIcon(sz));
+            // Index 12 – UWGM Client
+            il.Images.Add("uwgmclient", IconGenerator.CreateTabUwgmClientIcon(sz));
+            // Index 13 – CAD Loader
+            il.Images.Add("cadloader", IconGenerator.CreateTabCadLoaderIcon(sz));
 
             // Dispose the old ImageList before replacing it
             var oldIl = mainTabControl.ImageList;
@@ -4507,10 +4601,17 @@ namespace Cad3PLogBrowser
             performanceTab.ImageKey = "perf";
             logDetailTab.ImageKey   = "details";
             callGraphTab.ImageKey   = "callgraph";
+            flameGraphTab.ImageKey  = "flame";
             timelineTab.ImageKey    = "timeline";
+            heatmapTab.ImageKey     = "heatmap";
 
             // Dynamic tabs added at runtime
             if (_aiTab != null) _aiTab.ImageKey = "ai";
+            if (_exceptionsTab != null) _exceptionsTab.ImageKey = "exceptions";
+            if (_anomaliesTab != null) _anomaliesTab.ImageKey = "anomalies";
+            if (_threadViewTab != null) _threadViewTab.ImageKey = "threadview";
+            if (_uwgmClientTab != null) _uwgmClientTab.ImageKey = "uwgmclient";
+            if (_cadLoaderTab != null) _cadLoaderTab.ImageKey = "cadloader";
         }
 
         private static Color GetLineColour(string line)
@@ -4548,7 +4649,7 @@ namespace Cad3PLogBrowser
         // Issue Fix: Auto-resize ListView columns to fit content
         private void AutoResizeLogListColumns()
         {
-            if (logListView == null || logListView.Columns.Count < 2) return;
+            if (logListView == null || logListView.Columns.Count < 3) return;
 
             // H1: auto-size to the widest line number actually in the file, instead
             // of a fixed 80px that's wasteful for short files and too narrow for
@@ -4559,12 +4660,25 @@ namespace Cad3PLogBrowser
             int measuredWidth = TextRenderer.MeasureText(maxLineNumber.ToString(), logListView.Font).Width;
             logListView.Columns[0].Width = Math.Max(50, measuredWidth + 20);
 
-            int viewWidth = logListView.ClientSize.Width - logListView.Columns[0].Width - SystemInformation.VerticalScrollBarWidth;
+            // colLogPrefix keeps its persisted/manually-resized width; only colLogText
+            // (the message column) grows/shrinks to fill remaining space.
+            int viewWidth = logListView.ClientSize.Width - logListView.Columns[0].Width
+                - logListView.Columns[1].Width - SystemInformation.VerticalScrollBarWidth;
 
             // colLogText must be at least as wide as the widest content line so that
             // the ListView shows a horizontal scrollbar when lines overflow the view.
             // It may also grow to fill the view when content is narrower.
-            logListView.Columns[1].Width = Math.Max(viewWidth, _logTextColumnContentWidth);
+            logListView.Columns[2].Width = Math.Max(viewWidth, _logTextColumnContentWidth);
+        }
+
+        /// <summary>Persists the Log tab's column widths so they survive across sessions.</summary>
+        private void logListView_ColumnWidthChanged(object sender, ColumnWidthChangedEventArgs e)
+        {
+            if (_appSettings == null || logListView == null) return;
+            if (e.ColumnIndex == 0)      _appSettings.LogColLineWidth    = logListView.Columns[0].Width;
+            else if (e.ColumnIndex == 1) _appSettings.LogColPrefixWidth  = logListView.Columns[1].Width;
+            else if (e.ColumnIndex == 2) _appSettings.LogColMessageWidth = logListView.Columns[2].Width;
+            _appSettings.Save();
         }
 
         /// <summary>
@@ -4763,6 +4877,116 @@ namespace Cad3PLogBrowser
 
         private void OpenButton_Click(object sender, EventArgs e) =>
             openMenuItem_Click(sender, e);
+
+        // ── UWGM Logging Session ──────────────────────────────────────────────
+        private void openUwgmSessionMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new FolderBrowserDialog())
+            {
+                dlg.Description = "Select the UWGM logging session folder (contains a 'cadapp' subfolder)";
+
+                string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+                if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
+                    dlg.SelectedPath = ptcLogDir;
+
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                    _ = OpenUwgmLoggingSessionAsync(dlg.SelectedPath);
+            }
+        }
+
+        /// <summary>
+        /// Feature: "Open UWGM Logging Session". Given a folder containing a "cadapp"
+        /// subfolder of *.log* files and (optionally) uwgm_client.log.* files and a
+        /// "cadloader" subfolder of *.log* files at the root, merges the cadapp logs
+        /// into the main log view and, if present, loads the UWGM client log and the
+        /// CAD Loader log into their own tabs.
+        /// </summary>
+        private async Task OpenUwgmLoggingSessionAsync(string rootFolder)
+        {
+            if (string.IsNullOrEmpty(rootFolder) || !Directory.Exists(rootFolder)) return;
+
+            string cadappFolder = Path.Combine(rootFolder, "cadapp");
+            if (!Directory.Exists(cadappFolder))
+            {
+                MessageBox.Show(
+                    string.Format("\"{0}\" does not look like a valid CAD3P log folder — no 'cadapp' subfolder was found.", rootFolder),
+                    "Open UWGM Logging Session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var cadappFiles = Directory.GetFiles(cadappFolder, "*.log*", SearchOption.TopDirectoryOnly);
+            if (cadappFiles.Length == 0)
+            {
+                MessageBox.Show(
+                    string.Format("\"{0}\" does not look like a valid CAD3P log folder — no log files were found in 'cadapp'.", rootFolder),
+                    "Open UWGM Logging Session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Locate uwgm_client.log.* at the session root (optional).
+            var uwgmFiles = Directory.GetFiles(rootFolder, "uwgm_client.log*", SearchOption.TopDirectoryOnly);
+
+            // Locate the optional "cadloader" subfolder of *.log* files. CAD Loader
+            // is optional — its absence is not an error, the tab is simply left unavailable.
+            string cadLoaderFolder = Path.Combine(rootFolder, "cadloader");
+            var cadLoaderFiles = Directory.Exists(cadLoaderFolder)
+                ? Directory.GetFiles(cadLoaderFolder, "*.log*", SearchOption.TopDirectoryOnly)
+                : Array.Empty<string>();
+
+            // Show a summary of what was found before doing any merging/loading, so the
+            // user can confirm or cancel the whole operation up front.
+            if (!ConfirmLoadSessionFiles(cadappFiles, uwgmFiles, cadLoaderFiles))
+            {
+                return;
+            }
+
+            // Step 1: merge the cadapp logs into the main log view via the existing merge functionality.
+            await MergeFilesAsync(cadappFiles);
+
+            // Step 2: load the UWGM client log, if any were found (5b: disable the tab if none found).
+            if (uwgmFiles.Length == 0)
+            {
+                SetUwgmClientTabAvailable(false);
+            }
+            else
+            {
+                var uwgmMerged = await _mergeLogService.MergeAsync(uwgmFiles);
+                PopulateUwgmClientTab(uwgmMerged);
+                SetUwgmClientTabAvailable(true);
+            }
+
+            // Step 3: load the CAD Loader log, if any were found.
+            if (cadLoaderFiles.Length == 0)
+            {
+                SetCadLoaderTabAvailable(false);
+                return;
+            }
+
+            var cadLoaderMerged = await _mergeLogService.MergeAsync(cadLoaderFiles);
+            PopulateCadLoaderTab(cadLoaderMerged);
+            SetCadLoaderTabAvailable(true);
+        }
+
+        /// <summary>
+        /// Shows a summary of how many cadapp/uwgm_client/cadloader log files were found in
+        /// the selected session folder, before any merging or loading begins, letting the
+        /// user confirm or cancel the whole "Open UWGM Logging Session" operation.
+        /// </summary>
+        private bool ConfirmLoadSessionFiles(string[] cadappFiles, string[] uwgmFiles, string[] cadLoaderFiles)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("The following log files were found and will be loaded:");
+            sb.AppendLine();
+            sb.AppendLine(string.Format("  CAD App:      {0} file(s)", cadappFiles.Length));
+            sb.AppendLine(string.Format("  UWGM Client:  {0} file(s){1}", uwgmFiles.Length, uwgmFiles.Length == 0 ? " (not found — tab will be disabled)" : ""));
+            sb.AppendLine(string.Format("  CAD Loader:   {0} file(s){1}", cadLoaderFiles.Length, cadLoaderFiles.Length == 0 ? " (not found — tab will be disabled)" : ""));
+            sb.AppendLine();
+            sb.Append("Continue loading this session?");
+
+            var result = MessageBox.Show(sb.ToString(), "UWGM Logging Session Detected",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            return result == DialogResult.Yes;
+        }
 
         /// <summary>
         /// Resolves the ENTER→EXIT block for the currently selected tree node, shared by
@@ -10410,6 +10634,315 @@ namespace Cad3PLogBrowser
         private Label    _threadAHeader;
         private Label    _threadBHeader;
         private List<Services.LogEntry> _threadViewEntries;
+
+        // ── UWGM Logging Session: UWGM Client tab ─────────────────────────────
+        private TabPage  _uwgmClientTab;
+        private ListView _uwgmClientListView;
+        private ColumnHeader _uwgmClientColLine;
+        private ColumnHeader _uwgmClientColPrefix;
+        private ColumnHeader _uwgmClientColMessage;
+        private List<string> _uwgmClientLines = new List<string>();
+        // Parallel to _uwgmClientLines: extracted epoch-ms timestamp (0 if none found).
+        private List<long>   _uwgmClientLineEpochMs = new List<long>();
+        private bool _uwgmClientTabAvailable = false;
+
+        private void InitUwgmClientTab()
+        {
+            _uwgmClientTab = new TabPage("UWGM Client") { Name = "uwgmClientTab", UseVisualStyleBackColor = true };
+
+            _uwgmClientColLine    = new ColumnHeader { Text = "Line #", Width = _appSettings.UwgmClientColLineWidth };
+            // Format: "date time tz msgtype logid tid area message" (colon-separated
+            // prefix, then payload) — split into "date time tz msgtype logid tid" and
+            // "area message" (see SplitUwgmClientLine).
+            _uwgmClientColPrefix  = new ColumnHeader { Text = "Date / Time / TZ / Type / PID / TID", Width = _appSettings.UwgmClientColPrefixWidth };
+            _uwgmClientColMessage = new ColumnHeader { Text = "Area / Message", Width = _appSettings.UwgmClientColMessageWidth };
+
+            _uwgmClientListView = new ListView
+            {
+                Dock = DockStyle.Fill,
+                View = View.Details,
+                FullRowSelect = true,
+                HeaderStyle = ColumnHeaderStyle.Clickable, // clickable so ColumnWidthChanged fires on manual resize
+                Scrollable = true,
+                ShowItemToolTips = true,
+                VirtualMode = true,
+                Font = new Font("Consolas", 9f)
+            };
+            _uwgmClientListView.Columns.Add(_uwgmClientColLine);
+            _uwgmClientListView.Columns.Add(_uwgmClientColPrefix);
+            _uwgmClientListView.Columns.Add(_uwgmClientColMessage);
+            _uwgmClientListView.RetrieveVirtualItem += UwgmClientListView_RetrieveVirtualItem;
+            // Persist column widths whenever the user resizes them.
+            _uwgmClientListView.ColumnWidthChanged += UwgmClientListView_ColumnWidthChanged;
+
+            _uwgmClientTab.Controls.Add(_uwgmClientListView);
+
+            // Not added to mainTabControl here — UwgmClientTabAvailable() toggles it
+            // on/off once we know whether uwgm_client.log.* files exist (Error 5b).
+        }
+
+        /// <summary>Persists the UWGM Client tab's column widths so they survive across sessions.</summary>
+        private void UwgmClientListView_ColumnWidthChanged(object sender, ColumnWidthChangedEventArgs e)
+        {
+            if (_appSettings == null || _uwgmClientListView == null) return;
+            if (e.ColumnIndex == 0)      _appSettings.UwgmClientColLineWidth    = _uwgmClientColLine.Width;
+            else if (e.ColumnIndex == 1) _appSettings.UwgmClientColPrefixWidth  = _uwgmClientColPrefix.Width;
+            else if (e.ColumnIndex == 2) _appSettings.UwgmClientColMessageWidth = _uwgmClientColMessage.Width;
+            _appSettings.Save();
+        }
+
+        /// <summary>
+        /// Splits a UWGM client log line ("date time tz msgtype logid tid area message" —
+        /// colon-separated prefix, then payload) into its "prefix" (date/time/tz/type/pid/tid)
+        /// and "area message" halves. Handles the "[filename] " tag MergeLogService adds.
+        /// Falls back to (line, "") when the line doesn't match the expected 6-colon-field shape.
+        /// </summary>
+        private static void SplitUwgmClientLine(string line, out string prefix, out string message)
+        {
+            prefix  = line ?? string.Empty;
+            message = string.Empty;
+            if (string.IsNullOrEmpty(line)) return;
+
+            string tag = string.Empty;
+            string rest = line;
+
+            // Preserve a leading "[filename] " tag (added by MergeLogService) as part
+            // of the displayed prefix column rather than losing it.
+            if (rest.Length > 2 && rest[0] == '[')
+            {
+                int closingBracket = rest.IndexOf("] ", StringComparison.Ordinal);
+                if (closingBracket > 1 && rest.Substring(1, closingBracket - 1).IndexOf('.') >= 0)
+                {
+                    tag  = rest.Substring(0, closingBracket + 2);
+                    rest = rest.Substring(closingBracket + 2);
+                }
+            }
+
+            // Walk 6 colon-separated fields: date time tz, msgtype, logid, tid, area, then message.
+            // Field layout: "{DateTime}: {Level}: {PID}: {TID}: {Area}: {payload...}"
+            const string sep = ": ";
+            int pos = 0;
+            int fieldIndex = 0;
+            while (fieldIndex < 5 && pos < rest.Length)
+            {
+                int next = rest.IndexOf(sep, pos, StringComparison.Ordinal);
+                if (next < 0) break;
+                pos = next + sep.Length;
+                fieldIndex++;
+            }
+
+            if (fieldIndex == 5 && pos > 0 && pos <= rest.Length)
+            {
+                prefix  = tag + rest.Substring(0, pos).TrimEnd();
+                message = rest.Substring(pos);
+            }
+            else
+            {
+                prefix  = tag + rest;
+                message = string.Empty;
+            }
+        }
+
+        private void UwgmClientListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
+        {
+            if (e.ItemIndex < 0 || e.ItemIndex >= _uwgmClientLines.Count)
+            {
+                e.Item = new ListViewItem();
+                return;
+            }
+            string text = _uwgmClientLines[e.ItemIndex];
+            SplitUwgmClientLine(text, out string prefix, out string message);
+
+            var item = new ListViewItem((e.ItemIndex + 1).ToString());
+            item.SubItems.Add(prefix.IndexOf('\t') >= 0 ? prefix.Replace("\t", "    ") : prefix);
+            item.SubItems.Add(message.IndexOf('\t') >= 0 ? message.Replace("\t", "    ") : message);
+            item.ForeColor = ThemeManager.ForegroundColor;
+            e.Item = item;
+        }
+
+        /// <summary>
+        /// Enables or disables the UWGM Client tab (Error 5b: disabled when no
+        /// uwgm_client.log.* files were found in the selected UWGM logging session folder).
+        /// </summary>
+        private void SetUwgmClientTabAvailable(bool available)
+        {
+            _uwgmClientTabAvailable = available;
+            if (_uwgmClientTab == null || mainTabControl == null) return;
+
+            if (available)
+            {
+                if (!mainTabControl.TabPages.Contains(_uwgmClientTab))
+                    mainTabControl.TabPages.Add(_uwgmClientTab);
+            }
+            else if (mainTabControl.TabPages.Contains(_uwgmClientTab))
+            {
+                mainTabControl.TabPages.Remove(_uwgmClientTab);
+            }
+        }
+
+        /// <summary>
+        /// Loads and time-indexes the merged uwgm_client.log.* lines into the UWGM Client tab.
+        /// </summary>
+        private void PopulateUwgmClientTab(List<string> lines)
+        {
+            _uwgmClientLines = lines ?? new List<string>();
+            _uwgmClientLineEpochMs = new List<long>(_uwgmClientLines.Count);
+            foreach (var line in _uwgmClientLines)
+                _uwgmClientLineEpochMs.Add(Services.Core.MergeLogService.ExtractTimestamp(line));
+
+            if (_uwgmClientListView != null)
+            {
+                _uwgmClientListView.VirtualListSize = _uwgmClientLines.Count;
+                _uwgmClientListView.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Feature: when the user clicks a tree node, scroll the UWGM Client tab to show
+        /// entries within [entryTime - N, entryTime + N] seconds (N configurable in Settings).
+        /// </summary>
+        private void ScrollUwgmClientToTime(long centerEpochMs)
+        {
+            if (!_uwgmClientTabAvailable || _uwgmClientListView == null
+                || _uwgmClientLineEpochMs.Count == 0 || centerEpochMs <= 0)
+                return;
+
+            long windowMs = Math.Max(1, _appSettings?.UwgmLogWindowSeconds ?? 2) * 1000L;
+            long lowBound  = centerEpochMs - windowMs;
+            long highBound = centerEpochMs + windowMs;
+
+            int firstIdx = -1, lastIdx = -1;
+            for (int i = 0; i < _uwgmClientLineEpochMs.Count; i++)
+            {
+                long ts = _uwgmClientLineEpochMs[i];
+                if (ts <= 0) continue;
+                if (ts >= lowBound && ts <= highBound)
+                {
+                    if (firstIdx < 0) firstIdx = i;
+                    lastIdx = i;
+                }
+            }
+
+            if (firstIdx < 0) return; // no matching entries in that time window
+
+            _uwgmClientListView.SelectedIndices.Clear();
+            for (int i = firstIdx; i <= lastIdx; i++)
+                _uwgmClientListView.SelectedIndices.Add(i);
+
+            _uwgmClientListView.EnsureVisible(lastIdx);
+            _uwgmClientListView.EnsureVisible(firstIdx);
+            _uwgmClientListView.Invalidate();
+        }
+
+        // ── CAD Loader Session: CAD Loader tab ────────────────────────────────
+        // Same pattern as the UWGM Client tab above: an optional "cadloader"
+        // subfolder of a UWGM logging session root. If present, its *.log*
+        // files are merged and shown in their own tab; if absent, no error is
+        // raised — the tab is simply left unavailable.
+        private TabPage  _cadLoaderTab;
+        private ListView _cadLoaderListView;
+        private ColumnHeader _cadLoaderColLine;
+        private ColumnHeader _cadLoaderColPrefix;
+        private ColumnHeader _cadLoaderColMessage;
+        private List<string> _cadLoaderLines = new List<string>();
+        private List<long>   _cadLoaderLineEpochMs = new List<long>();
+        private bool _cadLoaderTabAvailable = false;
+
+        private void InitCadLoaderTab()
+        {
+            _cadLoaderTab = new TabPage("CAD Loader") { Name = "cadLoaderTab", UseVisualStyleBackColor = true };
+
+            _cadLoaderColLine    = new ColumnHeader { Text = "Line #", Width = _appSettings.CadLoaderColLineWidth };
+            _cadLoaderColPrefix  = new ColumnHeader { Text = "Date / Level / PID / TID / App / Area", Width = _appSettings.CadLoaderColPrefixWidth };
+            _cadLoaderColMessage = new ColumnHeader { Text = "Message", Width = _appSettings.CadLoaderColMessageWidth };
+
+            _cadLoaderListView = new ListView
+            {
+                Dock = DockStyle.Fill,
+                View = View.Details,
+                FullRowSelect = true,
+                HeaderStyle = ColumnHeaderStyle.Clickable,
+                Scrollable = true,
+                ShowItemToolTips = true,
+                VirtualMode = true,
+                Font = new Font("Consolas", 9f)
+            };
+            _cadLoaderListView.Columns.Add(_cadLoaderColLine);
+            _cadLoaderListView.Columns.Add(_cadLoaderColPrefix);
+            _cadLoaderListView.Columns.Add(_cadLoaderColMessage);
+            _cadLoaderListView.RetrieveVirtualItem += CadLoaderListView_RetrieveVirtualItem;
+            _cadLoaderListView.ColumnWidthChanged += CadLoaderListView_ColumnWidthChanged;
+
+            _cadLoaderTab.Controls.Add(_cadLoaderListView);
+
+            // Not added to mainTabControl here — SetCadLoaderTabAvailable() toggles it
+            // on/off once we know whether cadloader log files exist.
+        }
+
+        /// <summary>Persists the CAD Loader tab's column widths so they survive across sessions.</summary>
+        private void CadLoaderListView_ColumnWidthChanged(object sender, ColumnWidthChangedEventArgs e)
+        {
+            if (_appSettings == null || _cadLoaderListView == null) return;
+            if (e.ColumnIndex == 0)      _appSettings.CadLoaderColLineWidth    = _cadLoaderColLine.Width;
+            else if (e.ColumnIndex == 1) _appSettings.CadLoaderColPrefixWidth  = _cadLoaderColPrefix.Width;
+            else if (e.ColumnIndex == 2) _appSettings.CadLoaderColMessageWidth = _cadLoaderColMessage.Width;
+            _appSettings.Save();
+        }
+
+        private void CadLoaderListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
+        {
+            if (e.ItemIndex < 0 || e.ItemIndex >= _cadLoaderLines.Count)
+            {
+                e.Item = new ListViewItem();
+                return;
+            }
+            string text = _cadLoaderLines[e.ItemIndex];
+            // CAD Loader logs use the same format as cadapp — reuse SplitLogLine.
+            SplitLogLine(text, out string prefix, out string message);
+
+            var item = new ListViewItem((e.ItemIndex + 1).ToString());
+            item.SubItems.Add(prefix.IndexOf('\t') >= 0 ? prefix.Replace("\t", "    ") : prefix);
+            item.SubItems.Add(message.IndexOf('\t') >= 0 ? message.Replace("\t", "    ") : message);
+            item.ForeColor = ThemeManager.ForegroundColor;
+            e.Item = item;
+        }
+
+        /// <summary>
+        /// Enables or disables the CAD Loader tab (optional — disabled when no
+        /// cadloader log files were found in the selected UWGM logging session folder).
+        /// </summary>
+        private void SetCadLoaderTabAvailable(bool available)
+        {
+            _cadLoaderTabAvailable = available;
+            if (_cadLoaderTab == null || mainTabControl == null) return;
+
+            if (available)
+            {
+                if (!mainTabControl.TabPages.Contains(_cadLoaderTab))
+                    mainTabControl.TabPages.Add(_cadLoaderTab);
+            }
+            else if (mainTabControl.TabPages.Contains(_cadLoaderTab))
+            {
+                mainTabControl.TabPages.Remove(_cadLoaderTab);
+            }
+        }
+
+        /// <summary>
+        /// Loads and time-indexes the merged cadloader log lines into the CAD Loader tab.
+        /// </summary>
+        private void PopulateCadLoaderTab(List<string> lines)
+        {
+            _cadLoaderLines = lines ?? new List<string>();
+            _cadLoaderLineEpochMs = new List<long>(_cadLoaderLines.Count);
+            foreach (var line in _cadLoaderLines)
+                _cadLoaderLineEpochMs.Add(Services.Core.MergeLogService.ExtractTimestamp(line));
+
+            if (_cadLoaderListView != null)
+            {
+                _cadLoaderListView.VirtualListSize = _cadLoaderLines.Count;
+                _cadLoaderListView.Invalidate();
+            }
+        }
 
         private void InitThreadViewTab()
         {

@@ -37,3 +37,6 @@ packages/
 TestResults/
 *.dbmdl
 *.jfm
+
+## Local AI tooling
+.claude/

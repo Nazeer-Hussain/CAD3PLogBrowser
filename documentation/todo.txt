@@ -2001,3 +2001,68 @@ Version 1
   Help->Help
   Help->About
   
+  
+  
+  
+ --------------------Updated TODO as on 07th August 2026
+
+New feature Request 18 Aug 2026  
+ 
+ I need a new feature called "Open UWGM Logging Session"
+The user will launch this session by
+1.menu item "Open UWGM Logging Session", select a folder and proceed. default path will be the %PTC_LOG_DIR% 
+2.Drag Drop a FOLDER
+
+After the folder is selected
+the folder contents would be like this 
+Root 
+ |-\cadapp\*.log*
+ |-uwgm_client.log.*
+ 
+Heres how we shoudl proceed
+1. all the logfiles in the cadapp folder shoudlbe merged and loaded in the application (Use the existing merge functionality)
+2. If there exists a uwgm_client.log file a new tab next to log details should be created 
+	this new Tab would be very similar to the log Details Tab  and should be named UWGM Client
+2.a. in this new tab, the log file uwgm_client.log.* would be loaded 
+
+3. Whenever the user clicks on the tree node on the left side, the time from that entry should be taken 
+ 3a the UWGM Client tab should scroll to show the uwgm_client.log from  entry time -2 secs to entry time + 2 secs
+ 
+4. the interval time entry time -n secs to entry time +n secs, should be configured in the settings
+
+5. Error handling would include 
+  5a. if folder selected does not have cadapp logs, then error message that not a valid cad3p log folder 
+  5b. if no uwgm_client.log.*files,  UWGM Client tab to be disabled 
+     
+  
+  
+One feature is the "Open Session" is that 
+after the directory has been selected 
+and before opening the log and merging, can we show a dailog box that shows 
+"how many cadapp logs are found and how many uwgm_client.log.* were found and would be loaded"
+
+just like we did for uwgm client tab 
+we want to do the same thing for the cadLoader tab 
+the contents of the cadLoader tab  should come from the subfolder "cadloader"
+the format of the cad loader is also similar to cadapp
+same logic applies here too
+if cadloader is avaialble then add the cad loader tab 
+show details of the cad loader before loading the log
+cad loader is optional so dont generate erro if no cad loader is found 
+
+Also update the following
+- shortcut for the new menu item 
+- icon for the new menu item
+- helpfile 
+- pages documentation
+- shortcuts page/dialog
+- icon for the new Tab
+
+Also check if all tabs have an icon,if not add one to each tab 
+
+after adding the feature, update the help file and the docucmentation and the pages 
+
+
+To the Pages Documentation add an announcements page, that informs users of newup coming version , upcoming changes orany other event that may be addedby the developer/maintainer of the repo Also I need toadd smallvideos of 30 secs to90 secs showing various features of the softweare, can you makeprovisionfor that too
+
+

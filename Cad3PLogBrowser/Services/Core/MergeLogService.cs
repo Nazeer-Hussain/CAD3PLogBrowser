@@ -125,14 +125,42 @@ namespace Cad3PLogBrowser.Services.Core
                     return epochMs;
             }
 
+            // BUG FIX: merged/tagged lines carry a "[filename] " prefix (see Merge()
+            // below), so the ISO timestamp does not start at index 0 for them. Skip
+            // past a leading "[...] " tag — mirrors LogParserService.ParseLine's own
+            // [filename]-stripping logic — before checking for a digit start. Without
+            // this, every merged line without an ENTER/EXIT tab-epoch (e.g. UWGM client
+            // logs) always resolved to timestamp 0, breaking any time-based lookups.
+            string effective = line;
+            if (effective.Length > 2 && effective[0] == '[')
+            {
+                int closingBracket = effective.IndexOf("] ", StringComparison.Ordinal);
+                if (closingBracket > 1 && effective.Substring(1, closingBracket - 1).IndexOf('.') >= 0)
+                    effective = effective.Substring(closingBracket + 2);
+            }
+
             // Only run the regex if the line looks like it starts with an ISO timestamp
-            if (line.Length < 20 || !char.IsDigit(line[0]))
+            if (effective.Length < 20 || !char.IsDigit(effective[0]))
                 return 0;
 
             // Fall back to ISO timestamp at line start
-            var m = IsoTimestamp.Match(line);
-            if (m.Success && DateTime.TryParse(m.Groups[1].Value, out DateTime dt))
-                return dt.ToUniversalTime().Ticks / 10_000; // ticks → ms
+            var m = IsoTimestamp.Match(effective);
+            if (m.Success && DateTime.TryParse(m.Groups[1].Value,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+                    out DateTime dt))
+            {
+                // BUG FIX: this must be a genuine Unix-epoch millisecond value so it is
+                // directly comparable to the epoch-ms returned by the ENTER/EXIT fast
+                // path above (e.g. cadapp lines). The previous code returned
+                // dt.Ticks / 10_000 — .NET ticks (since 0001-01-01) divided down, which
+                // is a completely different numeric scale from Unix epoch ms and can
+                // never be compared against it. That silently broke any cross-file
+                // time-based lookup (e.g. the UWGM Client tab's ±N-second scroll)
+                // whenever one side used the tab-epoch fast path and the other used
+                // this ISO fallback.
+                return new DateTimeOffset(dt, TimeSpan.Zero).ToUnixTimeMilliseconds();
+            }
 
             return 0;
         }
