@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.18",
+    "date": "2026-08-19",
+    "notes": "- Signed-off-by: Nazeer Hussain <55686595+Nazeer-Hussain@users.noreply.github.com>\r\n- Add UWGM session support, docs Announcements/Videos pages, and misc improvements",
+    "zip": "downloads/Cad3PLogBrowser-4.0.18.zip",
+    "sizeBytes": 3043869
+  },
+  {
     "version": "4.0.17",
     "date": "2026-08-19",
     "notes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",

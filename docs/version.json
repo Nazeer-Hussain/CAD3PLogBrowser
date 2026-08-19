@@ -1,8 +1,8 @@
 {
-  "version": "4.0.17",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.17.zip",
-  "releaseNotes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",
+  "version": "4.0.18",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.18.zip",
+  "releaseNotes": "- Signed-off-by: Nazeer Hussain <55686595+Nazeer-Hussain@users.noreply.github.com>\r\n- Add UWGM session support, docs Announcements/Videos pages, and misc improvements",
   "mandatory": false,
-  "sha256": "1bb9104eb9744ea937c90fa1ac8fe4bf8eaffe0377747a6d9df1f1087d56c776",
-  "downloadSizeBytes": 3038821
+  "sha256": "071c4adc1d969653072144fc1cf6209ad59c32e13baec8a70dbae72c4140b27f",
+  "downloadSizeBytes": 3043869
 }

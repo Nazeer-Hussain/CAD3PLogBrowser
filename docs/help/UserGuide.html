@@ -360,7 +360,7 @@
 <nav id="sidebar">
     <div class="nav-logo">
         <h2><img src="images/cad3plog.gif" alt="CAD 3P Log Browser icon"> CAD 3P Log Browser</h2>
-        <p>User Guide &#8212; v4.0.17</p>
+        <p>User Guide &#8212; v4.0.18</p>
         <input id="doc-search" type="text" placeholder="&#128269; Search this guide..." oninput="searchGuide(this.value)">
     </div>
 
@@ -438,7 +438,7 @@
 <div class="page-header">
     <h1><img src="images/cad3plog.gif" alt="CAD 3P Log Browser icon"> CAD 3P Log Browser</h1>
     <p>Complete User Guide &amp; Reference Manual</p>
-    <span class="badge">v4.0.17</span>
+    <span class="badge">v4.0.18</span>
     <span class="badge">.NET Framework 4.8</span>
     <span class="badge">Windows</span>
 </div>
@@ -569,6 +569,10 @@
         <div class="feature-row">
             <span class="label">&#128260; Merge or Compare</span>
             <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Merge Logs...</span> (<kbd>Ctrl+M</kbd>) merges 2+ files into one time-sorted view; <span class="menu">File <span class="menu-arrow">&#8594;</span> Compare Logs...</span> (<kbd>Ctrl+D</kbd>) opens the side-by-side diff tool.</span>
+        </div>
+        <div class="feature-row">
+            <span class="label">&#128193; UWGM Logging Session</span>
+            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) selects a session root folder containing a <code>cadapp</code> subfolder (merged into the main log view), and optionally a <code>uwgm_client.log.*</code> file and a <code>cadloader</code> subfolder — each loaded into its own tab (<strong>UWGM Client</strong> / <strong>CAD Loader</strong>) when present. Both are optional; their absence doesn't raise an error.</span>
         </div>
     </div>
 
@@ -1553,6 +1557,7 @@
         <thead><tr><th>Item</th><th>Shortcut</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>Open&#8230;</td><td><kbd>Ctrl+O</kbd></td><td>Open a log file</td></tr>
+            <tr><td>Open UWGM Logging Session&#8230;</td><td><kbd>Ctrl+Shift+O</kbd></td><td>Opens a session folder: merges the <code>cadapp</code> subfolder into the main log view, and loads the optional <code>uwgm_client.log.*</code> file and <code>cadloader</code> subfolder into their own tabs when present</td></tr>
             <tr><td>Save As&#8230;</td><td><kbd>Ctrl+S</kbd></td><td>Save the ENTER&#8594;EXIT block of the selected tree node to a .log file</td></tr>
             <tr><td>Export Filtered Logs&#8230;</td><td><kbd>Ctrl+Shift+E</kbd></td><td>Export what&#8217;s currently visible in the Log tab</td></tr>
             <tr><td>Export Performance Data&#8230;</td><td></td><td>CSV export of the Performance tab</td></tr>
@@ -1659,6 +1664,7 @@
             <h4>&#128193; File</h4>
             <table>
                 <tr><td><kbd>Ctrl+O</kbd></td><td>Open file</td></tr>
+                <tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Open UWGM Logging Session</td></tr>
                 <tr><td><kbd>Ctrl+M</kbd></td><td>Merge logs</td></tr>
                 <tr><td><kbd>Ctrl+D</kbd></td><td>Compare logs</td></tr>
                 <tr><td><kbd>Ctrl+S</kbd></td><td>Save selected branch</td></tr>
@@ -1894,7 +1900,7 @@
 
 
 <footer>
-    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v4.0.17 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
+    <strong>CAD 3P Log Browser</strong> &nbsp;&#8212;&nbsp; User Guide v4.0.18 &nbsp;&#8212;&nbsp; .NET Framework 4.8 &nbsp;&#8212;&nbsp; Windows<br>
     <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser</a>
 </footer>
 
@@ -1950,6 +1956,7 @@ function searchGuide(term) {
 </script>
 </body>
 </html>
+
 
 
 
