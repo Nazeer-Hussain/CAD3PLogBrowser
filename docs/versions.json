@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.19",
+    "date": "2026-08-19",
+    "notes": "- Bump Version to Major Release 5.0.1",
+    "zip": "downloads/Cad3PLogBrowser-4.0.19.zip",
+    "sizeBytes": 3043875
+  },
+  {
     "version": "4.0.18",
     "date": "2026-08-19",
     "notes": "- Signed-off-by: Nazeer Hussain <55686595+Nazeer-Hussain@users.noreply.github.com>\r\n- Add UWGM session support, docs Announcements/Videos pages, and misc improvements",
