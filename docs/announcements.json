@@ -1,14 +1,8 @@
 [
     {
-        "date": "2025-01-01",
+        "date": "2026-08-15",
         "type": "upcoming",
         "title": "v5.0.0 coming soon",
         "body": "A major new version, v5.0.0, is in the works! This release is expected to bring significant new features and improvements across the board. Stay tuned to this page and the <a href=\"changelog.html\">Version History</a> for the official release announcement and download."
-    },
-    {
-        "date": "2025-01-01",
-        "type": "upcoming",
-        "title": "Example: Upcoming v4.1 release",
-        "body": "This is a placeholder announcement. Replace or remove it, and add new entries at the top of this array. Each entry supports a 'type' of 'upcoming', 'release', or 'notice' which controls the badge color/label shown on the page."
     }
 ]

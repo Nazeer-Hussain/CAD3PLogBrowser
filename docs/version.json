@@ -1,8 +1,8 @@
 {
-  "version": "4.0.14",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.14.zip",
-  "releaseNotes": "Bring the Help Guide, docs site, and shortcuts dialog up to date with recent menu/dialog changes",
+  "version": "4.0.17",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-4.0.17.zip",
+  "releaseNotes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",
   "mandatory": false,
-  "sha256": "a6f49200595ebf5f5c7ded80f87be8a7553d28cbaccafd629886ec1177036ad4",
-  "downloadSizeBytes": 3038820
+  "sha256": "1bb9104eb9744ea937c90fa1ac8fe4bf8eaffe0377747a6d9df1f1087d56c776",
+  "downloadSizeBytes": 3038821
 }
