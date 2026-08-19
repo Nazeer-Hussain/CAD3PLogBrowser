@@ -40,9 +40,12 @@ jobs:
           # result to every other place the version is stored/read from.
           $aiPath = "Cad3PLogBrowser\Properties\AssemblyInfo.cs"
           $ai     = Get-Content $aiPath -Raw
-          $match  = [regex]::Match($ai, 'AssemblyVersion\("(\d+)\.(\d+)\.(\d+)(?:\.\d+)?"\)')
+          # Anchor to the start of a line (ignoring leading whitespace) so a
+          # commented-out example like "// [assembly: AssemblyVersion(...)]"
+          # is never matched -- only the real, active attribute line is.
+          $match  = [regex]::Match($ai, '(?m)^\s*\[assembly:\s*AssemblyVersion\("(\d+)\.(\d+)\.(\d+)(?:\.\d+)?"\)\]')
           if (-not $match.Success) {
-            throw "Could not find AssemblyVersion(...) in $aiPath"
+            throw "Could not find an active AssemblyVersion(...) attribute in $aiPath"
           }
           $major = [int]$match.Groups[1].Value
           $minor = [int]$match.Groups[2].Value
@@ -52,8 +55,8 @@ jobs:
 
           # AssemblyInfo.cs (store as major.minor.patch.0 for .NET)
           $asmVer = "$newVer.0"
-          $ai     = $ai -replace 'AssemblyVersion\("[^"]+"\)',     "AssemblyVersion(`"$asmVer`")"
-          $ai     = $ai -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$asmVer`")"
+          $ai     = $ai -replace '(?m)^(\s*\[assembly:\s*AssemblyVersion\(")[^"]+("\)\])',     "`${1}$asmVer`$2"
+          $ai     = $ai -replace '(?m)^(\s*\[assembly:\s*AssemblyFileVersion\(")[^"]+("\)\])', "`${1}$asmVer`$2"
           Set-Content $aiPath $ai -Encoding UTF8
 
           echo "VERSION=$newVer" >> $env:GITHUB_OUTPUT
