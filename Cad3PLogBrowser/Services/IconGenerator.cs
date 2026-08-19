@@ -34,6 +34,8 @@ namespace Cad3PLogBrowser.Services
         private const char IconMergeLogs       = '\uE8F0'; // MergeCall
         private const char IconReload          = '\uE72C'; // Refresh
         private const char IconExit            = '\uE7E8'; // ChromeClose
+        private const char IconOpenUwgmSession  = '\uE838'; // OpenLocal (folder-based session open)
+        private const char IconOpenCadLoaderSession = '\uE8DE'; // FolderOpen (CAD Loader session open)
         private const char IconCompareLogs     = '\uE8AA'; // OpenPane (side-by-side compare)
         private const char IconExportAnalytics = '\uE9D9'; // AnalyticsReport
         private const char IconExportApiCsv    = '\uE8F1'; // Page (CSV export, list-like)
@@ -80,6 +82,11 @@ namespace Cad3PLogBrowser.Services
         private const char IconTabTimeline     = '\uE81C'; // Timeline / clock      ? Timeline
         private const char IconTabAI           = '\uE8BD'; // Chat / message        ? AI Assistant
         private const char IconTabHeatmap      = '\uE9D2'; // Heatmap / grid        ? Heatmap tab
+        private const char IconTabExceptions   = '\uE783'; // Error/Warning badge   ? Exceptions
+        private const char IconTabAnomalies    = '\uE9D9'; // AnalyticsReport       ? Anomalies
+        private const char IconTabThreadView   = '\uE8C1'; // People/Threads        ? Thread View
+        private const char IconTabUwgmClient   = '\uE753'; // MapPin/Device         ? UWGM Client
+        private const char IconTabCadLoader    = '\uE7B8'; // Processing/Gear      ? CAD Loader
         // Navigation buttons
         private const char IconPrevError       = '\uE892'; // ChevronLeft
         private const char IconNextError       = '\uE893'; // ChevronRight
@@ -239,6 +246,8 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateMergeLogsIcon(IconSize sz)    => Render(IconMergeLogs,   sz, AccentBlue);
         public static Bitmap CreateReloadIcon(IconSize sz)       => Render(IconReload,      sz, GlyphColor);
         public static Bitmap CreateExitIcon(IconSize sz)         => Render(IconExit,        sz, AccentRed);
+        public static Bitmap CreateOpenUwgmSessionIcon(IconSize sz) => Render(IconOpenUwgmSession, sz, AccentBlue);
+        public static Bitmap CreateOpenCadLoaderSessionIcon(IconSize sz) => Render(IconOpenCadLoaderSession, sz, AccentBlue);
         public static Bitmap CreateExportAnalyticsIcon(IconSize sz)  => Render(IconExportAnalytics, sz, AccentGreen);
         public static Bitmap CreateExportApiCsvIcon(IconSize sz)     => Render(IconExportApiCsv,    sz, AccentGreen);
         public static Bitmap CreateExportCallGraphIcon(IconSize sz)  => Render(IconExportCallGraph, sz, AccentGreen);
@@ -291,6 +300,11 @@ namespace Cad3PLogBrowser.Services
         public static Bitmap CreateTabTimelineIcon(IconSize sz)    => Render(IconTabTimeline,    sz, AccentAmber);
         public static Bitmap CreateTabAiIcon(IconSize sz)          => Render(IconTabAI,          sz, AccentTeal);
         public static Bitmap CreateTabHeatmapIcon(IconSize sz)     => Render(IconTabHeatmap,     sz, AccentAmber);
+        public static Bitmap CreateTabExceptionsIcon(IconSize sz)  => Render(IconTabExceptions,  sz, AccentRed);
+        public static Bitmap CreateTabAnomaliesIcon(IconSize sz)   => Render(IconTabAnomalies,   sz, AccentAmber);
+        public static Bitmap CreateTabThreadViewIcon(IconSize sz)  => Render(IconTabThreadView,  sz, AccentTeal);
+        public static Bitmap CreateTabUwgmClientIcon(IconSize sz)  => Render(IconTabUwgmClient,  sz, AccentBlue);
+        public static Bitmap CreateTabCadLoaderIcon(IconSize sz)   => Render(IconTabCadLoader,   sz, AccentGreen);
 
         // ??????????????????????????????????????????????????????????????????????
         // NAVIGATION BUTTONS (prev/next error/warning)

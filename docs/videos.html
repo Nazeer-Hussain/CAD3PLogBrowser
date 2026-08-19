@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAD 3P Log Browser &mdash; Feature Videos</title>
+<link rel="icon" type="image/gif" href="help/images/cad3plog.gif">
+<style>
+    :root {
+        --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, 'Cascadia Code', Consolas, 'SFMono-Regular', Menlo, monospace;
+
+        --ink:        #1c1e22;
+        --ink-soft:   #2b2e34;
+        --paper:      #faf8f4;
+        --card:       #ffffff;
+        --surface-alt:#f2efe7;
+        --border:     #e2ddd0;
+        --text:       #22252a;
+        --muted:      #78756d;
+        --heading:    #1c1e22;
+
+        --accent:      #b8721f;
+        --accent-dark: #8f5817;
+        --accent-soft: #f3e6d2;
+        --green:       #2f8f52;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: var(--font-body);
+        background: var(--paper);
+        color: var(--text);
+        line-height: 1.7;
+        font-size: 15px;
+    }
+    header {
+        background: linear-gradient(160deg, var(--ink) 0%, var(--ink-soft) 100%);
+        color: #fff;
+        padding: 34px 24px 30px;
+        border-bottom: 3px solid var(--accent);
+    }
+    .header-inner { max-width: 880px; margin: 0 auto; }
+    header h1 { font-family: var(--font-mono); font-weight: 700; font-size: 22px; margin-bottom: 8px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+    header h1 img { width: 26px; height: 26px; }
+    header p.sub { color: #cfcabe; font-size: 14px; margin-bottom: 10px; }
+    header a.back { color: #cfcabe; font-size: 13.5px; text-decoration: none; }
+    header a.back:hover { color: #fff; }
+
+    main { max-width: 880px; margin: 36px auto 60px; padding: 0 24px; }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 640px) {
+        .grid { grid-template-columns: 1fr; }
+    }
+
+    .video-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .video-card video, .video-card iframe {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
+        border: 0;
+    }
+    .video-card-body { padding: 16px 18px; }
+    .video-title {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--heading);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .video-duration {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--accent-dark);
+        background: var(--accent-soft);
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+    .video-description { font-size: 13.5px; color: var(--muted); }
+
+    #loading, #empty { text-align: center; color: var(--muted); padding: 30px; grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <h1>Feature Videos</h1>
+        <p class="sub">Short (30&ndash;90 second) clips showing individual features of CAD 3P Log Browser.</p>
+        <a class="back" href="index.html">&larr; Back to CAD 3P Log Browser</a>
+        &nbsp;&middot;&nbsp;
+        <a class="back" href="changelog.html">Version History</a>
+        &nbsp;&middot;&nbsp;
+        <a class="back" href="announcements.html">Announcements</a>
+    </div>
+</header>
+
+<main>
+    <p id="loading">Loading videos&hellip;</p>
+    <div class="grid" id="video-grid"></div>
+</main>
+
+<script>
+fetch('videos.json')
+    .then(r => r.json())
+    .then(function (videos) {
+        var grid = document.getElementById('video-grid');
+        document.getElementById('loading').style.display = 'none';
+
+        if (!videos || videos.length === 0) {
+            grid.innerHTML = '<p id="empty">No videos yet. Check back soon.</p>';
+            return;
+        }
+
+        videos.forEach(function (v) {
+            var card = document.createElement('div');
+            card.className = 'video-card';
+
+            var mediaHtml;
+            if (v.embedUrl) {
+                mediaHtml = '<iframe src="' + v.embedUrl + '" allowfullscreen loading="lazy"></iframe>';
+            } else if (v.src) {
+                mediaHtml = '<video src="' + v.src + '" controls preload="metadata"></video>';
+            } else {
+                mediaHtml = '';
+            }
+
+            var durationHtml = v.durationSeconds
+                ? '<span class="video-duration">' + v.durationSeconds + 's</span>'
+                : '';
+
+            card.innerHTML =
+                mediaHtml +
+                '<div class="video-card-body">' +
+                    '<div class="video-title"><span>' + (v.title || '') + '</span>' + durationHtml + '</div>' +
+                    '<div class="video-description">' + (v.description || '') + '</div>' +
+                '</div>';
+            grid.appendChild(card);
+        });
+    })
+    .catch(function () {
+        document.getElementById('loading').textContent =
+            'Could not load videos right now. Try again shortly.';
+    });
+</script>
+
+</body>
+</html>

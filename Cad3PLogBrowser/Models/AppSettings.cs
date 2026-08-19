@@ -79,6 +79,34 @@ namespace Cad3PLogBrowser.Services
         /// <summary>Path to a custom editor executable. Empty = auto-detect (VS Code, then Visual Studio, then Notepad).</summary>
         public string       SourceEditorPath        { get; set; } = "";
 
+        // ── UWGM Logging Session ──────────────────────────────────────────────
+        /// <summary>
+        /// When a tree node is clicked, the UWGM Client tab scrolls to show entries
+        /// within [entryTime - N, entryTime + N] seconds. Configurable in Settings.
+        /// </summary>
+        public int          UwgmLogWindowSeconds    { get; set; } = 2;
+        // UWGM Client tab column widths — persisted so the user's manual resize
+        // sticks across sessions, same as every other saved UI-layout preference.
+        public int          UwgmClientColLineWidth  { get; set; } = 80;
+        public int          UwgmClientColPrefixWidth { get; set; } = 340;
+        public int          UwgmClientColMessageWidth { get; set; } = 600;
+
+        // ── CAD Loader Session ────────────────────────────────────────────────
+        // CAD Loader tab column widths — persisted so the user's manual resize
+        // sticks across sessions, same as the UWGM Client tab above.
+        public int          CadLoaderColLineWidth    { get; set; } = 80;
+        public int          CadLoaderColPrefixWidth  { get; set; } = 340;
+        public int          CadLoaderColMessageWidth { get; set; } = 600;
+
+        // ── Log tab column widths ─────────────────────────────────────────────
+        // The main "Log" tab (logListView) splits each raw line — formatted as
+        // "{date}: {level}: {pid}: {tid}: {app}: {area}: {payload}" — into three
+        // columns: Line #, the colon-separated prefix fields, and the remaining
+        // payload/message. Widths persisted so manual resizes survive restarts.
+        public int          LogColLineWidth         { get; set; } = 80;
+        public int          LogColPrefixWidth       { get; set; } = 340;
+        public int          LogColMessageWidth      { get; set; } = 600;
+
         // ── Window state persistence (Feature 1a/1b/1c) ───────────────────────
         public int     WindowWidth          { get; set; } = 1024;
         public int     WindowHeight         { get; set; } = 768;

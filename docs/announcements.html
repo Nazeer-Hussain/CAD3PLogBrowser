@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAD 3P Log Browser &mdash; Version History</title>
+<title>CAD 3P Log Browser &mdash; Announcements</title>
 <link rel="icon" type="image/gif" href="help/images/cad3plog.gif">
 <style>
     :root {
@@ -24,6 +24,8 @@
         --accent-dark: #8f5817;
         --accent-soft: #f3e6d2;
         --green:       #2f8f52;
+        --blue:        #2f6f8f;
+        --blue-soft:   #d9ecf3;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -42,6 +44,7 @@
     .header-inner { max-width: 700px; margin: 0 auto; }
     header h1 { font-family: var(--font-mono); font-weight: 700; font-size: 22px; margin-bottom: 8px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
     header h1 img { width: 26px; height: 26px; }
+    header p.sub { color: #cfcabe; font-size: 14px; margin-bottom: 10px; }
     header a.back { color: #cfcabe; font-size: 13.5px; text-decoration: none; }
     header a.back:hover { color: #fff; }
 
@@ -83,34 +86,26 @@
         gap: 8px;
         margin-bottom: 8px;
     }
-    .entry-version { font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: var(--heading); }
-    .entry-version .latest-tag {
-        font-family: var(--font-body);
+    .entry-title { font-size: 16px; font-weight: 700; color: var(--heading); }
+    .entry-date { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+    .entry-badge {
+        display: inline-block;
         font-size: 10.5px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: #fff;
-        background: var(--green);
         padding: 2px 8px;
         border-radius: 4px;
-        margin-left: 8px;
+        margin-right: 8px;
         vertical-align: middle;
     }
-    .entry-date { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-    .entry-notes { font-size: 14.5px; margin-bottom: 14px; }
-    .entry-download {
-        display: inline-block;
-        color: var(--accent-dark);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 13.5px;
-        border: 1px solid var(--accent);
-        border-radius: 6px;
-        padding: 6px 14px;
-    }
-    .entry-download:hover { background: var(--accent-soft); }
-    .entry-size { color: var(--muted); font-size: 12.5px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+    .badge-upcoming { background: var(--blue); }
+    .badge-release  { background: var(--green); }
+    .badge-notice   { background: var(--accent); }
+
+    .entry-body { font-size: 14.5px; color: var(--text); }
 
     #loading, #empty { text-align: center; color: var(--muted); padding: 30px; }
 </style>
@@ -119,52 +114,57 @@
 
 <header>
     <div class="header-inner">
-        <h1>Version History</h1>
+        <h1>Announcements</h1>
+        <p class="sub">Upcoming versions, planned changes, and other news from the maintainer.</p>
         <a class="back" href="index.html">&larr; Back to CAD 3P Log Browser</a>
         &nbsp;&middot;&nbsp;
-        <a class="back" href="announcements.html">Announcements</a>
+        <a class="back" href="changelog.html">Version History</a>
         &nbsp;&middot;&nbsp;
         <a class="back" href="videos.html">Videos</a>
     </div>
 </header>
 
 <main>
-    <p id="loading">Loading version history&hellip;</p>
+    <p id="loading">Loading announcements&hellip;</p>
     <div id="entries"></div>
 </main>
 
 <script>
-fetch('versions.json')
+fetch('announcements.json')
     .then(r => r.json())
-    .then(function (versions) {
+    .then(function (items) {
         var container = document.getElementById('entries');
         document.getElementById('loading').style.display = 'none';
 
-        if (!versions || versions.length === 0) {
-            container.innerHTML = '<p id="empty">No releases yet.</p>';
+        if (!items || items.length === 0) {
+            container.innerHTML = '<p id="empty">No announcements right now. Check back later.</p>';
             return;
         }
 
-        versions.forEach(function (v, i) {
-            var sizeText = v.sizeBytes ? (v.sizeBytes / (1024*1024)).toFixed(1) + ' MB' : '';
+        var badgeLabels = { upcoming: 'Upcoming', release: 'Released', notice: 'Notice' };
+
+        items.forEach(function (item) {
+            var type = item.type || 'notice';
+            var badgeClass = 'badge-' + (badgeLabels[type] ? type : 'notice');
+            var badgeLabel = badgeLabels[type] || 'Notice';
+
             var entry = document.createElement('div');
             entry.className = 'entry';
             entry.innerHTML =
                 '<div class="entry-header">' +
-                    '<span class="entry-version">v' + v.version +
-                        (i === 0 ? '<span class="latest-tag">Latest</span>' : '') +
+                    '<span class="entry-title">' +
+                        '<span class="entry-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+                        (item.title || '') +
                     '</span>' +
-                    '<span class="entry-date">' + (v.date || '') + '</span>' +
+                    '<span class="entry-date">' + (item.date || '') + '</span>' +
                 '</div>' +
-                '<div class="entry-notes">' + (v.notes || '') + '</div>' +
-                '<a class="entry-download" href="' + v.zip + '">Download v' + v.version + ' (.zip)</a>' +
-                '<span class="entry-size">' + sizeText + '</span>';
+                '<div class="entry-body">' + (item.body || '') + '</div>';
             container.appendChild(entry);
         });
     })
     .catch(function () {
         document.getElementById('loading').textContent =
-            'Could not load version history right now. Try again shortly.';
+            'Could not load announcements right now. Try again shortly.';
     });
 </script>
 

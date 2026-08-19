@@ -53,6 +53,7 @@ namespace Cad3PLogBrowser
         private CheckBox       chkRestoreSession;
         private CheckBox       chkWatchFileChanges;
         private NumericUpDown  nudAutoReloadDelay;
+        private NumericUpDown  nudUwgmWindowSeconds;
 
         // -- Performance -------------------------------------------------------
         private NumericUpDown  nudSlowCallMs, nudFastCallMs, nudMaxFileMb, nudLazyLoadThreshold;
@@ -685,10 +686,21 @@ namespace Cad3PLogBrowser
 
             tp.Controls.Add(grpFiles);
 
+            var grpUwgm = new GroupBox
+            {
+                Text = "UWGM Logging Session",
+                Location = new Point(12, 267),
+                Size = new Size(530, 60),
+                Font = new Font("Segoe UI", 9f)
+            };
+            nudUwgmWindowSeconds = AddNud(grpUwgm, "Time window (± seconds):", 22, 1, 300, 2);
+            grpUwgm.Location = new Point(12, 267);
+            tp.Controls.Add(grpUwgm);
+
             var grpPerformance = new GroupBox
             {
                 Text = SettingsDialogStrings.TabPerformance,
-                Location = new Point(12, 271),
+                Location = new Point(12, 333),
                 Size = new Size(530, 216),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1083,6 +1095,8 @@ namespace Cad3PLogBrowser
             chkWatchFileChanges.Checked = _settings.WatchFileChanges;
             nudAutoReloadDelay.Value    = Math.Max(nudAutoReloadDelay.Minimum,
                 Math.Min(nudAutoReloadDelay.Maximum, _settings.AutoReloadDelaySeconds));
+            nudUwgmWindowSeconds.Value  = Math.Max(nudUwgmWindowSeconds.Minimum,
+                Math.Min(nudUwgmWindowSeconds.Maximum, _settings.UwgmLogWindowSeconds));
 
             // Performance
             nudFastCallMs.Value = Math.Max(nudFastCallMs.Minimum,
@@ -1208,6 +1222,7 @@ namespace Cad3PLogBrowser
             _settings.RestoreSessionOnStartup = chkRestoreSession.Checked;
             _settings.WatchFileChanges         = chkWatchFileChanges.Checked;
             _settings.AutoReloadDelaySeconds   = (int)nudAutoReloadDelay.Value;
+            _settings.UwgmLogWindowSeconds      = (int)nudUwgmWindowSeconds.Value;
 
             // Performance
             _settings.FastCallThresholdMs      = (int)nudFastCallMs.Value;
