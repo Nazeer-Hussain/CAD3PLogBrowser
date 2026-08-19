@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.0.15",
+    "date": "2026-08-19",
+    "notes": "- Decouple releases from every master merge -- make them manual/on-demand\r\n- Add Announcements Page",
+    "zip": "downloads/Cad3PLogBrowser-4.0.15.zip",
+    "sizeBytes": 3038821
+  },
+  {
     "version": "4.0.14",
     "date": "2026-08-17",
     "notes": "Bring the Help Guide, docs site, and shortcuts dialog up to date with recent menu/dialog changes",
