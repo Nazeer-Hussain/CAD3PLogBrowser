@@ -1,7 +1,70 @@
 [
     {
-        "title": "Example: Call Tree walkthrough",
-        "description": "A short example entry. Replace with real videos, or remove this placeholder. 'src' should point to an mp4/webm file (e.g. under docs/videos/) or a hosted URL (e.g. YouTube embed link via 'embedUrl' instead of 'src').",
+        "title": "Call Tree Walkthrough",
+        "description": "Loading a log, reading the color-coded call tree (green/amber/red by duration), and jumping between matched ENTER/EXIT pairs.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 60
+    },
+    {
+        "title": "Search, Filter & Tree Search",
+        "description": "Using Find, the multi-criteria Filter dialog (method name, time range, duration threshold), and the tree search box's icon/clear button/suggestions dropdown.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 75
+    },
+    {
+        "title": "Compare Logs Side by Side",
+        "description": "Diffing two log files: colour-coded trees, Structural Differences, and the Performance Delta tab.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 60
+    },
+    {
+        "title": "Performance Tab Deep Dive",
+        "description": "Top Slowest Calls, Most Frequently Called, and Call Depth Analysis, with cross-navigation back to the Call Tree.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 60
+    },
+    {
+        "title": "Timeline & Flame Graph",
+        "description": "Switching between Timeline (Gantt-style) and Flame Graph modes in the merged tab, including zoom and click-to-select.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 45
+    },
+    {
+        "title": "Heatmap: API Activity Over Time",
+        "description": "Reading the API-vs-time-bucket heatmap, toggling Count vs Time colour mode, and clicking a cell to jump to the API Tree.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 45
+    },
+    {
+        "title": "AI Assistant: Summarize & Ask Questions",
+        "description": "Using the analysis buttons (Summarize, Root Cause, Find Errors) and the free-form chat, including how Sample Response vs. real AI analysis is labelled.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 90
+    },
+    {
+        "title": "Opening a UWGM Logging Session",
+        "description": "File > Open UWGM Logging Session end to end: the folder picker, the found-files confirmation, and the resulting Log / UWGM Client / CAD Loader tabs.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 60
+    },
+    {
+        "title": "Anomalies: Comparing Against a Baseline",
+        "description": "Setting a baseline log (Options > Set as Baseline Log) and reading the Anomalies tab's flagged regressions on a later run.",
+        "src": "",
+        "embedUrl": "",
+        "durationSeconds": 45
+    },
+    {
+        "title": "Checking for Updates",
+        "description": "Help > Check for Updates, the Update Available dialog, and a portable-zip update applying in place.",
         "src": "",
         "embedUrl": "",
         "durationSeconds": 45

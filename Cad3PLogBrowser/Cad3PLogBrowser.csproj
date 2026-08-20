@@ -299,6 +299,18 @@
       <Link>Help\images\ai-assistant-tab.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\Help\images\uwgm-client-tab.png">
+      <Link>Help\images\uwgm-client-tab.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\cadloader-tab.png">
+      <Link>Help\images\cadloader-tab.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\uwgm-session-confirm.png">
+      <Link>Help\images\uwgm-session-confirm.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\Help\images\compare-logs-dialog.png">
       <Link>Help\images\compare-logs-dialog.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

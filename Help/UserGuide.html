@@ -405,6 +405,8 @@
         <li><a href="#timeline">Timeline / Flame Graph Tab</a></li>
         <li><a href="#heatmap">Heatmap Tab</a></li>
         <li><a href="#thread-view">Thread View Tab</a></li>
+        <li><a href="#uwgm-client-tab">UWGM Client Tab</a></li>
+        <li><a href="#cadloader-tab">CAD Loader Tab</a></li>
         <li><a href="#exceptions">Exceptions Tab</a></li>
         <li><a href="#anomalies">Anomalies Tab</a></li>
         <li><a href="#ai-assistant">AI Assistant Tab</a></li>
@@ -462,6 +464,7 @@
                 <li>Thread View (side-by-side per-thread trees)</li>
                 <li>Exceptions (grouped by type + correlation ID)</li>
                 <li>Anomalies (compare against a saved baseline)</li>
+                <li>UWGM Client / CAD Loader (from a UWGM Logging Session)</li>
                 <li>AI Assistant (multi-provider)</li>
             </ul>
         </div>
@@ -487,7 +490,11 @@
 <div class="section" id="whats-new">
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
 
-    <h3>&#128295; Most Recent (v4.0.8 &#8211; v4.0.13)</h3>
+    <h3>&#128295; Most Recent (v4.0.15 &#8211; v5.0.4)</h3>
+    <p>The biggest addition is <strong>UWGM Logging Session</strong> support &#8212; <span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session&#8230;</span> (<kbd>Ctrl+Shift+O</kbd>) opens an entire session folder at once instead of a single file: the required <code>cadapp</code> subfolder merges into the main Log tab as before, and two new optional tabs light up automatically when present &#8212; <a href="#uwgm-client-tab">UWGM Client</a> (from a root-level <code>uwgm_client.log.*</code> file) and <a href="#cadloader-tab">CAD Loader</a> (from a <code>cadloader</code> subfolder). Selecting a Call Tree node scrolls both of these to the nearest-in-time entries within a configurable window, set on the <a href="#settings">Files &amp; Behavior settings page</a>. The Log tab itself also gained a proper 3-column layout (Line #, the full Date/Level/PID/TID/App/Area prefix, and Message) instead of one combined text column, making the structured fields easy to scan and copy independently.</p>
+    <p>The project page (reachable via <span class="menu">Help <span class="menu-arrow">&#8594;</span> Visit Project Page</span>) gained two new sections: <strong>Announcements</strong>, for release/news posts, and <strong>Videos</strong>, short feature-walkthrough clips &#8212; both linked from the site&#8217;s top navigation.</p>
+
+    <h3>&#128295; v4.0.8 &#8211; v4.0.13</h3>
     <p>The app icon now appears consistently in every dialog window (Filter, Find, Settings, Update Available, Compare Options, AI Settings) instead of only the main window and About box &#8212; each previously fell back to the generic default WinForms icon. The <a href="#ai-assistant">AI Assistant tab</a> now follows the app&#8217;s Light/Dark theme instead of a fixed dark palette that clashed with the rest of the UI in Light mode, and its underlying AI settings were consolidated onto a single multi-provider path (the old direct Claude-API-key fields are gone from Settings). The tree search box above the Call Tree/API Tree gained a search icon, a clear (&#8220;&#215;&#8221;) button, and a contains-matching suggestions dropdown as you type. A new <a href="#anomalies">Anomalies tab</a> compares the loaded log&#8217;s performance against a saved baseline (<span class="menu">Options <span class="menu-arrow">&#8594;</span> Set as Baseline Log</span>) and flags methods that regressed. The Call Graph now uses a more compact layout on large graphs so the auto-fit zoom no longer shrinks it to an illegible size. Auto-update now runs entirely off GitHub Pages (with an internal GitLab Pages mirror for networks that block it) instead of GitHub Releases &#8212; see <a href="#updates">Auto-Update</a>.</p>
 
     <p>A large pass through the enhancement backlog &#8212; 26 fixes across nearly every part of the app, closing out real gaps found during a full feature-by-feature audit rather than cosmetic polish. Grouped by area:</p>
@@ -578,6 +585,11 @@
 
     <div class="tip">
         <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically (or set a folder explicitly in Settings &#8594; Files &amp; Behavior).
+    </div>
+
+    <div class="screenshot">
+        <img src="images/uwgm-session-confirm.png" alt="UWGM Logging Session Detected dialog listing found CAD App, UWGM Client, and CAD Loader file counts">
+        <div class="caption">Opening a UWGM Logging Session shows what it found before loading anything &#8212; here 6 CAD App files, 2 UWGM Client files, and 1 CAD Loader file.</div>
     </div>
 
     <h3>Recommended First Steps</h3>
@@ -731,10 +743,12 @@
     <table>
         <thead><tr><th>Column</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td><strong>Line #</strong></td><td>1-based line number from the original file (80 px fixed width)</td></tr>
-            <tr><td><strong>Log Text</strong></td><td>Full log line text (fills remaining width, auto-resizes with window)</td></tr>
+            <tr><td><strong>Line #</strong></td><td>1-based line number from the original file</td></tr>
+            <tr><td><strong>Date / Level / PID / TID / App / Area</strong></td><td>The structured prefix parsed from each line &#8212; timestamp, log level, process ID, thread ID, app name, and area, all in one sortable column</td></tr>
+            <tr><td><strong>Message</strong></td><td>The actual log message text (fills remaining width, auto-resizes with window)</td></tr>
         </tbody>
     </table>
+    <p>All three columns are resizable, and widths are remembered across sessions.</p>
 
     <h3>Row Colours</h3>
     <table>
@@ -1265,6 +1279,38 @@
 </div>
 
 
+<!-- ═══ UWGM CLIENT TAB ═══ -->
+<div class="section" id="uwgm-client-tab">
+    <h2 class="section-title"><span class="ico">&#128225;</span> UWGM Client Tab</h2>
+    <p>Shows the <code>uwgm_client.log.*</code> file from a <a href="#getting-started">UWGM Logging Session</a> folder, merged and time-sorted the same way <span class="menu">File <span class="menu-arrow">&#8594;</span> Merge Logs&#8230;</span> works. Only appears when the session folder actually contains a <code>uwgm_client.log.*</code> file &#8212; otherwise this tab is simply left out, with no error.</p>
+
+    <div class="screenshot">
+        <img src="images/uwgm-client-tab.png" alt="UWGM Client tab showing the merged uwgm_client.log entries in a 3-column view">
+        <div class="caption">Same Line # / Date-Level-PID-TID-App-Area / Message layout as the Log tab.</div>
+    </div>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Selecting a Call Tree node</span><span class="desc">Scrolls this tab to the nearest-in-time entry, within the configurable &#8220;Time window (&#177; seconds)&#8221; set on the <a href="#settings">Files &amp; Behavior settings page</a></span></div>
+    </div>
+</div>
+
+
+<!-- ═══ CAD LOADER TAB ═══ -->
+<div class="section" id="cadloader-tab">
+    <h2 class="section-title"><span class="ico">&#128230;</span> CAD Loader Tab</h2>
+    <p>Shows every <code>*.log*</code> file from a <a href="#getting-started">UWGM Logging Session</a> folder&#8217;s optional <code>cadloader</code> subfolder, merged and time-sorted the same way the UWGM Client tab is. Only appears when that subfolder exists and contains at least one matching file.</p>
+
+    <div class="screenshot">
+        <img src="images/cadloader-tab.png" alt="CAD Loader tab showing merged cadloader log entries">
+        <div class="caption">Same 3-column layout as the Log and UWGM Client tabs.</div>
+    </div>
+
+    <div class="card">
+        <div class="feature-row"><span class="label">Selecting a Call Tree node</span><span class="desc">Scrolls this tab to the nearest-in-time entry too, using the same &#177;-seconds time window as the UWGM Client tab</span></div>
+    </div>
+</div>
+
+
 <!-- ═══ EXCEPTIONS TAB ═══ -->
 <div class="section" id="exceptions">
     <h2 class="section-title"><span class="ico">&#128680;</span> Exceptions Tab</h2>
@@ -1447,7 +1493,8 @@
     <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>Default open folder</td><td><em>empty</em></td><td>Overrides <code>PTC_LOG_DIR</code> env var as the default directory for the Open dialog. Browse&#8230; button included.</td></tr>
+            <tr><td>Default open folder</td><td><em>empty</em></td><td>This field doubles as the &#8220;last-used directory&#8221; &#8212; it&#8217;s overwritten automatically after every file you open. Browse&#8230; button included.</td></tr>
+            <tr><td>Prefer PTC_LOG_DIR environment variable / Always use last-used directory</td><td>Prefer <code>PTC_LOG_DIR</code></td><td>When both are set, which one wins as the Open dialog&#8217;s starting folder</td></tr>
             <tr><td>Max recent files</td><td>10</td><td>How many files appear in File &#8594; Recent Files (5&#8211;20). The list itself now lives in <code>recentfiles.json</code>, not settings.json.</td></tr>
             <tr><td>Snippet file suffix</td><td>_snippet</td><td>Appended to the original log filename when using <em>Save As</em> (<kbd>Ctrl+S</kbd>) or <em>Save Branch</em>. E.g. suffix <code>_snippet</code> with file <code>trace.log</code> produces <code>trace_snippet.log</code></td></tr>
             <tr><td>Restore last session on startup</td><td>&#9744; Off</td><td>When on, reopens the most recent file automatically at launch &#8212; but only if no file was already given on the command line</td></tr>
@@ -1458,6 +1505,7 @@
             <tr><td>Skip list view if file &gt;</td><td>50 MB</td><td>For very large files, the virtual list view is bypassed</td></tr>
             <tr><td>Lazy-load tree above</td><td>50,000 nodes</td><td>Call Tree node-count threshold above which children load on demand as you expand each node, instead of building the whole tree up front. The tree re-renders immediately when you change this, without reopening the file.</td></tr>
             <tr><td>Auto-filter Performance tab when a Call Tree node is selected</td><td>&#10003; On</td><td>When off, use the Call Tree right-click menu to filter Performance manually instead</td></tr>
+            <tr><td>UWGM Logging Session &#8594; Time window (&#177; seconds)</td><td>2</td><td>How close (in time) an entry in the <a href="#uwgm-client-tab">UWGM Client</a>/<a href="#cadloader-tab">CAD Loader</a> tabs must be to a selected Call Tree node to scroll to it</td></tr>
         </tbody>
     </table>
 
@@ -1648,7 +1696,7 @@
             <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Shows a &#8220;Checking for Updates&#8230;&#8221; progress indicator in the status bar while it runs, and a distinct error message if the fetch fails.</td></tr>
             <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
             <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
-            <tr><td>Visit Project Page</td><td></td><td>Opens the project&#8217;s GitHub Pages site &#8212; download the latest version, browse version history, or read this guide online</td></tr>
+            <tr><td>Visit Project Page</td><td></td><td>Opens the project&#8217;s GitHub Pages site &#8212; download the latest version, browse version history, read this guide online, or check the site&#8217;s Announcements and Videos pages (linked from its top navigation)</td></tr>
         </tbody>
     </table>
 </div>
