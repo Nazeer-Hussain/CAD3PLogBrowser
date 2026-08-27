@@ -25,6 +25,7 @@ pages:
   # assigned to them, which is why the first pipeline sat stuck with no
   # runner. `docker` alone is enough to match both.
   tags:
+    - 3dx-test
     - docker
     - shared
 
