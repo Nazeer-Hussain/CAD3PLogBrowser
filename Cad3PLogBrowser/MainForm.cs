@@ -81,6 +81,10 @@ namespace Cad3PLogBrowser
         // Context menu item for manual performance filtering (shown when AutoFilter is OFF)
         private ToolStripSeparator   _callTreePerfSep;
         private ToolStripMenuItem    _callTreePerfItem;
+        // "View UWGM Client Tab" menu items — Enabled state refreshed on each menu show
+        // since the tab's availability can change at runtime (depends on loaded session).
+        private ToolStripMenuItem    _callTreeViewUwgmItem;
+        private ToolStripMenuItem    _apiTreeViewUwgmItem;
         // BUG-14: cached API tree context menu (built once, not per right-click)
         private ContextMenuStrip     _apiTreeContextMenu;
 
@@ -1616,6 +1620,9 @@ namespace Cad3PLogBrowser
                 if (grokSepApi  != null) grokSepApi.Visible  = hasGrokApi;
                 if (grokItemApi != null) grokItemApi.Visible = hasGrokApi;
 
+                if (_apiTreeViewUwgmItem != null)
+                    _apiTreeViewUwgmItem.Enabled = _uwgmClientTabAvailable;
+
                 ApplyContextMenuTheme(_apiTreeContextMenu);
                 _apiTreeContextMenu.Show(ApiTree, e.Location);
             }
@@ -1677,6 +1684,10 @@ namespace Cad3PLogBrowser
                 var n = ApiTree.SelectedNode;
                 if (n != null) { ShowCallTree(); FindAndSelectCallTreeNode(GetMethodNameFromNode(n)); }
             });
+
+            // "View" items — explicit tab switching (tree selection no longer auto-switches tabs).
+            menu.Items.Add(new ToolStripSeparator());
+            AddViewTabMenuItems(menu, out _apiTreeViewUwgmItem);
 
             // Grok — always present, Visible toggled on each show
             var grokSep  = new ToolStripSeparator { Visible = false };
@@ -3267,12 +3278,10 @@ namespace Cad3PLogBrowser
         }
 
         // D3: API Invocation Details Panel
-        /// <param name="suppressTabSwitch">
-        /// Pass <c>true</c> when called from <see cref="CallTree_AfterSelect"/> while
-        /// the Performance subtree filter may also be switching tabs, so the Log Details
-        /// tab does not immediately overwrite the Performance tab activation (BUG-A01).
-        /// </param>
-        private void ShowApiDetails(TreeNode node, bool suppressTabSwitch = false)
+        // Note: this only populates the API Details panel content — it never switches
+        // the active tab. The user's active tab must stay whichever it currently is
+        // when a tree node is clicked (see CallTree_AfterSelect / ApiTree_AfterSelect).
+        private void ShowApiDetails(TreeNode node)
         {
             if (node == null || _apiDetailsBox == null) return;
             if (node.Tag == null || (node.Tag is int t && t < 0)) return;
@@ -3356,15 +3365,7 @@ namespace Cad3PLogBrowser
             else
                 _apiDetailsBox.Text = sb.ToString();
 
-            // Switch to Log Details tab so the user can see the result.
-            // BUG-A01: when suppressTabSwitch is true (called from CallTree_AfterSelect
-            // while the performance filter is about to switch to the Performance tab)
-            // do NOT force-switch to Log Details — the performance filter wins.
-            if (!suppressTabSwitch
-                && mainTabControl != null && logDetailTab != null
-                && mainTabControl.TabPages.Contains(logDetailTab))
-                mainTabControl.SelectedTab = logDetailTab;
-        }
+            }
 
         private void ApiTree_Click(object sender, EventArgs e) { }
         private void ApiTree_MouseClick(object sender, MouseEventArgs e) { }
@@ -3380,18 +3381,13 @@ namespace Cad3PLogBrowser
                 ShowLogDetail(idx);
 
             // D3: Show API details in the bottom panel for the selected call node.
-            // BUG-A01: suppress the automatic tab-switch to Log Details when the
-            // performance subtree filter is about to switch to the Performance tab,
-            // so the two tab-switches do not fight each other.
-            bool perfWillSwitch = (_appSettings?.FilterPerfOnTreeSelect ?? true)
-                                  && e.Node?.Tag is int checkLn && checkLn > 0
-                                  && _callStackNodeByLine.Count > 0
-                                  && _callStackNodeByLine.TryGetValue(checkLn, out var checkNode)
-                                  && checkNode != null && checkNode.ExitLineNumber > 0;
-            ShowApiDetails(e.Node, suppressTabSwitch: perfWillSwitch);
+            // This never switches the active tab — only populates the panel content.
+            ShowApiDetails(e.Node);
 
             // Filter Performance tab to the selected node’s ENTER/EXIT scope
-            // — only when the auto-filter setting is ON.
+            // — only when the auto-filter setting is ON. This is the *only* tree-click
+            // action allowed to change the active tab, and only because the user has
+            // explicitly opted into it via the FilterPerfOnTreeSelect setting.
             if ((_appSettings?.FilterPerfOnTreeSelect ?? true)
                 && e.Node?.Tag is int enterLn && enterLn > 0)
             {
@@ -3470,10 +3466,23 @@ namespace Cad3PLogBrowser
             };
             _lastJumpHighlightLine = lineNumber;
 
-            // Feature H1: Show 10 previous lines by scrolling appropriately
+            // Raw Log tab should always start scrolled to (selected line - 10), with the
+            // selected line itself visible below it.
+            //
+            // EnsureVisible only scrolls the minimum amount needed to bring an item
+            // into view. Calling EnsureVisible(idx) first scrolls so idx lands at the
+            // *bottom* of the visible page — and since scrollToIdx then already falls
+            // within that same visible range, a follow-up EnsureVisible(scrollToIdx)
+            // becomes a no-op, leaving idx pinned to the bottom instead of scrollToIdx
+            // at the top (the reported bug).
+            //
+            // Fix: force-scroll to the very end of the list first, so the current view
+            // is far past scrollToIdx. Then EnsureVisible(scrollToIdx) has to scroll UP
+            // the minimum amount to reveal it, which places scrollToIdx at the TOP row.
             int scrollToIdx = Math.Max(0, idx - 10);
+            logListView.EnsureVisible(_virtualLines.Count - 1);
             logListView.EnsureVisible(scrollToIdx);
-            logListView.EnsureVisible(idx); // Make sure selected line is visible
+            logListView.EnsureVisible(idx); // safety net: keep selected line visible too
 
             logListView.SelectedIndices.Clear();
             logListView.SelectedIndices.Add(idx);
@@ -7755,6 +7764,9 @@ namespace Cad3PLogBrowser
             _callTreePerfSep.Visible  = !autoFilter && nodeMatched;
             _callTreePerfItem.Visible = !autoFilter && nodeMatched;
 
+            if (_callTreeViewUwgmItem != null)
+                _callTreeViewUwgmItem.Enabled = _uwgmClientTabAvailable;
+
             ApplyContextMenuTheme(_callTreeContextMenu);
             _callTreeContextMenu.Show(CallTree, e.Location);
         }
@@ -7841,7 +7853,84 @@ namespace Cad3PLogBrowser
             menu.Items.Add(_callTreePerfSep);
             menu.Items.Add(_callTreePerfItem);
 
+            // "View" submenu — lets the user explicitly jump to another tab
+            // (Performance / Log Details / Raw Log / UWGM Client) without the
+            // tree selection itself forcing a tab switch automatically.
+            menu.Items.Add(new ToolStripSeparator());
+            AddViewTabMenuItems(menu, out _callTreeViewUwgmItem);
+
             return menu;
+        }
+
+        /// <summary>
+        /// Adds "View ..." menu items to a tree context menu that let the user explicitly
+        /// switch to Performance / Log Details / Raw Log / UWGM Client tabs. Clicking a
+        /// tree node no longer auto-switches tabs (except the opt-in Performance auto-filter),
+        /// so these give users an explicit way to jump to the tab they want.
+        /// </summary>
+        private void AddViewTabMenuItems(ContextMenuStrip menu, out ToolStripMenuItem uwgmItem)
+        {
+            menu.Items.Add("View &Performance Tab", null, (s, ev) =>
+            {
+                // Same staleness issue as Log Details: FilterPerformanceToSubtree only
+                // runs automatically on tree-select when FilterPerfOnTreeSelect is ON.
+                // Re-apply it here for the current selection so the Performance tab
+                // isn't showing a stale/unfiltered view for a different node.
+                var selNode = GetActiveTreeSelectedNode();
+                if (selNode?.Tag is int enterLn && enterLn > 0)
+                {
+                    CallStackNode csNode;
+                    if (_callStackNodeByLine.Count > 0)
+                        _callStackNodeByLine.TryGetValue(enterLn, out csNode);
+                    else
+                        csNode = FindCallStackNodeByLine(enterLn, _lastCallTree);
+                    if (csNode != null && csNode.ExitLineNumber > 0)
+                        FilterPerformanceToSubtree(csNode);
+                }
+                SwitchToTabIfAvailable(performanceTab);
+            });
+            menu.Items.Add("View Log &Details Tab", null, (s, ev) =>
+            {
+                // BUG-A02: ShowApiDetails/ShowLogDetail no longer run automatically
+                // when the tab isn't active (tree-select no longer force-switches
+                // tabs), so refresh the panel for the currently selected tree node
+                // here before switching, otherwise it shows stale data until the
+                // user re-clicks the node.
+                var selNode = GetActiveTreeSelectedNode();
+                if (selNode != null)
+                {
+                    ShowApiDetails(selNode);
+                    if (selNode.Tag is int ln && _lineIndexMap.TryGetValue(ln, out int idx))
+                        ShowLogDetail(idx);
+                }
+                SwitchToTabIfAvailable(logDetailTab);
+            });
+            menu.Items.Add("View &Raw Log Tab", null, (s, ev) =>
+            {
+                // Re-scroll/highlight to the currently selected node's line in case the
+                // user scrolled the raw log view away since the node was last selected.
+                var selNode = GetActiveTreeSelectedNode();
+                if (selNode != null) ScrollLogToLine(selNode.Tag);
+                SwitchToTabIfAvailable(logTab);
+            });
+
+            uwgmItem = new ToolStripMenuItem("View &UWGM Client Tab") { Enabled = _uwgmClientTabAvailable };
+            uwgmItem.Click += (s, ev) =>
+            {
+                // Re-sync the UWGM Client tab's scroll position to the currently
+                // selected node's timestamp for the same reason as Raw Log above.
+                var selNode = GetActiveTreeSelectedNode();
+                if (selNode != null) ScrollLogToLine(selNode.Tag);
+                SwitchToTabIfAvailable(_uwgmClientTab);
+            };
+            menu.Items.Add(uwgmItem);
+        }
+
+        /// <summary>Switches the active tab if the given tab exists and is currently in TabPages.</summary>
+        private void SwitchToTabIfAvailable(TabPage tab)
+        {
+            if (tab != null && mainTabControl != null && mainTabControl.TabPages.Contains(tab))
+                mainTabControl.SelectedTab = tab;
         }
 
         /// <summary>Applies dark/light theme colours to a context menu in-place.</summary>
