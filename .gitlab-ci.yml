@@ -21,12 +21,10 @@ pages:
 
   # This instance's shared runners only pick up jobs whose tags match theirs
   # (see the two Online/Active shared runners under Settings > CI/CD >
-  # Runners, both tagged linux/docker/shared) -- an untagged job is never
-  # assigned to them, which is why the first pipeline sat stuck with no
-  # runner. `docker` alone is enough to match both.
+  # Runners, tagged cad3p) -- an untagged job is never assigned to them,
+  # which is why the first pipeline sat stuck with no runner.
   tags:
-    - docker
-    - shared
+    - cad3p
 
   # Publish only from the default branch -- feature branches shouldn't
   # overwrite the live internal site.
