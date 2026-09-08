@@ -115,6 +115,8 @@
     <Compile Include="Managers\AiAssistantPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Managers\AnomaliesPanelManager.cs" />
+    <Compile Include="Managers\ExceptionsPanelManager.cs" />
     <Compile Include="Managers\FlameGraphPanel.cs">
       <SubType>Component</SubType>
     </Compile>
