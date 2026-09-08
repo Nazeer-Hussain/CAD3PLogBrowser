@@ -115,6 +115,8 @@
     <Compile Include="Managers\AiAssistantPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Managers\AnomaliesPanelManager.cs" />
+    <Compile Include="Managers\ExceptionsPanelManager.cs" />
     <Compile Include="Managers\FlameGraphPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -153,6 +155,7 @@
     <Compile Include="Services\Comparison\LogNodeFactory.cs" />
     <Compile Include="Services\Comparison\TreeComparer.cs" />
     <Compile Include="Services\Export\ExportService.cs" />
+    <Compile Include="Services\Export\InvestigationReportService.cs" />
     <Compile Include="Services\Export\TreeExportService.cs" />
     <Compile Include="Services\Export\ApiExportService.cs" />
     <Compile Include="Services\CompressedLogService.cs" />

@@ -490,7 +490,10 @@
 <div class="section" id="whats-new">
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
 
-    <h3>&#128295; Most Recent (v4.0.15 &#8211; v5.0.4)</h3>
+    <h3>&#128295; Most Recent</h3>
+    <p>File &#8594; <strong>Export Investigation Report...</strong> is new &#8212; a one-click snapshot of the current investigation session (source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies) as either a styled HTML report or a Markdown document, useful for handing off an investigation or attaching to a ticket.</p>
+
+    <h3>&#128295; UWGM Sessions (v4.0.15 &#8211; v5.0.4)</h3>
     <p>The biggest addition is <strong>UWGM Logging Session</strong> support &#8212; <span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session&#8230;</span> (<kbd>Ctrl+Shift+O</kbd>) opens an entire session folder at once instead of a single file: the required <code>cadapp</code> subfolder merges into the main Log tab as before, and two new optional tabs light up automatically when present &#8212; <a href="#uwgm-client-tab">UWGM Client</a> (from a root-level <code>uwgm_client.log.*</code> file) and <a href="#cadloader-tab">CAD Loader</a> (from a <code>cadloader</code> subfolder). Selecting a Call Tree node scrolls both of these to the nearest-in-time entries within a configurable window, set on the <a href="#settings">Files &amp; Behavior settings page</a>. The Log tab itself also gained a proper 3-column layout (Line #, the full Date/Level/PID/TID/App/Area prefix, and Message) instead of one combined text column, making the structured fields easy to scan and copy independently.</p>
     <p>The project page (reachable via <span class="menu">Help <span class="menu-arrow">&#8594;</span> Visit Project Page</span>) gained two new sections: <strong>Announcements</strong>, for release/news posts, and <strong>Videos</strong>, short feature-walkthrough clips &#8212; both linked from the site&#8217;s top navigation.</p>
 
@@ -1438,6 +1441,7 @@
             <tr><td>Branch CSV</td><td>Right-click node &#8594; Export Branch as CSV&#8230;</td><td>Name, Depth, Duration columns for a subtree</td></tr>
             <tr><td>Branch log</td><td>Right-click node &#8594; Save Branch&#8230;</td><td>The raw ENTER&#8594;EXIT log section for one method</td></tr>
             <tr><td>Analytics Report (.html)</td><td><em>(v4.0)</em> File &#8594; Export Analytics Report&#8230;</td><td>A self-contained, styled HTML report: aggregate statistics, top slowest calls, most frequently called methods, and call-depth analysis &#8212; opens automatically in your browser after saving</td></tr>
+            <tr><td>Investigation Report (.html / .md)</td><td>File &#8594; Export Investigation Report&#8230;</td><td>A snapshot of the current investigation session: source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies &#8212; choose HTML (opens in browser) or Markdown</td></tr>
         </tbody>
     </table>
 
@@ -1617,6 +1621,7 @@
             <tr><td>Export Heatmap&#8230;</td><td></td><td>Save heatmap PNG</td></tr>
             <tr><td>Export Call Graph&#8230;</td><td></td><td>Save call graph PNG</td></tr>
             <tr><td>Export Analytics Report&#8230;</td><td></td><td>Full analytics report combining performance, call graph, and log statistics</td></tr>
+            <tr><td>Export Investigation Report&#8230;</td><td></td><td>HTML/Markdown snapshot of the current investigation session: source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies</td></tr>
             <tr><td>Save Selected as XLS&#8230;</td><td></td><td>Save the ENTER&#8594;EXIT block of the selected tree node as an Excel spreadsheet</td></tr>
             <tr><td>Merge Logs&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
             <tr><td>Compare Logs&#8230;</td><td><kbd>Ctrl+D</kbd></td><td>Open the side-by-side diff tool</td></tr>

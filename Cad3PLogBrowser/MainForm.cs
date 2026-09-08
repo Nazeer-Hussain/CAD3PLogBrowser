@@ -185,8 +185,8 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return callGraphTab;
                 case TabId.Timeline:    return timelineTab;
                 case TabId.Heatmap:     return heatmapTab;
-                case TabId.Exceptions:  return _exceptionsTab;
-                case TabId.Anomalies:   return _anomaliesTab;
+                case TabId.Exceptions:  return _exceptionsPanelManager?.Tab;
+                case TabId.Anomalies:   return _anomaliesPanelManager?.Tab;
                 case TabId.ThreadView:  return _threadViewTab;
                 default:                return logTab;
             }
@@ -202,8 +202,8 @@ namespace Cad3PLogBrowser
                 case TabId.CallGraph:   return showCallGraphMenuItem;
                 case TabId.Timeline:    return showTimelineTabMenuItem;
                 case TabId.Heatmap:     return showHeatmapTabMenuItem;
-                case TabId.Exceptions:  return _showExceptionsTabMenuItem;
-                case TabId.Anomalies:   return _showAnomaliesTabMenuItem;
+                case TabId.Exceptions:  return _exceptionsPanelManager?.ShowTabMenuItem;
+                case TabId.Anomalies:   return _anomaliesPanelManager?.ShowTabMenuItem;
                 case TabId.ThreadView:  return _showThreadViewTabMenuItem;
                 default:                return null;
             }
@@ -214,7 +214,7 @@ namespace Cad3PLogBrowser
         {
             logTab, performanceTab, logDetailTab,
             callGraphTab, timelineTab, heatmapTab,
-            _exceptionsTab, _anomaliesTab, _threadViewTab, _aiTab
+            _exceptionsPanelManager?.Tab, _anomaliesPanelManager?.Tab, _threadViewTab, _aiTab
         };
 
         private void SetTabVisible(TabPage tab, bool visible)
@@ -249,8 +249,8 @@ namespace Cad3PLogBrowser
                 if (ReferenceEquals(tab, callGraphTab))   showCallGraphMenuItem.Checked      = true;
                 if (ReferenceEquals(tab, timelineTab))    showTimelineTabMenuItem.Checked    = true;
                 if (ReferenceEquals(tab, heatmapTab))     showHeatmapTabMenuItem.Checked     = true;
-                if (ReferenceEquals(tab, _exceptionsTab) && _showExceptionsTabMenuItem != null) _showExceptionsTabMenuItem.Checked = true;
-                if (ReferenceEquals(tab, _anomaliesTab)  && _showAnomaliesTabMenuItem  != null) _showAnomaliesTabMenuItem.Checked  = true;
+                if (ReferenceEquals(tab, _exceptionsPanelManager?.Tab) && _exceptionsPanelManager?.ShowTabMenuItem != null) _exceptionsPanelManager.ShowTabMenuItem.Checked = true;
+                if (ReferenceEquals(tab, _anomaliesPanelManager?.Tab)  && _anomaliesPanelManager?.ShowTabMenuItem  != null) _anomaliesPanelManager.ShowTabMenuItem.Checked  = true;
                 if (ReferenceEquals(tab, _threadViewTab) && _showThreadViewTabMenuItem != null) _showThreadViewTabMenuItem.Checked = true;
                 // B10: guard the AI tab so closing it when it is the last visible tab
                 // does not leave the TabControl in a 0-tab state.
@@ -4469,6 +4469,7 @@ namespace Cad3PLogBrowser
             exitMenuItem.Image                 = IconGenerator.CreateExitIcon(msz);
             compareLogsMenuItem.Image          = IconGenerator.CreateCompareLogsIcon(msz);
             exportAnalyticsReportMenuItem.Image = IconGenerator.CreateExportAnalyticsIcon(msz);
+            exportInvestigationReportMenuItem.Image = IconGenerator.CreateExportAnalyticsIcon(msz);
             exportApiCsvMenuItem.Image         = IconGenerator.CreateExportApiCsvIcon(msz);
             exportCallGraphFileMenuItem.Image  = IconGenerator.CreateExportCallGraphIcon(msz);
             exportHeatmapFileMenuItem.Image    = IconGenerator.CreateExportHeatmapIcon(msz);
@@ -4616,8 +4617,8 @@ namespace Cad3PLogBrowser
 
             // Dynamic tabs added at runtime
             if (_aiTab != null) _aiTab.ImageKey = "ai";
-            if (_exceptionsTab != null) _exceptionsTab.ImageKey = "exceptions";
-            if (_anomaliesTab != null) _anomaliesTab.ImageKey = "anomalies";
+            if (_exceptionsPanelManager?.Tab != null) _exceptionsPanelManager.Tab.ImageKey = "exceptions";
+            if (_anomaliesPanelManager?.Tab != null) _anomaliesPanelManager.Tab.ImageKey = "anomalies";
             if (_threadViewTab != null) _threadViewTab.ImageKey = "threadview";
             if (_uwgmClientTab != null) _uwgmClientTab.ImageKey = "uwgmclient";
             if (_cadLoaderTab != null) _cadLoaderTab.ImageKey = "cadloader";
@@ -8513,6 +8514,71 @@ namespace Cad3PLogBrowser
             return sb.ToString();
         }
 
+        // ── Investigation Report Generator ───────────────────────────────────
+        // One-click HTML/Markdown snapshot of the current analysis session:
+        // source file, active filter, bookmarked evidence lines, aggregate stats,
+        // top slowest/frequent calls, call depth, exception groups, correlation
+        // IDs, and baseline anomalies — for sharing with engineering/support.
+        private readonly Services.Export.InvestigationReportService _investigationReportService =
+            new Services.Export.InvestigationReportService();
+
+        private void exportInvestigationReportMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter   = "HTML report (*.html)|*.html|Markdown report (*.md)|*.md";
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_investigation_report.html";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var data = BuildInvestigationReportData();
+                    string content = Path.GetExtension(dlg.FileName).Equals(".md", StringComparison.OrdinalIgnoreCase)
+                        ? _investigationReportService.BuildMarkdown(data)
+                        : _investigationReportService.BuildHtml(data);
+
+                    File.WriteAllText(dlg.FileName, content, System.Text.Encoding.UTF8);
+                    System.Diagnostics.Process.Start(dlg.FileName);
+                    StatusFileName.Text = string.Format("Investigation report exported to {0}", Path.GetFileName(dlg.FileName));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export investigation report:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>Gathers all in-memory session state into a single <see cref="Services.Export.InvestigationReportService.ReportData"/>.</summary>
+        private Services.Export.InvestigationReportService.ReportData BuildInvestigationReportData()
+        {
+            return new Services.Export.InvestigationReportService.ReportData
+            {
+                SourceFilePath           = _currentFilePath,
+                ActiveFilterDescription  = _activeFilterText,
+                Stats                    = _lastAggregateStats,
+                BookmarkedLines          = _bookmarkService.GetAllBookmarksSorted(),
+                GetLineText              = lineNo => (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "",
+                TopSlowestCalls          = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, 10),
+                MostFrequentCalls        = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, 10),
+                CallDepth                = _lastCallTree != null ? _perfAnalyzer.AnalyzeCallDepth(_lastCallTree) : null,
+                ExceptionGroups          = _exceptionsPanelManager?.LastExceptionGroups,
+                CorrelationIds           = _exceptionsPanelManager?.LastCorrelationIds,
+                Anomalies                = _anomaliesPanelManager?.LastAnomalies
+            };
+        }
+
         private void exportPerformanceMenuItem_Click(object sender, EventArgs e)
         {
             if (performanceView.Items.Count == 0)
@@ -10373,251 +10439,45 @@ namespace Cad3PLogBrowser
 
         // ═══════════════════════════════════════════════════════════════════════
         // FEATURES K2/K3: Exceptions & Correlation ID tab
+        // Extracted into Managers/ExceptionsPanelManager.cs — MainForm just wires it up.
         // ═══════════════════════════════════════════════════════════════════════
 
-        private TabPage  _exceptionsTab;
-        private ToolStripMenuItem _showExceptionsTabMenuItem;
-        private ListView _exceptionGroupsListView;
-        private ListView _correlationIdsListView;
-        private ListView _correlationOccurrencesListView;
-        private readonly Services.Analysis.ExceptionGroupingService _exceptionGroupingService =
-            new Services.Analysis.ExceptionGroupingService();
+        private Managers.ExceptionsPanelManager _exceptionsPanelManager;
 
         private void InitExceptionsTab()
         {
-            _exceptionsTab = new TabPage("Exceptions") { Name = "exceptionsTab", UseVisualStyleBackColor = true };
-
-            var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
-
-            // K2: Exception Groups (top)
-            _exceptionGroupsListView = new ListView
-            {
-                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
-                GridLines = true, Font = new Font("Consolas", 9f)
-            };
-            _exceptionGroupsListView.Columns.Add("Type", 220);
-            _exceptionGroupsListView.Columns.Add("Count", 70);
-            _exceptionGroupsListView.Columns.Add("First Seen (Line)", 130);
-            _exceptionGroupsListView.Columns.Add("Last Seen (Line)", 130);
-            _exceptionGroupsListView.DoubleClick += (s, e) =>
-            {
-                if (_exceptionGroupsListView.SelectedItems.Count == 0) return;
-                if (_exceptionGroupsListView.SelectedItems[0].Tag is Services.Analysis.ExceptionGroup grp)
-                    ScrollLogToLine(grp.StartLine);
-            };
-
-            var groupsPanel = new Panel { Dock = DockStyle.Fill };
-            var groupsHeader = new Label { Dock = DockStyle.Top, Height = 20, Text = "Exception Groups",
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0) };
-            groupsPanel.Controls.Add(_exceptionGroupsListView);
-            groupsPanel.Controls.Add(groupsHeader);
-            split.Panel1.Controls.Add(groupsPanel);
-
-            // K3: Correlation IDs (bottom) — ID list on the left, occurrences on the right
-            var correlationSplit = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical };
-
-            _correlationIdsListView = new ListView
-            {
-                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
-                GridLines = true, Font = new Font("Consolas", 9f)
-            };
-            _correlationIdsListView.Columns.Add("Correlation / Request ID", 220);
-            _correlationIdsListView.Columns.Add("Occurrences", 90);
-            _correlationIdsListView.SelectedIndexChanged += (s, e) => PopulateCorrelationOccurrences();
-
-            _correlationOccurrencesListView = new ListView
-            {
-                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
-                GridLines = true, Font = new Font("Consolas", 9f)
-            };
-            _correlationOccurrencesListView.Columns.Add("Line #", 80);
-            _correlationOccurrencesListView.Columns.Add("Log Text", 800);
-            _correlationOccurrencesListView.DoubleClick += (s, e) =>
-            {
-                if (_correlationOccurrencesListView.SelectedItems.Count == 0) return;
-                if (_correlationOccurrencesListView.SelectedItems[0].Tag is int lineNo)
-                    ScrollLogToLine(lineNo);
-            };
-
-            correlationSplit.Panel1.Controls.Add(_correlationIdsListView);
-            correlationSplit.Panel2.Controls.Add(_correlationOccurrencesListView);
-            correlationSplit.SplitterDistance = 260;
-
-            var correlationPanel = new Panel { Dock = DockStyle.Fill };
-            var correlationHeader = new Label { Dock = DockStyle.Top, Height = 20, Text = "Correlation / Request IDs — double-click a line to jump to it",
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Padding = new Padding(4, 2, 0, 0) };
-            correlationPanel.Controls.Add(correlationSplit);
-            correlationPanel.Controls.Add(correlationHeader);
-            split.Panel2.Controls.Add(correlationPanel);
-
-            split.SplitterDistance = 200;
-            _exceptionsTab.Controls.Add(split);
-
-            if (mainTabControl != null)
-                mainTabControl.TabPages.Add(_exceptionsTab);
-
-            _showExceptionsTabMenuItem = new ToolStripMenuItem("E&xceptions")
-            {
-                Name = "showExceptionsTabMenuItem", CheckOnClick = true, Checked = _appSettings.ShowExceptionsTab
-            };
-            if (!_appSettings.ShowExceptionsTab && mainTabControl != null && mainTabControl.TabPages.Contains(_exceptionsTab))
-                mainTabControl.TabPages.Remove(_exceptionsTab);
-            _showExceptionsTabMenuItem.CheckedChanged += (s, e) =>
-            {
-                if (_exceptionsTab == null || mainTabControl == null) return;
-                _appSettings.ShowExceptionsTab = _showExceptionsTabMenuItem.Checked;
-                _appSettings.Save();
-                if (_showExceptionsTabMenuItem.Checked)
-                {
-                    if (!mainTabControl.TabPages.Contains(_exceptionsTab))
-                        mainTabControl.TabPages.Add(_exceptionsTab);
-                }
-                else if (mainTabControl.TabPages.Contains(_exceptionsTab))
-                {
-                    mainTabControl.TabPages.Remove(_exceptionsTab);
-                }
-            };
-            if (tabsMenuItem != null)
-                tabsMenuItem.DropDownItems.Add(_showExceptionsTabMenuItem);
+            _exceptionsPanelManager = new Managers.ExceptionsPanelManager(
+                mainTabControl, tabsMenuItem, _appSettings,
+                () => _allLines,
+                ScrollLogToLine);
+            _exceptionsPanelManager.Init();
         }
 
         /// <summary>Refreshes the K2/K3 tab from the freshly-loaded log entries.</summary>
         private void UpdateExceptionsTab(List<Services.LogEntry> entries)
         {
-            _exceptionGroupsListView.Items.Clear();
-            _correlationIdsListView.Items.Clear();
-            _correlationOccurrencesListView.Items.Clear();
-
-            var groups = _exceptionGroupingService.GroupExceptions(entries);
-            foreach (var grp in groups)
-            {
-                var item = new ListViewItem(new[]
-                {
-                    grp.ExceptionType, grp.Count.ToString(), grp.StartLine.ToString(), grp.EndLine.ToString()
-                })
-                { Tag = grp };
-                _exceptionGroupsListView.Items.Add(item);
-            }
-
-            var correlations = _exceptionGroupingService.GroupByCorrelationId(entries);
-            foreach (var kv in correlations)
-            {
-                var item = new ListViewItem(new[] { kv.Key, kv.Value.Count.ToString() }) { Tag = kv.Value };
-                _correlationIdsListView.Items.Add(item);
-            }
-        }
-
-        private void PopulateCorrelationOccurrences()
-        {
-            _correlationOccurrencesListView.Items.Clear();
-            if (_correlationIdsListView.SelectedItems.Count == 0) return;
-            if (!(_correlationIdsListView.SelectedItems[0].Tag is List<int> lines)) return;
-
-            foreach (int lineNo in lines)
-            {
-                string text = (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "";
-                _correlationOccurrencesListView.Items.Add(new ListViewItem(new[] { lineNo.ToString(), text }) { Tag = lineNo });
-            }
+            _exceptionsPanelManager.UpdateFromEntries(entries);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
-        // L3: Anomaly Detection — compares the current log's API timings/call
-        // counts against a saved baseline (Options > Set as Baseline Log).
+        // L3: Anomaly Detection — extracted into Managers/AnomaliesPanelManager.cs —
+        // MainForm just wires it up.
         // ═══════════════════════════════════════════════════════════════════════
 
-        private TabPage  _anomaliesTab;
-        private ToolStripMenuItem _showAnomaliesTabMenuItem;
-        private ListView _anomaliesListView;
-        private Label    _anomaliesStatusLabel;
+        private Managers.AnomaliesPanelManager _anomaliesPanelManager;
 
         private void InitAnomaliesTab()
         {
-            _anomaliesTab = new TabPage("Anomalies") { Name = "anomaliesTab", UseVisualStyleBackColor = true };
-
-            _anomaliesListView = new ListView
-            {
-                Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
-                GridLines = true, Font = new Font("Consolas", 9f)
-            };
-            _anomaliesListView.Columns.Add("Method", 260);
-            _anomaliesListView.Columns.Add("Baseline Avg (ms)", 120);
-            _anomaliesListView.Columns.Add("Current Avg (ms)", 120);
-            _anomaliesListView.Columns.Add("Baseline Calls", 100);
-            _anomaliesListView.Columns.Add("Current Calls", 100);
-            _anomaliesListView.Columns.Add("Why Flagged", 260);
-            _anomaliesListView.DoubleClick += (s, e) =>
-            {
-                if (_anomaliesListView.SelectedItems.Count == 0) return;
-                if (_anomaliesListView.SelectedItems[0].Tag is string apiName)
-                { ShowApiTree(); FindAndSelectApiTreeNode(apiName); }
-            };
-
-            _anomaliesStatusLabel = new Label
-            {
-                Dock = DockStyle.Top, Height = 22, Padding = new Padding(4, 4, 0, 0),
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
-            };
-
-            _anomaliesTab.Controls.Add(_anomaliesListView);
-            _anomaliesTab.Controls.Add(_anomaliesStatusLabel);
-
-            if (mainTabControl != null)
-                mainTabControl.TabPages.Add(_anomaliesTab);
-
-            _showAnomaliesTabMenuItem = new ToolStripMenuItem("&Anomalies")
-            {
-                Name = "showAnomaliesTabMenuItem", CheckOnClick = true, Checked = _appSettings.ShowAnomaliesTab
-            };
-            if (!_appSettings.ShowAnomaliesTab && mainTabControl != null && mainTabControl.TabPages.Contains(_anomaliesTab))
-                mainTabControl.TabPages.Remove(_anomaliesTab);
-            _showAnomaliesTabMenuItem.CheckedChanged += (s, e) =>
-            {
-                if (_anomaliesTab == null || mainTabControl == null) return;
-                _appSettings.ShowAnomaliesTab = _showAnomaliesTabMenuItem.Checked;
-                _appSettings.Save();
-                if (_showAnomaliesTabMenuItem.Checked)
-                {
-                    if (!mainTabControl.TabPages.Contains(_anomaliesTab))
-                        mainTabControl.TabPages.Add(_anomaliesTab);
-                }
-                else if (mainTabControl.TabPages.Contains(_anomaliesTab))
-                {
-                    mainTabControl.TabPages.Remove(_anomaliesTab);
-                }
-            };
-            if (tabsMenuItem != null)
-                tabsMenuItem.DropDownItems.Add(_showAnomaliesTabMenuItem);
+            _anomaliesPanelManager = new Managers.AnomaliesPanelManager(
+                mainTabControl, tabsMenuItem, _appSettings,
+                apiName => { ShowApiTree(); FindAndSelectApiTreeNode(apiName); });
+            _anomaliesPanelManager.Init();
         }
 
         /// <summary>Re-runs the baseline comparison against the freshly-loaded log's stats.</summary>
         private void UpdateAnomaliesTab()
         {
-            if (_anomaliesListView == null) return;
-            _anomaliesListView.Items.Clear();
-
-            var baseline = Services.Analysis.BaselineService.LoadBaseline();
-            if (baseline == null)
-            {
-                _anomaliesStatusLabel.Text = "No baseline saved yet — Options > Set as Baseline Log to enable comparison.";
-                return;
-            }
-
-            var anomalies = Services.Analysis.BaselineService.CompareToBaseline(_apiPerfStatsByName.Values, baseline);
-            _anomaliesStatusLabel.Text = string.Format(
-                "Comparing against baseline saved {0:yyyy-MM-dd HH:mm} from \"{1}\" — {2} anomal{3} found.",
-                baseline.SavedAtUtc.ToLocalTime(), baseline.SourceFileName,
-                anomalies.Count, anomalies.Count == 1 ? "y" : "ies");
-
-            foreach (var a in anomalies)
-            {
-                var item = new ListViewItem(new[]
-                {
-                    a.ApiName, a.BaselineAvgMs.ToString(), a.CurrentAvgMs.ToString(),
-                    a.BaselineCalls.ToString(), a.CurrentCalls.ToString(), a.Reason
-                })
-                { Tag = a.ApiName };
-                _anomaliesListView.Items.Add(item);
-            }
+            _anomaliesPanelManager.UpdateFromStats(_apiPerfStatsByName.Values);
         }
 
         private void setBaselineMenuItem_Click(object sender, EventArgs e)
@@ -10628,11 +10488,9 @@ namespace Cad3PLogBrowser
                 return;
             }
 
-            Services.Analysis.BaselineService.SaveBaseline(
-                Path.GetFileName(_currentFilePath ?? ""), _apiPerfStatsByName.Values);
+            int count = _anomaliesPanelManager.SaveBaseline(Path.GetFileName(_currentFilePath ?? ""), _apiPerfStatsByName.Values);
 
-            StatusFileName.Text = string.Format("Baseline saved from {0:N0} methods.", _apiPerfStatsByName.Count);
-            UpdateAnomaliesTab();
+            StatusFileName.Text = string.Format("Baseline saved from {0:N0} methods.", count);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
