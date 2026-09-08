@@ -27,6 +27,12 @@ namespace Cad3PLogBrowser.Managers
         private ListView _correlationIdsListView;
         private ListView _correlationOccurrencesListView;
 
+        /// <summary>The exception groups computed by the last <see cref="UpdateFromEntries"/> call.</summary>
+        public List<ExceptionGroup> LastExceptionGroups { get; private set; } = new List<ExceptionGroup>();
+
+        /// <summary>The correlation/request-ID groups computed by the last <see cref="UpdateFromEntries"/> call.</summary>
+        public Dictionary<string, List<int>> LastCorrelationIds { get; private set; } = new Dictionary<string, List<int>>();
+
         /// <summary>The TabPage hosting this panel (null until <see cref="Init"/> runs).</summary>
         public TabPage Tab => _exceptionsTab;
 
@@ -158,6 +164,7 @@ namespace Cad3PLogBrowser.Managers
             _correlationOccurrencesListView.Items.Clear();
 
             var groups = _exceptionGroupingService.GroupExceptions(entries);
+            LastExceptionGroups = groups;
             foreach (var grp in groups)
             {
                 var item = new ListViewItem(new[]
@@ -169,6 +176,7 @@ namespace Cad3PLogBrowser.Managers
             }
 
             var correlations = _exceptionGroupingService.GroupByCorrelationId(entries);
+            LastCorrelationIds = correlations;
             foreach (var kv in correlations)
             {
                 var item = new ListViewItem(new[] { kv.Key, kv.Value.Count.ToString() }) { Tag = kv.Value };

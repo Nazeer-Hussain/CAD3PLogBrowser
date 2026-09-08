@@ -34,6 +34,9 @@ namespace Cad3PLogBrowser.Managers
         /// <summary>The "Show Anomalies tab" menu item (null until <see cref="Init"/> runs).</summary>
         public ToolStripMenuItem ShowTabMenuItem => _showAnomaliesTabMenuItem;
 
+        /// <summary>The anomalies computed by the last <see cref="UpdateFromStats"/> call.</summary>
+        public List<AnomalyResult> LastAnomalies { get; private set; } = new List<AnomalyResult>();
+
         /// <param name="mainTabControl">The main tab control the Anomalies tab is added to/removed from.</param>
         /// <param name="tabsMenuItem">The "Tabs" menu the show/hide toggle is added to.</param>
         /// <param name="appSettings">Persisted app settings (for the tab-visibility flag).</param>
@@ -119,10 +122,12 @@ namespace Cad3PLogBrowser.Managers
             if (baseline == null)
             {
                 _anomaliesStatusLabel.Text = "No baseline saved yet — Options > Set as Baseline Log to enable comparison.";
+                LastAnomalies = new List<AnomalyResult>();
                 return;
             }
 
             var anomalies = BaselineService.CompareToBaseline(currentStats, baseline);
+            LastAnomalies = anomalies;
             _anomaliesStatusLabel.Text = string.Format(
                 "Comparing against baseline saved {0:yyyy-MM-dd HH:mm} from \"{1}\" — {2} anomal{3} found.",
                 baseline.SavedAtUtc.ToLocalTime(), baseline.SourceFileName,

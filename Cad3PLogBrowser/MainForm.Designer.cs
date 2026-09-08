@@ -39,6 +39,7 @@
             this.exportFilteredLogsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportPerformanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportAnalyticsReportMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportInvestigationReportMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportApiCsvMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeJsonMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportTreeXmlMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -244,6 +245,7 @@
             this.fileSeparatorAfterSave,
             this.exportPerformanceMenuItem,
             this.exportAnalyticsReportMenuItem,
+            this.exportInvestigationReportMenuItem,
             this.exportApiCsvMenuItem,
             this.exportTreeJsonMenuItem,
             this.exportTreeXmlMenuItem,
@@ -321,6 +323,16 @@
             this.exportAnalyticsReportMenuItem.Size = new System.Drawing.Size(260, 22);
             this.exportAnalyticsReportMenuItem.Text = "Export &Analytics Report...";
             this.exportAnalyticsReportMenuItem.Click += new System.EventHandler(this.exportAnalyticsReportMenuItem_Click);
+            //
+            // exportInvestigationReportMenuItem
+            //
+            // Investigation Report: HTML/Markdown snapshot of the current session
+            // (source file, active filter, bookmarks, top slowest/frequent calls,
+            // call depth, exception groups, correlation IDs, baseline anomalies).
+            this.exportInvestigationReportMenuItem.Name = "exportInvestigationReportMenuItem";
+            this.exportInvestigationReportMenuItem.Size = new System.Drawing.Size(260, 22);
+            this.exportInvestigationReportMenuItem.Text = "Export &Investigation Report...";
+            this.exportInvestigationReportMenuItem.Click += new System.EventHandler(this.exportInvestigationReportMenuItem_Click);
             //
             // exportApiCsvMenuItem
             //
@@ -1899,6 +1911,7 @@
         private System.Windows.Forms.ToolStripMenuItem exportFilteredLogsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportPerformanceMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportAnalyticsReportMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportInvestigationReportMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportApiCsvMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeJsonMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportTreeXmlMenuItem;

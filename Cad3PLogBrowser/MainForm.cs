@@ -4469,6 +4469,7 @@ namespace Cad3PLogBrowser
             exitMenuItem.Image                 = IconGenerator.CreateExitIcon(msz);
             compareLogsMenuItem.Image          = IconGenerator.CreateCompareLogsIcon(msz);
             exportAnalyticsReportMenuItem.Image = IconGenerator.CreateExportAnalyticsIcon(msz);
+            exportInvestigationReportMenuItem.Image = IconGenerator.CreateExportAnalyticsIcon(msz);
             exportApiCsvMenuItem.Image         = IconGenerator.CreateExportApiCsvIcon(msz);
             exportCallGraphFileMenuItem.Image  = IconGenerator.CreateExportCallGraphIcon(msz);
             exportHeatmapFileMenuItem.Image    = IconGenerator.CreateExportHeatmapIcon(msz);
@@ -8511,6 +8512,71 @@ namespace Cad3PLogBrowser
 
             sb.Append("</body></html>");
             return sb.ToString();
+        }
+
+        // ── Investigation Report Generator ───────────────────────────────────
+        // One-click HTML/Markdown snapshot of the current analysis session:
+        // source file, active filter, bookmarked evidence lines, aggregate stats,
+        // top slowest/frequent calls, call depth, exception groups, correlation
+        // IDs, and baseline anomalies — for sharing with engineering/support.
+        private readonly Services.Export.InvestigationReportService _investigationReportService =
+            new Services.Export.InvestigationReportService();
+
+        private void exportInvestigationReportMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_lastEntries == null || _lastEntries.Count == 0)
+            {
+                MessageBox.Show(Resources.ERR_NO_CALL_TREE_DATA,
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter   = "HTML report (*.html)|*.html|Markdown report (*.md)|*.md";
+                dlg.FileName = GetSafeBaseName(_currentFilePath) + "_investigation_report.html";
+                dlg.InitialDirectory = string.IsNullOrEmpty(_currentFilePath)
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    : GetSafeDirectory(_currentFilePath);
+
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    var data = BuildInvestigationReportData();
+                    string content = Path.GetExtension(dlg.FileName).Equals(".md", StringComparison.OrdinalIgnoreCase)
+                        ? _investigationReportService.BuildMarkdown(data)
+                        : _investigationReportService.BuildHtml(data);
+
+                    File.WriteAllText(dlg.FileName, content, System.Text.Encoding.UTF8);
+                    System.Diagnostics.Process.Start(dlg.FileName);
+                    StatusFileName.Text = string.Format("Investigation report exported to {0}", Path.GetFileName(dlg.FileName));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format("Failed to export investigation report:\n{0}", ex.Message),
+                        Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>Gathers all in-memory session state into a single <see cref="Services.Export.InvestigationReportService.ReportData"/>.</summary>
+        private Services.Export.InvestigationReportService.ReportData BuildInvestigationReportData()
+        {
+            return new Services.Export.InvestigationReportService.ReportData
+            {
+                SourceFilePath           = _currentFilePath,
+                ActiveFilterDescription  = _activeFilterText,
+                Stats                    = _lastAggregateStats,
+                BookmarkedLines          = _bookmarkService.GetAllBookmarksSorted(),
+                GetLineText              = lineNo => (lineNo - 1 >= 0 && lineNo - 1 < _allLines.Count) ? _allLines[lineNo - 1] : "",
+                TopSlowestCalls          = _perfAnalyzer.FindTopSlowestCalls(_lastEntries, 10),
+                MostFrequentCalls        = _perfAnalyzer.FindMostFrequentlyCalled(_lastEntries, 10),
+                CallDepth                = _lastCallTree != null ? _perfAnalyzer.AnalyzeCallDepth(_lastCallTree) : null,
+                ExceptionGroups          = _exceptionsPanelManager?.LastExceptionGroups,
+                CorrelationIds           = _exceptionsPanelManager?.LastCorrelationIds,
+                Anomalies                = _anomaliesPanelManager?.LastAnomalies
+            };
         }
 
         private void exportPerformanceMenuItem_Click(object sender, EventArgs e)
