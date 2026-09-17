@@ -219,9 +219,6 @@
     <Compile Include="Services\Search\SearchService.cs" />
     <Compile Include="Services\Core\SettingsService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\AI\AISettingsDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="UI\AppIcon.cs" />
     <Compile Include="UI\AppStrings.cs" />
     <Compile Include="UI\CompareLogsForm.cs">
@@ -321,6 +318,14 @@
     </Content>
     <Content Include="..\Help\images\uwgm-session-confirm.png">
       <Link>Help\images\uwgm-session-confirm.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\uwgm-folder-path-dialog.png">
+      <Link>Help\images\uwgm-folder-path-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-ai-azure.png">
+      <Link>Help\images\settings-ai-azure.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\Help\images\compare-logs-dialog.png">

@@ -120,6 +120,7 @@ namespace Cad3PLogBrowser.UI
         public const string LabelProvider = "Provider:";
         public const string LabelAPIKey = "API Key:";
         public const string LabelServerURL = "Server URL:";
+        public const string LabelEndpoint = "Endpoint:";
         public const string LabelModel = "Model:";
         public const string LabelTemperature = "Temperature:";
         public const string LabelMaxTokens = "Max Tokens:";
@@ -133,25 +134,31 @@ namespace Cad3PLogBrowser.UI
         public const string HintTemperature = "Lower = focused, Higher = creative";
 
         public const string ProviderMock = "Mock (Testing)";
+        public const string ProviderOpenAI = "OpenAI";
+        public const string ProviderAzureOpenAI = "Azure OpenAI";
         public const string ProviderAnthropic = "Anthropic Claude";
+        public const string ProviderGoogleGemini = "Google Gemini";
         public const string ProviderGitHubCopilot = "GitHub Copilot";
         public const string ProviderOllama = "Ollama (Self-Hosted)";
-        public const string ProviderOpenAI = "OpenAI (Coming Soon)";
-        public const string ProviderAzureOpenAI = "Azure OpenAI (Coming Soon)";
-        public const string ProviderGoogleGemini = "Google Gemini (Coming Soon)";
 
         public const string DefaultOllamaServerUrl = "http://localhost:11434";
         public const string ModelPlaceholder = "(Select provider first)";
         public const string ModelMock = "mock-model-1.0";
-        public const string ModelComingSoon = "(Coming soon)";
 
         public const string ModelClaude35Sonnet = "claude-3-5-sonnet-20241022";
         public const string ModelClaude3OpusLatest = "claude-3-opus-latest";
         public const string ModelClaude3HaikuLatest = "claude-3-haiku-latest";
 
+        public const string ModelGPT4o = "gpt-4o";
+        public const string ModelGPT4oMini = "gpt-4o-mini";
         public const string ModelGPT4 = "gpt-4";
         public const string ModelGPT4Turbo = "gpt-4-turbo";
         public const string ModelGPT35Turbo = "gpt-3.5-turbo";
+        public const string ModelGPT35TurboAzure = "gpt-35-turbo";
+
+        public const string ModelGemini15Pro = "gemini-1.5-pro";
+        public const string ModelGemini15Flash = "gemini-1.5-flash";
+        public const string ModelGeminiPro = "gemini-pro";
 
         public const string ModelLlama3 = "llama3";
         public const string ModelCodeLlama = "codellama";

@@ -67,6 +67,8 @@ namespace Cad3PLogBrowser
         private ComboBox cmbAIProvider;
         private TextBox txtAIApiKey;
         private Button btnShowHideAIKey;
+        private Label lblAIEndpoint;
+        private TextBox txtAIEndpoint;
         private ComboBox cmbAIModel;
         private TrackBar trackAITemperature;
         private Label lblAITemperatureValue;
@@ -80,6 +82,26 @@ namespace Cad3PLogBrowser
         private Button btnTestAIConnection;
         private Label lblAIStatus;
         private AISettings _aiSettings;
+
+        // Maps cmbAIProvider.Items index -> AIProviderType. Mock's enum value (99) doesn't
+        // align with its combo position (0), so a direct cast would incorrectly resolve
+        // to AIProviderType.None; this explicit table avoids that mismatch.
+        private static readonly AIProviderType[] AIProviderIndexMap =
+        {
+            AIProviderType.Mock,
+            AIProviderType.OpenAI,
+            AIProviderType.AzureOpenAI,
+            AIProviderType.Anthropic,
+            AIProviderType.GoogleGemini,
+            AIProviderType.GitHubCopilot,
+            AIProviderType.Ollama
+        };
+
+        private static int AIProviderTypeToIndex(AIProviderType type)
+        {
+            int index = Array.IndexOf(AIProviderIndexMap, type);
+            return index >= 0 ? index : 0;
+        }
 
         // -- Updates (ENH-4) ---------------------------------------------------
         private CheckBox      chkCheckOnStartup;
@@ -748,11 +770,11 @@ namespace Cad3PLogBrowser
             var tp = Tab(SettingsDialogStrings.TabAIAndIntegration);
 
             // --- AI Settings Section ---
-            var grpAI = new GroupBox 
-            { 
-                Text = SettingsDialogStrings.GroupAIProvider, 
-                Location = new Point(12, 10), 
-                Size = new Size(540, 165),
+            var grpAI = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupAIProvider,
+                Location = new Point(12, 10),
+                Size = new Size(540, 200),
                 Font = new Font("Segoe UI", 9f)
             };
 
@@ -780,15 +802,15 @@ namespace Cad3PLogBrowser
                 Location = new Point(100, 48),
                 Size = new Size(430, 24)
             };
-            cmbAIProvider.Items.AddRange(new object[] 
-            { 
-                SettingsDialogStrings.ProviderMock, 
-                SettingsDialogStrings.ProviderAnthropic, 
+            cmbAIProvider.Items.AddRange(new object[]
+            {
+                SettingsDialogStrings.ProviderMock,
+                SettingsDialogStrings.ProviderOpenAI,
+                SettingsDialogStrings.ProviderAzureOpenAI,
+                SettingsDialogStrings.ProviderAnthropic,
+                SettingsDialogStrings.ProviderGoogleGemini,
                 SettingsDialogStrings.ProviderGitHubCopilot,
-                SettingsDialogStrings.ProviderOllama,
-                SettingsDialogStrings.ProviderOpenAI, 
-                SettingsDialogStrings.ProviderAzureOpenAI, 
-                SettingsDialogStrings.ProviderGoogleGemini 
+                SettingsDialogStrings.ProviderOllama
             });
             cmbAIProvider.SelectedIndex = 0;
             cmbAIProvider.SelectedIndexChanged += (s, e) => UpdateAIProviderFields();
@@ -824,16 +846,35 @@ namespace Cad3PLogBrowser
             };
             grpAI.Controls.Add(btnShowHideAIKey);
 
+            // Endpoint (shown only for Azure OpenAI, which needs a resource endpoint
+            // in addition to an API key)
+            lblAIEndpoint = new Label
+            {
+                Text = SettingsDialogStrings.LabelEndpoint,
+                Location = new Point(10, 111),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f),
+                Visible = false
+            };
+            grpAI.Controls.Add(lblAIEndpoint);
+            txtAIEndpoint = new TextBox
+            {
+                Location = new Point(100, 108),
+                Size = new Size(430, 23),
+                Visible = false
+            };
+            grpAI.Controls.Add(txtAIEndpoint);
+
             // Ollama server URL (shown only for Ollama provider)
-            grpAI.Controls.Add(new Label { 
-                Text = SettingsDialogStrings.LabelServerURL, 
-                Location = new Point(10, 111), 
+            grpAI.Controls.Add(new Label {
+                Text = SettingsDialogStrings.LabelServerURL,
+                Location = new Point(10, 141),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             });
             txtOllamaServerUrl = new TextBox
             {
-                Location = new Point(100, 108),
+                Location = new Point(100, 138),
                 Size = new Size(430, 23),
                 Text = SettingsDialogStrings.DefaultOllamaServerUrl,
                 Visible = false
@@ -841,34 +882,35 @@ namespace Cad3PLogBrowser
             grpAI.Controls.Add(txtOllamaServerUrl);
 
             // Ollama model selection
-            grpAI.Controls.Add(new Label { 
-                Text = SettingsDialogStrings.LabelModel, 
-                Location = new Point(10, 141), 
+            grpAI.Controls.Add(new Label {
+                Text = SettingsDialogStrings.LabelModel,
+                Location = new Point(10, 171),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f)
             });
             cmbOllamaModel = new ComboBox
             {
-                Location = new Point(100, 138),
+                Location = new Point(100, 168),
                 Size = new Size(260, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Visible = false
             };
-            cmbOllamaModel.Items.AddRange(new object[] { 
-                SettingsDialogStrings.ModelLlama3, 
-                SettingsDialogStrings.ModelCodeLlama, 
-                SettingsDialogStrings.ModelMistral, 
-                SettingsDialogStrings.ModelPhi3 
+            cmbOllamaModel.Items.AddRange(new object[] {
+                SettingsDialogStrings.ModelLlama3,
+                SettingsDialogStrings.ModelCodeLlama,
+                SettingsDialogStrings.ModelMistral,
+                SettingsDialogStrings.ModelPhi3
             });
             cmbOllamaModel.SelectedIndex = 0;
             grpAI.Controls.Add(cmbOllamaModel);
 
-            // Model for cloud providers
+            // Model for cloud providers (editable so Azure OpenAI's Deployment Name,
+            // which isn't a fixed value, can be typed in)
             cmbAIModel = new ComboBox
             {
-                Location = new Point(100, 138),
+                Location = new Point(100, 168),
                 Size = new Size(260, 24),
-                DropDownStyle = ComboBoxStyle.DropDownList
+                DropDownStyle = ComboBoxStyle.DropDown
             };
             cmbAIModel.Items.Add(SettingsDialogStrings.ModelPlaceholder);
             cmbAIModel.SelectedIndex = 0;
@@ -877,10 +919,10 @@ namespace Cad3PLogBrowser
             tp.Controls.Add(grpAI);
 
             // --- Model Configuration Section ---
-            var grpModel = new GroupBox 
-            { 
-                Text = SettingsDialogStrings.GroupModelConfiguration, 
-                Location = new Point(12, 178), 
+            var grpModel = new GroupBox
+            {
+                Text = SettingsDialogStrings.GroupModelConfiguration,
+                Location = new Point(12, 213),
                 Size = new Size(540, 106),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -960,7 +1002,7 @@ namespace Cad3PLogBrowser
             var grpPrivacy = new GroupBox
             {
                 Text = SettingsDialogStrings.GroupPrivacyAndConversation.Replace("&", "&&"),
-                Location = new Point(12, 289),
+                Location = new Point(12, 324),
                 Size = new Size(540, 72),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1006,7 +1048,7 @@ namespace Cad3PLogBrowser
             var grpSource = new GroupBox
             {
                 Text = SettingsDialogStrings.GroupSourceIntegration,
-                Location = new Point(12, 368),
+                Location = new Point(12, 403),
                 Size = new Size(540, 92),
                 Font = new Font("Segoe UI", 9f)
             };
@@ -1031,7 +1073,7 @@ namespace Cad3PLogBrowser
             btnTestAIConnection = new Button
             {
                 Text = SettingsDialogStrings.ButtonTestConnection,
-                Location = new Point(12, 468),
+                Location = new Point(12, 503),
                 Size = new Size(140, 28)
             };
             btnTestAIConnection.Click += async (s, e) => await TestAIConnection();
@@ -1040,7 +1082,7 @@ namespace Cad3PLogBrowser
             lblAIStatus = new Label
             {
                 Text = "",
-                Location = new Point(160, 473),
+                Location = new Point(160, 508),
                 Size = new Size(392, 20),
                 AutoEllipsis = true,
                 ForeColor = Color.DarkGreen
@@ -1126,19 +1168,10 @@ namespace Cad3PLogBrowser
             // AI Settings
             chkEnableAI.Checked = _aiSettings.EnableAI;
 
-            // Map AIProviderType to combo index (accounting for Ollama at index 3)
-            int providerIndex = 0;
-            switch (_aiSettings.SelectedProvider)
-            {
-                case AIProviderType.Mock: providerIndex = 0; break;
-                case AIProviderType.Anthropic: providerIndex = 1; break;
-                case AIProviderType.GitHubCopilot: providerIndex = 2; break;
-                case AIProviderType.Ollama: providerIndex = 3; break;
-                default: providerIndex = 0; break;
-            }
-            cmbAIProvider.SelectedIndex = providerIndex;
+            cmbAIProvider.SelectedIndex = AIProviderTypeToIndex(_aiSettings.SelectedProvider);
 
             txtAIApiKey.Text = _aiSettings.GetCurrentApiKey();
+            txtAIEndpoint.Text = _aiSettings.AzureOpenAIEndpoint ?? "";
             txtOllamaServerUrl.Text = _aiSettings.OllamaServerUrl ?? "http://localhost:11434";
 
             if (cmbOllamaModel.Items.Count > 0)
@@ -1574,177 +1607,10 @@ namespace Cad3PLogBrowser
             return tp;
         }
 
-        // -- TAB: AI Settings --------------------------------------------------
-        private TabPage BuildAISettingsTab()
-        {
-            var tp = Tab("AI Settings");
-
-            // Enable AI checkbox
-            chkEnableAI = new CheckBox
-            {
-                Text = "Enable AI Features",
-                Location = new Point(12, 22),
-                Size = new Size(200, 20),
-                Checked = true
-            };
-            chkEnableAI.CheckedChanged += (s, e) => UpdateAIControlsState();
-            tp.Controls.Add(chkEnableAI);
-
-            // Provider selection
-            cmbAIProvider = AddRow(tp, "AI Provider:", 52, out _);
-            cmbAIProvider.Items.AddRange(new object[] 
-            { 
-                "Mock (Testing)", 
-                "Anthropic Claude", 
-                "GitHub Copilot",
-                "Ollama (Self-Hosted)",
-                "OpenAI (Coming Soon)", 
-                "Azure OpenAI (Coming Soon)", 
-                "Google Gemini (Coming Soon)" 
-            });
-            cmbAIProvider.SelectedIndex = 0;
-            cmbAIProvider.SelectedIndexChanged += (s, e) => UpdateAIProviderFields();
-
-            // API Key for cloud providers
-            Lbl(tp, "API Key:", 12, 91);
-            txtAIApiKey = new TextBox
-            {
-                Location = new Point(175, 88),
-                Size = new Size(270, 23),
-                UseSystemPasswordChar = true
-            };
-            tp.Controls.Add(txtAIApiKey);
-
-            btnShowHideAIKey = Btn("Show", 450, 88, 50, 25);
-            btnShowHideAIKey.Font = new Font("Segoe UI", 8f);
-            btnShowHideAIKey.Click += (s, e) =>
-            {
-                txtAIApiKey.UseSystemPasswordChar = !txtAIApiKey.UseSystemPasswordChar;
-                btnShowHideAIKey.Text = txtAIApiKey.UseSystemPasswordChar ? "Show" : "Hide";
-            };
-            tp.Controls.Add(btnShowHideAIKey);
-
-            // Ollama server URL (shown only for Ollama provider)
-            Lbl(tp, "Ollama Server:", 12, 127);
-            txtOllamaServerUrl = new TextBox
-            {
-                Location = new Point(175, 124),
-                Size = new Size(320, 23),
-                Text = "http://localhost:11434",
-                Visible = false
-            };
-            tp.Controls.Add(txtOllamaServerUrl);
-
-            // Ollama model selection
-            Lbl(tp, "Ollama Model:", 12, 163);
-            cmbOllamaModel = new ComboBox
-            {
-                Location = new Point(175, 160),
-                Size = new Size(180, 24),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Visible = false
-            };
-            cmbOllamaModel.Items.AddRange(new object[] { "llama3", "codellama", "mistral", "phi3" });
-            cmbOllamaModel.SelectedIndex = 0;
-            tp.Controls.Add(cmbOllamaModel);
-
-            // Model for cloud providers
-            cmbAIModel = AddRow(tp, "Model:", 124, out _);
-            cmbAIModel.Items.Add("(Select provider first)");
-            cmbAIModel.SelectedIndex = 0;
-
-            // Temperature
-            Lbl(tp, "Temperature:", 12, 163);
-            trackAITemperature = new TrackBar
-            {
-                Location = new Point(175, 158),
-                Size = new Size(270, 45),
-                Minimum = 0,
-                Maximum = 20,
-                Value = 7,
-                TickFrequency = 1
-            };
-            trackAITemperature.ValueChanged += (s, e) =>
-            {
-                lblAITemperatureValue.Text = (trackAITemperature.Value / 10.0).ToString("0.0");
-            };
-            tp.Controls.Add(trackAITemperature);
-
-            lblAITemperatureValue = new Label
-            {
-                Text = "0.7",
-                Location = new Point(450, 163),
-                Size = new Size(45, 20),
-                TextAlign = ContentAlignment.MiddleRight
-            };
-            tp.Controls.Add(lblAITemperatureValue);
-
-            // Max tokens
-            numAIMaxTokens = AddNud(tp, "Max Tokens:", 204, 100, 200000, 4096);
-            numAIMaxTokens.Increment = 100;
-
-            // Streaming
-            chkAIStreaming = new CheckBox
-            {
-                Text = "Enable streaming responses",
-                Location = new Point(175, 236),
-                Size = new Size(300, 20),
-                Checked = true
-            };
-            tp.Controls.Add(chkAIStreaming);
-
-            // Privacy - Redact data
-            chkAIRedactData = new CheckBox
-            {
-                Text = "Redact sensitive data (emails, IPs, paths)",
-                Location = new Point(12, 268),
-                Size = new Size(400, 20),
-                Checked = true
-            };
-            tp.Controls.Add(chkAIRedactData);
-
-            // Conversation settings
-            chkAIRememberConversation = new CheckBox
-            {
-                Text = "Remember conversation history",
-                Location = new Point(12, 296),
-                Size = new Size(250, 20),
-                Checked = true
-            };
-            chkAIRememberConversation.CheckedChanged += (s, e) => UpdateAIControlsState();
-            tp.Controls.Add(chkAIRememberConversation);
-
-            numAIMaxMessages = AddNud(tp, "Max messages:", 324, 5, 100, 20);
-
-            // Test connection button
-            btnTestAIConnection = Btn("Test Connection", 12, 352, 130, 28);
-            btnTestAIConnection.Click += async (s, e) => await TestAIConnection();
-            tp.Controls.Add(btnTestAIConnection);
-
-            // Status label
-            lblAIStatus = new Label
-            {
-                Text = "",
-                Location = new Point(150, 357),
-                Size = new Size(360, 20),
-                ForeColor = Color.DarkGreen
-            };
-            tp.Controls.Add(lblAIStatus);
-
-            return tp;
-        }
-
         private void SaveAISettings()
         {
             _aiSettings.EnableAI = chkEnableAI.Checked;
-
-            // Map combo index to AIProviderType
-            var providerIndex = cmbAIProvider.SelectedIndex;
-            if (providerIndex == 0) _aiSettings.SelectedProvider = AIProviderType.Mock;
-            else if (providerIndex == 1) _aiSettings.SelectedProvider = AIProviderType.Anthropic;
-            else if (providerIndex == 2) _aiSettings.SelectedProvider = AIProviderType.GitHubCopilot;
-            else if (providerIndex == 3) _aiSettings.SelectedProvider = AIProviderType.Ollama;
-            else _aiSettings.SelectedProvider = AIProviderType.None;
+            _aiSettings.SelectedProvider = AIProviderIndexMap[cmbAIProvider.SelectedIndex];
 
             _aiSettings.Temperature = trackAITemperature.Value / 10.0;
             _aiSettings.MaxTokens = (int)numAIMaxTokens.Value;
@@ -1756,9 +1622,25 @@ namespace Cad3PLogBrowser
             // Save provider-specific settings
             switch (_aiSettings.SelectedProvider)
             {
+                case AIProviderType.OpenAI:
+                    _aiSettings.OpenAIApiKey = txtAIApiKey.Text.Trim();
+                    _aiSettings.OpenAIModel = cmbAIModel.Text;
+                    break;
+
+                case AIProviderType.AzureOpenAI:
+                    _aiSettings.AzureOpenAIApiKey = txtAIApiKey.Text.Trim();
+                    _aiSettings.AzureOpenAIEndpoint = txtAIEndpoint.Text.Trim();
+                    _aiSettings.AzureOpenAIDeploymentName = cmbAIModel.Text.Trim();
+                    break;
+
                 case AIProviderType.Anthropic:
                     _aiSettings.AnthropicApiKey = txtAIApiKey.Text.Trim();
                     _aiSettings.AnthropicModel = cmbAIModel.Text;
+                    break;
+
+                case AIProviderType.GoogleGemini:
+                    _aiSettings.GoogleApiKey = txtAIApiKey.Text.Trim();
+                    _aiSettings.GoogleModel = cmbAIModel.Text;
                     break;
 
                 case AIProviderType.GitHubCopilot:
@@ -1778,11 +1660,16 @@ namespace Cad3PLogBrowser
             bool enabled = chkEnableAI.Checked;
             cmbAIProvider.Enabled = enabled;
 
-            bool isOllama = cmbAIProvider.SelectedIndex == 3;
-            bool needsApiKey = enabled && cmbAIProvider.SelectedIndex > 0 && !isOllama;
+            var provider = AIProviderIndexMap[cmbAIProvider.SelectedIndex];
+            bool isOllama = provider == AIProviderType.Ollama;
+            bool isAzure = provider == AIProviderType.AzureOpenAI;
+            bool needsApiKey = enabled && provider != AIProviderType.Mock && !isOllama;
 
             txtAIApiKey.Enabled = needsApiKey;
             btnShowHideAIKey.Enabled = needsApiKey;
+            lblAIEndpoint.Visible = isAzure;
+            txtAIEndpoint.Visible = isAzure;
+            txtAIEndpoint.Enabled = enabled && isAzure;
             txtOllamaServerUrl.Visible = enabled && isOllama;
             cmbOllamaModel.Visible = enabled && isOllama;
 
@@ -1799,47 +1686,78 @@ namespace Cad3PLogBrowser
 
         private void UpdateAIProviderFields()
         {
-            var providerIndex = cmbAIProvider.SelectedIndex;
-
-            // Map combo index to AIProviderType (accounting for Ollama at index 3)
-            AIProviderType provider;
-            if (providerIndex == 0) provider = AIProviderType.Mock;
-            else if (providerIndex == 1) provider = AIProviderType.Anthropic;
-            else if (providerIndex == 2) provider = AIProviderType.GitHubCopilot;
-            else if (providerIndex == 3) provider = AIProviderType.Ollama;
-            else provider = AIProviderType.None;
+            var provider = AIProviderIndexMap[cmbAIProvider.SelectedIndex];
 
             cmbAIModel.Items.Clear();
 
-            bool isOllama = providerIndex == 3;
+            bool isOllama = provider == AIProviderType.Ollama;
+            bool isAzure = provider == AIProviderType.AzureOpenAI;
             txtOllamaServerUrl.Visible = isOllama;
             cmbOllamaModel.Visible = isOllama;
             cmbAIModel.Visible = !isOllama;
+            lblAIEndpoint.Visible = isAzure;
+            txtAIEndpoint.Visible = isAzure;
 
             switch (provider)
             {
                 case AIProviderType.Mock:
                     txtAIApiKey.Text = "";
-                    cmbAIModel.Items.Add("mock-model-1.0");
+                    cmbAIModel.Items.Add(SettingsDialogStrings.ModelMock);
+                    break;
+
+                case AIProviderType.OpenAI:
+                    txtAIApiKey.Text = _aiSettings.OpenAIApiKey;
+                    cmbAIModel.Items.AddRange(new object[]
+                    {
+                        SettingsDialogStrings.ModelGPT4o,
+                        SettingsDialogStrings.ModelGPT4oMini,
+                        SettingsDialogStrings.ModelGPT4Turbo,
+                        SettingsDialogStrings.ModelGPT35Turbo
+                    });
+                    break;
+
+                case AIProviderType.AzureOpenAI:
+                    txtAIApiKey.Text = _aiSettings.AzureOpenAIApiKey;
+                    txtAIEndpoint.Text = _aiSettings.AzureOpenAIEndpoint ?? "";
+                    // The Deployment Name is user-defined, not a fixed value -- seed it as
+                    // the first (and current) item, alongside a few common defaults.
+                    if (!string.IsNullOrWhiteSpace(_aiSettings.AzureOpenAIDeploymentName))
+                        cmbAIModel.Items.Add(_aiSettings.AzureOpenAIDeploymentName);
+                    cmbAIModel.Items.AddRange(new object[]
+                    {
+                        SettingsDialogStrings.ModelGPT4o,
+                        SettingsDialogStrings.ModelGPT4,
+                        SettingsDialogStrings.ModelGPT35TurboAzure
+                    });
                     break;
 
                 case AIProviderType.Anthropic:
                     txtAIApiKey.Text = _aiSettings.AnthropicApiKey;
-                    cmbAIModel.Items.AddRange(new object[] 
-                    { 
-                        "claude-3-5-sonnet-20241022",
-                        "claude-3-opus-latest",
-                        "claude-3-haiku-latest"
+                    cmbAIModel.Items.AddRange(new object[]
+                    {
+                        SettingsDialogStrings.ModelClaude35Sonnet,
+                        SettingsDialogStrings.ModelClaude3OpusLatest,
+                        SettingsDialogStrings.ModelClaude3HaikuLatest
+                    });
+                    break;
+
+                case AIProviderType.GoogleGemini:
+                    txtAIApiKey.Text = _aiSettings.GoogleApiKey;
+                    cmbAIModel.Items.AddRange(new object[]
+                    {
+                        SettingsDialogStrings.ModelGemini15Pro,
+                        SettingsDialogStrings.ModelGemini15Flash,
+                        SettingsDialogStrings.ModelGeminiPro
                     });
                     break;
 
                 case AIProviderType.GitHubCopilot:
                     txtAIApiKey.Text = _aiSettings.GitHubCopilotApiToken;
-                    cmbAIModel.Items.AddRange(new object[] 
-                    { 
-                        "gpt-4",
-                        "gpt-4-turbo",
-                        "gpt-3.5-turbo"
+                    cmbAIModel.Items.AddRange(new object[]
+                    {
+                        SettingsDialogStrings.ModelGPT4,
+                        SettingsDialogStrings.ModelGPT4Turbo,
+                        SettingsDialogStrings.ModelGPT35Turbo
                     });
                     break;
 
@@ -1847,11 +1765,6 @@ namespace Cad3PLogBrowser
                     txtAIApiKey.Text = "";
                     txtOllamaServerUrl.Text = _aiSettings.OllamaServerUrl ?? "http://localhost:11434";
                     // Ollama uses separate combo
-                    break;
-
-                default:
-                    txtAIApiKey.Text = "";
-                    cmbAIModel.Items.Add("(Coming soon)");
                     break;
             }
 

@@ -28,34 +28,34 @@ namespace Cad3PLogBrowser.UI
             MinimizeBox = false;
             MaximizeBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(520, 110);
+            ClientSize = new Size(520, 124);
 
             _promptLabel = new Label
             {
                 AutoSize = false,
                 Location = new Point(12, 12),
-                Size = new Size(496, 20),
+                Size = new Size(496, 34),
                 Text = prompt
             };
 
             _pathTextBox = new TextBox
             {
-                Location = new Point(12, 36),
+                Location = new Point(12, 50),
                 Size = new Size(414, 23),
                 Text = initialPath ?? string.Empty
             };
 
             _browseButton = new Button
             {
-                Location = new Point(432, 35),
+                Location = new Point(432, 49),
                 Size = new Size(76, 25),
-                Text = "Browse…"
+                Text = "Browseï¿½"
             };
             _browseButton.Click += BrowseButton_Click;
 
             _okButton = new Button
             {
-                Location = new Point(352, 72),
+                Location = new Point(352, 86),
                 Size = new Size(75, 26),
                 Text = "OK",
                 DialogResult = DialogResult.OK
@@ -64,7 +64,7 @@ namespace Cad3PLogBrowser.UI
 
             _cancelButton = new Button
             {
-                Location = new Point(433, 72),
+                Location = new Point(433, 86),
                 Size = new Size(75, 26),
                 Text = "Cancel",
                 DialogResult = DialogResult.Cancel

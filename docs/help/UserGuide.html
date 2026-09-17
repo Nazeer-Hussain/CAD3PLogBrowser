@@ -583,12 +583,17 @@
         </div>
         <div class="feature-row">
             <span class="label">&#128193; UWGM Logging Session</span>
-            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) selects a session root folder containing a <code>cadapp</code> subfolder (merged into the main log view), and optionally a <code>uwgm_client.log.*</code> file and a <code>cadloader</code> subfolder — each loaded into its own tab (<strong>UWGM Client</strong> / <strong>CAD Loader</strong>) when present. Both are optional; their absence doesn't raise an error.</span>
+            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) selects a session root folder containing a <code>cadapp</code> subfolder (merged into the main log view), and optionally a <code>uwgm_client.log.*</code> file and a <code>cadloader</code> subfolder — each loaded into its own tab (<strong>UWGM Client</strong> / <strong>CAD Loader</strong>) when present. Both are optional; their absence doesn't raise an error. The folder picker lets you type or paste a path directly, in addition to browsing for it.</span>
         </div>
     </div>
 
     <div class="tip">
         <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically (or set a folder explicitly in Settings &#8594; Files &amp; Behavior).
+    </div>
+
+    <div class="screenshot">
+        <img src="images/uwgm-folder-path-dialog.png" alt="Select Folder dialog for a UWGM Logging Session with a path typed directly into the text box">
+        <div class="caption">Type or paste a folder path directly, or click Browse&#8230; to navigate the folder tree instead.</div>
     </div>
 
     <div class="screenshot">
@@ -1389,6 +1394,11 @@
     <div class="screenshot">
         <img src="images/settings-ai-integration.png" alt="AI and Integration settings page configured for the Ollama provider">
         <div class="caption">AI &amp; Integration settings, configured for the self-hosted Ollama provider.</div>
+    </div>
+
+    <div class="screenshot">
+        <img src="images/settings-ai-azure.png" alt="AI and Integration settings page with Azure OpenAI selected, showing the Endpoint field">
+        <div class="caption">Selecting Azure OpenAI reveals the Endpoint field (Deployment Name is entered via the Model field above it).</div>
     </div>
 
     <h3>Quick-Analysis Buttons</h3>
