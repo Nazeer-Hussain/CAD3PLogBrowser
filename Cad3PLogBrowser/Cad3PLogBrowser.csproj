@@ -100,11 +100,17 @@
     <Compile Include="AI\Prompts\SystemPrompts.cs" />
     <Compile Include="AI\Providers\Anthropic\AnthropicConversation.cs" />
     <Compile Include="AI\Providers\Anthropic\AnthropicProvider.cs" />
+    <Compile Include="AI\Providers\AzureOpenAI\AzureOpenAIConversation.cs" />
+    <Compile Include="AI\Providers\AzureOpenAI\AzureOpenAIProvider.cs" />
     <Compile Include="AI\Providers\GitHub\GitHubConversation.cs" />
     <Compile Include="AI\Providers\GitHub\GitHubCopilotProvider.cs" />
+    <Compile Include="AI\Providers\Google\GoogleGeminiConversation.cs" />
+    <Compile Include="AI\Providers\Google\GoogleGeminiProvider.cs" />
     <Compile Include="AI\Providers\Mock\MockProvider.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaConversation.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaProvider.cs" />
+    <Compile Include="AI\Providers\OpenAI\OpenAIConversation.cs" />
+    <Compile Include="AI\Providers\OpenAI\OpenAIProvider.cs" />
     <Compile Include="AI\Security\AISettingsService.cs" />
     <Compile Include="AI\Security\CredentialManager.cs" />
     <Compile Include="AI\Security\DataRedactor.cs" />
@@ -213,9 +219,6 @@
     <Compile Include="Services\Search\SearchService.cs" />
     <Compile Include="Services\Core\SettingsService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\AI\AISettingsDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="UI\AppIcon.cs" />
     <Compile Include="UI\AppStrings.cs" />
     <Compile Include="UI\CompareLogsForm.cs">
@@ -223,6 +226,9 @@
     </Compile>
     <Compile Include="UI\CompareLogsForm.Designer.cs" />
     <Compile Include="UI\CompareOptionsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\FolderPathDialog.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="UI\LineInspectorPanel.cs">
@@ -312,6 +318,22 @@
     </Content>
     <Content Include="..\Help\images\uwgm-session-confirm.png">
       <Link>Help\images\uwgm-session-confirm.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\uwgm-folder-path-dialog.png">
+      <Link>Help\images\uwgm-folder-path-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\settings-ai-azure.png">
+      <Link>Help\images\settings-ai-azure.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\report-errors-dialog.png">
+      <Link>Help\images\report-errors-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\large-log-warning.png">
+      <Link>Help\images\large-log-warning.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\Help\images\compare-logs-dialog.png">

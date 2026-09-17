@@ -490,7 +490,12 @@
 <div class="section" id="whats-new">
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
 
-    <h3>&#128295; Most Recent (v4.0.15 &#8211; v5.0.4)</h3>
+    <h3>&#128295; Most Recent</h3>
+    <p>The <a href="#settings">Settings dialog&#8217;s</a> AI &amp; Integration tab now has real, working configuration for all seven AI providers &#8212; <strong>OpenAI</strong>, <strong>Azure OpenAI</strong>, <strong>Anthropic Claude</strong>, <strong>Google Gemini</strong>, <strong>GitHub Copilot</strong>, self-hosted <strong>Ollama</strong>, and <strong>Mock</strong> &#8212; including an Endpoint field shown only for Azure OpenAI, and a Model field you can type into directly to enter a Deployment Name. Previously these three providers were only wired up in a separate dialog that was never actually opened from anywhere in the app, so they showed as &#8220;(Coming Soon)&#8221; with no way to save settings for them.</p>
+    <p>The <strong>Open UWGM Logging Session…</strong> dialog now lets you type or paste a folder path directly, in addition to browsing for it &#8212; useful when copying a path from elsewhere instead of navigating the folder tree.</p>
+    <p>File &#8594; <strong>Export Investigation Report...</strong> is new &#8212; a one-click snapshot of the current investigation session (source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies) as either a styled HTML report or a Markdown document, useful for handing off an investigation or attaching to a ticket.</p>
+
+    <h3>&#128295; UWGM Sessions (v4.0.15 &#8211; v5.0.4)</h3>
     <p>The biggest addition is <strong>UWGM Logging Session</strong> support &#8212; <span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session&#8230;</span> (<kbd>Ctrl+Shift+O</kbd>) opens an entire session folder at once instead of a single file: the required <code>cadapp</code> subfolder merges into the main Log tab as before, and two new optional tabs light up automatically when present &#8212; <a href="#uwgm-client-tab">UWGM Client</a> (from a root-level <code>uwgm_client.log.*</code> file) and <a href="#cadloader-tab">CAD Loader</a> (from a <code>cadloader</code> subfolder). Selecting a Call Tree node scrolls both of these to the nearest-in-time entries within a configurable window, set on the <a href="#settings">Files &amp; Behavior settings page</a>. The Log tab itself also gained a proper 3-column layout (Line #, the full Date/Level/PID/TID/App/Area prefix, and Message) instead of one combined text column, making the structured fields easy to scan and copy independently.</p>
     <p>The project page (reachable via <span class="menu">Help <span class="menu-arrow">&#8594;</span> Visit Project Page</span>) gained two new sections: <strong>Announcements</strong>, for release/news posts, and <strong>Videos</strong>, short feature-walkthrough clips &#8212; both linked from the site&#8217;s top navigation.</p>
 
@@ -546,8 +551,8 @@
     <h3>&#127775; Expand to Level (tree)</h3>
     <p>The Call Tree and API Tree context menus (and the Edit menu) gained an <strong>Expand to Level...</strong> command that expands every node down to a depth you choose in one step, collapsing anything deeper &#8212; a middle ground between one node at a time and Expand All. See <a href="#expand-to-level">Expand to Level</a>.</p>
 
-    <h3>&#129504; AI Assistant: multiple providers, including self-hosted Ollama</h3>
-    <p>The AI Assistant now supports several providers from one Settings page: <strong>Anthropic Claude</strong>, <strong>GitHub Copilot</strong>, and self-hosted <strong>Ollama</strong> (plus a Mock provider for testing without any network calls). OpenAI, Azure OpenAI, and Google Gemini are listed as <em>Coming Soon</em> &#8212; the settings fields exist but those three providers aren&#8217;t wired up to make requests yet. A long-standing bug where the Ollama server URL (and several other AI settings) silently reset to the default on every save has also been fixed. See <a href="#ai-assistant">AI Assistant Tab</a>.</p>
+    <h3>&#129504; AI Assistant: all providers now available, including self-hosted Ollama</h3>
+    <p>The AI Assistant now supports six providers from one Settings page: <strong>OpenAI</strong>, <strong>Azure OpenAI</strong>, <strong>Anthropic Claude</strong>, <strong>Google Gemini</strong>, <strong>GitHub Copilot</strong>, and self-hosted <strong>Ollama</strong> (plus a Mock provider for testing without any network calls). Azure OpenAI requires an Endpoint, API key, and Deployment Name (configured in the Settings dialog); Google Gemini requires only an API key. A long-standing bug where the Ollama server URL (and several other AI settings) silently reset to the default on every save has also been fixed. See <a href="#ai-assistant">AI Assistant Tab</a>.</p>
 
     <div class="note">
         <strong>&#128221; Earlier in the v3.1 line:</strong> automatic update checks, ENTER/EXIT counting fixes in the API Tree, a redesigned Settings dialog, corrected toolbar icons, and theme-switching performance improvements. These are all still current &#8212; see <a href="#updates">Auto-Update</a> and <a href="#settings">Settings Dialog</a> for details.
@@ -579,12 +584,17 @@
         </div>
         <div class="feature-row">
             <span class="label">&#128193; UWGM Logging Session</span>
-            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) selects a session root folder containing a <code>cadapp</code> subfolder (merged into the main log view), and optionally a <code>uwgm_client.log.*</code> file and a <code>cadloader</code> subfolder — each loaded into its own tab (<strong>UWGM Client</strong> / <strong>CAD Loader</strong>) when present. Both are optional; their absence doesn't raise an error.</span>
+            <span class="desc"><span class="menu">File <span class="menu-arrow">&#8594;</span> Open UWGM Logging Session...</span> (<kbd>Ctrl+Shift+O</kbd>) selects a session root folder containing a <code>cadapp</code> subfolder (merged into the main log view), and optionally a <code>uwgm_client.log.*</code> file and a <code>cadloader</code> subfolder — each loaded into its own tab (<strong>UWGM Client</strong> / <strong>CAD Loader</strong>) when present. Both are optional; their absence doesn't raise an error. The folder picker lets you type or paste a path directly, in addition to browsing for it.</span>
         </div>
     </div>
 
     <div class="tip">
         <strong>&#128161; Tip:</strong> Set the environment variable <code>PTC_LOG_DIR</code> to your log directory. The Open dialog will default to that folder automatically (or set a folder explicitly in Settings &#8594; Files &amp; Behavior).
+    </div>
+
+    <div class="screenshot">
+        <img src="images/uwgm-folder-path-dialog.png" alt="Select Folder dialog for a UWGM Logging Session with a path typed directly into the text box">
+        <div class="caption">Type or paste a folder path directly, or click Browse&#8230; to navigate the folder tree instead.</div>
     </div>
 
     <div class="screenshot">
@@ -632,6 +642,11 @@
         <div class="feature-row"><span class="label">&#128308; Red ball</span><span class="desc">Load error, or file has changed on disk since last load</span></div>
         <div class="feature-row"><span class="label">Progress bar</span><span class="desc">Shown during load, filter, expand-all, and save operations. Click status bar or press <kbd>Esc</kbd> to cancel.</span></div>
         <div class="feature-row"><span class="label">&#9888; Large log warning</span><span class="desc">Persistent amber text appended to the file name once the loaded log exceeds the <strong>Skip list view if file &gt;</strong> size threshold (Settings &#8594; Files &amp; Behavior, default 50 MB) &#8212; a heads-up that performance updates may be slow, not a hard limit.</span></div>
+    </div>
+
+    <div class="screenshot">
+        <img src="images/large-log-warning.png" alt="Status bar showing the amber Large log warning next to the file path and line count">
+        <div class="caption">The amber &#8220;Large log&#8221; note appears next to the file path once the threshold is crossed &#8212; the app keeps working, just possibly slower.</div>
     </div>
 </div>
 
@@ -1360,7 +1375,7 @@
     <table>
         <thead><tr><th>Mode</th><th>When it happens</th><th>How to tell</th></tr></thead>
         <tbody>
-            <tr><td><strong>Real Analysis</strong></td><td>A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid Anthropic/GitHub Copilot key)</td><td>The status label at the top of the panel reads <code>&lt;Provider&gt; ready &#8212; real analysis</code></td></tr>
+            <tr><td><strong>Real Analysis</strong></td><td>A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid OpenAI/Anthropic/GitHub Copilot key)</td><td>The status label at the top of the panel reads <code>&lt;Provider&gt; ready &#8212; real analysis</code></td></tr>
             <tr><td><strong>Sample Response</strong></td><td>AI is disabled, no provider is configured, or a live request fails (e.g. Ollama server unreachable)</td><td>The status label reads <code>Sample Mode (AI not configured)</code>, and every sample answer is prefixed with a highlighted <strong>&#9888; SAMPLE RESPONSE</strong> banner explaining it is a locally-generated, rule-based summary &#8212; not real AI output</td></tr>
         </tbody>
     </table>
@@ -1376,15 +1391,20 @@
             <tr><td><strong>Anthropic Claude</strong></td><td>&#9989; Functional</td><td>Requires an API key</td></tr>
             <tr><td><strong>GitHub Copilot</strong></td><td>&#9989; Functional</td><td>Requires an API token</td></tr>
             <tr><td><strong>Ollama (Self-Hosted)</strong></td><td>&#9989; Functional</td><td>Requires only a Server URL (default <code>http://localhost:11434</code>) &#8212; no API key, runs entirely on your own machine or network</td></tr>
-            <tr><td>OpenAI</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
-            <tr><td>Azure OpenAI</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
-            <tr><td>Google Gemini</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
+            <tr><td><strong>OpenAI</strong></td><td>&#9989; Functional</td><td>Requires an API key</td></tr>
+            <tr><td><strong>Azure OpenAI</strong></td><td>&#9989; Functional</td><td>Requires a resource Endpoint and API key; enter your Deployment Name in the <strong>Model</strong> field (it doubles as the Deployment Name for this provider)</td></tr>
+            <tr><td><strong>Google Gemini</strong></td><td>&#9989; Functional</td><td>Requires an API key from Google AI Studio</td></tr>
         </tbody>
     </table>
 
     <div class="screenshot">
         <img src="images/settings-ai-integration.png" alt="AI and Integration settings page configured for the Ollama provider">
         <div class="caption">AI &amp; Integration settings, configured for the self-hosted Ollama provider.</div>
+    </div>
+
+    <div class="screenshot">
+        <img src="images/settings-ai-azure.png" alt="AI and Integration settings page with Azure OpenAI selected, showing the Endpoint field">
+        <div class="caption">Selecting Azure OpenAI reveals the Endpoint field (Deployment Name is entered via the Model field above it).</div>
     </div>
 
     <h3>Quick-Analysis Buttons</h3>
@@ -1404,7 +1424,7 @@
     <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request. A row of example prompt chips (e.g. <em>&#8220;Summarize this log&#8221;</em>, <em>&#8220;Slowest methods?&#8221;</em>, <em>&#8220;Any errors?&#8221;</em>) sits above the chat box &#8212; click one to send it immediately without typing.</p>
 
     <div class="note">
-        <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, or Server URL for Ollama). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
+        <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, Server URL for Ollama, or Endpoint + API key for Azure OpenAI &#8212; type its Deployment Name into the <strong>Model</strong> field). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
     </div>
 
     <div class="tip">
@@ -1438,6 +1458,7 @@
             <tr><td>Branch CSV</td><td>Right-click node &#8594; Export Branch as CSV&#8230;</td><td>Name, Depth, Duration columns for a subtree</td></tr>
             <tr><td>Branch log</td><td>Right-click node &#8594; Save Branch&#8230;</td><td>The raw ENTER&#8594;EXIT log section for one method</td></tr>
             <tr><td>Analytics Report (.html)</td><td><em>(v4.0)</em> File &#8594; Export Analytics Report&#8230;</td><td>A self-contained, styled HTML report: aggregate statistics, top slowest calls, most frequently called methods, and call-depth analysis &#8212; opens automatically in your browser after saving</td></tr>
+            <tr><td>Investigation Report (.html / .md)</td><td>File &#8594; Export Investigation Report&#8230;</td><td>A snapshot of the current investigation session: source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies &#8212; choose HTML (opens in browser) or Markdown</td></tr>
         </tbody>
     </table>
 
@@ -1545,11 +1566,13 @@
     <p>On every startup (subject to the configured interval) the app silently downloads a small JSON manifest from GitHub and compares the remote version with the installed assembly version. If a newer version is found the <strong>Update Available</strong> dialog appears.</p>
 
     <h3>Update Available Dialog</h3>
+    <p>Shows the current and available version numbers plus the download size (fetched asynchronously so the dialog itself opens instantly). Once a download starts, the status label switches to a live <code>Downloading 4.2 MB / 12.8 MB — 1.3 MB/s, 6s remaining</code>-style readout that updates continuously with received bytes, total size, transfer speed, and estimated time remaining.</p>
     <table>
         <thead><tr><th>Button</th><th>Action</th></tr></thead>
         <tbody>
-            <tr><td><strong>Update Now</strong></td><td>Downloads the new <code>Cad3PLogBrowser.exe</code> to a temp folder with a live progress bar, then writes a batch script that replaces the EXE after the app closes and restarts it.</td></tr>
+            <tr><td><strong>Update Now</strong></td><td>Downloads the new <code>Cad3PLogBrowser.exe</code> to a temp folder with a live progress bar and speed/ETA readout, verifies its SHA-256 hash when the manifest provides one, then writes a batch script that replaces the EXE after the app closes and restarts it.</td></tr>
             <tr><td><strong>Later</strong></td><td>Dismisses the dialog. The next automatic check runs after the configured interval.</td></tr>
+            <tr><td><strong>Skip This Version</strong></td><td>Dismisses the dialog and remembers the version so it won&#8217;t prompt again for that specific release &#8212; later releases still prompt normally. See <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Updates</span> for the currently skipped version.</td></tr>
             <tr><td><strong>Cancel Download</strong></td><td>Appears while downloading. Aborts the transfer; the partial download is deleted.</td></tr>
         </tbody>
     </table>
@@ -1617,6 +1640,7 @@
             <tr><td>Export Heatmap&#8230;</td><td></td><td>Save heatmap PNG</td></tr>
             <tr><td>Export Call Graph&#8230;</td><td></td><td>Save call graph PNG</td></tr>
             <tr><td>Export Analytics Report&#8230;</td><td></td><td>Full analytics report combining performance, call graph, and log statistics</td></tr>
+            <tr><td>Export Investigation Report&#8230;</td><td></td><td>HTML/Markdown snapshot of the current investigation session: source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies</td></tr>
             <tr><td>Save Selected as XLS&#8230;</td><td></td><td>Save the ENTER&#8594;EXIT block of the selected tree node as an Excel spreadsheet</td></tr>
             <tr><td>Merge Logs&#8230;</td><td><kbd>Ctrl+M</kbd></td><td>Merge 2+ log files time-sorted</td></tr>
             <tr><td>Compare Logs&#8230;</td><td><kbd>Ctrl+D</kbd></td><td>Open the side-by-side diff tool</td></tr>
@@ -1695,10 +1719,15 @@
             <tr><td>About&#8230;</td><td></td><td>App name, version, build date, the currently open file, and a <strong>Copy Version Info</strong> button for bug reports</td></tr>
             <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Shows a &#8220;Checking for Updates&#8230;&#8221; progress indicator in the status bar while it runs, and a distinct error message if the fetch fails.</td></tr>
             <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
-            <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
+            <tr><td>Report Errors&#8230;</td><td></td><td>Opens a dialog to compose an error/crash report &#8212; recipient email, steps-to-reproduce text box, and (if found) the most recent crash log for this session, opened in Explorer for manual attachment since <code>mailto:</code> links can&#8217;t attach files automatically</td></tr>
             <tr><td>Visit Project Page</td><td></td><td>Opens the project&#8217;s GitHub Pages site &#8212; download the latest version, browse version history, read this guide online, or check the site&#8217;s Announcements and Videos pages (linked from its top navigation)</td></tr>
         </tbody>
     </table>
+
+    <div class="screenshot">
+        <img src="images/report-errors-dialog.png" alt="Report Errors dialog with a recipient email, steps-to-reproduce text box, and a note about the attached crash log">
+        <div class="caption">Report Errors&#8230; composes a report locally and hands it to your email client &#8212; no telemetry is sent automatically.</div>
+    </div>
 </div>
 
 
@@ -1895,9 +1924,8 @@
     <ul>
         <li>If AI is disabled or unconfigured, this is expected &#8212; the panel automatically shows a clearly labeled <strong>&#9888; SAMPLE RESPONSE</strong> instead of a real answer. Check the status label at the top of the panel: it reads <code>Sample Mode (AI not configured)</code> when no real provider is active.</li>
         <li>In <strong>Mock mode</strong>: a file must be loaded first.</li>
-        <li>In <strong>Anthropic / GitHub Copilot / Ollama mode</strong>: verify the API key or Server URL in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm. If the status label still shows <code>Sample Mode</code> after saving, double-check that <em>Enable AI Features</em> is checked and the correct provider is selected.</li>
+        <li>In <strong>OpenAI / Azure OpenAI / Anthropic / Google Gemini / GitHub Copilot / Ollama mode</strong>: verify the API key (or, for Azure OpenAI, the Endpoint/API key/Deployment Name) in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm. If the status label still shows <code>Sample Mode</code> after saving, double-check that <em>Enable AI Features</em> is checked and the correct provider is selected.</li>
         <li>If a request that started with a real provider suddenly falls back to a Sample Response mid-way, the banner text will include the underlying error (e.g. connection refused) &#8212; use that to diagnose (server stopped, wrong URL/port, expired key, etc.).</li>
-        <li><strong>OpenAI / Azure OpenAI / Google Gemini</strong> are listed in the provider drop-down but are not yet functional (&#8220;Coming Soon&#8221;) &#8212; selecting one won&#8217;t send any requests and will always show Sample Responses.</li>
     </ul>
 
     <h3>Compare Logs shows no differences but the files look different</h3>
@@ -1940,10 +1968,10 @@
     <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Default open folder</span>. The env variable takes precedence unless a custom path is also set.</p>
 
     <h3>Can I use the Flame Graph or Heatmap without an internet connection?</h3>
-    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only Anthropic, GitHub Copilot, &#8220;Check for Updates&#8221;, and &#8220;Report Errors&#8221; require internet.</p>
+    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only OpenAI, Azure OpenAI, Anthropic, Google Gemini, GitHub Copilot, and &#8220;Check for Updates&#8221; require internet.</p>
 
     <h3>Where do I report bugs or request features?</h3>
-    <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors</span> to open the GitHub Issues page, or visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
+    <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors&#8230;</span> to fill in a recipient, describe the steps to reproduce, and (if one exists) attach the session&#8217;s crash log via Explorer &#8212; or file an issue directly at <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
 </div>
 
 
