@@ -491,6 +491,7 @@
     <h2 class="section-title"><span class="ico">&#11088;</span> What&#8217;s New in v4.0</h2>
 
     <h3>&#128295; Most Recent</h3>
+    <p>The <a href="#settings">Settings dialog&#8217;s</a> AI &amp; Integration tab now has real, working configuration for all seven AI providers &#8212; <strong>OpenAI</strong>, <strong>Azure OpenAI</strong>, <strong>Anthropic Claude</strong>, <strong>Google Gemini</strong>, <strong>GitHub Copilot</strong>, self-hosted <strong>Ollama</strong>, and <strong>Mock</strong> &#8212; including an Endpoint field shown only for Azure OpenAI, and a Model field you can type into directly to enter a Deployment Name. Previously these three providers were only wired up in a separate dialog that was never actually opened from anywhere in the app, so they showed as &#8220;(Coming Soon)&#8221; with no way to save settings for them.</p>
     <p>The <strong>Open UWGM Logging Session…</strong> dialog now lets you type or paste a folder path directly, in addition to browsing for it &#8212; useful when copying a path from elsewhere instead of navigating the folder tree.</p>
     <p>File &#8594; <strong>Export Investigation Report...</strong> is new &#8212; a one-click snapshot of the current investigation session (source file, active filter, bookmarks, top slowest/frequent calls, call depth, exception groups, correlation IDs, and baseline anomalies) as either a styled HTML report or a Markdown document, useful for handing off an investigation or attaching to a ticket.</p>
 
@@ -641,6 +642,11 @@
         <div class="feature-row"><span class="label">&#128308; Red ball</span><span class="desc">Load error, or file has changed on disk since last load</span></div>
         <div class="feature-row"><span class="label">Progress bar</span><span class="desc">Shown during load, filter, expand-all, and save operations. Click status bar or press <kbd>Esc</kbd> to cancel.</span></div>
         <div class="feature-row"><span class="label">&#9888; Large log warning</span><span class="desc">Persistent amber text appended to the file name once the loaded log exceeds the <strong>Skip list view if file &gt;</strong> size threshold (Settings &#8594; Files &amp; Behavior, default 50 MB) &#8212; a heads-up that performance updates may be slow, not a hard limit.</span></div>
+    </div>
+
+    <div class="screenshot">
+        <img src="images/large-log-warning.png" alt="Status bar showing the amber Large log warning next to the file path and line count">
+        <div class="caption">The amber &#8220;Large log&#8221; note appears next to the file path once the threshold is crossed &#8212; the app keeps working, just possibly slower.</div>
     </div>
 </div>
 
@@ -1560,11 +1566,13 @@
     <p>On every startup (subject to the configured interval) the app silently downloads a small JSON manifest from GitHub and compares the remote version with the installed assembly version. If a newer version is found the <strong>Update Available</strong> dialog appears.</p>
 
     <h3>Update Available Dialog</h3>
+    <p>Shows the current and available version numbers plus the download size (fetched asynchronously so the dialog itself opens instantly). Once a download starts, the status label switches to a live <code>Downloading 4.2 MB / 12.8 MB — 1.3 MB/s, 6s remaining</code>-style readout that updates continuously with received bytes, total size, transfer speed, and estimated time remaining.</p>
     <table>
         <thead><tr><th>Button</th><th>Action</th></tr></thead>
         <tbody>
-            <tr><td><strong>Update Now</strong></td><td>Downloads the new <code>Cad3PLogBrowser.exe</code> to a temp folder with a live progress bar, then writes a batch script that replaces the EXE after the app closes and restarts it.</td></tr>
+            <tr><td><strong>Update Now</strong></td><td>Downloads the new <code>Cad3PLogBrowser.exe</code> to a temp folder with a live progress bar and speed/ETA readout, verifies its SHA-256 hash when the manifest provides one, then writes a batch script that replaces the EXE after the app closes and restarts it.</td></tr>
             <tr><td><strong>Later</strong></td><td>Dismisses the dialog. The next automatic check runs after the configured interval.</td></tr>
+            <tr><td><strong>Skip This Version</strong></td><td>Dismisses the dialog and remembers the version so it won&#8217;t prompt again for that specific release &#8212; later releases still prompt normally. See <span class="menu">Settings <span class="menu-arrow">&#8594;</span> Updates</span> for the currently skipped version.</td></tr>
             <tr><td><strong>Cancel Download</strong></td><td>Appears while downloading. Aborts the transfer; the partial download is deleted.</td></tr>
         </tbody>
     </table>
@@ -1711,10 +1719,15 @@
             <tr><td>About&#8230;</td><td></td><td>App name, version, build date, the currently open file, and a <strong>Copy Version Info</strong> button for bug reports</td></tr>
             <tr><td>Check for Updates&#8230;</td><td></td><td>Fetches the remote version manifest, compares it with the installed version, and shows an update dialog if a newer version is available. Shows a &#8220;Checking for Updates&#8230;&#8221; progress indicator in the status bar while it runs, and a distinct error message if the fetch fails.</td></tr>
             <tr><td>View Update Log&#8230;</td><td></td><td>Shows the history of past automatic and manual update checks</td></tr>
-            <tr><td>Report Errors&#8230;</td><td></td><td>Opens GitHub Issues page</td></tr>
+            <tr><td>Report Errors&#8230;</td><td></td><td>Opens a dialog to compose an error/crash report &#8212; recipient email, steps-to-reproduce text box, and (if found) the most recent crash log for this session, opened in Explorer for manual attachment since <code>mailto:</code> links can&#8217;t attach files automatically</td></tr>
             <tr><td>Visit Project Page</td><td></td><td>Opens the project&#8217;s GitHub Pages site &#8212; download the latest version, browse version history, read this guide online, or check the site&#8217;s Announcements and Videos pages (linked from its top navigation)</td></tr>
         </tbody>
     </table>
+
+    <div class="screenshot">
+        <img src="images/report-errors-dialog.png" alt="Report Errors dialog with a recipient email, steps-to-reproduce text box, and a note about the attached crash log">
+        <div class="caption">Report Errors&#8230; composes a report locally and hands it to your email client &#8212; no telemetry is sent automatically.</div>
+    </div>
 </div>
 
 
@@ -1955,10 +1968,10 @@
     <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Default open folder</span>. The env variable takes precedence unless a custom path is also set.</p>
 
     <h3>Can I use the Flame Graph or Heatmap without an internet connection?</h3>
-    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only OpenAI, Azure OpenAI, Anthropic, Google Gemini, GitHub Copilot, &#8220;Check for Updates&#8221;, and &#8220;Report Errors&#8221; require internet.</p>
+    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only OpenAI, Azure OpenAI, Anthropic, Google Gemini, GitHub Copilot, and &#8220;Check for Updates&#8221; require internet.</p>
 
     <h3>Where do I report bugs or request features?</h3>
-    <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors</span> to open the GitHub Issues page, or visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
+    <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors&#8230;</span> to fill in a recipient, describe the steps to reproduce, and (if one exists) attach the session&#8217;s crash log via Explorer &#8212; or file an issue directly at <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
 </div>
 
 

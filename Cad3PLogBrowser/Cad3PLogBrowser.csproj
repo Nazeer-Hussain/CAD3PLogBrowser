@@ -328,6 +328,14 @@
       <Link>Help\images\settings-ai-azure.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\Help\images\report-errors-dialog.png">
+      <Link>Help\images\report-errors-dialog.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Help\images\large-log-warning.png">
+      <Link>Help\images\large-log-warning.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\Help\images\compare-logs-dialog.png">
       <Link>Help\images\compare-logs-dialog.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
