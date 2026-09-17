@@ -225,6 +225,9 @@
     <Compile Include="UI\CompareOptionsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UI\FolderPathDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="UI\LineInspectorPanel.cs">
       <SubType>Component</SubType>
     </Compile>

@@ -4891,14 +4891,13 @@ namespace Cad3PLogBrowser
         // ── UWGM Logging Session ──────────────────────────────────────────────
         private void openUwgmSessionMenuItem_Click(object sender, EventArgs e)
         {
-            using (var dlg = new FolderBrowserDialog())
+            string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
+            string initialPath = !string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir) ? ptcLogDir : string.Empty;
+
+            using (var dlg = new UI.FolderPathDialog(
+                "Select the UWGM logging session folder (contains a 'cadapp' subfolder). You can type/paste a path or use Browse…",
+                initialPath))
             {
-                dlg.Description = "Select the UWGM logging session folder (contains a 'cadapp' subfolder)";
-
-                string ptcLogDir = Environment.GetEnvironmentVariable("PTC_LOG_DIR");
-                if (!string.IsNullOrEmpty(ptcLogDir) && Directory.Exists(ptcLogDir))
-                    dlg.SelectedPath = ptcLogDir;
-
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                     _ = OpenUwgmLoggingSessionAsync(dlg.SelectedPath);
             }
