@@ -1,4 +1,5 @@
 using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Cad3PLogBrowser.AI.Models;
@@ -50,6 +51,26 @@ namespace Cad3PLogBrowser.UI.AI
 
         private Label lblStatus;
 
+        // Maps cmbProvider.Items index -> AIProviderType. Mock's enum value (99) doesn't
+        // align with its combo position (0), so a direct cast would incorrectly resolve
+        // to AIProviderType.None; this explicit table avoids that mismatch.
+        private static readonly AIProviderType[] ProviderIndexMap =
+        {
+            AIProviderType.Mock,
+            AIProviderType.OpenAI,
+            AIProviderType.AzureOpenAI,
+            AIProviderType.Anthropic,
+            AIProviderType.GoogleGemini,
+            AIProviderType.GitHubCopilot,
+            AIProviderType.Ollama
+        };
+
+        private static int ProviderTypeToIndex(AIProviderType type)
+        {
+            int index = Array.IndexOf(ProviderIndexMap, type);
+            return index >= 0 ? index : 0;
+        }
+
         public AISettingsDialog()
         {
             InitializeComponent();
@@ -77,7 +98,7 @@ namespace Cad3PLogBrowser.UI.AI
 
             lblProvider = new Label { Text = "Provider:", Location = new Point(10, 55), Size = new Size(80, 20) };
             cmbProvider = new ComboBox { Location = new Point(100, 53), Size = new Size(440, 25), DropDownStyle = ComboBoxStyle.DropDownList };
-            cmbProvider.Items.AddRange(new object[] { "Mock (Testing)", "Anthropic Claude", "GitHub Copilot", "OpenAI (Coming Soon)", "Azure OpenAI (Coming Soon)", "Google Gemini (Coming Soon)" });
+            cmbProvider.Items.AddRange(new object[] { "Mock (Testing)", "OpenAI", "Azure OpenAI (Coming Soon)", "Anthropic Claude", "Google Gemini (Coming Soon)", "GitHub Copilot", "Ollama (Self-Hosted)" });
             cmbProvider.SelectedIndex = 0;
             cmbProvider.SelectedIndexChanged += cmbProvider_SelectedIndexChanged;
 
@@ -178,7 +199,7 @@ namespace Cad3PLogBrowser.UI.AI
             _settings = AISettingsService.Load();
 
             chkEnableAI.Checked = _settings.EnableAI;
-            cmbProvider.SelectedIndex = (int)_settings.SelectedProvider;
+            cmbProvider.SelectedIndex = ProviderTypeToIndex(_settings.SelectedProvider);
             txtApiKey.Text = _settings.GetCurrentApiKey();
             cmbModel.Text = _settings.GetCurrentModel();
             trackTemperature.Value = (int)(_settings.Temperature * 10);
@@ -221,7 +242,7 @@ namespace Cad3PLogBrowser.UI.AI
 
         private void UpdateProviderFields()
         {
-            var provider = (AIProviderType)cmbProvider.SelectedIndex;
+            var provider = ProviderIndexMap[cmbProvider.SelectedIndex];
 
             cmbModel.Items.Clear();
 
@@ -234,6 +255,22 @@ namespace Cad3PLogBrowser.UI.AI
                     lblApiKeyHelp.Text = "Mock provider works offline - no API key needed";
                     lnkGetApiKey.Visible = false;
                     cmbModel.Items.Add("mock-model-1.0");
+                    cmbModel.SelectedIndex = 0;
+                    break;
+
+                case AIProviderType.OpenAI:
+                    txtApiKey.Text = _settings.OpenAIApiKey;
+                    txtApiKey.Enabled = chkEnableAI.Checked;
+                    btnShowHideKey.Enabled = txtApiKey.Enabled;
+                    lblApiKeyHelp.Text = "Enter your OpenAI API key (starts with sk-...)";
+                    lnkGetApiKey.Visible = true;
+                    lnkGetApiKey.Text = "Get API Key from platform.openai.com ?";
+                    cmbModel.Items.AddRange(new[] {
+                        "gpt-4o",
+                        "gpt-4o-mini",
+                        "gpt-4-turbo",
+                        "gpt-3.5-turbo"
+                    });
                     cmbModel.SelectedIndex = 0;
                     break;
 
@@ -267,6 +304,23 @@ namespace Cad3PLogBrowser.UI.AI
                     cmbModel.SelectedIndex = 0;
                     break;
 
+                case AIProviderType.Ollama:
+                    txtApiKey.Text = _settings.OllamaServerUrl;
+                    txtApiKey.Enabled = chkEnableAI.Checked;
+                    btnShowHideKey.Enabled = false;
+                    lblApiKeyHelp.Text = "Enter your Ollama server URL (e.g. http://localhost:11434) instead of an API key";
+                    lnkGetApiKey.Visible = true;
+                    lnkGetApiKey.Text = "Get Ollama from ollama.com ?";
+                    cmbModel.Items.AddRange(new[] {
+                        "llama3",
+                        "mistral",
+                        "codellama",
+                        "phi3"
+                    });
+                    cmbModel.Text = _settings.OllamaModel;
+                    if (cmbModel.SelectedIndex < 0) cmbModel.SelectedIndex = 0;
+                    break;
+
                 default:
                     txtApiKey.Text = "";
                     txtApiKey.Enabled = false;
@@ -292,16 +346,22 @@ namespace Cad3PLogBrowser.UI.AI
 
         private void lnkGetApiKey_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            var provider = (AIProviderType)cmbProvider.SelectedIndex;
+            var provider = ProviderIndexMap[cmbProvider.SelectedIndex];
             string url = "";
 
             switch (provider)
             {
+                case AIProviderType.OpenAI:
+                    url = "https://platform.openai.com/api-keys";
+                    break;
                 case AIProviderType.Anthropic:
                     url = "https://console.anthropic.com/";
                     break;
                 case AIProviderType.GitHubCopilot:
                     url = "https://github.com/settings/tokens";
+                    break;
+                case AIProviderType.Ollama:
+                    url = "https://ollama.com/";
                     break;
             }
 
@@ -422,7 +482,7 @@ namespace Cad3PLogBrowser.UI.AI
         private void SaveCurrentSettings()
         {
             _settings.EnableAI = chkEnableAI.Checked;
-            _settings.SelectedProvider = (AIProviderType)cmbProvider.SelectedIndex;
+            _settings.SelectedProvider = ProviderIndexMap[cmbProvider.SelectedIndex];
             _settings.Temperature = trackTemperature.Value / 10.0;
             _settings.MaxTokens = (int)numMaxTokens.Value;
             _settings.EnableStreaming = chkStreaming.Checked;
@@ -433,6 +493,10 @@ namespace Cad3PLogBrowser.UI.AI
             // Save API key based on provider
             switch (_settings.SelectedProvider)
             {
+                case AIProviderType.OpenAI:
+                    _settings.OpenAIApiKey = txtApiKey.Text.Trim();
+                    _settings.OpenAIModel = cmbModel.Text;
+                    break;
                 case AIProviderType.Anthropic:
                     _settings.AnthropicApiKey = txtApiKey.Text.Trim();
                     _settings.AnthropicModel = cmbModel.Text;
@@ -440,6 +504,10 @@ namespace Cad3PLogBrowser.UI.AI
                 case AIProviderType.GitHubCopilot:
                     _settings.GitHubCopilotApiToken = txtApiKey.Text.Trim();
                     _settings.GitHubCopilotModel = cmbModel.Text;
+                    break;
+                case AIProviderType.Ollama:
+                    _settings.OllamaServerUrl = txtApiKey.Text.Trim();
+                    _settings.OllamaModel = cmbModel.Text;
                     break;
                 // Add other providers when implemented
             }

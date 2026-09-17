@@ -8,6 +8,7 @@ using Cad3PLogBrowser.AI.Providers.Anthropic;
 using Cad3PLogBrowser.AI.Providers.Mock;
 using Cad3PLogBrowser.AI.Providers.GitHub;
 using Cad3PLogBrowser.AI.Providers.Ollama;
+using Cad3PLogBrowser.AI.Providers.OpenAI;
 using Cad3PLogBrowser.AI.Prompts;
 using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
@@ -409,7 +410,18 @@ namespace Cad3PLogBrowser.AI.Services
                         _currentProvider = new MockProvider();
                         break;
 
-                    // TODO: Implement other providers (OpenAI, Azure OpenAI, Google Gemini)
+                    case AIProviderType.OpenAI:
+                        string openAiKey = LoadApiKey("OpenAI") ?? _settings.OpenAIApiKey;
+                        if (!string.IsNullOrWhiteSpace(openAiKey))
+                        {
+                            _currentProvider = new OpenAIProvider(
+                                openAiKey,
+                                _settings.OpenAIModel,
+                                _settings.OpenAIOrganization);
+                        }
+                        break;
+
+                    // TODO: Implement other providers (Azure OpenAI, Google Gemini)
 
                     default:
                         _currentProvider = null;

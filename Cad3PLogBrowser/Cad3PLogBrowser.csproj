@@ -105,6 +105,8 @@
     <Compile Include="AI\Providers\Mock\MockProvider.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaConversation.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaProvider.cs" />
+    <Compile Include="AI\Providers\OpenAI\OpenAIConversation.cs" />
+    <Compile Include="AI\Providers\OpenAI\OpenAIProvider.cs" />
     <Compile Include="AI\Security\AISettingsService.cs" />
     <Compile Include="AI\Security\CredentialManager.cs" />
     <Compile Include="AI\Security\DataRedactor.cs" />
