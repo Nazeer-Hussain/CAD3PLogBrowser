@@ -9,6 +9,8 @@ using Cad3PLogBrowser.AI.Providers.Mock;
 using Cad3PLogBrowser.AI.Providers.GitHub;
 using Cad3PLogBrowser.AI.Providers.Ollama;
 using Cad3PLogBrowser.AI.Providers.OpenAI;
+using Cad3PLogBrowser.AI.Providers.AzureOpenAI;
+using Cad3PLogBrowser.AI.Providers.Google;
 using Cad3PLogBrowser.AI.Prompts;
 using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
@@ -421,7 +423,29 @@ namespace Cad3PLogBrowser.AI.Services
                         }
                         break;
 
-                    // TODO: Implement other providers (Azure OpenAI, Google Gemini)
+                    case AIProviderType.AzureOpenAI:
+                        string azureKey = LoadApiKey("AzureOpenAI") ?? _settings.AzureOpenAIApiKey;
+                        if (!string.IsNullOrWhiteSpace(azureKey) &&
+                            !string.IsNullOrWhiteSpace(_settings.AzureOpenAIEndpoint) &&
+                            !string.IsNullOrWhiteSpace(_settings.AzureOpenAIDeploymentName))
+                        {
+                            _currentProvider = new AzureOpenAIProvider(
+                                azureKey,
+                                _settings.AzureOpenAIEndpoint,
+                                _settings.AzureOpenAIDeploymentName,
+                                _settings.AzureOpenAIApiVersion);
+                        }
+                        break;
+
+                    case AIProviderType.GoogleGemini:
+                        string googleKey = LoadApiKey("GoogleGemini") ?? _settings.GoogleApiKey;
+                        if (!string.IsNullOrWhiteSpace(googleKey))
+                        {
+                            _currentProvider = new GoogleGeminiProvider(
+                                googleKey,
+                                _settings.GoogleModel);
+                        }
+                        break;
 
                     default:
                         _currentProvider = null;

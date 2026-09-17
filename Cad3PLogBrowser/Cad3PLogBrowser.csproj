@@ -100,8 +100,12 @@
     <Compile Include="AI\Prompts\SystemPrompts.cs" />
     <Compile Include="AI\Providers\Anthropic\AnthropicConversation.cs" />
     <Compile Include="AI\Providers\Anthropic\AnthropicProvider.cs" />
+    <Compile Include="AI\Providers\AzureOpenAI\AzureOpenAIConversation.cs" />
+    <Compile Include="AI\Providers\AzureOpenAI\AzureOpenAIProvider.cs" />
     <Compile Include="AI\Providers\GitHub\GitHubConversation.cs" />
     <Compile Include="AI\Providers\GitHub\GitHubCopilotProvider.cs" />
+    <Compile Include="AI\Providers\Google\GoogleGeminiConversation.cs" />
+    <Compile Include="AI\Providers\Google\GoogleGeminiProvider.cs" />
     <Compile Include="AI\Providers\Mock\MockProvider.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaConversation.cs" />
     <Compile Include="AI\Providers\Ollama\OllamaProvider.cs" />

@@ -24,6 +24,8 @@ namespace Cad3PLogBrowser.UI.AI
         private Button btnShowHideKey;
         private Label lblApiKeyHelp;
         private LinkLabel lnkGetApiKey;
+        private Label lblEndpoint;
+        private TextBox txtEndpoint;
 
         private GroupBox grpModel;
         private Label lblModel;
@@ -91,14 +93,14 @@ namespace Cad3PLogBrowser.UI.AI
             int y = 10;
 
             // Provider Group
-            grpProvider = new GroupBox { Text = "AI Provider", Location = new Point(10, y), Size = new Size(560, 180) };
+            grpProvider = new GroupBox { Text = "AI Provider", Location = new Point(10, y), Size = new Size(560, 205) };
 
             chkEnableAI = new CheckBox { Text = "Enable AI Features", Location = new Point(10, 25), Size = new Size(200, 20), Checked = true };
             chkEnableAI.CheckedChanged += chkEnableAI_CheckedChanged;
 
             lblProvider = new Label { Text = "Provider:", Location = new Point(10, 55), Size = new Size(80, 20) };
             cmbProvider = new ComboBox { Location = new Point(100, 53), Size = new Size(440, 25), DropDownStyle = ComboBoxStyle.DropDownList };
-            cmbProvider.Items.AddRange(new object[] { "Mock (Testing)", "OpenAI", "Azure OpenAI (Coming Soon)", "Anthropic Claude", "Google Gemini (Coming Soon)", "GitHub Copilot", "Ollama (Self-Hosted)" });
+            cmbProvider.Items.AddRange(new object[] { "Mock (Testing)", "OpenAI", "Azure OpenAI", "Anthropic Claude", "Google Gemini", "GitHub Copilot", "Ollama (Self-Hosted)" });
             cmbProvider.SelectedIndex = 0;
             cmbProvider.SelectedIndexChanged += cmbProvider_SelectedIndexChanged;
 
@@ -111,9 +113,12 @@ namespace Cad3PLogBrowser.UI.AI
             lnkGetApiKey = new LinkLabel { Text = "Get API Key ?", Location = new Point(100, 143), Size = new Size(150, 20), Visible = false };
             lnkGetApiKey.LinkClicked += lnkGetApiKey_LinkClicked;
 
-            grpProvider.Controls.AddRange(new Control[] { chkEnableAI, lblProvider, cmbProvider, lblApiKey, txtApiKey, btnShowHideKey, lblApiKeyHelp, lnkGetApiKey });
+            lblEndpoint = new Label { Text = "Endpoint:", Location = new Point(10, 168), Size = new Size(80, 20), Visible = false };
+            txtEndpoint = new TextBox { Location = new Point(100, 166), Size = new Size(440, 25), Visible = false };
 
-            y += 190;
+            grpProvider.Controls.AddRange(new Control[] { chkEnableAI, lblProvider, cmbProvider, lblApiKey, txtApiKey, btnShowHideKey, lblApiKeyHelp, lnkGetApiKey, lblEndpoint, txtEndpoint });
+
+            y += 215;
 
             // Model Group
             grpModel = new GroupBox { Text = "Model Configuration", Location = new Point(10, y), Size = new Size(560, 180) };
@@ -224,6 +229,7 @@ namespace Cad3PLogBrowser.UI.AI
             cmbProvider.Enabled = enabled;
             txtApiKey.Enabled = enabled && cmbProvider.SelectedIndex > 0;
             btnShowHideKey.Enabled = txtApiKey.Enabled;
+            txtEndpoint.Enabled = enabled;
             cmbModel.Enabled = enabled;
             trackTemperature.Enabled = enabled;
             numMaxTokens.Enabled = enabled;
@@ -245,6 +251,8 @@ namespace Cad3PLogBrowser.UI.AI
             var provider = ProviderIndexMap[cmbProvider.SelectedIndex];
 
             cmbModel.Items.Clear();
+            lblEndpoint.Visible = provider == AIProviderType.AzureOpenAI;
+            txtEndpoint.Visible = provider == AIProviderType.AzureOpenAI;
 
             switch (provider)
             {
@@ -274,6 +282,26 @@ namespace Cad3PLogBrowser.UI.AI
                     cmbModel.SelectedIndex = 0;
                     break;
 
+                case AIProviderType.AzureOpenAI:
+                    txtApiKey.Text = _settings.AzureOpenAIApiKey;
+                    txtApiKey.Enabled = chkEnableAI.Checked;
+                    btnShowHideKey.Enabled = txtApiKey.Enabled;
+                    lblApiKeyHelp.Text = "Enter your Azure OpenAI API key (also set Endpoint and Deployment Name below)";
+                    lnkGetApiKey.Visible = true;
+                    lnkGetApiKey.Text = "Get started at portal.azure.com ?";
+                    txtEndpoint.Text = _settings.AzureOpenAIEndpoint;
+                    cmbModel.Items.AddRange(new[] {
+                        _settings.AzureOpenAIDeploymentName ?? "",
+                        "gpt-4o",
+                        "gpt-4",
+                        "gpt-35-turbo"
+                    });
+                    cmbModel.Text = string.IsNullOrWhiteSpace(_settings.AzureOpenAIDeploymentName)
+                        ? "gpt-4o"
+                        : _settings.AzureOpenAIDeploymentName;
+                    if (cmbModel.SelectedIndex < 0) cmbModel.SelectedIndex = 0;
+                    break;
+
                 case AIProviderType.Anthropic:
                     txtApiKey.Text = _settings.AnthropicApiKey;
                     txtApiKey.Enabled = chkEnableAI.Checked;
@@ -287,6 +315,22 @@ namespace Cad3PLogBrowser.UI.AI
                         "claude-3-haiku-latest"
                     });
                     cmbModel.SelectedIndex = 0;
+                    break;
+
+                case AIProviderType.GoogleGemini:
+                    txtApiKey.Text = _settings.GoogleApiKey;
+                    txtApiKey.Enabled = chkEnableAI.Checked;
+                    btnShowHideKey.Enabled = txtApiKey.Enabled;
+                    lblApiKeyHelp.Text = "Enter your Google AI Studio API key";
+                    lnkGetApiKey.Visible = true;
+                    lnkGetApiKey.Text = "Get API Key from aistudio.google.com ?";
+                    cmbModel.Items.AddRange(new[] {
+                        "gemini-1.5-pro",
+                        "gemini-1.5-flash",
+                        "gemini-pro"
+                    });
+                    cmbModel.Text = _settings.GoogleModel;
+                    if (cmbModel.SelectedIndex < 0) cmbModel.SelectedIndex = 0;
                     break;
 
                 case AIProviderType.GitHubCopilot:
@@ -325,9 +369,9 @@ namespace Cad3PLogBrowser.UI.AI
                     txtApiKey.Text = "";
                     txtApiKey.Enabled = false;
                     btnShowHideKey.Enabled = false;
-                    lblApiKeyHelp.Text = "This provider is coming soon";
+                    lblApiKeyHelp.Text = "Select a provider to configure";
                     lnkGetApiKey.Visible = false;
-                    cmbModel.Items.Add("(Coming soon)");
+                    cmbModel.Items.Add("(No provider selected)");
                     cmbModel.SelectedIndex = 0;
                     break;
             }
@@ -354,8 +398,14 @@ namespace Cad3PLogBrowser.UI.AI
                 case AIProviderType.OpenAI:
                     url = "https://platform.openai.com/api-keys";
                     break;
+                case AIProviderType.AzureOpenAI:
+                    url = "https://portal.azure.com/#create/Microsoft.CognitiveServicesOpenAI";
+                    break;
                 case AIProviderType.Anthropic:
                     url = "https://console.anthropic.com/";
+                    break;
+                case AIProviderType.GoogleGemini:
+                    url = "https://aistudio.google.com/app/apikey";
                     break;
                 case AIProviderType.GitHubCopilot:
                     url = "https://github.com/settings/tokens";
@@ -455,6 +505,18 @@ namespace Cad3PLogBrowser.UI.AI
                     txtApiKey.Focus();
                     return;
                 }
+
+                if (ProviderIndexMap[cmbProvider.SelectedIndex] == AIProviderType.AzureOpenAI &&
+                    string.IsNullOrWhiteSpace(txtEndpoint.Text))
+                {
+                    MessageBox.Show(
+                        "Please enter your Azure OpenAI resource endpoint (e.g. https://my-resource.openai.azure.com).",
+                        "Validation",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    txtEndpoint.Focus();
+                    return;
+                }
             }
 
             SaveCurrentSettings();
@@ -497,9 +559,18 @@ namespace Cad3PLogBrowser.UI.AI
                     _settings.OpenAIApiKey = txtApiKey.Text.Trim();
                     _settings.OpenAIModel = cmbModel.Text;
                     break;
+                case AIProviderType.AzureOpenAI:
+                    _settings.AzureOpenAIApiKey = txtApiKey.Text.Trim();
+                    _settings.AzureOpenAIDeploymentName = cmbModel.Text.Trim();
+                    _settings.AzureOpenAIEndpoint = txtEndpoint.Text.Trim();
+                    break;
                 case AIProviderType.Anthropic:
                     _settings.AnthropicApiKey = txtApiKey.Text.Trim();
                     _settings.AnthropicModel = cmbModel.Text;
+                    break;
+                case AIProviderType.GoogleGemini:
+                    _settings.GoogleApiKey = txtApiKey.Text.Trim();
+                    _settings.GoogleModel = cmbModel.Text.Trim();
                     break;
                 case AIProviderType.GitHubCopilot:
                     _settings.GitHubCopilotApiToken = txtApiKey.Text.Trim();

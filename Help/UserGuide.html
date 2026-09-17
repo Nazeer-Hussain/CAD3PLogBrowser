@@ -550,8 +550,8 @@
     <h3>&#127775; Expand to Level (tree)</h3>
     <p>The Call Tree and API Tree context menus (and the Edit menu) gained an <strong>Expand to Level...</strong> command that expands every node down to a depth you choose in one step, collapsing anything deeper &#8212; a middle ground between one node at a time and Expand All. See <a href="#expand-to-level">Expand to Level</a>.</p>
 
-    <h3>&#129504; AI Assistant: multiple providers, including self-hosted Ollama</h3>
-    <p>The AI Assistant now supports several providers from one Settings page: <strong>OpenAI</strong>, <strong>Anthropic Claude</strong>, <strong>GitHub Copilot</strong>, and self-hosted <strong>Ollama</strong> (plus a Mock provider for testing without any network calls). Azure OpenAI and Google Gemini are listed as <em>Coming Soon</em> &#8212; the settings fields exist but those two providers aren&#8217;t wired up to make requests yet. A long-standing bug where the Ollama server URL (and several other AI settings) silently reset to the default on every save has also been fixed. See <a href="#ai-assistant">AI Assistant Tab</a>.</p>
+    <h3>&#129504; AI Assistant: all providers now available, including self-hosted Ollama</h3>
+    <p>The AI Assistant now supports six providers from one Settings page: <strong>OpenAI</strong>, <strong>Azure OpenAI</strong>, <strong>Anthropic Claude</strong>, <strong>Google Gemini</strong>, <strong>GitHub Copilot</strong>, and self-hosted <strong>Ollama</strong> (plus a Mock provider for testing without any network calls). Azure OpenAI requires an Endpoint, API key, and Deployment Name (configured in the Settings dialog); Google Gemini requires only an API key. A long-standing bug where the Ollama server URL (and several other AI settings) silently reset to the default on every save has also been fixed. See <a href="#ai-assistant">AI Assistant Tab</a>.</p>
 
     <div class="note">
         <strong>&#128221; Earlier in the v3.1 line:</strong> automatic update checks, ENTER/EXIT counting fixes in the API Tree, a redesigned Settings dialog, corrected toolbar icons, and theme-switching performance improvements. These are all still current &#8212; see <a href="#updates">Auto-Update</a> and <a href="#settings">Settings Dialog</a> for details.
@@ -1381,8 +1381,8 @@
             <tr><td><strong>GitHub Copilot</strong></td><td>&#9989; Functional</td><td>Requires an API token</td></tr>
             <tr><td><strong>Ollama (Self-Hosted)</strong></td><td>&#9989; Functional</td><td>Requires only a Server URL (default <code>http://localhost:11434</code>) &#8212; no API key, runs entirely on your own machine or network</td></tr>
             <tr><td><strong>OpenAI</strong></td><td>&#9989; Functional</td><td>Requires an API key (Organization ID optional)</td></tr>
-            <tr><td>Azure OpenAI</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
-            <tr><td>Google Gemini</td><td>&#8987; Coming Soon</td><td>Settings fields exist; not yet wired up to make requests</td></tr>
+            <tr><td>Azure OpenAI</td><td>&#9989; Functional</td><td>Requires a resource Endpoint, API key, and Deployment Name</td></tr>
+            <tr><td>Google Gemini</td><td>&#9989; Functional</td><td>Requires an API key from Google AI Studio</td></tr>
         </tbody>
     </table>
 
@@ -1901,9 +1901,8 @@
     <ul>
         <li>If AI is disabled or unconfigured, this is expected &#8212; the panel automatically shows a clearly labeled <strong>&#9888; SAMPLE RESPONSE</strong> instead of a real answer. Check the status label at the top of the panel: it reads <code>Sample Mode (AI not configured)</code> when no real provider is active.</li>
         <li>In <strong>Mock mode</strong>: a file must be loaded first.</li>
-        <li>In <strong>OpenAI / Anthropic / GitHub Copilot / Ollama mode</strong>: verify the API key or Server URL in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm. If the status label still shows <code>Sample Mode</code> after saving, double-check that <em>Enable AI Features</em> is checked and the correct provider is selected.</li>
+        <li>In <strong>OpenAI / Azure OpenAI / Anthropic / Google Gemini / GitHub Copilot / Ollama mode</strong>: verify the API key (or, for Azure OpenAI, the Endpoint/API key/Deployment Name) in Settings, check connectivity, and use <strong>Test Connection</strong> to confirm. If the status label still shows <code>Sample Mode</code> after saving, double-check that <em>Enable AI Features</em> is checked and the correct provider is selected.</li>
         <li>If a request that started with a real provider suddenly falls back to a Sample Response mid-way, the banner text will include the underlying error (e.g. connection refused) &#8212; use that to diagnose (server stopped, wrong URL/port, expired key, etc.).</li>
-        <li><strong>Azure OpenAI / Google Gemini</strong> are listed in the provider drop-down but are not yet functional (&#8220;Coming Soon&#8221;) &#8212; selecting one won&#8217;t send any requests and will always show Sample Responses.</li>
     </ul>
 
     <h3>Compare Logs shows no differences but the files look different</h3>
@@ -1946,7 +1945,7 @@
     <p>Set the <code>PTC_LOG_DIR</code> environment variable, <em>or</em> set a custom path in <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> Default open folder</span>. The env variable takes precedence unless a custom path is also set.</p>
 
     <h3>Can I use the Flame Graph or Heatmap without an internet connection?</h3>
-    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only OpenAI, Anthropic, GitHub Copilot, &#8220;Check for Updates&#8221;, and &#8220;Report Errors&#8221; require internet.</p>
+    <p>Yes. The Flame Graph, Timeline, Heatmap, Call Graph, and all other visualisations are rendered locally with no network access required. A self-hosted <strong>Ollama</strong> AI provider also works fully offline (or on a private network) &#8212; only OpenAI, Azure OpenAI, Anthropic, Google Gemini, GitHub Copilot, &#8220;Check for Updates&#8221;, and &#8220;Report Errors&#8221; require internet.</p>
 
     <h3>Where do I report bugs or request features?</h3>
     <p>Use <span class="menu">Help <span class="menu-arrow">&#8594;</span> Report Errors</span> to open the GitHub Issues page, or visit <a href="https://github.com/Nazeer-Hussain/CAD3PLogBrowser/issues" target="_blank">github.com/Nazeer-Hussain/CAD3PLogBrowser/issues</a>.</p>
