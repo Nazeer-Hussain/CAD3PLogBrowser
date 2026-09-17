@@ -1364,7 +1364,7 @@
     <table>
         <thead><tr><th>Mode</th><th>When it happens</th><th>How to tell</th></tr></thead>
         <tbody>
-            <tr><td><strong>Real Analysis</strong></td><td>A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid Anthropic/GitHub Copilot key)</td><td>The status label at the top of the panel reads <code>&lt;Provider&gt; ready &#8212; real analysis</code></td></tr>
+            <tr><td><strong>Real Analysis</strong></td><td>A provider is enabled, configured, and reachable (e.g. Ollama running locally, or a valid OpenAI/Anthropic/GitHub Copilot key)</td><td>The status label at the top of the panel reads <code>&lt;Provider&gt; ready &#8212; real analysis</code></td></tr>
             <tr><td><strong>Sample Response</strong></td><td>AI is disabled, no provider is configured, or a live request fails (e.g. Ollama server unreachable)</td><td>The status label reads <code>Sample Mode (AI not configured)</code>, and every sample answer is prefixed with a highlighted <strong>&#9888; SAMPLE RESPONSE</strong> banner explaining it is a locally-generated, rule-based summary &#8212; not real AI output</td></tr>
         </tbody>
     </table>
@@ -1381,8 +1381,8 @@
             <tr><td><strong>GitHub Copilot</strong></td><td>&#9989; Functional</td><td>Requires an API token</td></tr>
             <tr><td><strong>Ollama (Self-Hosted)</strong></td><td>&#9989; Functional</td><td>Requires only a Server URL (default <code>http://localhost:11434</code>) &#8212; no API key, runs entirely on your own machine or network</td></tr>
             <tr><td><strong>OpenAI</strong></td><td>&#9989; Functional</td><td>Requires an API key (Organization ID optional)</td></tr>
-            <tr><td>Azure OpenAI</td><td>&#9989; Functional</td><td>Requires a resource Endpoint, API key, and Deployment Name</td></tr>
-            <tr><td>Google Gemini</td><td>&#9989; Functional</td><td>Requires an API key from Google AI Studio</td></tr>
+            <tr><td><strong>Azure OpenAI</strong></td><td>&#9989; Functional</td><td>Requires a resource Endpoint, API key, and Deployment Name</td></tr>
+            <tr><td><strong>Google Gemini</strong></td><td>&#9989; Functional</td><td>Requires an API key from Google AI Studio</td></tr>
         </tbody>
     </table>
 
@@ -1408,7 +1408,7 @@
     <p>Type a free-form question in the chat box (e.g. <em>&#8220;Why is the startup taking so long?&#8221;</em>) and the assistant answers in context of the loaded log data. Send / Clear / Copy buttons sit alongside the input, with a progress bar and token-usage label for the active request. A row of example prompt chips (e.g. <em>&#8220;Summarize this log&#8221;</em>, <em>&#8220;Slowest methods?&#8221;</em>, <em>&#8220;Any errors?&#8221;</em>) sits above the chat box &#8212; click one to send it immediately without typing.</p>
 
     <div class="note">
-        <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, or Server URL for Ollama). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
+        <strong>&#128221; Setup:</strong> Go to <span class="menu">Options <span class="menu-arrow">&#8594;</span> Settings <span class="menu-arrow">&#8594;</span> AI &amp; Integration</span>, check <em>Enable AI Features</em>, choose a provider, and fill in whatever it needs (API key, Server URL for Ollama, or Endpoint + API key + Deployment Name for Azure OpenAI). A <strong>Test Connection</strong> button on the same page verifies your setup before you leave the dialog.
     </div>
 
     <div class="tip">
