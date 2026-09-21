@@ -14,10 +14,8 @@
 # and no .NET toolchain: any basic Linux/docker or shell runner will do.
 
 pages:
-  # Only `cp` and `sed` are needed. If this project's runners can't pull from
-  # Docker Hub, swap in any internally-available image, or delete the `image:`
-  # line entirely when using a shell runner.
-  image: alpine:latest
+  # This runner uses the shell executor with PowerShell (pwsh), so no Docker
+  # image is used here -- the script below runs directly on the Windows host.
 
   # This instance's shared runners only pick up jobs whose tags match theirs
   # (see the two Online/Active shared runners under Settings > CI/CD >
@@ -33,7 +31,7 @@ pages:
 
   script:
     # GitLab Pages serves whatever ends up in `public/`.
-    - cp -r docs public
+    - Copy-Item -Path docs -Destination public -Recurse -Force
 
     # docs/version.json is the manifest the app polls, and its downloadUrl is
     # the one absolute URL in the whole site (every other link -- versions.json
@@ -41,12 +39,12 @@ pages:
     # any host). Left untouched it would send internal users back out to
     # github.io and straight through the proxy this mirror exists to avoid, so
     # point it at this Pages site instead. CI_PAGES_URL is provided by GitLab.
-    - sed -i "s|https://nazeer-hussain.github.io/CAD3PLogBrowser|${CI_PAGES_URL}|g" public/version.json
+    - (Get-Content public/version.json -Raw) -replace 'https://nazeer-hussain.github.io/CAD3PLogBrowser', $env:CI_PAGES_URL | Set-Content public/version.json
 
     # Surface the rewritten manifest in the job log: this is the exact URL
     # internal users need for Options > Settings > update manifest URL.
-    - echo "Internal manifest URL -> ${CI_PAGES_URL}/version.json"
-    - cat public/version.json
+    - Write-Output "Internal manifest URL -> $($env:CI_PAGES_URL)/version.json"
+    - Get-Content public/version.json
 
   artifacts:
     paths:
