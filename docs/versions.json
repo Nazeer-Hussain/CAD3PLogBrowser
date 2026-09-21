@@ -1,5 +1,12 @@
 [
   {
+    "version": "5.0.5",
+    "date": "2026-09-21",
+    "notes": "- Bring Help Guide, docs site, and videos plan up to date with UWGM session support\r\n- Fix GitLab CI runner tags and refresh stale tab data in tree context menu\r\n- Extract Exceptions/Anomalies panel managers, add Investigation Report export, and update user guide\r\n- Add OpenAI/Azure OpenAI/Google Gemini providers, folder-path typing, and fix Settings AI wiring\r\n- 07 sept enhancements",
+    "zip": "downloads/Cad3PLogBrowser-5.0.5.zip",
+    "sizeBytes": 3583069
+  },
+  {
     "version": "5.0.4",
     "date": "2026-08-19",
     "notes": "- Fix: Make AssemblyInfo.cs the source of truth for release version bumping",
