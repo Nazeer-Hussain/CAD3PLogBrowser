@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Cad3PLogBrowser.AI.Abstractions;
 
 namespace Cad3PLogBrowser.AI.Prompts
@@ -22,7 +23,7 @@ namespace Cad3PLogBrowser.AI.Prompts
         /// <summary>
         /// Builds a complete prompt for analysis tasks.
         /// </summary>
-        public string BuildAnalysisPrompt(string analysisType, string userQuery, 
+        public async Task<string> BuildAnalysisPromptAsync(string analysisType, string userQuery,
             IEnumerable<IContextProvider> contextProviders)
         {
             var sb = new StringBuilder();
@@ -36,7 +37,7 @@ namespace Cad3PLogBrowser.AI.Prompts
                     sb.AppendLine();
 
                     // Get context (may be truncated if too large)
-                    var context = provider.GetContextAsync().Result;
+                    var context = await provider.GetContextAsync();
                     sb.AppendLine(context);
                     sb.AppendLine();
                 }
@@ -98,7 +99,7 @@ Focus on significant changes. Ignore minor timing variations.");
         /// <summary>
         /// Builds a chat prompt with conversation history.
         /// </summary>
-        public string BuildChatPrompt(string userMessage, List<ChatMessage> history, 
+        public async Task<string> BuildChatPromptAsync(string userMessage, List<ChatMessage> history,
             IEnumerable<IContextProvider> contextProviders)
         {
             var sb = new StringBuilder();
@@ -113,7 +114,7 @@ Focus on significant changes. Ignore minor timing variations.");
 
                     foreach (var provider in contextProviders.Where(p => p.HasContext))
                     {
-                        var context = provider.GetContextAsync().Result;
+                        var context = await provider.GetContextAsync();
                         sb.AppendLine($"### {provider.Description}");
                         sb.AppendLine(context);
                         sb.AppendLine();

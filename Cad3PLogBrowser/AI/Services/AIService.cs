@@ -103,9 +103,9 @@ namespace Cad3PLogBrowser.AI.Services
 
                 // Build the prompt
                 string systemPrompt = _promptBuilder.GetSystemPrompt(analysisType.ToString());
-                string userPrompt = _promptBuilder.BuildAnalysisPrompt(
-                    analysisType.ToString(), 
-                    userQuery, 
+                string userPrompt = await _promptBuilder.BuildAnalysisPromptAsync(
+                    analysisType.ToString(),
+                    userQuery,
                     contextProviders);
 
                 // Redact sensitive data if enabled
@@ -168,9 +168,9 @@ namespace Cad3PLogBrowser.AI.Services
 
                 // Build the prompt
                 string systemPrompt = _promptBuilder.GetSystemPrompt(analysisType.ToString());
-                string userPrompt = _promptBuilder.BuildAnalysisPrompt(
-                    analysisType.ToString(), 
-                    userQuery, 
+                string userPrompt = await _promptBuilder.BuildAnalysisPromptAsync(
+                    analysisType.ToString(),
+                    userQuery,
                     contextProviders);
 
                 // Redact sensitive data if enabled
@@ -250,7 +250,7 @@ namespace Cad3PLogBrowser.AI.Services
 
             if (_activeConversation.Messages.Count == 0 && contextProviders != null)
             {
-                message = _promptBuilder.BuildChatPrompt(userMessage, null, contextProviders);
+                message = await _promptBuilder.BuildChatPromptAsync(userMessage, null, contextProviders);
             }
 
             // Redact sensitive data if enabled
@@ -284,7 +284,7 @@ namespace Cad3PLogBrowser.AI.Services
 
             if (_activeConversation.Messages.Count == 0 && contextProviders != null)
             {
-                message = _promptBuilder.BuildChatPrompt(userMessage, null, contextProviders);
+                message = await _promptBuilder.BuildChatPromptAsync(userMessage, null, contextProviders);
             }
 
             // Redact sensitive data if enabled

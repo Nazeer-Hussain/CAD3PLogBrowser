@@ -3869,6 +3869,14 @@ namespace Cad3PLogBrowser
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
+            // Explorer's drag-and-drop is a synchronous OLE call: it blocks (and looks
+            // hung) until this handler returns. Deferring the actual work — which pops
+            // modal dialogs — lets the call return immediately so Explorer stays responsive.
+            BeginInvoke((Action)(() => HandleDroppedFiles(files)));
+        }
+
+        private void HandleDroppedFiles(string[] files)
+        {
             // UWGM Logging Session (feature 2): a single dropped folder is treated as
             // a UWGM logging session root rather than an individual log file.
             if (files.Length == 1 && Directory.Exists(files[0]))
@@ -4952,28 +4960,37 @@ namespace Cad3PLogBrowser
             // Step 1: merge the cadapp logs into the main log view via the existing merge functionality.
             await MergeFilesAsync(cadappFiles);
 
-            // Step 2: load the UWGM client log, if any were found (5b: disable the tab if none found).
-            if (uwgmFiles.Length == 0)
+            try
             {
-                SetUwgmClientTabAvailable(false);
-            }
-            else
-            {
-                var uwgmMerged = await _mergeLogService.MergeAsync(uwgmFiles);
-                PopulateUwgmClientTab(uwgmMerged);
-                SetUwgmClientTabAvailable(true);
-            }
+                // Step 2: load the UWGM client log, if any were found (5b: disable the tab if none found).
+                if (uwgmFiles.Length == 0)
+                {
+                    SetUwgmClientTabAvailable(false);
+                }
+                else
+                {
+                    var uwgmMerged = await _mergeLogService.MergeAsync(uwgmFiles);
+                    PopulateUwgmClientTab(uwgmMerged);
+                    SetUwgmClientTabAvailable(true);
+                }
 
-            // Step 3: load the CAD Loader log, if any were found.
-            if (cadLoaderFiles.Length == 0)
-            {
-                SetCadLoaderTabAvailable(false);
-                return;
-            }
+                // Step 3: load the CAD Loader log, if any were found.
+                if (cadLoaderFiles.Length == 0)
+                {
+                    SetCadLoaderTabAvailable(false);
+                    return;
+                }
 
-            var cadLoaderMerged = await _mergeLogService.MergeAsync(cadLoaderFiles);
-            PopulateCadLoaderTab(cadLoaderMerged);
-            SetCadLoaderTabAvailable(true);
+                var cadLoaderMerged = await _mergeLogService.MergeAsync(cadLoaderFiles);
+                PopulateCadLoaderTab(cadLoaderMerged);
+                SetCadLoaderTabAvailable(true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    string.Format("The cadapp logs loaded successfully, but the UWGM client / CAD Loader logs failed to load:\n\n{0}", ex.Message),
+                    "Open UWGM Logging Session", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -10277,14 +10294,16 @@ namespace Cad3PLogBrowser
                     StatusFileName.Text = string.Format(Resources.MSG_FONT_CHANGED, 
                         logFontDialog.Font.Name, logFontDialog.Font.Size);
 
-                    // Clear status after 3 seconds
+                    // Clear status after 3 seconds — guard against form disposal
+                    // before the tick fires (Bug #17 / BUG-12).
                     var timer = new System.Windows.Forms.Timer();
                     timer.Interval = 3000;
                     timer.Tick += (s, args) =>
                     {
-                        StatusFileName.Text = GetSafeFileName(_currentFilePath);
                         timer.Stop();
                         timer.Dispose();
+                        if (!IsDisposed && !Disposing && IsHandleCreated)
+                            StatusFileName.Text = GetSafeFileName(_currentFilePath);
                     };
                     timer.Start();
                 }
