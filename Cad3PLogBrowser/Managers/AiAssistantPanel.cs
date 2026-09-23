@@ -62,7 +62,7 @@ namespace Cad3PLogBrowser.Managers
                            _findWarningsBtn, _perfBtn, _timelineBtn;
         private FlowLayoutPanel _promptChipsPanel;
         private TextBox    _chatInputBox;
-        private Button     _sendBtn, _clearBtn, _copyBtn, _settingsBtn;
+        private Button     _sendBtn, _stopBtn, _clearBtn, _copyBtn, _settingsBtn;
         private RichTextBox _responseBox;
         private ProgressBar _progressBar;
         private Label       _tokenLabel;
@@ -294,13 +294,19 @@ namespace Cad3PLogBrowser.Managers
             _sendBtn = MakeSmallBtn("Send", DockStyle.Right, 70);
             _sendBtn.Click += async (s, e) => await SendChatMessageAsync();
 
+            // Interrupts whichever AI request is currently in flight (analysis or
+            // chat) — disabled unless one is actually running (see ShowProgress).
+            _stopBtn = MakeSmallBtn("Stop", DockStyle.Right, 70);
+            _stopBtn.Enabled = false;
+            _stopBtn.Click += (s, e) => _cancellationTokenSource?.Cancel();
+
             _copyBtn = MakeSmallBtn("Copy", DockStyle.Right, 70);
             _copyBtn.Click += (s, e) => CopyResponse();
 
             _clearBtn = MakeSmallBtn("Clear", DockStyle.Right, 70);
             _clearBtn.Click += (s, e) => ClearResponse();
 
-            _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _copyBtn, _clearBtn });
+            _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _stopBtn, _copyBtn, _clearBtn });
 
             // ?? Example Prompt Chips (L6) ?????????????????????????????????
             // Clickable suggestions that send a ready-made question through the
@@ -431,6 +437,7 @@ namespace Cad3PLogBrowser.Managers
 
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             _responseBox.Clear();
 
@@ -456,11 +463,17 @@ namespace Cad3PLogBrowser.Managers
                     onChunkReceived: chunk => { captured.Append(chunk); AppendText(chunk); },
                     onComplete: result =>
                     {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete", and
+                        // don't cache an incomplete root-cause answer.
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
                         if (result.Success) _rootCauseCache[cacheKey] = captured.ToString();
                         OnAnalysisCompleteAnalysis(result);
                     },
                     onError: async ex =>
                     {
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                         _responseBox.Clear();
                         await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
                     },
@@ -468,10 +481,11 @@ namespace Cad3PLogBrowser.Managers
                         "Analyze the likely root cause for '{0}' using ONLY the specific call chain below " +
                         "(not general log statistics) — what called it, at what depth, and with what timing.",
                         methodName),
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 _responseBox.Clear();
                 await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
             }
@@ -498,6 +512,7 @@ namespace Cad3PLogBrowser.Managers
             // Cancel any ongoing operation
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             // Clear previous response
             _responseBox.Clear();
@@ -519,19 +534,29 @@ namespace Cad3PLogBrowser.Managers
                     analysisType,
                     contextProviders,
                     onChunkReceived: chunk => AppendText(chunk),
-                    onComplete: result => OnAnalysisCompleteAnalysis(result),
+                    onComplete: result =>
+                    {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete".
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
+                        OnAnalysisCompleteAnalysis(result);
+                    },
                     onError: async ex =>
                     {
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
+
                         // Real provider failed at runtime (e.g. offline/unreachable) —
                         // gracefully fall back to a clearly-labeled sample response
                         // instead of just showing an error.
                         _responseBox.Clear();
                         await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
                     },
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 _responseBox.Clear();
                 await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
             }
@@ -590,6 +615,7 @@ namespace Cad3PLogBrowser.Managers
             // Cancel any ongoing operation
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             ShowProgress("AI is thinking...");
             AppendText("AI: ");
@@ -599,18 +625,28 @@ namespace Cad3PLogBrowser.Managers
                 await _aiService.SendConversationMessageStreamingAsync(
                     message,
                     onChunkReceived: chunk => AppendText(chunk),
-                    onComplete: result => OnAnalysisComplete(result),
+                    onComplete: result =>
+                    {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete".
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
+                        OnAnalysisComplete(result);
+                    },
                     onError: async ex =>
                     {
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
+
                         // Real provider failed mid-conversation — fall back to a
                         // clearly-labeled sample answer rather than a bare error.
                         await RunCannedChatAsync(message, realAiError: ex.Message);
                     },
                     contextProviders: contextProviders,
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 await RunCannedChatAsync(message, realAiError: ex.Message);
             }
         }
@@ -708,6 +744,7 @@ namespace Cad3PLogBrowser.Managers
             _progressBar.Visible = true;
             _tokenLabel.Text = message;
             _sendBtn.Enabled = false;
+            _stopBtn.Enabled = true;
             _summarizeBtn.Enabled = false;
             _rootCauseBtn.Enabled = false;
             _findErrorsBtn.Enabled = false;
@@ -726,12 +763,34 @@ namespace Cad3PLogBrowser.Managers
 
             _progressBar.Visible = false;
             _sendBtn.Enabled = true;
+            _stopBtn.Enabled = false;
             _summarizeBtn.Enabled = true;
             _rootCauseBtn.Enabled = true;
             _findErrorsBtn.Enabled = true;
             _findWarningsBtn.Enabled = true;
             _perfBtn.Enabled = true;
             _timelineBtn.Enabled = true;
+        }
+
+        /// <summary>True if the Stop button caused this failure — the request was
+        /// interrupted deliberately, not a real provider error, so callers should
+        /// stop cleanly (keep whatever streamed so far) instead of falling back to
+        /// a canned/SAMPLE response.</summary>
+        private static bool IsUserCancellation(Exception ex, CancellationToken token) =>
+            ex is OperationCanceledException || token.IsCancellationRequested;
+
+        private void HandleCancellation()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(HandleCancellation));
+                return;
+            }
+
+            AppendText("\n\n⏹ Stopped.");
+            ReformatAllMarkdown();
+            HideProgress();
+            _tokenLabel.Text = "Stopped";
         }
 
         private void AppendText(string text)
