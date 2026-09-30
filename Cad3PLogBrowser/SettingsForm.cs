@@ -1282,7 +1282,16 @@ namespace Cad3PLogBrowser
 
             // Save AI Settings
             SaveAISettings();
-            AISettingsService.Save(_aiSettings);
+            if (!AISettingsService.Save(_aiSettings))
+            {
+                MessageBox.Show(this,
+                    "One or more AI provider API keys could not be saved securely.\n\n" +
+                    "This can happen if Windows Credential Manager is restricted by a system " +
+                    "policy, or if a key is unusually long. Your other settings below were still " +
+                    "saved, but you may need to re-enter the affected AI provider's key next time " +
+                    "you open Settings.",
+                    "AI Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
 
             // Save Comparison Settings
             SaveComparisonSettings();
