@@ -267,7 +267,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                 ["contents"] = contents,
                 ["generationConfig"] = new Dictionary<string, object>
                 {
-                    ["temperature"] = request.Temperature > 0 ? request.Temperature : 0.7,
+                    ["temperature"] = request.Temperature,
                     ["maxOutputTokens"] = request.MaxTokens > 0 ? request.MaxTokens : 4096
                 }
             };
@@ -364,14 +364,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
 
         private string UnescapeJsonString(string str)
         {
-            if (string.IsNullOrEmpty(str))
-                return str;
-
-            return str
-                .Replace("\\n", "\n")
-                .Replace("\\r", "\r")
-                .Replace("\\\"", "\"")
-                .Replace("\\\\", "\\");
+            return JsonHelper.UnescapeJsonString(str);
         }
 
         private string ExtractNestedValue(string json, params string[] path)
@@ -412,7 +405,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                     }
                 }
 
-                return current.Trim().Trim('"');
+                return JsonHelper.UnescapeJsonString(current.Trim().Trim('"'));
             }
             catch
             {
@@ -523,6 +516,11 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                 elements.Add(arrayContent.Substring(start).Trim());
 
             return elements;
+        }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
         }
     }
 }

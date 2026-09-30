@@ -96,7 +96,10 @@ namespace Cad3PLogBrowser.Services.Core
                     File.WriteAllBytes(FilePath, ms.ToArray());
                 }
             }
-            catch { /* Non-fatal */ }
+            catch (Exception ex)
+            {
+                AppLogger.Log("RecentFilesService.Save: failed to write '{0}'. {1}", FilePath, ex);
+            }
         }
 
         public void AddRecentFile(string filePath)

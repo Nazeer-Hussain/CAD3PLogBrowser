@@ -258,7 +258,7 @@ namespace Cad3PLogBrowser.AI.Providers.OpenAI
             {
                 ["model"] = string.IsNullOrEmpty(request.Model) ? _model : request.Model,
                 ["messages"] = messages,
-                ["temperature"] = request.Temperature > 0 ? request.Temperature : 0.7,
+                ["temperature"] = request.Temperature,
                 ["max_tokens"] = request.MaxTokens > 0 ? request.MaxTokens : 4096
             };
         }
@@ -350,7 +350,7 @@ namespace Cad3PLogBrowser.AI.Providers.OpenAI
                     }
                 }
 
-                return current.Trim().Trim('"');
+                return JsonHelper.UnescapeJsonString(current.Trim().Trim('"'));
             }
             catch
             {

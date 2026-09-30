@@ -11,6 +11,7 @@ using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
 using Cad3PLogBrowser.Services;
 using Cad3PLogBrowser.Services.Analysis;
+using Cad3PLogBrowser.Services.Core;
 
 namespace Cad3PLogBrowser.Managers
 {
@@ -88,6 +89,10 @@ namespace Cad3PLogBrowser.Managers
             {
                 var settings = AISettingsService.Load();
                 _aiSettings = settings;
+                // Dispose the outgoing service (and its provider's HttpClient) before
+                // replacing it -- this runs on every settings refresh, so without this
+                // each refresh leaked one HttpClient/socket.
+                _aiService?.Dispose();
                 _aiService = new AIService(settings);
                 UpdateStatusLabel();
             }
@@ -101,6 +106,15 @@ namespace Cad3PLogBrowser.Managers
         {
             InitializeAIService();
             UpdateStatusLabel();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _aiService?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         // ── Theme-aware styling helpers ──────────────────────────────────────
@@ -474,7 +488,7 @@ namespace Cad3PLogBrowser.Managers
                     onError: async ex =>
                     {
                         if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
-                        _responseBox.Clear();
+                        ClearResponseBox();
                         await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
                     },
                     userQuery: string.Format(
@@ -549,7 +563,7 @@ namespace Cad3PLogBrowser.Managers
                         // Real provider failed at runtime (e.g. offline/unreachable) —
                         // gracefully fall back to a clearly-labeled sample response
                         // instead of just showing an error.
-                        _responseBox.Clear();
+                        ClearResponseBox();
                         await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
                     },
                     cancellationToken: token);
@@ -726,7 +740,11 @@ namespace Cad3PLogBrowser.Managers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating context providers: {ex.Message}");
+                // Whatever providers were added before the throw are still returned below,
+                // so the AI analysis proceeds on a partial/empty context with no visible
+                // sign anything was missing -- log it so a confusing/thin AI answer can at
+                // least be traced back to this instead of looking like a model quirk.
+                AppLogger.Log("AiAssistantPanel.CreateContextProviders: failed partway through. {0}", ex);
             }
 
             return providers;
@@ -791,6 +809,26 @@ namespace Cad3PLogBrowser.Managers
             ReformatAllMarkdown();
             HideProgress();
             _tokenLabel.Text = "Stopped";
+        }
+
+        /// <summary>
+        /// Thread-safe wrapper around _responseBox.Clear(). Needed specifically because
+        /// Ollama and GitHub Copilot's StreamRequestAsync wrap their whole streaming
+        /// operation in Task.Run (the other providers don't), so a real failure on
+        /// either of them reaches the onError callback on a background thread with no
+        /// UI SynchronizationContext -- an unguarded Clear() there threw a cross-thread
+        /// exception that got caught and re-shown as "Real AI request failed
+        /// (Cross-thread operation not valid...)", masking the actual provider error.
+        /// </summary>
+        private void ClearResponseBox()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(ClearResponseBox));
+                return;
+            }
+
+            _responseBox.Clear();
         }
 
         private void AppendText(string text)

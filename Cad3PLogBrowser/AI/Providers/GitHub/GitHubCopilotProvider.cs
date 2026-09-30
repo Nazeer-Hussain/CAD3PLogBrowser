@@ -248,8 +248,21 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
                 });
             }
 
-            // Add conversation history (messages from IAIRequest don't exist, skip for now)
-            // GitHub Copilot will be used for single-shot requests
+            // Add conversation history
+            if (request.ConversationHistory != null)
+            {
+                foreach (var msg in request.ConversationHistory)
+                {
+                    if (msg.Role != "system")
+                    {
+                        messages.Add(new Dictionary<string, string>
+                        {
+                            ["role"] = msg.Role,
+                            ["content"] = msg.Content
+                        });
+                    }
+                }
+            }
 
             // Add current prompt
             messages.Add(new Dictionary<string, string>
@@ -262,7 +275,7 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
             {
                 ["model"] = string.IsNullOrEmpty(request.Model) ? _model : request.Model,
                 ["messages"] = messages,
-                ["temperature"] = request.Temperature > 0 ? request.Temperature : 0.7,
+                ["temperature"] = request.Temperature,
                 ["max_tokens"] = request.MaxTokens > 0 ? request.MaxTokens : 4096
             };
 
@@ -358,7 +371,7 @@ namespace Cad3PLogBrowser.AI.Providers.GitHub
                     }
                 }
 
-                return current.Trim().Trim('"');
+                return JsonHelper.UnescapeJsonString(current.Trim().Trim('"'));
             }
             catch
             {

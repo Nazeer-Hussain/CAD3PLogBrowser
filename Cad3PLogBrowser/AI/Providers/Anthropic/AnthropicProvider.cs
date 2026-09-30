@@ -386,7 +386,7 @@ namespace Cad3PLogBrowser.AI.Providers.Anthropic
                 }
 
                 // Clean up the final value
-                return current.Trim().Trim('"');
+                return JsonHelper.UnescapeJsonString(current.Trim().Trim('"'));
             }
             catch
             {
@@ -522,6 +522,11 @@ namespace Cad3PLogBrowser.AI.Providers.Anthropic
                 elements.Add(current.ToString().Trim());
 
             return elements;
+        }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
         }
     }
 }

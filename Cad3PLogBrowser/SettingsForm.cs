@@ -1300,7 +1300,14 @@ namespace Cad3PLogBrowser
             // Save Comparison Settings
             SaveComparisonSettings();
 
-            _settings.Save();
+            if (!_settings.Save())
+            {
+                MessageBox.Show(this,
+                    "Settings could not be saved to disk (the settings file may be locked " +
+                    "by another program, or its folder may be read-only). Your changes are " +
+                    "applied for this session, but will be lost the next time you start the app.",
+                    "Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void SaveComparisonSettings()
@@ -1711,6 +1718,13 @@ namespace Cad3PLogBrowser
             lblAIEndpoint.Visible = isAzure;
             txtAIEndpoint.Visible = isAzure;
 
+            // Tracks the model actually saved for this provider so it can be
+            // restored below instead of always defaulting back to item 0 --
+            // previously only Azure/Ollama got this right, so reopening Settings
+            // for any other provider silently reverted a chosen model back to the
+            // default and would overwrite the real preference on the next Save.
+            string savedModel = null;
+
             switch (provider)
             {
                 case AIProviderType.Mock:
@@ -1727,21 +1741,20 @@ namespace Cad3PLogBrowser
                         SettingsDialogStrings.ModelGPT4Turbo,
                         SettingsDialogStrings.ModelGPT35Turbo
                     });
+                    savedModel = _aiSettings.OpenAIModel;
                     break;
 
                 case AIProviderType.AzureOpenAI:
                     txtAIApiKey.Text = _aiSettings.AzureOpenAIApiKey;
                     txtAIEndpoint.Text = _aiSettings.AzureOpenAIEndpoint ?? "";
-                    // The Deployment Name is user-defined, not a fixed value -- seed it as
-                    // the first (and current) item, alongside a few common defaults.
-                    if (!string.IsNullOrWhiteSpace(_aiSettings.AzureOpenAIDeploymentName))
-                        cmbAIModel.Items.Add(_aiSettings.AzureOpenAIDeploymentName);
                     cmbAIModel.Items.AddRange(new object[]
                     {
                         SettingsDialogStrings.ModelGPT4o,
                         SettingsDialogStrings.ModelGPT4,
                         SettingsDialogStrings.ModelGPT35TurboAzure
                     });
+                    // The Deployment Name is user-defined, not a fixed value.
+                    savedModel = _aiSettings.AzureOpenAIDeploymentName;
                     break;
 
                 case AIProviderType.Anthropic:
@@ -1752,6 +1765,7 @@ namespace Cad3PLogBrowser
                         SettingsDialogStrings.ModelClaude3OpusLatest,
                         SettingsDialogStrings.ModelClaude3HaikuLatest
                     });
+                    savedModel = _aiSettings.AnthropicModel;
                     break;
 
                 case AIProviderType.GoogleGemini:
@@ -1762,6 +1776,7 @@ namespace Cad3PLogBrowser
                         SettingsDialogStrings.ModelGemini15Flash,
                         SettingsDialogStrings.ModelGeminiPro
                     });
+                    savedModel = _aiSettings.GoogleModel;
                     break;
 
                 case AIProviderType.GitHubCopilot:
@@ -1772,6 +1787,7 @@ namespace Cad3PLogBrowser
                         SettingsDialogStrings.ModelGPT4Turbo,
                         SettingsDialogStrings.ModelGPT35Turbo
                     });
+                    savedModel = _aiSettings.GitHubCopilotModel;
                     break;
 
                 case AIProviderType.Ollama:
@@ -1781,8 +1797,22 @@ namespace Cad3PLogBrowser
                     break;
             }
 
-            if (cmbAIModel.Items.Count > 0)
+            if (!string.IsNullOrWhiteSpace(savedModel))
+            {
+                int savedIndex = cmbAIModel.FindStringExact(savedModel);
+                if (savedIndex >= 0)
+                    cmbAIModel.SelectedIndex = savedIndex;
+                else
+                    // Not one of the suggested defaults (e.g. a custom Azure Deployment
+                    // Name, or a model saved before the suggestion list changed) --
+                    // cmbAIModel is editable, so set the text directly rather than
+                    // silently discarding the user's real saved value.
+                    cmbAIModel.Text = savedModel;
+            }
+            else if (cmbAIModel.Items.Count > 0)
+            {
                 cmbAIModel.SelectedIndex = 0;
+            }
 
             UpdateAIControlsState();
         }
@@ -1791,46 +1821,51 @@ namespace Cad3PLogBrowser
         {
             SaveAISettings();
 
-            var aiService = new AIService(_aiSettings);
-
-            if (!aiService.IsEnabled)
+            // Disposed at the end of this method's scope either way -- this is a
+            // short-lived, one-shot connection test, not the app's long-lived AI
+            // service, so it must release its HttpClient when done rather than
+            // leaking one on every Test Connection click.
+            using (var aiService = new AIService(_aiSettings))
             {
-                lblAIStatus.ForeColor = Color.DarkOrange;
-                lblAIStatus.Text = "? AI is disabled or not configured";
-                return;
-            }
-
-            btnTestAIConnection.Enabled = false;
-            btnTestAIConnection.Text = "Testing...";
-            lblAIStatus.Text = "Testing connection...";
-            lblAIStatus.ForeColor = Color.Blue;
-            Cursor = Cursors.WaitCursor;
-
-            try
-            {
-                var (success, message) = await aiService.TestConnectionAsync();
-
-                if (success)
+                if (!aiService.IsEnabled)
                 {
-                    lblAIStatus.ForeColor = Color.DarkGreen;
-                    lblAIStatus.Text = "? Connection successful!";
+                    lblAIStatus.ForeColor = Color.DarkOrange;
+                    lblAIStatus.Text = "? AI is disabled or not configured";
+                    return;
                 }
-                else
+
+                btnTestAIConnection.Enabled = false;
+                btnTestAIConnection.Text = "Testing...";
+                lblAIStatus.Text = "Testing connection...";
+                lblAIStatus.ForeColor = Color.Blue;
+                Cursor = Cursors.WaitCursor;
+
+                try
+                {
+                    var (success, message) = await aiService.TestConnectionAsync();
+
+                    if (success)
+                    {
+                        lblAIStatus.ForeColor = Color.DarkGreen;
+                        lblAIStatus.Text = "? Connection successful!";
+                    }
+                    else
+                    {
+                        lblAIStatus.ForeColor = Color.DarkRed;
+                        lblAIStatus.Text = "? Connection failed: " + message;
+                    }
+                }
+                catch (Exception ex)
                 {
                     lblAIStatus.ForeColor = Color.DarkRed;
-                    lblAIStatus.Text = "? Connection failed: " + message;
+                    lblAIStatus.Text = "? Error: " + ex.Message;
                 }
-            }
-            catch (Exception ex)
-            {
-                lblAIStatus.ForeColor = Color.DarkRed;
-                lblAIStatus.Text = "? Error: " + ex.Message;
-            }
-            finally
-            {
-                btnTestAIConnection.Enabled = true;
-                btnTestAIConnection.Text = "Test Connection";
-                Cursor = Cursors.Default;
+                finally
+                {
+                    btnTestAIConnection.Enabled = true;
+                    btnTestAIConnection.Text = "Test Connection";
+                    Cursor = Cursors.Default;
+                }
             }
         }
 

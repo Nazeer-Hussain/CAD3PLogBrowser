@@ -427,14 +427,14 @@ namespace Cad3PLogBrowser
             string text = _goToLineBox?.Text?.Trim() ?? "";
             if (string.IsNullOrEmpty(text)) return;
 
-            if (int.TryParse(text, out int lineNum) && _virtualLines.Count > 0)
+            // Delegate to JumpToLine (BUG-10's fix) instead of treating the typed
+            // number as a direct index into _virtualLines -- under an active filter
+            // that assumption is wrong, since _virtualLines[0] may not be line 1.
+            if (int.TryParse(text, out int lineNum) && _lineIndexMap.Count > 0)
             {
-                if (lineNum >= 1 && lineNum <= _virtualLines.Count)
+                if (_lineIndexMap.ContainsKey(lineNum))
                 {
-                    int index = lineNum - 1;
-                    logListView.EnsureVisible(index);
-                    logListView.SelectedIndices.Clear();
-                    logListView.SelectedIndices.Add(index);
+                    JumpToLine(lineNum);
                     logListView.Focus();
                     _goToLineBox.Text = "";
                 }
@@ -695,6 +695,14 @@ namespace Cad3PLogBrowser
             InitializeComponent();
 
             _appSettings = AppSettings.Load();
+            if (_appSettings.WasResetOnLoad)
+            {
+                MessageBox.Show(
+                    "Your saved settings could not be read (the file may be corrupted or from " +
+                    "an incompatible version) and have been reset to defaults. See app.log in " +
+                    "the app's data folder for details.",
+                    Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
 
             // Centred operation overlay — must be added before other setup so BringToFront works
             _overlay = new OperationOverlayPanel();
@@ -4214,15 +4222,24 @@ namespace Cad3PLogBrowser
                 // Read file with progress updates
                 var lines = await _logFileService.ReadLinesAsync(filePath, (progress, message) =>
                 {
-                    // Update UI on UI thread
-                    this.Invoke((Action)(() =>
+                    // Guard against the form being disposed while this background read is
+                    // still in flight (e.g. the app is closed while loading a large/slow
+                    // file) -- ReadLinesAsync takes no cancellation token, so closing does
+                    // not stop the read itself; without this guard, this.Invoke threw
+                    // ObjectDisposedException/InvalidOperationException on the background
+                    // thread during shutdown (matches the guard already used in ApplyFilter,
+                    // BUG-11).
+                    if (!IsDisposed && IsHandleCreated)
                     {
-                        // Animation workaround: step ahead then snap back.
-                        if (progress < 100) { FileLoadProgress.Value = Math.Min(100, progress + 1); }
-                        FileLoadProgress.Value = progress;
-                        StatusOperationLabel.Text = string.Format("{0}  ({1}%)", message, progress);
-                        _overlay.SetProgress(progress, message);
-                    }));
+                        this.Invoke((Action)(() =>
+                        {
+                            // Animation workaround: step ahead then snap back.
+                            if (progress < 100) { FileLoadProgress.Value = Math.Min(100, progress + 1); }
+                            FileLoadProgress.Value = progress;
+                            StatusOperationLabel.Text = string.Format("{0}  ({1}%)", message, progress);
+                            _overlay.SetProgress(progress, message);
+                        }));
+                    }
                 }, zipEntryName);
 
                 _allLines        = lines;
@@ -8681,26 +8698,36 @@ namespace Cad3PLogBrowser
             }
 
             string input = Microsoft.VisualBasic.Interaction.InputBox(
-                string.Format(Resources.PROMPT_ENTER_LINE_NUMBER, _virtualLines.Count),
+                string.Format(Resources.PROMPT_ENTER_LINE_NUMBER, _allLines.Count),
                 Resources.DIALOG_TITLE_JUMP_TO_LINE,
                 "",
                 -1, -1);
 
             if (string.IsNullOrWhiteSpace(input)) return;
 
+            // Delegate to JumpToLine (BUG-10's fix) instead of treating the typed
+            // number as a direct index into _virtualLines -- under an active filter
+            // that assumption is wrong, since _virtualLines[0] may not be line 1.
+            // Range-check against _lineIndexMap (every real line number currently
+            // visible), not _virtualLines.Count, for the same reason.
             if (int.TryParse(input.Trim(), out int lineNum))
             {
-                if (lineNum >= 1 && lineNum <= _virtualLines.Count)
+                if (lineNum >= 1 && lineNum <= _allLines.Count)
                 {
-                    int index = lineNum - 1;
-                    logListView.EnsureVisible(index);
-                    logListView.SelectedIndices.Clear();
-                    logListView.SelectedIndices.Add(index);
-                    // Do NOT call logListView.Items[index] — it returns null in virtual mode.
+                    if (_lineIndexMap.ContainsKey(lineNum))
+                    {
+                        JumpToLine(lineNum);
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+                            string.Format("Line {0} is not visible in the current view (it may be filtered out).", lineNum),
+                            Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
                 else
                 {
-                    MessageBox.Show(string.Format(Resources.ERR_LINE_NUMBER_OUT_OF_RANGE, _virtualLines.Count),
+                    MessageBox.Show(string.Format(Resources.ERR_LINE_NUMBER_OUT_OF_RANGE, _allLines.Count),
                         Resources.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
@@ -8814,7 +8841,9 @@ namespace Cad3PLogBrowser
                 {
                     results.Add(new FindResult
                     {
-                        LineNumber = i + 1,
+                        // The real line number, not the loop index -- under an active
+                        // filter these differ, since _virtualLines[0] may not be line 1.
+                        LineNumber = _virtualLines[i].LineNumber,
                         LineText = _virtualLines[i].Text
                     });
                 }
@@ -10330,9 +10359,13 @@ namespace Cad3PLogBrowser
 
         /// <summary>
         /// Loads saved font from settings.
-        /// Call this during form initialization.
+        /// Call this during form initialization. Also called on every Settings
+        /// OK/Apply (via ApplyFontSettings), so the old Font GDI object must be
+        /// disposed before replacing it (DEF-E01) -- this exact fix previously
+        /// existed only in a commented-out copy of this method sitting right above
+        /// the live one, which had regressed back to leaking.
         /// </summary>
-        /*private void LoadLogFont()
+        private void LoadLogFont()
         {
             try
             {
@@ -10349,25 +10382,6 @@ namespace Cad3PLogBrowser
                     logListView.Font = font;
                     if (oldFont != null && oldFont != font)
                         oldFont.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                // Use default font if loading fails
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to load font: {0}", ex.Message));
-            }
-        }*/
-        private void LoadLogFont()
-        {
-            try
-            {
-                if (_appSettings != null &&
-                    !string.IsNullOrEmpty(_appSettings.LogFontFamily))
-                {
-                    logListView.Font = new Font(
-                        _appSettings.LogFontFamily,
-                        _appSettings.LogFontSize > 0 ? _appSettings.LogFontSize : 9.0f,
-                        _appSettings.LogFontStyle);
                 }
             }
             catch (Exception ex)

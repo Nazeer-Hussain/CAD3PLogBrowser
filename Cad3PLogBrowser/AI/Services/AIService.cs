@@ -21,7 +21,7 @@ namespace Cad3PLogBrowser.AI.Services
     /// Main AI service that coordinates all AI functionality.
     /// Provides a simplified interface for the application to interact with AI providers.
     /// </summary>
-    public class AIService
+    public class AIService : IDisposable
     {
         private IAIProvider _currentProvider;
         private readonly AISettings _settings;
@@ -61,6 +61,13 @@ namespace Cad3PLogBrowser.AI.Services
         public void RefreshProvider()
         {
             InitializeProvider();
+        }
+
+        /// <summary>Disposes the current provider (and its HttpClient), if any.</summary>
+        public void Dispose()
+        {
+            _currentProvider?.Dispose();
+            _currentProvider = null;
         }
 
         /// <summary>
@@ -373,9 +380,14 @@ namespace Cad3PLogBrowser.AI.Services
 
         private void InitializeProvider()
         {
+            // Dispose the outgoing provider (and its HttpClient) before replacing it --
+            // this runs on every Settings save and every Test Connection click, so
+            // without this each call leaked one HttpClient/socket.
+            _currentProvider?.Dispose();
+            _currentProvider = null;
+
             if (!_settings.EnableAI || _settings.SelectedProvider == AIProviderType.None)
             {
-                _currentProvider = null;
                 return;
             }
 
