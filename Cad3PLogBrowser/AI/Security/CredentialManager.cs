@@ -189,17 +189,24 @@ namespace Cad3PLogBrowser.AI.Security
             return Encoding.UTF8.GetString(data);
         }
 
-        // Simple encryption using AES with a machine-specific key
+        // Simple encryption using AES with a machine-specific key. A fresh random IV is
+        // generated per call and prepended to the ciphertext -- a fixed/zero IV under CBC
+        // means any two secrets sharing a plaintext prefix would produce identical
+        // ciphertext prefixes, and would let an attacker precompute against a known IV.
         private static byte[] EncryptData(byte[] data, string context)
         {
             using (var aes = Aes.Create())
             {
                 aes.Key = DeriveKey(context);
-                aes.IV = new byte[16]; // Use zero IV for simplicity (not recommended for production)
+                aes.GenerateIV();
 
                 using (var encryptor = aes.CreateEncryptor())
                 {
-                    return encryptor.TransformFinalBlock(data, 0, data.Length);
+                    byte[] cipherText = encryptor.TransformFinalBlock(data, 0, data.Length);
+                    byte[] result = new byte[aes.IV.Length + cipherText.Length];
+                    Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
+                    Buffer.BlockCopy(cipherText, 0, result, aes.IV.Length, cipherText.Length);
+                    return result;
                 }
             }
         }
@@ -209,11 +216,16 @@ namespace Cad3PLogBrowser.AI.Security
             using (var aes = Aes.Create())
             {
                 aes.Key = DeriveKey(context);
-                aes.IV = new byte[16];
+
+                int ivLength = aes.IV.Length;
+                byte[] iv = new byte[ivLength];
+                Buffer.BlockCopy(encryptedData, 0, iv, 0, ivLength);
+                aes.IV = iv;
 
                 using (var decryptor = aes.CreateDecryptor())
                 {
-                    return decryptor.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+                    return decryptor.TransformFinalBlock(
+                        encryptedData, ivLength, encryptedData.Length - ivLength);
                 }
             }
         }

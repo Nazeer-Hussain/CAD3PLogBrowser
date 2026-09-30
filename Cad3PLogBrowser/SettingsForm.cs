@@ -1270,10 +1270,14 @@ namespace Cad3PLogBrowser
             // Updates (ENH-4)
             _settings.CheckForUpdatesOnStartup = chkCheckOnStartup.Checked;
             _settings.UpdateCheckIntervalDays  = (int)nudUpdateIntervalDays.Value;
-            // Guard: never persist an empty URL � fall back to the default so the
-            // UpdateService constructor (which throws on whitespace) can never crash.
+            // Guard: never persist an empty or non-HTTPS URL -- fall back to the default
+            // so the UpdateService constructor (which requires HTTPS and throws on
+            // whitespace) can never crash, and so a plain-HTTP manifest URL (trivially
+            // MITM-able) can never be saved in the first place.
             string manifestUrl = txtManifestUrl.Text.Trim();
-            _settings.UpdateManifestUrl = string.IsNullOrWhiteSpace(manifestUrl)
+            _settings.UpdateManifestUrl =
+                (string.IsNullOrWhiteSpace(manifestUrl) ||
+                 !manifestUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 ? AppSettings.DefaultUpdateManifestUrl
                 : manifestUrl;
             // Reflect the resolved value back into the text box so the user can

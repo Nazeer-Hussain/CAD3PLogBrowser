@@ -7003,8 +7003,6 @@ namespace Cad3PLogBrowser
                 _appSettings.UpdateCheckIntervalDays,
                 _appSettings.SkippedVersion ?? "");
 
-            var svc = new Services.Update.UpdateService(manifestUrl);
-
             // G12: the fetch can take several seconds (retries on a slow/unreachable
             // URL), so a manual check gets the same status-bar/overlay progress
             // indicator as other long-running operations. Startup (silent) checks
@@ -7013,8 +7011,13 @@ namespace Cad3PLogBrowser
                 StartOperation("Checking for Updates");
 
             Services.Update.UpdateManifest manifest = null;
+            Services.Update.UpdateService svc = null;
             try
             {
+                // Construction (not just the fetch) belongs in this try: UpdateService's
+                // constructor validates the URL (HTTPS required) and throws on a bad
+                // value, which must not be able to crash a startup update check.
+                svc = new Services.Update.UpdateService(manifestUrl);
                 manifest = await svc.FetchManifestAsync();
             }
             catch (Exception ex)
@@ -7180,7 +7183,15 @@ namespace Cad3PLogBrowser
 
                     // mailto: recipients use ';' or ',' — normalize to ',' which is the
                     // more broadly-supported separator across mail clients.
-                    string to = recipient.Replace(';', ',');
+                    // Each address is percent-encoded individually (not the joined
+                    // string) so a stray '&' or '?' in a malformed/tampered address
+                    // can't inject extra mailto parameters (e.g. a bcc=) -- the literal
+                    // ',' delimiter between addresses must survive unescaped for
+                    // multi-recipient mailto links to keep working.
+                    string to = string.Join(",", recipient.Replace(';', ',')
+                        .Split(',')
+                        .Select(addr => Uri.EscapeDataString(addr.Trim()))
+                        .Where(addr => addr.Length > 0));
                     System.Diagnostics.Process.Start(string.Format("mailto:{0}?subject={1}&body={2}", to, subject, body));
 
                     if (errFile != null)
