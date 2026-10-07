@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -42,6 +43,13 @@ namespace Cad3PLogBrowser.Managers
         private Func<string> _getSelectedText;
         private CancellationTokenSource _cancellationTokenSource;
 
+        // Persisted chat history: one ongoing conversation per machine/user, not
+        // per log file or per session -- matches the Settings dialog's existing
+        // "Remember conversation history" / "Max messages" framing, which already
+        // implies a single remembered conversation rather than a browsable list.
+        private readonly IConversationStorage _conversationStorage = new FileConversationStorage();
+        private const string PersistedConversationId = "session";
+
         private const string SampleBanner =
             "?????????????????????????????????????????????????????????\n" +
             "?? SAMPLE RESPONSE — not real AI analysis.\n" +
@@ -81,6 +89,12 @@ namespace Cad3PLogBrowser.Managers
 
             InitializeAIService();
             BuildUI();
+
+            // Fire-and-forget: only attempted once, on construction -- not from
+            // RefreshAIService (called on every Settings save), so toggling an
+            // unrelated setting mid-session can't clobber an in-progress chat by
+            // re-loading the last saved one over it.
+            _ = RestoreConversationIfEnabledAsync();
         }
 
         private void InitializeAIService()
@@ -106,6 +120,82 @@ namespace Cad3PLogBrowser.Managers
         {
             InitializeAIService();
             UpdateStatusLabel();
+        }
+
+        /// <summary>
+        /// Loads the persisted "session" conversation (if any) and restores it into
+        /// a freshly-started AIService conversation, so a real chat survives an app
+        /// restart. No-op when "Remember conversation history" is off, AI isn't
+        /// enabled/configured, or nothing was ever saved.
+        /// </summary>
+        private async Task RestoreConversationIfEnabledAsync()
+        {
+            try
+            {
+                if (_aiSettings == null || !_aiSettings.RememberConversation) return;
+                if (_aiService == null || !_aiService.IsEnabled) return;
+
+                var messages = await _conversationStorage.LoadConversationAsync(PersistedConversationId);
+                if (messages == null || messages.Count == 0) return;
+
+                _aiService.StartConversation();
+                foreach (var msg in messages)
+                    _aiService.ActiveConversation.AddMessage(msg);
+
+                RenderRestoredMessages(messages);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log("AiAssistantPanel.RestoreConversationIfEnabledAsync: failed. {0}", ex);
+            }
+        }
+
+        private void RenderRestoredMessages(List<ChatMessage> messages)
+        {
+            if (_responseBox.InvokeRequired)
+            {
+                _responseBox.Invoke(new Action(() => RenderRestoredMessages(messages)));
+                return;
+            }
+
+            ClearResponseBox();
+            _responseBox.AppendText("Restored your previous conversation.\n");
+            foreach (var msg in messages)
+            {
+                string label = string.Equals(msg.Role, "user", StringComparison.OrdinalIgnoreCase) ? "You" : "AI";
+                AppendText($"\n{label}: {msg.Content}\n");
+            }
+            _tokenLabel.Text = "Ready";
+        }
+
+        /// <summary>
+        /// Persists the active conversation's current messages, trimmed to the
+        /// configured max message count, if "Auto-save conversations" is enabled.
+        /// Called after every completed chat exchange -- one-shot analyses
+        /// (Summarize/Root Cause/etc.) don't go through a conversation and are
+        /// never persisted here.
+        /// </summary>
+        private async Task SaveConversationIfEnabledAsync()
+        {
+            try
+            {
+                if (_aiSettings == null || !_aiSettings.AutoSaveConversations) return;
+
+                var conversation = _aiService?.ActiveConversation;
+                if (conversation == null) return;
+
+                int maxMessages = Math.Max(1, _aiSettings.MaxConversationMessages);
+                var all = conversation.Messages;
+                var toSave = all.Count > maxMessages
+                    ? all.Skip(all.Count - maxMessages).ToList()
+                    : all.ToList();
+
+                await _conversationStorage.SaveConversationAsync(PersistedConversationId, toSave);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log("AiAssistantPanel.SaveConversationIfEnabledAsync: failed. {0}", ex);
+            }
         }
 
         protected override void Dispose(bool disposing)
@@ -646,6 +736,7 @@ namespace Cad3PLogBrowser.Managers
                         // content — treat that as "stopped", not "complete".
                         if (token.IsCancellationRequested) { HandleCancellation(); return; }
                         OnAnalysisComplete(result);
+                        _ = SaveConversationIfEnabledAsync();
                     },
                     onError: async ex =>
                     {
@@ -1153,6 +1244,12 @@ namespace Cad3PLogBrowser.Managers
             _aiService?.EndConversation();
             _tokenLabel.Text = "Ready";
             _responseBox.Text = "Conversation cleared. Start a new chat or run an analysis.";
+
+            // Explicit user action to forget this chat -- also remove the persisted
+            // copy so reopening the app doesn't silently resurrect a conversation
+            // the user just asked to clear. Best-effort; a delete failure here
+            // isn't worth interrupting the user over.
+            _ = _conversationStorage.DeleteConversationAsync(PersistedConversationId);
         }
 
         private void CopyResponse()

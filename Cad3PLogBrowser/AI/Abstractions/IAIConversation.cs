@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -66,12 +67,22 @@ namespace Cad3PLogBrowser.AI.Abstractions
     /// <summary>
     /// Represents a single message in a conversation.
     /// </summary>
+    /// <remarks>
+    /// [DataContract]/[DataMember] enable real serialization via
+    /// DataContractJsonSerializer for FileConversationStorage (persisted chat
+    /// history) instead of hand-rolled string building. DataContract's opt-in
+    /// model means <see cref="Metadata"/> is deliberately left unmarked and never
+    /// persisted -- it's always empty in practice today, and a
+    /// Dictionary&lt;string, object&gt; isn't reliably round-trippable through
+    /// DataContractJsonSerializer's polymorphic value handling anyway.
+    /// </remarks>
+    [DataContract]
     public class ChatMessage
     {
-        public string Role { get; set; }        // "user", "assistant", "system"
-        public string Content { get; set; }
-        public DateTime Timestamp { get; set; }
-        public int? TokenCount { get; set; }
+        [DataMember] public string Role { get; set; }        // "user", "assistant", "system"
+        [DataMember] public string Content { get; set; }
+        [DataMember] public DateTime Timestamp { get; set; }
+        [DataMember] public int? TokenCount { get; set; }
         public Dictionary<string, object> Metadata { get; set; }
 
         public ChatMessage()

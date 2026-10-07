@@ -25,34 +25,19 @@ namespace Cad3PLogBrowser.AI.Services
             Directory.CreateDirectory(_storageFolder);
         }
 
-        public Task SaveConversationAsync(string conversationId, List<ChatMessage> messages, 
+        public Task SaveConversationAsync(string conversationId, List<ChatMessage> messages,
             Dictionary<string, object> metadata = null)
         {
             try
             {
                 string filePath = GetConversationFilePath(conversationId);
 
-                // Simple JSON generation for conversation data
-                var sb = new StringBuilder();
-                sb.AppendLine("{");
-                sb.AppendLine($"  \"ConversationId\": \"{EscapeJson(conversationId)}\",");
-                sb.AppendLine($"  \"Timestamp\": \"{DateTime.UtcNow:O}\",");
-                sb.AppendLine("  \"Messages\": [");
-
-                for (int i = 0; i < messages.Count; i++)
+                var ser = new DataContractJsonSerializer(typeof(List<ChatMessage>));
+                using (var ms = new MemoryStream())
                 {
-                    var msg = messages[i];
-                    sb.AppendLine("    {");
-                    sb.AppendLine($"      \"Role\": \"{EscapeJson(msg.Role)}\",");
-                    sb.AppendLine($"      \"Content\": \"{EscapeJson(msg.Content)}\",");
-                    sb.AppendLine($"      \"Timestamp\": \"{msg.Timestamp:O}\"");
-                    sb.AppendLine(i < messages.Count - 1 ? "    }," : "    }");
+                    ser.WriteObject(ms, messages ?? new List<ChatMessage>());
+                    File.WriteAllBytes(filePath, ms.ToArray());
                 }
-
-                sb.AppendLine("  ]");
-                sb.AppendLine("}");
-
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
 
                 return Task.CompletedTask;
             }
@@ -71,36 +56,13 @@ namespace Cad3PLogBrowser.AI.Services
                 if (!File.Exists(filePath))
                     return Task.FromResult(new List<ChatMessage>());
 
-                string json = File.ReadAllText(filePath, Encoding.UTF8);
-
-                // Simple JSON parsing for messages
-                var messages = new List<ChatMessage>();
-                var lines = json.Split('\n');
-
-                ChatMessage currentMsg = null;
-                foreach (var line in lines)
+                var bytes = File.ReadAllBytes(filePath);
+                var ser = new DataContractJsonSerializer(typeof(List<ChatMessage>));
+                using (var ms = new MemoryStream(bytes))
                 {
-                    var trimmed = line.Trim();
-                    if (trimmed.StartsWith("\"Role\":"))
-                    {
-                        currentMsg = new ChatMessage();
-                        currentMsg.Role = ExtractJsonValue(trimmed);
-                    }
-                    else if (trimmed.StartsWith("\"Content\":") && currentMsg != null)
-                    {
-                        currentMsg.Content = ExtractJsonValue(trimmed);
-                    }
-                    else if (trimmed.StartsWith("\"Timestamp\":") && currentMsg != null)
-                    {
-                        var timestampStr = ExtractJsonValue(trimmed);
-                        if (DateTime.TryParse(timestampStr, out DateTime timestamp))
-                            currentMsg.Timestamp = timestamp;
-                        messages.Add(currentMsg);
-                        currentMsg = null;
-                    }
+                    var messages = (List<ChatMessage>)ser.ReadObject(ms);
+                    return Task.FromResult(messages ?? new List<ChatMessage>());
                 }
-
-                return Task.FromResult(messages);
             }
             catch (Exception ex)
             {
@@ -195,39 +157,6 @@ namespace Cad3PLogBrowser.AI.Services
             // Sanitize conversation ID for use as filename
             string safeId = string.Join("_", conversationId.Split(Path.GetInvalidFileNameChars()));
             return Path.Combine(_storageFolder, $"{safeId}.json");
-        }
-
-        private string EscapeJson(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return text;
-
-            return text
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"")
-                .Replace("\n", "\\n")
-                .Replace("\r", "\\r")
-                .Replace("\t", "\\t");
-        }
-
-        private string ExtractJsonValue(string line)
-        {
-            // Extract value from: "Key": "Value",
-            int colonIndex = line.IndexOf(':');
-            if (colonIndex < 0) return "";
-
-            var value = line.Substring(colonIndex + 1).Trim();
-
-            // Remove quotes and comma
-            value = value.Trim('"', ',', ' ');
-
-            // Unescape
-            return value
-                .Replace("\\\"", "\"")
-                .Replace("\\\\", "\\")
-                .Replace("\\n", "\n")
-                .Replace("\\r", "\r")
-                .Replace("\\t", "\t");
         }
 
         private int CountMessages(string json)
