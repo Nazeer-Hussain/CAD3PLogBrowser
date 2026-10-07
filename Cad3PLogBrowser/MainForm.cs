@@ -10378,10 +10378,13 @@ namespace Cad3PLogBrowser
                         _appSettings.LogFontStyle);
 
                     // DEF-E01: dispose the previous Font GDI object before replacing it
-                    var oldFont = logListView.Font;
+                    //var oldFont = logListView.Font;
                     logListView.Font = font;
-                    if (oldFont != null && oldFont != font)
-                        oldFont.Dispose();
+
+                    // commenting out the below code, as font.dispose causes a crash later on when
+                    // using the default font for controls 
+                    //if (oldFont != null && oldFont != font)
+                    //    oldFont.Dispose();
                 }
             }
             catch (Exception ex)
