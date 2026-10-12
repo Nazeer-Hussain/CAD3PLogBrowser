@@ -76,6 +76,12 @@ namespace Cad3PLogBrowser.Managers
         private ProgressBar _progressBar;
         private Label       _tokenLabel;
 
+        // Active-tab Find support (Ctrl+F) over AI response text.
+        private int _findCursor = 0;
+        private string _lastFindTerm = string.Empty;
+        private bool _lastFindMatchCase = false;
+        private bool _lastFindUseRegex = false;
+
         public AiAssistantPanel(
             Func<Models.AggregateStats> getStats,
             Func<List<Services.ApiPerfStats>> getPerfStats,
@@ -267,7 +273,7 @@ namespace Cad3PLogBrowser.Managers
                 BackColor = ThemeManager.ControlBackgroundColor
             };
 
-            // ?? Title with Settings button ????????????????????????????????
+            // ?? Title with Settings button ?????????????????????????????????
             _titlePanel = new Panel
             {
                 Dock      = DockStyle.Top,
@@ -1406,6 +1412,163 @@ namespace Cad3PLogBrowser.Managers
             if (_tokenLabel != null)
             {
                 _tokenLabel.Text = text;
+            }
+        }
+
+        private static bool TextMatches(string text, string term, bool useRegex,
+            System.Text.RegularExpressions.Regex rx, StringComparison comparison)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            return useRegex ? rx.IsMatch(text) : text.IndexOf(term, comparison) >= 0;
+        }
+
+        public int FindInConversation(string term, bool matchCase, bool useRegex, bool forward)
+        {
+            if (string.IsNullOrEmpty(term) || _responseBox == null) return -1;
+
+            string allText = _responseBox.Text ?? string.Empty;
+            if (allText.Length == 0) return -1;
+
+            bool resetCursor = !string.Equals(term, _lastFindTerm, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || _lastFindMatchCase != matchCase
+                || _lastFindUseRegex != useRegex;
+
+            if (resetCursor)
+            {
+                _findCursor = forward ? 0 : allText.Length;
+                _lastFindTerm = term;
+                _lastFindMatchCase = matchCase;
+                _lastFindUseRegex = useRegex;
+            }
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            int foundIndex = -1;
+            int foundLength = term.Length;
+
+            if (!useRegex)
+            {
+                if (forward)
+                {
+                    foundIndex = allText.IndexOf(term, Math.Max(0, _findCursor), comparison);
+                    if (foundIndex < 0)
+                        foundIndex = allText.IndexOf(term, 0, comparison);
+                }
+                else
+                {
+                    int start = Math.Min(Math.Max(0, _findCursor - 1), Math.Max(0, allText.Length - 1));
+                    foundIndex = allText.LastIndexOf(term, start, comparison);
+                    if (foundIndex < 0)
+                        foundIndex = allText.LastIndexOf(term, allText.Length - 1, comparison);
+                }
+            }
+            else
+            {
+                var rx = new System.Text.RegularExpressions.Regex(
+                    term,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                var matches = rx.Matches(allText);
+                if (matches.Count == 0) return -1;
+
+                if (forward)
+                {
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        if (m.Index >= _findCursor)
+                        {
+                            foundIndex = m.Index;
+                            foundLength = Math.Max(1, m.Length);
+                            break;
+                        }
+                    }
+
+                    if (foundIndex < 0)
+                    {
+                        var first = (System.Text.RegularExpressions.Match)matches[0];
+                        foundIndex = first.Index;
+                        foundLength = Math.Max(1, first.Length);
+                    }
+                }
+                else
+                {
+                    for (int i = matches.Count - 1; i >= 0; i--)
+                    {
+                        var m = (System.Text.RegularExpressions.Match)matches[i];
+                        if (m.Index < _findCursor)
+                        {
+                            foundIndex = m.Index;
+                            foundLength = Math.Max(1, m.Length);
+                            break;
+                        }
+                    }
+
+                    if (foundIndex < 0)
+                    {
+                        var last = (System.Text.RegularExpressions.Match)matches[matches.Count - 1];
+                        foundIndex = last.Index;
+                        foundLength = Math.Max(1, last.Length);
+                    }
+                }
+            }
+
+            if (foundIndex < 0) return -1;
+
+            _responseBox.Focus();
+            _responseBox.Select(foundIndex, Math.Max(1, foundLength));
+            _responseBox.ScrollToCaret();
+
+            _findCursor = forward ? foundIndex + foundLength : foundIndex;
+            return foundIndex;
+        }
+
+        public int CountConversationMatches(string term, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (string.IsNullOrEmpty(term) || _responseBox == null) return 0;
+
+            string allText = _responseBox.Text ?? string.Empty;
+            if (allText.Length == 0) return 0;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            if (!useRegex)
+            {
+                int total = 0;
+                int start = 0;
+                while (start <= allText.Length - term.Length)
+                {
+                    int idx = allText.IndexOf(term, start, comparison);
+                    if (idx < 0) break;
+                    total++;
+                    if (idx <= currentIndex && currentIndex < idx + term.Length)
+                        rank = total;
+                    start = idx + Math.Max(1, term.Length);
+                }
+                return total;
+            }
+
+            try
+            {
+                var rx = new System.Text.RegularExpressions.Regex(
+                    term,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                var matches = rx.Matches(allText);
+                int total = matches.Count;
+                for (int i = 0; i < matches.Count; i++)
+                {
+                    var m = (System.Text.RegularExpressions.Match)matches[i];
+                    if (m.Index <= currentIndex && currentIndex < m.Index + Math.Max(1, m.Length))
+                    {
+                        rank = i + 1;
+                        break;
+                    }
+                }
+                return total;
+            }
+            catch
+            {
+                return 0;
             }
         }
     }

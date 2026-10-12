@@ -52,6 +52,14 @@ namespace Cad3PLogBrowser.Managers
         private readonly Button _modeToggle;
         private readonly Button _exportButton;
 
+        // Active-tab Find support (Ctrl+F): API-name search over heatmap rows.
+        private string _searchText = string.Empty;
+        private bool _searchMatchCase = false;
+        private bool _searchUseRegex = false;
+        private readonly List<int> _searchMatches = new List<int>();
+        private readonly HashSet<int> _searchMatchSet = new HashSet<int>();
+        private int _searchMatchIndex = -1;
+
         public HeatmapPanel()
         {
             DoubleBuffered = true;
@@ -264,6 +272,100 @@ namespace Cad3PLogBrowser.Managers
                 _scrollBar.Value = Math.Max(0, _scrollBar.Maximum - _scrollBar.LargeChange + 1);
         }
 
+        private bool RowMatches(ApiRow row, string term, bool useRegex,
+            System.Text.RegularExpressions.Regex rx, StringComparison comparison)
+        {
+            if (row == null || string.IsNullOrEmpty(row.ApiName)) return false;
+            return useRegex ? rx.IsMatch(row.ApiName) : row.ApiName.IndexOf(term, comparison) >= 0;
+        }
+
+        private void RebuildSearchMatches(string term, bool matchCase, bool useRegex)
+        {
+            _searchText = term ?? string.Empty;
+            _searchMatchCase = matchCase;
+            _searchUseRegex = useRegex;
+            _searchMatches.Clear();
+            _searchMatchSet.Clear();
+            _searchMatchIndex = -1;
+
+            if (_rows.Count == 0 || string.IsNullOrEmpty(_searchText)) return;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var rx = useRegex
+                ? new System.Text.RegularExpressions.Regex(
+                    _searchText,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                : null;
+
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                if (!RowMatches(_rows[i], _searchText, useRegex, rx, comparison))
+                    continue;
+
+                _searchMatches.Add(i);
+                _searchMatchSet.Add(i);
+            }
+        }
+
+        private void EnsureRowVisible(int rowIndex)
+        {
+            if (!_scrollBar.Visible || rowIndex < 0) return;
+
+            int rowTop = rowIndex * RowHeight;
+            int viewportTop = _scrollBar.Value;
+            int viewportHeight = Math.Max(1, Height - HeaderHeight);
+            int viewportBottom = viewportTop + viewportHeight - RowHeight;
+
+            if (rowTop < viewportTop)
+                _scrollBar.Value = Math.Max(_scrollBar.Minimum, rowTop);
+            else if (rowTop > viewportBottom)
+                _scrollBar.Value = Math.Min(_scrollBar.Maximum - _scrollBar.LargeChange + 1, rowTop - viewportHeight + RowHeight * 2);
+        }
+
+        public int FindApi(string term, bool matchCase, bool useRegex, bool forward)
+        {
+            if (_rows.Count == 0 || string.IsNullOrEmpty(term)) return -1;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex
+                || _searchMatches.Count == 0;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return -1;
+
+            _searchMatchIndex = forward
+                ? (_searchMatchIndex + 1) % _searchMatches.Count
+                : (_searchMatchIndex - 1 + _searchMatches.Count) % _searchMatches.Count;
+
+            int row = _searchMatches[_searchMatchIndex];
+            _hoveredRow = row;
+            _hoveredBucket = -1;
+            EnsureRowVisible(row);
+            Invalidate();
+            return _searchMatchIndex;
+        }
+
+        public int CountApiMatches(string term, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (_rows.Count == 0 || string.IsNullOrEmpty(term)) return 0;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return 0;
+
+            rank = _searchMatchIndex >= 0 ? _searchMatchIndex + 1 : 0;
+            return _searchMatches.Count;
+        }
+
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
@@ -356,6 +458,7 @@ namespace Cad3PLogBrowser.Managers
         {
             var row = _rows[index];
             bool hoveredRow = index == _hoveredRow;
+            bool isSearchMatch = _searchMatchSet.Contains(index);
             var rowRect = new Rectangle(0, rowTop, areaWidth, RowHeight);
 
             if (index % 2 == 1)
@@ -364,6 +467,9 @@ namespace Cad3PLogBrowser.Managers
             if (hoveredRow)
                 using (var hoverBrush = new SolidBrush(Color.FromArgb(20, HeatDeep)))
                     g.FillRectangle(hoverBrush, rowRect);
+            if (isSearchMatch)
+                using (var matchBrush = new SolidBrush(Color.FromArgb(24, 255, 170, 0)))
+                    g.FillRectangle(matchBrush, rowRect);
 
             using (var nameFont = new Font("Segoe UI", 8.5f))
             using (var nameBrush = new SolidBrush(ThemeManager.ForegroundColor))
@@ -411,6 +517,12 @@ namespace Cad3PLogBrowser.Managers
 
             using (var pen = new Pen(ThemeManager.BorderColor))
                 g.DrawLine(pen, 0, rowTop + RowHeight - 1, areaWidth, rowTop + RowHeight - 1);
+
+            if (isSearchMatch)
+            {
+                using (var accent = new SolidBrush(Color.FromArgb(255, 150, 0)))
+                    g.FillRectangle(accent, 0, rowTop, 3, RowHeight - 1);
+            }
         }
 
         /// <summary>Single-hue sequential ramp: pale tint of the app's accent blue → fully saturated.</summary>
