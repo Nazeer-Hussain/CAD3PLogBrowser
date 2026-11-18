@@ -1,8 +1,8 @@
 {
-  "version": "5.0.5",
-  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-5.0.5.zip",
-  "releaseNotes": "- Bring Help Guide, docs site, and videos plan up to date with UWGM session support\r\n- Fix GitLab CI runner tags and refresh stale tab data in tree context menu\r\n- Extract Exceptions/Anomalies panel managers, add Investigation Report export, and update user guide\r\n- Add OpenAI/Azure OpenAI/Google Gemini providers, folder-path typing, and fix Settings AI wiring\r\n- 07 sept enhancements",
+  "version": "5.0.7",
+  "downloadUrl": "https://nazeer-hussain.github.io/CAD3PLogBrowser/downloads/Cad3PLogBrowser-5.0.7.zip",
+  "releaseNotes": "- Enhancements\r\n- Enhancements",
   "mandatory": false,
-  "sha256": "b1b7f0254d9370f03584df0042e30d691269831d05ff0469da12c936b0a68590",
-  "downloadSizeBytes": 3583069
+  "sha256": "1dfbf4c73ce8a4375681faf10ab75666419feffdce586b909ae3e9577ad7f6f6",
+  "downloadSizeBytes": 3660781
 }
