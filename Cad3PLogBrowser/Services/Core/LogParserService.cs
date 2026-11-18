@@ -263,20 +263,40 @@ namespace Cad3PLogBrowser.Services
         /// </summary>
         public List<CallStackNode> BuildCallTree(List<LogEntry> entries)
         {
-            var roots     = new List<CallStackNode>();
-            var stack     = new Stack<CallStackNode>();
+            var roots = new List<CallStackNode>();
 
-            // P-05: per-name frame stacks give O(1) EXIT pre-check.
+            // Stack accounting is partitioned by ThreadId so calls from different
+            // threads that interleave in file order never nest under each other's
+            // frames. Previously a single shared stack meant Thread B's ENTER
+            // arriving between Thread A's ENTER and EXIT got nested as a child of
+            // A's call (wrong -- they're unrelated, concurrent calls), and A's own
+            // EXIT-matching loop below could pop B's still-open frame as a side
+            // effect of closing A's, silently orphaning B's real EXIT. Entries with
+            // no ThreadId (or a log format that never carries one -- most existing
+            // sample logs) all share one "" bucket, which reproduces the previous
+            // single-stack behavior exactly for that common case, so single-thread
+            // logs produce identical trees to before this change.
+            var stacksByThread = new Dictionary<string, Stack<CallStackNode>>(StringComparer.Ordinal);
+
+            // P-05: per-name frame stacks give O(1) EXIT pre-check, now nested one
+            // level deeper per-thread for the same reason as stacksByThread above.
             // Before: every EXIT popped the whole stack looking for a match, then restored
             // on failure — O(depth) work per EXIT, O(N×depth) total.
             // Now: we skip the stack scan entirely when no matching ENTER exists in the
             // dictionary (common for partial/truncated logs), and for matched EXITs we still
             // pop down but without any allocations or restores.
-            var nameFrames = new Dictionary<string, Stack<CallStackNode>>(StringComparer.Ordinal);
+            var nameFramesByThread = new Dictionary<string, Dictionary<string, Stack<CallStackNode>>>(StringComparer.Ordinal);
 
             foreach (var entry in entries)
             {
                 if (!entry.IsApiCall) continue;
+
+                string threadKey = entry.ThreadId ?? string.Empty;
+
+                if (!stacksByThread.TryGetValue(threadKey, out var stack))
+                    stacksByThread[threadKey] = stack = new Stack<CallStackNode>();
+                if (!nameFramesByThread.TryGetValue(threadKey, out var nameFrames))
+                    nameFramesByThread[threadKey] = nameFrames = new Dictionary<string, Stack<CallStackNode>>(StringComparer.Ordinal);
 
                 if (entry.IsCallEnter)
                 {
@@ -313,7 +333,7 @@ namespace Cad3PLogBrowser.Services
                     if (!nameFrames.TryGetValue(entry.ApiName, out var nf) || nf.Count == 0)
                         continue;
 
-                    // A match exists — pop the main stack down to it.
+                    // A match exists — pop this thread's stack down to it.
                     // Intermediate nodes are intentionally orphaned (their EXIT was not seen).
                     while (stack.Count > 0)
                     {

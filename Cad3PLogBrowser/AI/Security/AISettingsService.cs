@@ -90,9 +90,7 @@ namespace Cad3PLogBrowser.AI.Services
                 }
 
                 // Save API keys to secure storage
-                SaveSecureCredentials(settings);
-
-                return true;
+                return SaveSecureCredentials(settings);
             }
             catch (Exception ex)
             {
@@ -145,30 +143,40 @@ namespace Cad3PLogBrowser.AI.Services
             }
         }
 
-        private static void SaveSecureCredentials(AISettings settings)
+        /// <summary>
+        /// Persists the non-empty API keys to secure storage. Returns false if any single
+        /// key failed to write (e.g. Windows Credential Manager is policy-restricted, or a
+        /// key exceeds its storage size limit) so callers can surface the failure instead
+        /// of reporting success while a key silently never made it to disk.
+        /// </summary>
+        private static bool SaveSecureCredentials(AISettings settings)
         {
+            bool allSucceeded = true;
             try
             {
-                // Only save non-empty API keys
+                // Only save non-empty API keys. Use &= (not &&) so every key is still
+                // attempted even after an earlier one fails.
                 if (!string.IsNullOrWhiteSpace(settings.OpenAIApiKey))
-                    CredentialManager.StoreCredential("AI_OpenAI", settings.OpenAIApiKey);
+                    allSucceeded &= CredentialManager.StoreCredential("AI_OpenAI", settings.OpenAIApiKey);
 
                 if (!string.IsNullOrWhiteSpace(settings.AzureOpenAIApiKey))
-                    CredentialManager.StoreCredential("AI_AzureOpenAI", settings.AzureOpenAIApiKey);
+                    allSucceeded &= CredentialManager.StoreCredential("AI_AzureOpenAI", settings.AzureOpenAIApiKey);
 
                 if (!string.IsNullOrWhiteSpace(settings.AnthropicApiKey))
-                    CredentialManager.StoreCredential("AI_Anthropic", settings.AnthropicApiKey);
+                    allSucceeded &= CredentialManager.StoreCredential("AI_Anthropic", settings.AnthropicApiKey);
 
                 if (!string.IsNullOrWhiteSpace(settings.GoogleApiKey))
-                    CredentialManager.StoreCredential("AI_GoogleGemini", settings.GoogleApiKey);
+                    allSucceeded &= CredentialManager.StoreCredential("AI_GoogleGemini", settings.GoogleApiKey);
 
                 if (!string.IsNullOrWhiteSpace(settings.GitHubCopilotApiToken))
-                    CredentialManager.StoreCredential("AI_GitHubCopilot", settings.GitHubCopilotApiToken);
+                    allSucceeded &= CredentialManager.StoreCredential("AI_GitHubCopilot", settings.GitHubCopilotApiToken);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to save secure credentials: {ex.Message}");
+                allSucceeded = false;
             }
+            return allSucceeded;
         }
 
         private static AISettings CloneWithoutApiKeys(AISettings source)

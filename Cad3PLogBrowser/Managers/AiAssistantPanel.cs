@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -11,6 +12,7 @@ using Cad3PLogBrowser.AI.Security;
 using Cad3PLogBrowser.AI.Services;
 using Cad3PLogBrowser.Services;
 using Cad3PLogBrowser.Services.Analysis;
+using Cad3PLogBrowser.Services.Core;
 
 namespace Cad3PLogBrowser.Managers
 {
@@ -41,6 +43,13 @@ namespace Cad3PLogBrowser.Managers
         private Func<string> _getSelectedText;
         private CancellationTokenSource _cancellationTokenSource;
 
+        // Persisted chat history: one ongoing conversation per machine/user, not
+        // per log file or per session -- matches the Settings dialog's existing
+        // "Remember conversation history" / "Max messages" framing, which already
+        // implies a single remembered conversation rather than a browsable list.
+        private readonly IConversationStorage _conversationStorage = new FileConversationStorage();
+        private const string PersistedConversationId = "session";
+
         private const string SampleBanner =
             "?????????????????????????????????????????????????????????\n" +
             "?? SAMPLE RESPONSE — not real AI analysis.\n" +
@@ -62,10 +71,16 @@ namespace Cad3PLogBrowser.Managers
                            _findWarningsBtn, _perfBtn, _timelineBtn;
         private FlowLayoutPanel _promptChipsPanel;
         private TextBox    _chatInputBox;
-        private Button     _sendBtn, _clearBtn, _copyBtn, _settingsBtn;
+        private Button     _sendBtn, _stopBtn, _clearBtn, _copyBtn, _settingsBtn;
         private RichTextBox _responseBox;
         private ProgressBar _progressBar;
         private Label       _tokenLabel;
+
+        // Active-tab Find support (Ctrl+F) over AI response text.
+        private int _findCursor = 0;
+        private string _lastFindTerm = string.Empty;
+        private bool _lastFindMatchCase = false;
+        private bool _lastFindUseRegex = false;
 
         public AiAssistantPanel(
             Func<Models.AggregateStats> getStats,
@@ -80,6 +95,12 @@ namespace Cad3PLogBrowser.Managers
 
             InitializeAIService();
             BuildUI();
+
+            // Fire-and-forget: only attempted once, on construction -- not from
+            // RefreshAIService (called on every Settings save), so toggling an
+            // unrelated setting mid-session can't clobber an in-progress chat by
+            // re-loading the last saved one over it.
+            _ = RestoreConversationIfEnabledAsync();
         }
 
         private void InitializeAIService()
@@ -88,6 +109,10 @@ namespace Cad3PLogBrowser.Managers
             {
                 var settings = AISettingsService.Load();
                 _aiSettings = settings;
+                // Dispose the outgoing service (and its provider's HttpClient) before
+                // replacing it -- this runs on every settings refresh, so without this
+                // each refresh leaked one HttpClient/socket.
+                _aiService?.Dispose();
                 _aiService = new AIService(settings);
                 UpdateStatusLabel();
             }
@@ -101,6 +126,91 @@ namespace Cad3PLogBrowser.Managers
         {
             InitializeAIService();
             UpdateStatusLabel();
+        }
+
+        /// <summary>
+        /// Loads the persisted "session" conversation (if any) and restores it into
+        /// a freshly-started AIService conversation, so a real chat survives an app
+        /// restart. No-op when "Remember conversation history" is off, AI isn't
+        /// enabled/configured, or nothing was ever saved.
+        /// </summary>
+        private async Task RestoreConversationIfEnabledAsync()
+        {
+            try
+            {
+                if (_aiSettings == null || !_aiSettings.RememberConversation) return;
+                if (_aiService == null || !_aiService.IsEnabled) return;
+
+                var messages = await _conversationStorage.LoadConversationAsync(PersistedConversationId);
+                if (messages == null || messages.Count == 0) return;
+
+                _aiService.StartConversation();
+                foreach (var msg in messages)
+                    _aiService.ActiveConversation.AddMessage(msg);
+
+                RenderRestoredMessages(messages);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log("AiAssistantPanel.RestoreConversationIfEnabledAsync: failed. {0}", ex);
+            }
+        }
+
+        private void RenderRestoredMessages(List<ChatMessage> messages)
+        {
+            if (_responseBox.InvokeRequired)
+            {
+                _responseBox.Invoke(new Action(() => RenderRestoredMessages(messages)));
+                return;
+            }
+
+            ClearResponseBox();
+            _responseBox.AppendText("Restored your previous conversation.\n");
+            foreach (var msg in messages)
+            {
+                string label = string.Equals(msg.Role, "user", StringComparison.OrdinalIgnoreCase) ? "You" : "AI";
+                AppendText($"\n{label}: {msg.Content}\n");
+            }
+            _tokenLabel.Text = "Ready";
+        }
+
+        /// <summary>
+        /// Persists the active conversation's current messages, trimmed to the
+        /// configured max message count, if "Auto-save conversations" is enabled.
+        /// Called after every completed chat exchange -- one-shot analyses
+        /// (Summarize/Root Cause/etc.) don't go through a conversation and are
+        /// never persisted here.
+        /// </summary>
+        private async Task SaveConversationIfEnabledAsync()
+        {
+            try
+            {
+                if (_aiSettings == null || !_aiSettings.AutoSaveConversations) return;
+
+                var conversation = _aiService?.ActiveConversation;
+                if (conversation == null) return;
+
+                int maxMessages = Math.Max(1, _aiSettings.MaxConversationMessages);
+                var all = conversation.Messages;
+                var toSave = all.Count > maxMessages
+                    ? all.Skip(all.Count - maxMessages).ToList()
+                    : all.ToList();
+
+                await _conversationStorage.SaveConversationAsync(PersistedConversationId, toSave);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log("AiAssistantPanel.SaveConversationIfEnabledAsync: failed. {0}", ex);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _aiService?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         // ── Theme-aware styling helpers ──────────────────────────────────────
@@ -163,7 +273,7 @@ namespace Cad3PLogBrowser.Managers
                 BackColor = ThemeManager.ControlBackgroundColor
             };
 
-            // ?? Title with Settings button ????????????????????????????????
+            // ?? Title with Settings button ?????????????????????????????????
             _titlePanel = new Panel
             {
                 Dock      = DockStyle.Top,
@@ -294,13 +404,19 @@ namespace Cad3PLogBrowser.Managers
             _sendBtn = MakeSmallBtn("Send", DockStyle.Right, 70);
             _sendBtn.Click += async (s, e) => await SendChatMessageAsync();
 
+            // Interrupts whichever AI request is currently in flight (analysis or
+            // chat) — disabled unless one is actually running (see ShowProgress).
+            _stopBtn = MakeSmallBtn("Stop", DockStyle.Right, 70);
+            _stopBtn.Enabled = false;
+            _stopBtn.Click += (s, e) => _cancellationTokenSource?.Cancel();
+
             _copyBtn = MakeSmallBtn("Copy", DockStyle.Right, 70);
             _copyBtn.Click += (s, e) => CopyResponse();
 
             _clearBtn = MakeSmallBtn("Clear", DockStyle.Right, 70);
             _clearBtn.Click += (s, e) => ClearResponse();
 
-            _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _copyBtn, _clearBtn });
+            _inputPanel.Controls.AddRange(new Control[] { _chatInputBox, _sendBtn, _stopBtn, _copyBtn, _clearBtn });
 
             // ?? Example Prompt Chips (L6) ?????????????????????????????????
             // Clickable suggestions that send a ready-made question through the
@@ -431,6 +547,7 @@ namespace Cad3PLogBrowser.Managers
 
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             _responseBox.Clear();
 
@@ -456,22 +573,29 @@ namespace Cad3PLogBrowser.Managers
                     onChunkReceived: chunk => { captured.Append(chunk); AppendText(chunk); },
                     onComplete: result =>
                     {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete", and
+                        // don't cache an incomplete root-cause answer.
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
                         if (result.Success) _rootCauseCache[cacheKey] = captured.ToString();
                         OnAnalysisCompleteAnalysis(result);
                     },
                     onError: async ex =>
                     {
-                        _responseBox.Clear();
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
+                        ClearResponseBox();
                         await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
                     },
                     userQuery: string.Format(
                         "Analyze the likely root cause for '{0}' using ONLY the specific call chain below " +
                         "(not general log statistics) — what called it, at what depth, and with what timing.",
                         methodName),
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 _responseBox.Clear();
                 await RunCannedAnalysisAsync(AnalysisType.RootCause, realAiError: ex.Message);
             }
@@ -498,6 +622,7 @@ namespace Cad3PLogBrowser.Managers
             // Cancel any ongoing operation
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             // Clear previous response
             _responseBox.Clear();
@@ -519,19 +644,29 @@ namespace Cad3PLogBrowser.Managers
                     analysisType,
                     contextProviders,
                     onChunkReceived: chunk => AppendText(chunk),
-                    onComplete: result => OnAnalysisCompleteAnalysis(result),
+                    onComplete: result =>
+                    {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete".
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
+                        OnAnalysisCompleteAnalysis(result);
+                    },
                     onError: async ex =>
                     {
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
+
                         // Real provider failed at runtime (e.g. offline/unreachable) —
                         // gracefully fall back to a clearly-labeled sample response
                         // instead of just showing an error.
-                        _responseBox.Clear();
+                        ClearResponseBox();
                         await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
                     },
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 _responseBox.Clear();
                 await RunCannedAnalysisAsync(analysisType, realAiError: ex.Message);
             }
@@ -590,6 +725,7 @@ namespace Cad3PLogBrowser.Managers
             // Cancel any ongoing operation
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token;
 
             ShowProgress("AI is thinking...");
             AppendText("AI: ");
@@ -599,18 +735,29 @@ namespace Cad3PLogBrowser.Managers
                 await _aiService.SendConversationMessageStreamingAsync(
                     message,
                     onChunkReceived: chunk => AppendText(chunk),
-                    onComplete: result => OnAnalysisComplete(result),
+                    onComplete: result =>
+                    {
+                        // A provider that stops streaming because the token was
+                        // cancelled still reports Success=true with the partial
+                        // content — treat that as "stopped", not "complete".
+                        if (token.IsCancellationRequested) { HandleCancellation(); return; }
+                        OnAnalysisComplete(result);
+                        _ = SaveConversationIfEnabledAsync();
+                    },
                     onError: async ex =>
                     {
+                        if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
+
                         // Real provider failed mid-conversation — fall back to a
                         // clearly-labeled sample answer rather than a bare error.
                         await RunCannedChatAsync(message, realAiError: ex.Message);
                     },
                     contextProviders: contextProviders,
-                    cancellationToken: _cancellationTokenSource.Token);
+                    cancellationToken: token);
             }
             catch (Exception ex)
             {
+                if (IsUserCancellation(ex, token)) { HandleCancellation(); return; }
                 await RunCannedChatAsync(message, realAiError: ex.Message);
             }
         }
@@ -690,7 +837,11 @@ namespace Cad3PLogBrowser.Managers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating context providers: {ex.Message}");
+                // Whatever providers were added before the throw are still returned below,
+                // so the AI analysis proceeds on a partial/empty context with no visible
+                // sign anything was missing -- log it so a confusing/thin AI answer can at
+                // least be traced back to this instead of looking like a model quirk.
+                AppLogger.Log("AiAssistantPanel.CreateContextProviders: failed partway through. {0}", ex);
             }
 
             return providers;
@@ -708,6 +859,7 @@ namespace Cad3PLogBrowser.Managers
             _progressBar.Visible = true;
             _tokenLabel.Text = message;
             _sendBtn.Enabled = false;
+            _stopBtn.Enabled = true;
             _summarizeBtn.Enabled = false;
             _rootCauseBtn.Enabled = false;
             _findErrorsBtn.Enabled = false;
@@ -726,12 +878,54 @@ namespace Cad3PLogBrowser.Managers
 
             _progressBar.Visible = false;
             _sendBtn.Enabled = true;
+            _stopBtn.Enabled = false;
             _summarizeBtn.Enabled = true;
             _rootCauseBtn.Enabled = true;
             _findErrorsBtn.Enabled = true;
             _findWarningsBtn.Enabled = true;
             _perfBtn.Enabled = true;
             _timelineBtn.Enabled = true;
+        }
+
+        /// <summary>True if the Stop button caused this failure — the request was
+        /// interrupted deliberately, not a real provider error, so callers should
+        /// stop cleanly (keep whatever streamed so far) instead of falling back to
+        /// a canned/SAMPLE response.</summary>
+        private static bool IsUserCancellation(Exception ex, CancellationToken token) =>
+            ex is OperationCanceledException || token.IsCancellationRequested;
+
+        private void HandleCancellation()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(HandleCancellation));
+                return;
+            }
+
+            AppendText("\n\n⏹ Stopped.");
+            ReformatAllMarkdown();
+            HideProgress();
+            _tokenLabel.Text = "Stopped";
+        }
+
+        /// <summary>
+        /// Thread-safe wrapper around _responseBox.Clear(). Needed specifically because
+        /// Ollama and GitHub Copilot's StreamRequestAsync wrap their whole streaming
+        /// operation in Task.Run (the other providers don't), so a real failure on
+        /// either of them reaches the onError callback on a background thread with no
+        /// UI SynchronizationContext -- an unguarded Clear() there threw a cross-thread
+        /// exception that got caught and re-shown as "Real AI request failed
+        /// (Cross-thread operation not valid...)", masking the actual provider error.
+        /// </summary>
+        private void ClearResponseBox()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(ClearResponseBox));
+                return;
+            }
+
+            _responseBox.Clear();
         }
 
         private void AppendText(string text)
@@ -1056,6 +1250,12 @@ namespace Cad3PLogBrowser.Managers
             _aiService?.EndConversation();
             _tokenLabel.Text = "Ready";
             _responseBox.Text = "Conversation cleared. Start a new chat or run an analysis.";
+
+            // Explicit user action to forget this chat -- also remove the persisted
+            // copy so reopening the app doesn't silently resurrect a conversation
+            // the user just asked to clear. Best-effort; a delete failure here
+            // isn't worth interrupting the user over.
+            _ = _conversationStorage.DeleteConversationAsync(PersistedConversationId);
         }
 
         private void CopyResponse()
@@ -1212,6 +1412,163 @@ namespace Cad3PLogBrowser.Managers
             if (_tokenLabel != null)
             {
                 _tokenLabel.Text = text;
+            }
+        }
+
+        private static bool TextMatches(string text, string term, bool useRegex,
+            System.Text.RegularExpressions.Regex rx, StringComparison comparison)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            return useRegex ? rx.IsMatch(text) : text.IndexOf(term, comparison) >= 0;
+        }
+
+        public int FindInConversation(string term, bool matchCase, bool useRegex, bool forward)
+        {
+            if (string.IsNullOrEmpty(term) || _responseBox == null) return -1;
+
+            string allText = _responseBox.Text ?? string.Empty;
+            if (allText.Length == 0) return -1;
+
+            bool resetCursor = !string.Equals(term, _lastFindTerm, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || _lastFindMatchCase != matchCase
+                || _lastFindUseRegex != useRegex;
+
+            if (resetCursor)
+            {
+                _findCursor = forward ? 0 : allText.Length;
+                _lastFindTerm = term;
+                _lastFindMatchCase = matchCase;
+                _lastFindUseRegex = useRegex;
+            }
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            int foundIndex = -1;
+            int foundLength = term.Length;
+
+            if (!useRegex)
+            {
+                if (forward)
+                {
+                    foundIndex = allText.IndexOf(term, Math.Max(0, _findCursor), comparison);
+                    if (foundIndex < 0)
+                        foundIndex = allText.IndexOf(term, 0, comparison);
+                }
+                else
+                {
+                    int start = Math.Min(Math.Max(0, _findCursor - 1), Math.Max(0, allText.Length - 1));
+                    foundIndex = allText.LastIndexOf(term, start, comparison);
+                    if (foundIndex < 0)
+                        foundIndex = allText.LastIndexOf(term, allText.Length - 1, comparison);
+                }
+            }
+            else
+            {
+                var rx = new System.Text.RegularExpressions.Regex(
+                    term,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                var matches = rx.Matches(allText);
+                if (matches.Count == 0) return -1;
+
+                if (forward)
+                {
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        if (m.Index >= _findCursor)
+                        {
+                            foundIndex = m.Index;
+                            foundLength = Math.Max(1, m.Length);
+                            break;
+                        }
+                    }
+
+                    if (foundIndex < 0)
+                    {
+                        var first = (System.Text.RegularExpressions.Match)matches[0];
+                        foundIndex = first.Index;
+                        foundLength = Math.Max(1, first.Length);
+                    }
+                }
+                else
+                {
+                    for (int i = matches.Count - 1; i >= 0; i--)
+                    {
+                        var m = (System.Text.RegularExpressions.Match)matches[i];
+                        if (m.Index < _findCursor)
+                        {
+                            foundIndex = m.Index;
+                            foundLength = Math.Max(1, m.Length);
+                            break;
+                        }
+                    }
+
+                    if (foundIndex < 0)
+                    {
+                        var last = (System.Text.RegularExpressions.Match)matches[matches.Count - 1];
+                        foundIndex = last.Index;
+                        foundLength = Math.Max(1, last.Length);
+                    }
+                }
+            }
+
+            if (foundIndex < 0) return -1;
+
+            _responseBox.Focus();
+            _responseBox.Select(foundIndex, Math.Max(1, foundLength));
+            _responseBox.ScrollToCaret();
+
+            _findCursor = forward ? foundIndex + foundLength : foundIndex;
+            return foundIndex;
+        }
+
+        public int CountConversationMatches(string term, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (string.IsNullOrEmpty(term) || _responseBox == null) return 0;
+
+            string allText = _responseBox.Text ?? string.Empty;
+            if (allText.Length == 0) return 0;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            if (!useRegex)
+            {
+                int total = 0;
+                int start = 0;
+                while (start <= allText.Length - term.Length)
+                {
+                    int idx = allText.IndexOf(term, start, comparison);
+                    if (idx < 0) break;
+                    total++;
+                    if (idx <= currentIndex && currentIndex < idx + term.Length)
+                        rank = total;
+                    start = idx + Math.Max(1, term.Length);
+                }
+                return total;
+            }
+
+            try
+            {
+                var rx = new System.Text.RegularExpressions.Regex(
+                    term,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                var matches = rx.Matches(allText);
+                int total = matches.Count;
+                for (int i = 0; i < matches.Count; i++)
+                {
+                    var m = (System.Text.RegularExpressions.Match)matches[i];
+                    if (m.Index <= currentIndex && currentIndex < m.Index + Math.Max(1, m.Length))
+                    {
+                        rank = i + 1;
+                        break;
+                    }
+                }
+                return total;
+            }
+            catch
+            {
+                return 0;
             }
         }
     }

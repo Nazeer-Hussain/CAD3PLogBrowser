@@ -8,7 +8,7 @@ namespace Cad3PLogBrowser.AI.Abstractions
     /// Core abstraction for AI service providers.
     /// Enables swapping between OpenAI, Azure OpenAI, Anthropic Claude, Google Gemini, or mock implementations.
     /// </summary>
-    public interface IAIProvider
+    public interface IAIProvider : IDisposable
     {
         /// <summary>Provider identifier (e.g., "OpenAI", "AzureOpenAI", "Anthropic", "Gemini").</summary>
         string ProviderName { get; }

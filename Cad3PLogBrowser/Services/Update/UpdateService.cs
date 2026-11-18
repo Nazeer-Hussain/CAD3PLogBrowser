@@ -88,6 +88,8 @@ namespace Cad3PLogBrowser.Services.Update
         {
             if (string.IsNullOrWhiteSpace(manifestUrl))
                 throw new ArgumentNullException(UpdateServiceStrings.ErrorManifestUrlNullOrEmpty);
+            if (!manifestUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Update manifest URL must use HTTPS.", nameof(manifestUrl));
             _manifestUrl = manifestUrl;
         }
 
@@ -220,6 +222,23 @@ namespace Cad3PLogBrowser.Services.Update
 
             return Task.Run<string>(() =>
             {
+                if (string.IsNullOrWhiteSpace(downloadUrl) ||
+                    !downloadUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    LastDownloadError = "Refusing to download from a non-HTTPS URL.";
+                    return null;
+                }
+
+                // Hash verification is mandatory, not optional: a manifest with no sha256
+                // could otherwise be used to install anything that merely looks like a
+                // valid zip, including one served by an attacker-controlled manifest URL.
+                if (string.IsNullOrWhiteSpace(expectedSha256))
+                {
+                    LastDownloadError = "The update manifest is missing a required checksum, " +
+                        "so this download cannot be verified. Refusing to install it.";
+                    return null;
+                }
+
                 string tempPath = Path.Combine(Path.GetTempPath(),
                     UpdateServiceStrings.UpdateFileNamePrefix + Guid.NewGuid().ToString("N") + UpdateServiceStrings.UpdateFileNameSuffix);
 

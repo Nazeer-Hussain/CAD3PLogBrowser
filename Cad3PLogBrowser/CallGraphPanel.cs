@@ -33,6 +33,15 @@ namespace Cad3PLogBrowser
         private string    _hoveredNode;
         private bool      _structuralView = false;
 
+        // Active-tab Find support (Ctrl+F): method-name matches in Call Graph.
+        private string _searchText = string.Empty;
+        private bool _searchMatchCase = false;
+        private bool _searchUseRegex = false;
+        private readonly List<string> _searchMatches = new List<string>();
+        private readonly HashSet<string> _searchMatchSet = new HashSet<string>(StringComparer.Ordinal);
+        private int _searchMatchIndex = -1;
+        private string _activeSearchNode;
+
         // Per-file graphs (populated only for merged logs)
         private List<(string FileName, CallGraph Graph)> _fileGraphs;
         private ComboBox _fileSelector;
@@ -219,7 +228,94 @@ namespace Cad3PLogBrowser
 
         public void ToggleViewMode() { _structuralView = !_structuralView; Invalidate(); }
 
-        // ?? Layout ????????????????????????????????????????????????????????????
+        private bool NameMatches(string name, string term, bool matchCase, bool useRegex,
+            System.Text.RegularExpressions.Regex rx, StringComparison comparison)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            return useRegex ? rx.IsMatch(name) : name.IndexOf(term, comparison) >= 0;
+        }
+
+        private void RebuildSearchMatches(string term, bool matchCase, bool useRegex)
+        {
+            _searchText = term ?? string.Empty;
+            _searchMatchCase = matchCase;
+            _searchUseRegex = useRegex;
+            _searchMatches.Clear();
+            _searchMatchSet.Clear();
+            _searchMatchIndex = -1;
+            _activeSearchNode = null;
+
+            if (_graph == null || _graph.Nodes.Count == 0 || string.IsNullOrEmpty(_searchText))
+                return;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var rx = useRegex
+                ? new System.Text.RegularExpressions.Regex(
+                    _searchText,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                : null;
+
+            foreach (var name in _graph.Nodes.Keys.OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+            {
+                if (!NameMatches(name, _searchText, matchCase, useRegex, rx, comparison))
+                    continue;
+
+                _searchMatches.Add(name);
+                _searchMatchSet.Add(name);
+            }
+        }
+
+        public int FindNode(string term, bool matchCase, bool useRegex, bool forward)
+        {
+            if (_graph == null || _graph.Nodes.Count == 0 || string.IsNullOrEmpty(term)) return -1;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex
+                || _searchMatches.Count == 0;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return -1;
+
+            _searchMatchIndex = forward
+                ? (_searchMatchIndex + 1) % _searchMatches.Count
+                : (_searchMatchIndex - 1 + _searchMatches.Count) % _searchMatches.Count;
+
+            _activeSearchNode = _searchMatches[_searchMatchIndex];
+            _hoveredNode = _activeSearchNode;
+
+            if (_graph.Nodes.TryGetValue(_activeSearchNode, out var nd))
+            {
+                _pan.X = -nd.X * _zoom;
+                _pan.Y = -nd.Y * _zoom;
+                UpdateScrollableSize();
+            }
+
+            Invalidate();
+            return _searchMatchIndex;
+        }
+
+        public int CountNodeMatches(string term, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (_graph == null || _graph.Nodes.Count == 0 || string.IsNullOrEmpty(term)) return 0;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return 0;
+
+            rank = _searchMatchIndex >= 0 ? _searchMatchIndex + 1 : 0;
+            return _searchMatches.Count;
+        }
+
+        // ── Layout ───────────────────────────────────────────────────────────
         // Above this many nodes a circular layout becomes unreadable because its
         // radius (and therefore bounding box) grows linearly with node count,
         // forcing FitToWindow to shrink the zoom to near-illegible levels.
@@ -448,6 +544,9 @@ namespace Cad3PLogBrowser
                 foreach (var nd in _graph.Nodes.Values)
                 {
                     bool hov = nd.Name == _hoveredNode;
+                    bool isSearchMatch = _searchMatchSet.Contains(nd.Name);
+                    bool isActiveSearchMatch = !string.IsNullOrEmpty(_activeSearchNode)
+                        && string.Equals(nd.Name, _activeSearchNode, StringComparison.Ordinal);
                     heatMap.TryGetValue(nd.Name, out int h);
                     float t  = maxHeat > 0 ? (float)h / maxHeat : 0f;
 
@@ -469,6 +568,13 @@ namespace Cad3PLogBrowser
                         textCol = Color.White;
                     }
 
+                    if (isSearchMatch)
+                    {
+                        top = BlendColor(Color.FromArgb(255, 220, 30), top, 0.65f);
+                        bot = BlendColor(Color.FromArgb(245, 170, 0), bot, 0.55f);
+                        border = Color.FromArgb(255, 150, 0);
+                    }
+
                     var rect = new RectangleF(nd.X - NW / 2f, nd.Y - NH / 2f, NW, NH);
 
                     // Drop shadow
@@ -485,7 +591,8 @@ namespace Cad3PLogBrowser
                         FillRounded(g, gloss, new RectangleF(rect.X + 2, rect.Y + 2, rect.Width - 4, 6), 3);
 
                     // Border
-                    using (var pen = new Pen(border, hov ? 2.5f : 1.5f))
+                    float borderWidth = isActiveSearchMatch ? 3f : (hov ? 2.5f : 1.5f);
+                    using (var pen = new Pen(border, borderWidth))
                         StrokeRounded(g, pen, rect, NR);
 
                     // Function name

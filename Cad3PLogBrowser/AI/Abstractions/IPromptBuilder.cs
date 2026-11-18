@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cad3PLogBrowser.AI.Abstractions
 {
@@ -10,7 +11,7 @@ namespace Cad3PLogBrowser.AI.Abstractions
         /// <summary>
         /// Builds a complete prompt for analysis tasks.
         /// </summary>
-        string BuildAnalysisPrompt(string analysisType, string userQuery, IEnumerable<IContextProvider> contextProviders);
+        Task<string> BuildAnalysisPromptAsync(string analysisType, string userQuery, IEnumerable<IContextProvider> contextProviders);
 
         /// <summary>
         /// Builds a comparison prompt for comparing two logs.
@@ -20,7 +21,7 @@ namespace Cad3PLogBrowser.AI.Abstractions
         /// <summary>
         /// Builds a chat prompt with conversation history.
         /// </summary>
-        string BuildChatPrompt(string userMessage, List<ChatMessage> history, IEnumerable<IContextProvider> contextProviders);
+        Task<string> BuildChatPromptAsync(string userMessage, List<ChatMessage> history, IEnumerable<IContextProvider> contextProviders);
 
         /// <summary>
         /// Gets the system prompt for log analysis tasks.

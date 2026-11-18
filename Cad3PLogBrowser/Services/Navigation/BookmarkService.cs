@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Cad3PLogBrowser.Services.Core;
 
 namespace Cad3PLogBrowser.Services.Navigation
 {
@@ -144,7 +145,7 @@ namespace Cad3PLogBrowser.Services.Navigation
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load bookmarks: {ex.Message}");
+                AppLogger.Log("BookmarkService.LoadBookmarks: failed for '{0}'. {1}", filePath, ex);
             }
         }
 
@@ -172,7 +173,7 @@ namespace Cad3PLogBrowser.Services.Navigation
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save bookmarks: {ex.Message}");
+                AppLogger.Log("BookmarkService.SaveBookmarks: failed for '{0}'. {1}", _currentFilePath, ex);
             }
         }
 
@@ -211,7 +212,7 @@ namespace Cad3PLogBrowser.Services.Navigation
 
         /// <summary>
         /// Returns the 1-based position of <paramref name="lineNumber"/> in the sorted
-        /// bookmark list, or -1 if not found.  O(log N) — avoids the O(N) List allocation
+        /// bookmark list, or -1 if not found.  O(log N) ï¿½ avoids the O(N) List allocation
         /// + IndexOf that the previous callers used on every F2 press (PERF-03).
         /// </summary>
         public int GetBookmarkIndex(int lineNumber)

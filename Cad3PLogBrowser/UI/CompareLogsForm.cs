@@ -313,7 +313,12 @@ namespace Cad3PLogBrowser.UI
                 statusLabel.Text = "Loading files...";
                 progressBar.Visible = true;
                 progressBar.Style = ProgressBarStyle.Marquee;
-                Application.DoEvents();
+
+                // Force these controls to repaint immediately without pumping the full
+                // message queue (Application.DoEvents() here would let reentrant input —
+                // another drag-drop, a repeated Compare click — run against this form
+                // before it's finished loading).
+                statusStrip.Update();
 
                 leftTreeView.Nodes.Clear();
                 var leftLines = File.ReadAllLines(leftPath);

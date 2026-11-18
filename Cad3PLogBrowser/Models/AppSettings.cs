@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Windows.Forms;
+using Cad3PLogBrowser.Services.Core;
 
 namespace Cad3PLogBrowser.Services
 {
@@ -199,11 +200,19 @@ namespace Cad3PLogBrowser.Services
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "CAD3PLogBrowser", "settings.json");
 
+        /// <summary>
+        /// Set by <see cref="Load"/> when an existing settings.json could not be read
+        /// (missing, corrupted, or a serialization mismatch) and defaults were used
+        /// instead, so the caller can tell "first run" apart from "your settings were
+        /// silently discarded" and surface a one-time notice if it wants to.
+        /// </summary>
+        public bool WasResetOnLoad { get; private set; }
+
         public static AppSettings Load()
         {
+            string path = SettingsFilePath;
             try
             {
-                string path = SettingsFilePath;
                 if (!File.Exists(path)) return new AppSettings();
 
                 var bytes = File.ReadAllBytes(path);
@@ -211,13 +220,21 @@ namespace Cad3PLogBrowser.Services
                 using (var ms = new MemoryStream(bytes))
                     return (AppSettings)ser.ReadObject(ms);
             }
-            catch
+            catch (Exception ex)
             {
-                return new AppSettings();
+                AppLogger.Log("AppSettings.Load: failed to read '{0}' -- resetting to defaults. {1}",
+                    path, ex);
+                return new AppSettings { WasResetOnLoad = true };
             }
         }
 
-        public void Save()
+        /// <summary>
+        /// Saves settings to disk. Returns false on failure (e.g. the file is locked
+        /// by antivirus/sync, or the folder ACL denies write) instead of silently
+        /// discarding the change -- previously every caller, including the Settings
+        /// OK button, had no way to know a save had failed.
+        /// </summary>
+        public bool Save()
         {
             try
             {
@@ -230,8 +247,13 @@ namespace Cad3PLogBrowser.Services
                     ser.WriteObject(ms, this);
                     File.WriteAllBytes(SettingsFilePath, ms.ToArray());
                 }
+                return true;
             }
-            catch { /* Non-fatal */ }
+            catch (Exception ex)
+            {
+                AppLogger.Log("AppSettings.Save: failed to write '{0}'. {1}", SettingsFilePath, ex);
+                return false;
+            }
         }
 
     }

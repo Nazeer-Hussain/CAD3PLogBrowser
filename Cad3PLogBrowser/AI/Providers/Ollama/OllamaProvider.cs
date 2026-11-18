@@ -351,10 +351,7 @@ namespace Cad3PLogBrowser.AI.Providers.Ollama
 
             var options = new Dictionary<string, object>();
 
-            if (request.Temperature > 0)
-                options["temperature"] = request.Temperature;
-            else
-                options["temperature"] = 0.7;
+            options["temperature"] = request.Temperature;
 
             if (request.MaxTokens > 0)
                 options["num_predict"] = request.MaxTokens;

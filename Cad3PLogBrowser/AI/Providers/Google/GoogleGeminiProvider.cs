@@ -56,7 +56,20 @@ namespace Cad3PLogBrowser.AI.Providers.Google
         private string BuildUrl(bool stream = false)
         {
             string action = stream ? "streamGenerateContent" : "generateContent";
-            return $"{ApiBaseUrl}/{_model}:{action}?key={_apiKey}";
+            return $"{ApiBaseUrl}/{_model}:{action}";
+        }
+
+        /// <summary>
+        /// Attaches the API key via the x-goog-api-key header instead of the ?key=
+        /// query parameter. A key in the URL ends up in the clear anywhere the full
+        /// request URL is logged -- a TLS-inspecting proxy, or any future request
+        /// tracing -- whereas headers aren't typically captured by URL-only logging.
+        /// </summary>
+        private HttpRequestMessage CreateRequest(string url, HttpContent content)
+        {
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            httpRequest.Headers.Add("x-goog-api-key", _apiKey);
+            return httpRequest;
         }
 
         public async Task<IAIResponse> SendRequestAsync(IAIRequest request, CancellationToken cancellationToken = default)
@@ -74,7 +87,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                     Encoding.UTF8,
                     "application/json");
 
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, BuildUrl()) { Content = content };
+                var httpRequest = CreateRequest(BuildUrl(), content);
                 var httpResponse = await _httpClient.SendAsync(httpRequest, cancellationToken);
                 var responseText = await httpResponse.Content.ReadAsStringAsync();
 
@@ -118,7 +131,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                     Encoding.UTF8,
                     "application/json");
 
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, BuildUrl(stream: true)) { Content = content };
+                var httpRequest = CreateRequest(BuildUrl(stream: true), content);
 
                 var httpResponse = await _httpClient.SendAsync(httpRequest,
                     HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -254,7 +267,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                 ["contents"] = contents,
                 ["generationConfig"] = new Dictionary<string, object>
                 {
-                    ["temperature"] = request.Temperature > 0 ? request.Temperature : 0.7,
+                    ["temperature"] = request.Temperature,
                     ["maxOutputTokens"] = request.MaxTokens > 0 ? request.MaxTokens : 4096
                 }
             };
@@ -351,14 +364,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
 
         private string UnescapeJsonString(string str)
         {
-            if (string.IsNullOrEmpty(str))
-                return str;
-
-            return str
-                .Replace("\\n", "\n")
-                .Replace("\\r", "\r")
-                .Replace("\\\"", "\"")
-                .Replace("\\\\", "\\");
+            return JsonHelper.UnescapeJsonString(str);
         }
 
         private string ExtractNestedValue(string json, params string[] path)
@@ -399,7 +405,7 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                     }
                 }
 
-                return current.Trim().Trim('"');
+                return JsonHelper.UnescapeJsonString(current.Trim().Trim('"'));
             }
             catch
             {
@@ -510,6 +516,11 @@ namespace Cad3PLogBrowser.AI.Providers.Google
                 elements.Add(arrayContent.Substring(start).Trim());
 
             return elements;
+        }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
         }
     }
 }

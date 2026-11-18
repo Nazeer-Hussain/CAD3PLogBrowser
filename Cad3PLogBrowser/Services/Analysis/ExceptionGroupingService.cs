@@ -26,6 +26,18 @@ namespace Cad3PLogBrowser.Services.Analysis
             new Regex(@"(requestId|correlationId|sessionId|traceId)[=:\s]+([A-Za-z0-9\-]+)",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // UWGM-style logs mark an individual operation/request with a named token followed by a
+        // timestamp-like identifier, e.g. "File-Open 2026_09_15-05_03_58". This is the most precise
+        // correlation key available (one value per user action), so it's tried before the P/T fallback.
+        private static readonly Regex OperationTokenPattern =
+            new Regex(@"\b([A-Za-z][A-Za-z0-9]*-[A-Za-z0-9]+)\s+(\d{4}_\d{2}_\d{2}-\d{2}_\d{2}_\d{2})\b", RegexOptions.Compiled);
+
+        // Fallback: when a line has no explicit correlation keyword or operation token, group by
+        // LogEntry.ThreadId (already parsed by LogParserService for every supported log format —
+        // including Format B/Inventor logs, which have no process id at all, only "[Thread:NNN]").
+        // This spans the whole log for that thread rather than a single request, but at least keeps
+        // related lines together instead of being silently dropped from correlation.
+
         // K2: Group exception blocks
         public List<ExceptionGroup> GroupExceptions(List<LogEntry> entries)
         {
@@ -48,7 +60,22 @@ namespace Cad3PLogBrowser.Services.Analysis
                     if (current.ExceptionType == null)
                     {
                         var m = Regex.Match(e.RawText, @"([A-Za-z]+Exception|XComm|xcpt[A-Za-z]+)");
-                        if (m.Success) current.ExceptionType = m.Value;
+                        if (m.Success)
+                        {
+                            current.ExceptionType = m.Value;
+                        }
+                        else
+                        {
+                            // Fallback: many real-world logs report errors as
+                            // "Error: <FunctionName> - <message>" or "<Class>::<Method>: failed ..."
+                            // rather than a dedicated exception class name. Require an explicit "Error:"
+                            // keyword or a "::" separator so we don't accidentally match timestamp
+                            // fragments (e.g. the "T07" in "...T07:02:14.652Z...").
+                            var fn = Regex.Match(e.RawText,
+                                @"Error:\s*([A-Za-z_][A-Za-z0-9_]*)|([A-Za-z_][A-Za-z0-9_]*::[A-Za-z_][A-Za-z0-9_]*)");
+                            if (fn.Success)
+                                current.ExceptionType = fn.Groups[1].Success ? fn.Groups[1].Value : fn.Groups[2].Value;
+                        }
                     }
                 }
                 else if (current != null && e.LineNumber > current.EndLine + 5)
@@ -67,10 +94,31 @@ namespace Cad3PLogBrowser.Services.Analysis
             foreach (var e in entries)
             {
                 var m = CorrelationPattern.Match(e.RawText);
-                if (!m.Success) continue;
-                string id = m.Groups[2].Value;
-                if (!map.ContainsKey(id)) map[id] = new List<int>();
-                map[id].Add(e.LineNumber);
+                if (m.Success)
+                {
+                    string id = m.Groups[2].Value;
+                    if (!map.ContainsKey(id)) map[id] = new List<int>();
+                    map[id].Add(e.LineNumber);
+                    continue;
+                }
+
+                // Next, prefer a named operation token (e.g. "File-Open 2026_09_15-05_03_58"),
+                // which identifies a single logical request/operation.
+                var op = OperationTokenPattern.Match(e.RawText);
+                if (op.Success)
+                {
+                    string opId = op.Groups[1].Value + " " + op.Groups[2].Value;
+                    if (!map.ContainsKey(opId)) map[opId] = new List<int>();
+                    map[opId].Add(e.LineNumber);
+                    continue;
+                }
+
+                // Fallback: group by the already-parsed thread id (works across all log formats,
+                // including Inventor's [Thread:NNN] format which carries no process id).
+                if (string.IsNullOrEmpty(e.ThreadId)) continue;
+                string ptId = "Thread " + e.ThreadId;
+                if (!map.ContainsKey(ptId)) map[ptId] = new List<int>();
+                map[ptId].Add(e.LineNumber);
             }
             return map;
         }

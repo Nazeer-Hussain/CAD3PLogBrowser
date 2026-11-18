@@ -167,6 +167,7 @@
     <Compile Include="Services\CompressedLogService.cs" />
     <Compile Include="Services\Core\SessionService.cs" />
     <Compile Include="Services\Core\RecentFilesService.cs" />
+    <Compile Include="Services\Core\AppLogger.cs" />
     <Compile Include="Managers\HeatmapPanel.cs">
       <SubType>Component</SubType>
     </Compile>

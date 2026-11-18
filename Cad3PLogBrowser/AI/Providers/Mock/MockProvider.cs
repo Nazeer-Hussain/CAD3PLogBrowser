@@ -362,11 +362,16 @@ Please let me know what specific aspect you'd like me to focus on, or ask a more
         {
             public AuthenticationType AuthType => AuthenticationType.None;
             public bool IsAuthenticated => true;
-            public Task<string> ValidateAsync(CancellationToken cancellationToken = default) => 
+            public Task<string> ValidateAsync(CancellationToken cancellationToken = default) =>
                 Task.FromResult<string>(null);
             public string GetAuthenticationToken() => string.Empty;
-            public Task RefreshAsync(CancellationToken cancellationToken = default) => 
+            public Task RefreshAsync(CancellationToken cancellationToken = default) =>
                 Task.CompletedTask;
+        }
+
+        // No network resources to release -- Mock never makes a real HTTP call.
+        public void Dispose()
+        {
         }
     }
 }

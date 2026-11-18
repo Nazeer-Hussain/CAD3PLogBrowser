@@ -73,6 +73,14 @@ namespace Cad3PLogBrowser.Managers
         private Panel _contentPanel;
         private ToolTip _tooltip;
 
+        // Active-tab Find support (Ctrl+F): method-name search over timeline entries.
+        private string _searchText = string.Empty;
+        private bool _searchMatchCase = false;
+        private bool _searchUseRegex = false;
+        private readonly List<TimelineEntry> _searchMatches = new List<TimelineEntry>();
+        private readonly HashSet<TimelineEntry> _searchMatchSet = new HashSet<TimelineEntry>();
+        private int _searchMatchIndex = -1;
+
         // ======================================================================
         // Events
         // ======================================================================
@@ -382,6 +390,97 @@ namespace Cad3PLogBrowser.Managers
             _contentPanel.Invalidate();
         }
 
+        private bool EntryMatches(TimelineEntry entry, string term, bool useRegex,
+            System.Text.RegularExpressions.Regex rx, StringComparison comparison)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.MethodName)) return false;
+            return useRegex ? rx.IsMatch(entry.MethodName) : entry.MethodName.IndexOf(term, comparison) >= 0;
+        }
+
+        private void RebuildSearchMatches(string term, bool matchCase, bool useRegex)
+        {
+            _searchText = term ?? string.Empty;
+            _searchMatchCase = matchCase;
+            _searchUseRegex = useRegex;
+            _searchMatches.Clear();
+            _searchMatchSet.Clear();
+            _searchMatchIndex = -1;
+
+            if (_entries.Count == 0 || string.IsNullOrEmpty(_searchText))
+                return;
+
+            var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var rx = useRegex
+                ? new System.Text.RegularExpressions.Regex(
+                    _searchText,
+                    matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                : null;
+
+            foreach (var entry in _entries)
+            {
+                if (!EntryMatches(entry, _searchText, useRegex, rx, comparison))
+                    continue;
+
+                _searchMatches.Add(entry);
+                _searchMatchSet.Add(entry);
+            }
+        }
+
+        private void CenterEntryInView(TimelineEntry entry)
+        {
+            if (entry == null) return;
+
+            float cx = entry.Bounds.Left + entry.Bounds.Width / 2f;
+            float cy = entry.Bounds.Top + entry.Bounds.Height / 2f;
+            _panOffset.X = (_contentPanel.ClientSize.Width / 2f) - cx;
+            _panOffset.Y = (_contentPanel.ClientSize.Height / 2f) - cy;
+        }
+
+        public int FindEntry(string term, bool matchCase, bool useRegex, bool forward)
+        {
+            if (_entries.Count == 0 || string.IsNullOrEmpty(term)) return -1;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex
+                || _searchMatches.Count == 0;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return -1;
+
+            _searchMatchIndex = forward
+                ? (_searchMatchIndex + 1) % _searchMatches.Count
+                : (_searchMatchIndex - 1 + _searchMatches.Count) % _searchMatches.Count;
+
+            var match = _searchMatches[_searchMatchIndex];
+            _selectedEntry = match;
+            _hoveredEntry = match;
+            CenterEntryInView(match);
+            _statusBar.UpdateSelectedNode(match.MethodName, match.DurationMs);
+            _contentPanel.Invalidate();
+            return _searchMatchIndex;
+        }
+
+        public int CountEntryMatches(string term, bool matchCase, bool useRegex, int currentIndex, out int rank)
+        {
+            rank = 0;
+            if (_entries.Count == 0 || string.IsNullOrEmpty(term)) return 0;
+
+            bool rebuild = !string.Equals(term, _searchText, matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)
+                || matchCase != _searchMatchCase
+                || useRegex != _searchUseRegex;
+
+            if (rebuild)
+                RebuildSearchMatches(term, matchCase, useRegex);
+
+            if (_searchMatches.Count == 0) return 0;
+
+            rank = _searchMatchIndex >= 0 ? _searchMatchIndex + 1 : 0;
+            return _searchMatches.Count;
+        }
+
         // ??????????????????????????????????????????????????????????????????????
         // Public API
         // ??????????????????????????????????????????????????????????????????????
@@ -627,7 +726,7 @@ namespace Cad3PLogBrowser.Managers
             float visibleRight = LEFT_MARGIN + _contentPanel.ClientSize.Width;
 
             using (var tickPen  = new Pen(AxisColor, 1f))
-            using (var brush    = new SolidBrush(LabelColor))
+            using (var tickBrush    = new SolidBrush(LabelColor))
             {
                 // use cached _axisFont instead of allocating a new Font each paint
                 // Start from the first tick that could be visible
@@ -652,7 +751,7 @@ namespace Cad3PLogBrowser.Managers
                     string lbl = FormatMs(tick);
                     var    sz  = g.MeasureString(lbl, _axisFont);
                     if (x - sz.Width / 2 > visibleLeft - 4)
-                        g.DrawString(lbl, _axisFont, brush, x - sz.Width / 2, TOP_MARGIN - 20);
+                        g.DrawString(lbl, _axisFont, tickBrush, x - sz.Width / 2, TOP_MARGIN - 20);
                 }
 
                 // Baseline
@@ -732,8 +831,10 @@ namespace Cad3PLogBrowser.Managers
         {
             bool isHov = entry == _hoveredEntry;
             bool isSel = entry == _selectedEntry;
+            bool isSearchMatch = _searchMatchSet.Contains(entry);
 
             Color fill    = isHov ? Lighten(entry.Color, 1.22f) : entry.Color;
+            if (isSearchMatch) fill = Color.FromArgb(255, 220, 30);
             Color fillBot = Darken(fill, 0.75f);
             var   r       = entry.Bounds;
 
@@ -750,9 +851,10 @@ namespace Cad3PLogBrowser.Managers
 
             // Border
             Color border = isSel ? Color.FromArgb(0, 150, 230) :
+                           isSearchMatch ? Color.FromArgb(255, 145, 0) :
                            isHov ? Color.FromArgb(255, 255, 255, 80) :
                                    Color.FromArgb(0, 0, 0, 45);
-            using (var pen = new Pen(border, isSel ? 2f : 0.8f))
+            using (var pen = new Pen(border, isSel ? 2f : (isSearchMatch ? 1.6f : 0.8f)))
                 StrokeRounded(g, pen, r, BAR_RADIUS);
 
             // Selection pulse ring

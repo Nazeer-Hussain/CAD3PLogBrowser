@@ -39,9 +39,11 @@ namespace Cad3PLogBrowser.Services.Update
         public bool Mandatory { get; set; }
 
         /// <summary>
-        /// Optional SHA-256 hex digest of the EXE (ENH-6 / BUG-3 protection).
-        /// When present the downloaded file is verified before ApplyUpdate is called.
-        /// Leave null/empty to skip verification.
+        /// SHA-256 hex digest of the downloaded .zip. Verification is mandatory:
+        /// <see cref="UpdateService.DownloadUpdateAsync"/> refuses to apply an update
+        /// whose manifest omits this field, rather than silently skipping the check.
+        /// The release pipeline always populates it (see release.yml), so a manifest
+        /// missing it indicates either a broken publish or a tampered response.
         /// </summary>
         [DataMember(Name = "sha256")]
         public string Sha256 { get; set; }

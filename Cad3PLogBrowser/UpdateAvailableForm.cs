@@ -348,6 +348,12 @@
         // ENH-1 ? Progress percentage
         private void OnDownloadProgress(int percent)
         {
+            // Cancelling or closing the dialog while a progress event is already
+            // queued used to throw ObjectDisposedException here -- caught by the
+            // global handler and shown as a generic error right after what should
+            // be a silent cancel. Check IsDisposed before InvokeRequired, which can
+            // itself throw once the handle has been destroyed.
+            if (IsDisposed) return;
             if (InvokeRequired) { BeginInvoke((Action<int>)OnDownloadProgress, percent); return; }
             _progressBar.Value = Math.Min(percent, 100);
         }
@@ -355,6 +361,7 @@
         // ENH-1 ? Speed + ETA in the status label
         private void OnDownloadStats(long bytesReceived, long totalBytes, long speedBytesPerSec)
         {
+            if (IsDisposed) return;
             if (InvokeRequired)
             {
                 BeginInvoke((Action<long, long, long>)OnDownloadStats, bytesReceived, totalBytes, speedBytesPerSec);

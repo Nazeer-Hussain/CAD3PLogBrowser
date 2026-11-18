@@ -268,15 +268,29 @@ namespace Cad3PLogBrowser.AI.Utilities
 
         private static string UnescapeString(string str)
         {
+            return UnescapeJsonString(str);
+        }
+
+        /// <summary>
+        /// Unescapes a JSON string value's escape sequences (\", \n, \r, \t, \\) after a
+        /// provider has manually pulled it out of a response body via substring parsing
+        /// rather than a full JSON parser. Must be called on every such extracted value --
+        /// otherwise literal "\n"/"\"" sequences survive verbatim into text shown to the
+        /// user. \\ is unescaped last so an escaped backslash immediately followed by
+        /// another escape character (e.g. a literal "\\n" meaning backslash+n, not a
+        /// newline) round-trips the same way this codebase's other JSON call sites do.
+        /// </summary>
+        public static string UnescapeJsonString(string str)
+        {
             if (string.IsNullOrEmpty(str))
                 return str;
 
             return str
                 .Replace("\\\"", "\"")
-                .Replace("\\\\", "\\")
                 .Replace("\\n", "\n")
                 .Replace("\\r", "\r")
-                .Replace("\\t", "\t");
+                .Replace("\\t", "\t")
+                .Replace("\\\\", "\\");
         }
     }
 }
